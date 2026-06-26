@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lessons from each system — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VII. Building Understanding</p>
+  <p class="chapter-label">Chapter 28. Case Studies</p>
+  <h1 class="content-title">Lessons from each system</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="278-mistakes-and-redesigns.html"><span class="dir">← Previous</span><span class="ttl">Mistakes and redesigns</span></a><a class="next" href="281-sql-is-slow.html"><span class="dir">Next →</span><span class="ttl">SQL is slow</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Each case study in this chapter was a real design problem, and each one taught something that generalises beyond its specific domain. This closing page distills the cross-cutting lessons — the patterns and principles that appear in every well-designed database system, regardless of scale or use case.
+
+## Lesson 1: Design for Reads, Not for Writes
+
+Applications almost always read far more than they write. The to-do app, the e-commerce store, and the chat system all write once and read hundreds of times. The lesson is to **design your schema and indexes around your most frequent read queries**, and accept that writes take slightly more work.
+
+This means:
+- Put the right columns in indexes (leading with the most selective filter first).
+- Pre-compute values that are expensive to aggregate at read time (the analytics pipeline's `agg_daily_traffic`).
+- Accept denormalization when it eliminates a slow join on the hot path.
+
+> **Counter-balance:** Time-series and analytics pipelines invert this: writes are the bottleneck. In those systems, design for write throughput (sequential appends, no secondary indexes on raw data) and accept slower ad-hoc reads in exchange.
+
+## Lesson 2: Model Your Access Patterns Before Your Entities
+
+The most common mistake in schema design is drawing an entity-relationship diagram based on the business domain, then wondering later why queries are slow. The better order:
+
+1. List your queries — every distinct read pattern the app will run.
+2. List your writes — inserts, updates, deletes and how frequently each occurs.
+3. **Then** design the schema and indexes to serve those patterns.
+
+The chat system's `server_seq` column exists solely because of the access pattern "load the last 50 messages in a conversation ordered by sequence." The multi-tenant SaaS's leading `tenant_id` in every index exists because every query is scoped to one tenant. The entity-relationship diagram alone wouldn't have told you either of those things.
+
+## Lesson 3: Timestamps Are Cheap — Audit Trails Are Priceless
+
+Every table in every system should have `created_at`. Most tables should have `updated_at`. High-stakes tables (orders, payments, status changes) should have a separate `_history` table with full row snapshots.
+
+The e-commerce order that records its address and unit price at purchase time, the chat message that records `sent_at` and `server_seq`, the analytics pipeline's raw events that are never modified — these are all applications of the same principle: **immutable historical records prevent a category of bugs that are otherwise nearly impossible to debug**.
+
+## Lesson 4: Keep the Write Path Simple
+
+Every application layer between a write and durable storage is a potential failure point. The analytics pipeline's principle of idempotent ETL (delete + re-insert, not update-in-place) is a general rule: **make your write operations safe to re-run**. This applies to:
+
+- Database migrations (should be runnable more than once without breaking).
+- ETL jobs (should produce the same output given the same input).
+- API endpoints that create resources (should be idempotent when given the same request ID).
+
+## Lesson 5: Normalize Until It Hurts, Then Denormalize Deliberately
+
+Start normalized. The to-do app's `tags` table is separate from `tasks`. The time-series schema's `metric_names` is separate from `metrics`. The search schema's `documents` is separate from `doc_search`.
+
+Then, when you profile real queries and find that a join is responsible for a significant share of read latency, denormalize that specific join — store a redundant copy of the data in the row that needs it. Document the denormalization and the procedure for keeping the copies in sync.
+
+**Never pre-emptively denormalize.** It adds complexity before you have evidence the complexity is necessary.
+
+<figure class="diagram">
+<svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lessons summary: six principles arranged as a cycle — design for reads, model access patterns, keep write path simple, normalize then denormalize, audit trails, and choose the right tool">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Center label -->
+  <circle cx="350" cy="170" r="52" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="350" y="164" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">Good</text>
+  <text x="350" y="180" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">Database</text>
+  <text x="350" y="196" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">Design</text>
+
+  <!-- Satellite boxes -->
+  <!-- Top-left: Design for reads -->
+  <rect x="20" y="10" width="170" height="55" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="105" y="30" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Design for reads</text>
+  <text x="105" y="46" text-anchor="middle" font-size="10" fill="var(--muted)">Index your hottest queries;</text>
+  <text x="105" y="59" text-anchor="middle" font-size="10" fill="var(--muted)">pre-compute aggregates</text>
+  <line x1="190" y1="55" x2="308" y2="130" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Top-right: Access patterns first -->
+  <rect x="510" y="10" width="175" height="55" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="597" y="30" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Access patterns first</text>
+  <text x="597" y="46" text-anchor="middle" font-size="10" fill="var(--muted)">List queries before you draw</text>
+  <text x="597" y="59" text-anchor="middle" font-size="10" fill="var(--muted)">the ER diagram</text>
+  <line x1="510" y1="55" x2="392" y2="130" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Middle-left: Audit trails -->
+  <rect x="10" y="145" width="170" height="55" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="95" y="165" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Audit trails</text>
+  <text x="95" y="181" text-anchor="middle" font-size="10" fill="var(--muted)">created_at everywhere;</text>
+  <text x="95" y="194" text-anchor="middle" font-size="10" fill="var(--muted)">_history tables for state</text>
+  <line x1="180" y1="172" x2="297" y2="172" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Middle-right: Simple write path -->
+  <rect x="520" y="145" width="170" height="55" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="605" y="165" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Simple write path</text>
+  <text x="605" y="181" text-anchor="middle" font-size="10" fill="var(--muted)">Idempotent ETL; avoid</text>
+  <text x="605" y="194" text-anchor="middle" font-size="10" fill="var(--muted)">complex update logic</text>
+  <line x1="520" y1="172" x2="403" y2="172" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Bottom-left: Normalize first -->
+  <rect x="20" y="270" width="170" height="55" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="105" y="290" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Normalize first</text>
+  <text x="105" y="306" text-anchor="middle" font-size="10" fill="var(--muted)">Denormalize only after</text>
+  <text x="105" y="319" text-anchor="middle" font-size="10" fill="var(--muted)">profiling proves it</text>
+  <line x1="190" y1="285" x2="308" y2="215" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Bottom-right: Right tool -->
+  <rect x="510" y="270" width="175" height="55" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="597" y="290" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Right tool per workload</text>
+  <text x="597" y="306" text-anchor="middle" font-size="10" fill="var(--muted)">Relational → search → time-series</text>
+  <text x="597" y="319" text-anchor="middle" font-size="10" fill="var(--muted)">→ KV as workload demands</text>
+  <line x1="510" y1="285" x2="392" y2="215" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+</svg>
+<figcaption>Six cross-cutting lessons from the case studies — each one applies across every system in this chapter.</figcaption>
+</figure>
+
+## Lesson 6: Choose the Right Tool for the Workload
+
+The case studies deliberately span different database types:
+
+| System | Dominant characteristic | Best tool |
+|---|---|---|
+| To-do app | OLTP, low volume | SQLite / PostgreSQL |
+| E-commerce | OLTP, transactions, concurrency | PostgreSQL / MySQL |
+| Chat | High-frequency writes + reads, ordering | PostgreSQL + Redis for fan-out |
+| Analytics pipeline | Batch reads, columnar scans | DuckDB / BigQuery / ClickHouse |
+| Time-series metrics | Append-only, retention, rollups | TimescaleDB / InfluxDB |
+| Search index | Inverted index, relevance ranking | Elasticsearch / Typesense |
+| Multi-tenant SaaS | OLTP, row-level isolation | PostgreSQL with RLS |
+
+None of these tools is universally best. PostgreSQL is an excellent default that covers most OLTP workloads. But when your access pattern fundamentally conflicts with a relational B-tree (e.g., full-text ranking, sub-second time-series ingestion, graph traversal), switching tools pays off faster than you expect.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Lessons Applied</span></div>
+  <div class="widget-body">
+    <textarea data-setup="
+CREATE TABLE systems (name TEXT PRIMARY KEY, workload TEXT, key_lesson TEXT, recommended_tool TEXT);
+INSERT INTO systems VALUES
+  ('To-do app','OLTP, low volume','Index for reads; model access patterns','SQLite/PostgreSQL'),
+  ('E-commerce','Transactions, concurrency','Integer cents; snapshot prices','PostgreSQL/MySQL'),
+  ('Chat','High-freq writes+reads','Cursor pagination; server_seq ordering','PostgreSQL + Redis'),
+  ('Analytics pipeline','Batch reads, aggregation','Star schema; idempotent ETL','DuckDB/BigQuery'),
+  ('Time-series','Append-only, retention','Composite PK on ts; rollups','TimescaleDB/InfluxDB'),
+  ('Search index','Relevance ranking','Inverted index; BM25 scoring','Elasticsearch/Typesense'),
+  ('Multi-tenant SaaS','Row-level isolation','tenant_id leading every index','PostgreSQL with RLS');
+">-- Cross-reference: systems with their key lessons
+SELECT name, workload, key_lesson
+FROM systems
+ORDER BY name;
+
+-- Try: filter by tool family
+-- SELECT name, recommended_tool FROM systems
+-- WHERE recommended_tool LIKE '%PostgreSQL%';</textarea>
+  </div>
+</div>
+
+## Final Reflection
+
+Good database design is not about memorizing rules. It is about asking the right questions:
+
+- **What are my read queries?** (Design indexes for them.)
+- **What must never be lost?** (Make it append-only and immutable.)
+- **What grows without bound?** (Build in retention and pagination.)
+- **What must be consistent?** (Put it in a transaction.)
+- **What is expensive to compute?** (Pre-aggregate it.)
+
+Every schema you write is a set of bets about how the data will be used. Make those bets explicit, document them, profile them in production, and update them when reality proves them wrong.
+
+## Key Takeaways
+
+- **Design for reads first** — your indexes are predictions about which queries matter most.
+- **Access patterns before entities** — understand how data flows before you draw the schema.
+- **Timestamps and history tables** are cheap insurance against a category of hard-to-debug errors.
+- **Idempotent writes** make systems resilient to retries, restarts, and partial failures.
+- **Normalize first, denormalize with evidence** — premature denormalization is complexity without benefit.
+- **Choose the right tool** — no single database technology is optimal for every workload class.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

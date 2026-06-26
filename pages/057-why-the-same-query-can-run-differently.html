@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why the same query can run differently — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part II. Querying and Language</p>
+  <p class="chapter-label">Chapter 6. How Query Processing Works</p>
+  <h1 class="content-title">Why the same query can run differently</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="056-rule-based-and-cost-based-planning.html"><span class="dir">← Previous</span><span class="ttl">Rule-based and cost-based planning</span></a><a class="next" href="058-reading-an-explain-plan.html"><span class="dir">Next →</span><span class="ttl">Reading an explain plan</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+When you write a SQL query, you describe *what* you want — not *how* to get it. The database engine is free to choose any execution strategy it likes, as long as the result is correct. That freedom is powerful, but it also means the same query can behave very differently depending on the data, the indexes available, and even the current state of internal statistics. Understanding why helps you write queries that stay fast as your data grows.
+
+## The Query Optimizer's Job
+
+Before a query runs a single row scan, it passes through the **query optimizer**. The optimizer's job is to translate your logical request into a concrete *query plan* — a sequence of physical operations like index lookups, table scans, hash joins, and sorts.
+
+The optimizer considers many possible plans and picks the one it estimates will be cheapest (usually measured in I/O operations or CPU cycles). Its estimates are based on **statistics** the database maintains: how many rows a table has, how many distinct values a column holds, how data is distributed across pages.
+
+```sql
+-- The same logical query...
+SELECT name FROM orders WHERE customer_id = 42;
+
+-- ...might be executed as either:
+-- Plan A: full table scan, filter each row
+-- Plan B: index seek on customer_id, fetch matching rows
+```
+
+Which plan wins depends on the optimizer's current statistics and what indexes exist.
+
+## Three Reasons the Same Query Can Run Differently
+
+### 1. Presence or absence of an index
+
+An index turns a table scan into a direct lookup. Without one, the engine reads every row. With one, it jumps straight to the matching rows. The same `WHERE` clause becomes dramatically faster — or slower for bulk operations where the index adds overhead.
+
+### 2. Table statistics are stale or inaccurate
+
+Optimizers rely on statistics, not real data, to estimate row counts. If a table has grown significantly since statistics were last collected, the optimizer may choose a plan that was good for 1,000 rows but terrible for 10 million. Most databases update statistics automatically on a schedule, but heavy write workloads can outpace those updates.
+
+### 3. Data skew
+
+Even accurate statistics can mislead when data is unevenly distributed. Imagine a column `status` where 99% of rows have `status = 'completed'` and only 1% have `status = 'pending'`. A query filtering for `'pending'` benefits enormously from an index; the same query filtering for `'completed'` might be faster as a full scan because the index would touch nearly every row anyway.
+
+| Filter value | Selectivity | Better plan |
+|---|---|---|
+| `status = 'pending'` | High (1% of rows) | Index seek |
+| `status = 'completed'` | Low (99% of rows) | Full table scan |
+
+> **Note:** Databases expose the chosen plan via `EXPLAIN` (or `EXPLAIN QUERY PLAN` in SQLite). Reading the plan is the most reliable way to understand *why* a query runs the way it does.
+
+## Seeing It Yourself
+
+The widget below sets up a small `orders` table and lets you inspect the query plan for different filters. Try running `EXPLAIN QUERY PLAN` on queries that filter by an indexed column versus an unindexed one.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Query plans and indexes</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, amount REAL); INSERT INTO orders VALUES (1,10,'completed',99.5),(2,42,'pending',14.0),(3,42,'completed',200.0),(4,7,'pending',55.0),(5,42,'completed',30.0),(6,10,'pending',80.0),(7,3,'completed',120.0),(8,42,'pending',9.99),(9,5,'completed',300.0),(10,42,'completed',45.0); CREATE INDEX idx_customer ON orders(customer_id);">-- EXPLAIN QUERY PLAN shows how SQLite will execute a query.
+-- This query can use the index on customer_id:
+EXPLAIN QUERY PLAN
+SELECT * FROM orders WHERE customer_id = 42;
+
+-- Change customer_id to status (no index) and re-run to compare:
+-- EXPLAIN QUERY PLAN
+-- SELECT * FROM orders WHERE status = 'pending';</textarea>
+  </div>
+</div>
+
+Run the first plan and look for `USING INDEX idx_customer` in the output. Then uncomment the second block and run it — you should see `SCAN orders` instead, meaning SQLite reads every row. Both queries return correct results; only the path differs.
+
+## What This Means in Practice
+
+The optimizer tries hard, but it cannot see the future. As a developer or analyst:
+
+- **Create indexes on columns you filter or join on frequently** — they give the optimizer better options.
+- **Keep statistics fresh** — run `ANALYZE` (SQLite/PostgreSQL) after large data loads.
+- **Use `EXPLAIN` before tuning** — never assume; check what the engine actually plans to do.
+- **Test with realistic data volumes** — a query that looks fast on 100 rows in development can behave completely differently on 10 million rows in production.
+
+The key insight is that SQL is declarative: you state the goal, and the engine picks the route. The engine's choice is only as good as the information it has — so giving it good indexes and fresh statistics is how you steer it toward fast plans.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

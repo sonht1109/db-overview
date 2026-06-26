@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steal and no-steal — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part III. Storage and Execution</p>
+  <p class="chapter-label">Chapter 13. Recovery</p>
+  <h1 class="content-title">Steal and no-steal</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="124-checkpoints-and-restart.html"><span class="dir">← Previous</span><span class="ttl">Checkpoints and restart</span></a><a class="next" href="126-force-and-no-force.html"><span class="dir">Next →</span><span class="ttl">Force and no-force</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+When a transaction modifies data, those changes live first in the **buffer pool** — the region of RAM where the database caches disk pages. The question of *when* those dirty (modified) pages are allowed to reach disk — and *which* transactions' changes can go first — turns out to be one of the most consequential design decisions in a storage engine. Two paired policies answer it: **steal / no-steal** and **force / no-force**. This page covers the steal side; the next covers force.
+
+## The Problem: Dirty Pages and Crashes
+
+Imagine transaction T1 has updated a page in the buffer pool but hasn't committed yet. Meanwhile the buffer pool is running low on space, so the page manager wants to evict that page to make room for something else. If it writes the dirty page to disk, it has *stolen* that slot on behalf of T1 before T1 is done. What happens if T1 then aborts — or the system crashes mid-write?
+
+That is the steal problem. The policy you choose shapes what work recovery must do.
+
+## Steal vs. No-Steal
+
+| Policy | Definition | Implication for recovery |
+|---|---|---|
+| **No-steal** | A dirty page belonging to an uncommitted transaction is **never** written to disk. | Undo is not needed — uncommitted data never reaches disk. |
+| **Steal** | The buffer manager **may** evict and write a dirty page to disk even before its transaction commits. | Recovery must be able to **undo** changes of transactions that were in-flight when the crash happened. |
+
+### No-steal: simple but expensive
+
+No-steal is conceptually clean: if a page is dirty and its transaction hasn't committed, it stays in RAM. There is nothing to undo on disk after a crash because uncommitted data never got there. The downside is memory pressure — you can never reclaim buffer frames owned by long-running transactions, and if one transaction touches enough pages, the buffer pool fills up and work grinds to a halt.
+
+### Steal: realistic but requires undo
+
+Almost every production database uses **steal**. The buffer manager is free to evict any page at any time. This keeps memory usage bounded regardless of transaction size. The cost: if the system crashes, some pages on disk may contain changes from transactions that never committed. The recovery subsystem must **undo** those changes by consulting the write-ahead log (WAL).
+
+> **Note:** "Steal" is the buffer manager *stealing* a frame from an uncommitted transaction. The frame goes to disk, and the transaction loses its claim on that memory slot.
+
+## How Steal Interacts with the Write-Ahead Log
+
+Steal only works safely alongside WAL. Before a dirty page is written to disk, the log record describing that change must already be on disk (the WAL rule: **log before data**). That way, if a crash occurs right after the stolen page lands on disk, the recovery process can find the log entry and roll back the change.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing steal policy: log record written to disk before dirty page is flushed, enabling undo on crash">
+  <!-- Timeline axis -->
+  <line x1="40" y1="240" x2="600" y2="240" stroke="var(--border)" stroke-width="2"/>
+  <polygon points="600,235 612,240 600,245" fill="var(--border)"/>
+  <text x="614" y="244" font-size="13" fill="var(--text)">time</text>
+
+  <!-- Events on axis -->
+  <!-- T1 writes dirty page to buffer pool -->
+  <line x1="110" y1="235" x2="110" y2="245" stroke="var(--border)" stroke-width="2"/>
+  <text x="70" y="260" font-size="12" fill="var(--text)">T1 modifies</text>
+  <text x="74" y="274" font-size="12" fill="var(--text)">buffer page</text>
+
+  <!-- Log record flushed to disk -->
+  <line x1="240" y1="235" x2="240" y2="245" stroke="var(--border)" stroke-width="2"/>
+  <text x="198" y="260" font-size="12" fill="var(--text)">Log record</text>
+  <text x="200" y="274" font-size="12" fill="var(--text)">→ disk (WAL)</text>
+
+  <!-- Dirty page stolen to disk -->
+  <line x1="370" y1="235" x2="370" y2="245" stroke="var(--border)" stroke-width="2"/>
+  <text x="325" y="260" font-size="12" fill="var(--text)">Dirty page</text>
+  <text x="323" y="274" font-size="12" fill="var(--text)">stolen → disk</text>
+
+  <!-- Crash -->
+  <line x1="460" y1="220" x2="460" y2="245" stroke="#e05" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="450" y="214" font-size="13" fill="#e05" font-weight="bold">CRASH</text>
+
+  <!-- Boxes above timeline -->
+  <!-- Buffer pool box -->
+  <rect x="60" y="60" width="160" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="140" y="85" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">Buffer Pool</text>
+  <text x="140" y="105" font-size="12" fill="var(--text)" text-anchor="middle">(dirty page for T1)</text>
+
+  <!-- WAL box -->
+  <rect x="270" y="60" width="140" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="340" y="85" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">WAL on Disk</text>
+  <text x="340" y="105" font-size="12" fill="var(--text)" text-anchor="middle">(undo record for T1)</text>
+
+  <!-- Data file box -->
+  <rect x="460" y="60" width="140" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="530" y="85" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">Data File</text>
+  <text x="530" y="105" font-size="12" fill="var(--text)" text-anchor="middle">(stolen page landed)</text>
+
+  <!-- Arrows between boxes -->
+  <!-- Buffer → WAL -->
+  <line x1="220" y1="90" x2="268" y2="90" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr)"/>
+  <!-- WAL → Data file -->
+  <line x1="410" y1="90" x2="458" y2="90" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- WAL must come first label -->
+  <text x="244" y="78" font-size="11" fill="var(--accent)" text-anchor="middle">WAL first</text>
+
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Recovery undo arrow from crash back toward data file -->
+  <path d="M 460 180 Q 510 170 530 135" stroke="#e05" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#rarr)"/>
+  <text x="488" y="168" font-size="11" fill="#e05">undo via log</text>
+
+  <defs>
+    <marker id="rarr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#e05"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>Steal policy: the log record must reach disk before the dirty page is evicted. After a crash, recovery reads the log and undoes the stolen write.</figcaption>
+</figure>
+
+## Choosing a Policy in Practice
+
+Real systems overwhelmingly choose **steal + no-force** (no-force is covered next). This combination gives the buffer manager maximum freedom: evict any page whenever needed, and never force a commit to flush all its pages to disk synchronously. The trade-off is that recovery must handle both undo (for stolen, uncommitted pages) and redo (for committed pages that hadn't reached disk yet). Systems like InnoDB, PostgreSQL, and SQLite all implement undo logs or MVCC rollback segments precisely to support steal.
+
+No-steal survives in niche settings — some in-memory databases or logging systems where all data fits comfortably in memory — but it is rarely viable for general-purpose workloads.
+
+<details class="reveal"><summary>Reveal: Why can't no-steal simply pin all dirty pages in RAM?</summary><div class="reveal-body">It can — and that is exactly what no-steal does. But "pin in RAM" means that memory is reserved until the transaction commits. If a transaction touches thousands of pages (say, a bulk update), all of those frames are locked in the buffer pool. When the pool is exhausted, every other query that needs a new page is blocked. Steal releases that pressure by allowing eviction, at the cost of needing undo support in recovery.</div></details>
+
+## Quick Summary
+
+| | No-steal | Steal |
+|---|---|---|
+| Uncommitted dirty pages on disk? | Never | Yes (when evicted) |
+| Undo needed at recovery? | No | Yes |
+| Memory pressure | High for large transactions | Bounded — frames can be recycled |
+| Used in practice? | Rarely | Almost universally |
+
+The steal/no-steal choice is invisible to application developers writing SQL, but it quietly determines how large a transaction you can run and how fast the database recovers from a crash.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

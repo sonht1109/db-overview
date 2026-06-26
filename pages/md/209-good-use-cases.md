@@ -1,0 +1,334 @@
+Graph databases earn their place when the **relationships between things matter as much as the things themselves**. Relational tables excel at storing and filtering rows; graph databases excel at traversing webs of connections quickly and expressively. The use cases below share a common trait: the query is fundamentally a walk through a network, and the answer lives in the shape of the graph — not just in the values of individual records.
+
+## Social Networks
+
+The canonical graph use case. Social platforms like **LinkedIn**, **Facebook**, and **Twitter/X** model users as nodes and friendships, follows, or professional connections as edges.
+
+Queries that are trivial in Cypher but painful in SQL:
+
+- *"Who are my friends-of-friends that I haven't met yet?"* (2-hop traversal)
+- *"What is the shortest introduction path from me to a VP at Stripe?"* (shortest path)
+- *"Who are the most influential people within 3 hops of this community?"* (subgraph centrality)
+
+**LinkedIn's People You May Know** feature is essentially a graph walk: traverse KNOWS edges up to 2–3 hops, count shared connections, rank by edge-weight (interaction frequency). LinkedIn runs its own graph platform (LinkedIn Graph) built on top of custom graph infrastructure precisely because the query patterns are path-centric, not row-centric.
+
+```cypher
+-- Find friends-of-friends not already connected to Alice
+MATCH (alice:Person {name: "Alice"})-[:KNOWS]->(friend)-[:KNOWS]->(fof)
+WHERE NOT (alice)-[:KNOWS]->(fof)
+  AND fof <> alice
+RETURN fof.name, COUNT(friend) AS mutual_friends
+ORDER BY mutual_friends DESC
+LIMIT 10
+```
+
+> **Why not SQL?** The same query in SQL requires two self-joins on a `friendships` table, deduplication across both directions of the edge, and a NOT EXISTS subquery. At 500 M users it becomes operationally unmanageable.
+
+---
+
+## Fraud Detection
+
+Fraud detection is one of the **fastest-growing** graph database use cases because fraudsters leave graph-shaped footprints: multiple fake accounts sharing the same phone number, address, or device fingerprint.
+
+### The Fraud Ring Pattern
+
+A **fraud ring** emerges when several seemingly independent accounts share identity attributes. Individually each account looks legitimate. Together, the shared-node pattern reveals the ring.
+
+<figure class="diagram">
+<svg viewBox="0 0 660 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fraud ring detection diagram: four account nodes share a central phone node and an address node, revealing a coordinated ring">
+  <defs>
+    <marker id="arr-fraud" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- Central shared Phone node -->
+  <ellipse cx="330" cy="160" rx="44" ry="26" fill="var(--accent)" opacity="0.85"/>
+  <text x="330" y="155" text-anchor="middle" font-size="11" font-weight="700" fill="var(--surface-2)">Phone</text>
+  <text x="330" y="170" text-anchor="middle" font-size="10" fill="var(--surface-2)">+1-555-0199</text>
+
+  <!-- Shared Address node -->
+  <ellipse cx="330" cy="290" rx="52" ry="24" fill="var(--accent)" opacity="0.60"/>
+  <text x="330" y="285" text-anchor="middle" font-size="11" font-weight="700" fill="var(--surface-2)">Address</text>
+  <text x="330" y="300" text-anchor="middle" font-size="10" fill="var(--surface-2)">123 Fake St</text>
+
+  <!-- Account nodes -->
+  <rect x="60"  y="55"  width="90" height="44" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="105" y="74"  text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">Account A</text>
+  <text x="105" y="89"  text-anchor="middle" font-size="10" fill="var(--muted)">score: 720</text>
+
+  <rect x="60"  y="200" width="90" height="44" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="105" y="219" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">Account B</text>
+  <text x="105" y="234" text-anchor="middle" font-size="10" fill="var(--muted)">score: 690</text>
+
+  <rect x="506" y="55"  width="90" height="44" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="551" y="74"  text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">Account C</text>
+  <text x="551" y="89"  text-anchor="middle" font-size="10" fill="var(--muted)">score: 750</text>
+
+  <rect x="506" y="200" width="90" height="44" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="551" y="219" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">Account D</text>
+  <text x="551" y="234" text-anchor="middle" font-size="10" fill="var(--muted)">score: 705</text>
+
+  <!-- Edges: Accounts → Phone (HAS_PHONE) -->
+  <line x1="150" y1="80"  x2="285" y2="148" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#arr-fraud)"/>
+  <text x="205"  y="108"  font-size="9" fill="var(--accent)">HAS_PHONE</text>
+
+  <line x1="150" y1="222" x2="285" y2="168" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#arr-fraud)"/>
+  <text x="185"  y="210"  font-size="9" fill="var(--accent)">HAS_PHONE</text>
+
+  <line x1="506" y1="80"  x2="375" y2="148" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#arr-fraud)"/>
+  <text x="415"  y="108"  font-size="9" fill="var(--accent)">HAS_PHONE</text>
+
+  <line x1="506" y1="222" x2="375" y2="168" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#arr-fraud)"/>
+  <text x="400"  y="210"  font-size="9" fill="var(--accent)">HAS_PHONE</text>
+
+  <!-- Edges: Accounts → Address (HAS_ADDRESS) -->
+  <line x1="105" y1="99"  x2="278" y2="276" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-fraud)"/>
+  <line x1="105" y1="200" x2="278" y2="290" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-fraud)"/>
+  <line x1="551" y1="99"  x2="383" y2="276" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-fraud)"/>
+  <line x1="551" y1="200" x2="383" y2="290" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-fraud)"/>
+
+  <!-- Legend -->
+  <line x1="40" y1="330" x2="70" y2="330" stroke="var(--accent)" stroke-width="1.8"/>
+  <text x="76" y="334" font-size="10" fill="var(--muted)">HAS_PHONE (solid)</text>
+  <line x1="200" y1="330" x2="230" y2="330" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3"/>
+  <text x="236" y="334" font-size="10" fill="var(--muted)">HAS_ADDRESS (dashed)</text>
+</svg>
+<figcaption>Four accounts sharing a single phone number and address — a classic fraud ring. Each account looks legitimate in isolation; the graph reveals the coordination immediately.</figcaption>
+</figure>
+
+In a graph database a single pattern-match query surfaces the ring:
+
+```cypher
+-- Find accounts sharing a phone number with more than 2 other accounts
+MATCH (a:Account)-[:HAS_PHONE]->(phone:Phone)<-[:HAS_PHONE]-(b:Account)
+WHERE a <> b
+WITH phone, COLLECT(DISTINCT a) AS ring
+WHERE SIZE(ring) > 2
+RETURN phone.number, [acc IN ring | acc.id] AS fraud_ring
+```
+
+Banks like **JPMorgan**, insurance companies, and payment processors (**Stripe Radar**) use graph-based fraud models. The critical edge types are:
+
+| Shared attribute | Edge type | Ring signal threshold |
+|---|---|---|
+| Phone number | `HAS_PHONE` | > 2 accounts |
+| Email domain | `HAS_EMAIL` | > 5 accounts on same burner domain |
+| Device fingerprint | `USED_DEVICE` | > 3 accounts on same device |
+| IP address | `CONNECTED_FROM` | > 10 accounts on same IP |
+| Mailing address | `HAS_ADDRESS` | > 3 accounts at same address |
+
+> **Why graphs win here:** Relational fraud systems match on individual columns. They can catch simple cases (same phone number on two rows) but miss rings that span three or more hops — e.g., Account A shares a device with Account B which shares a phone with Account C which shares an address with Account D. Each pairwise link is innocuous; the pattern only emerges when you walk the full connected component.
+
+### Interactive: Recursive Fraud Ring Detection in SQL
+
+SQL can detect rings using `WITH RECURSIVE`, but the query grows complex quickly — and struggles as ring depth increases.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Fraud ring detection with WITH RECURSIVE</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, name TEXT, credit_score INTEGER); INSERT INTO accounts VALUES (1,'Alice',720),(2,'Bob',690),(3,'Carol',750),(4,'Dave',705),(5,'Eve',800),(6,'Frank',660); CREATE TABLE shared_phone (account_id INTEGER, phone TEXT); INSERT INTO shared_phone VALUES (1,'+15550199'),(2,'+15550199'),(3,'+15550199'),(4,'+15550199'),(5,'+15559999'),(6,'+15558888'); CREATE TABLE shared_device (account_id INTEGER, device_id TEXT); INSERT INTO shared_device VALUES (2,'device-XYZ'),(3,'device-XYZ'),(5,'device-ABC');">-- Step 1: find which phone numbers are shared by multiple accounts
+-- (direct 1-hop detection)
+SELECT p.phone,
+       COUNT(DISTINCT p.account_id) AS account_count,
+       GROUP_CONCAT(a.name, &apos;, &apos;) AS accounts_in_ring
+FROM   shared_phone p
+JOIN   accounts a ON a.id = p.account_id
+GROUP  BY p.phone
+HAVING COUNT(DISTINCT p.account_id) &gt; 1
+ORDER  BY account_count DESC;
+
+-- Step 2: use WITH RECURSIVE to expand the ring via shared devices too
+-- (multi-hop: accounts linked by phone OR device)
+-- Uncomment below to run the recursive version:
+
+/*
+WITH RECURSIVE ring(start_id, current_id, via, depth) AS (
+  -- anchor: direct phone-sharing pairs
+  SELECT sp1.account_id, sp2.account_id, sp1.phone, 1
+  FROM   shared_phone sp1
+  JOIN   shared_phone sp2
+         ON sp1.phone = sp2.phone AND sp1.account_id &lt;&gt; sp2.account_id
+
+  UNION
+
+  -- recursive: follow device links from already-found ring members
+  SELECT r.start_id, sd2.account_id, sd1.device_id, r.depth + 1
+  FROM   ring r
+  JOIN   shared_device sd1 ON sd1.account_id = r.current_id
+  JOIN   shared_device sd2 ON sd2.device_id = sd1.device_id
+                           AND sd2.account_id &lt;&gt; r.current_id
+  WHERE  r.depth &lt; 4
+)
+SELECT start_id,
+       COUNT(DISTINCT current_id) AS ring_size,
+       GROUP_CONCAT(DISTINCT current_id) AS ring_members
+FROM   ring
+GROUP  BY start_id
+HAVING ring_size &gt; 1;
+*/</textarea>
+  </div>
+</div>
+
+> **Note:** The recursive SQL above gets unwieldy fast. At depth 4+ with multiple edge types (phone, device, IP, address), the CTE branches exponentially, duplicate paths proliferate, and you need complex cycle-detection (`WHERE current_id NOT IN (...)` or a `visited` accumulator). A native graph database handles this with a single `MATCH` pattern and built-in cycle elimination.
+
+---
+
+## Knowledge Graphs
+
+A **knowledge graph** represents real-world entities and the semantic relationships between them. The classic examples:
+
+- **Google Knowledge Graph** — powers the info boxes you see when you search for a person, place, or concept. Billions of entities (people, films, cities, organisations) connected by typed relationships (`bornIn`, `directedBy`, `partOf`).
+- **Wikidata** — the structured data backbone of Wikipedia. Every article becomes a node; statements like "Barack Obama → bornIn → Honolulu" become edges.
+- **Enterprise knowledge graphs** — used by companies like **Microsoft** (Microsoft Graph), **LinkedIn**, and **Amazon** to connect product, customer, and content entities.
+
+The power: **multi-hop inference**. A knowledge graph can answer "Which films were directed by someone who was born in the same city as Cate Blanchett?" — a query that requires joining entity type, relationship type, and attribute matching in a single traversal.
+
+```cypher
+MATCH (cate:Person {name: "Cate Blanchett"})-[:BORN_IN]->(city:City)
+      <-[:BORN_IN]-(director:Person)<-[:DIRECTED_BY]-(film:Film)
+RETURN film.title, director.name
+ORDER BY film.year DESC
+```
+
+Knowledge graphs also underpin **ontology management**: encoding taxonomies like "a Poodle IS_A Dog, a Dog IS_A Mammal, a Mammal IS_A Animal" lets you ask "find all Animals" and retrieve Poodles through the hierarchy — without denormalising the data.
+
+---
+
+## Recommendation Engines
+
+Recommendation systems are fundamentally graph problems: find items that are **close** to a target in a preference graph.
+
+### Collaborative Filtering as Graph Traversal
+
+| Node type | Example |
+|---|---|
+| `User` | Netflix subscriber |
+| `Item` | Film, show, product |
+| `Tag` / `Genre` | Action, Comedy |
+
+Edge: `User-[:RATED {stars:4}]->Item`, `Item-[:HAS_GENRE]->Genre`
+
+A graph recommendation query:
+1. Find items the target user rated highly (`RATED` with stars ≥ 4)
+2. Find other users who also rated those items highly (1-hop)
+3. Find items *those* users rated highly that the target user hasn't seen (2-hop)
+4. Rank by frequency of appearance in step 3
+
+```cypher
+MATCH (target:User {id: $userId})-[:RATED {stars: 5}]->(seen:Item)
+      <-[:RATED {stars: 5}]-(similar:User)-[:RATED {stars: 5}]->(candidate:Item)
+WHERE NOT (target)-[:RATED]->(candidate)
+RETURN candidate.title, COUNT(similar) AS score
+ORDER BY score DESC
+LIMIT 20
+```
+
+**Netflix**, **Spotify** (Discover Weekly uses graph-based audio similarity), and **Amazon** (customers who bought X also bought Y) all use graph reasoning as a component of their recommendation pipelines, even when the final ranker is a machine learning model.
+
+---
+
+## Network and IT Infrastructure
+
+Modern infrastructure is a graph: servers depend on services, services depend on databases, databases run on VMs, VMs live in availability zones.
+
+Use cases:
+
+- **Impact analysis** — "If this load balancer goes down, which downstream services are affected?" Traverse `DEPENDS_ON` edges forward.
+- **Root-cause analysis** — "This alert fired; what upstream components could have caused it?" Traverse `DEPENDS_ON` edges backward.
+- **Capacity planning** — Find all paths between two components to identify bottlenecks.
+- **Change management** — Before patching a server, find all services that would be disrupted.
+
+**ServiceNow**, **Dynatrace**, and **AWS** use graph models for their configuration management databases (CMDBs). Neo4j is commonly used to model Kubernetes cluster topologies and microservice dependency maps.
+
+```cypher
+-- Which services are affected if "db-primary" goes offline?
+MATCH (failed:Component {name: "db-primary"})<-[:DEPENDS_ON*1..5]-(affected)
+RETURN DISTINCT affected.name, affected.type
+ORDER BY affected.type
+```
+
+The `*1..5` wildcard traversal depth would require 5 separate joins in SQL — and rewriting the query every time the maximum depth changes.
+
+---
+
+## Identity and Access Management
+
+Role hierarchies and permission graphs are a natural fit for graph databases. Consider:
+
+- A user belongs to groups
+- Groups inherit permissions from roles
+- Roles can inherit from other roles (role hierarchy)
+- Permissions are attached to resources at various granularity levels
+
+This is a **recursive inheritance problem**. "Does this user have permission to delete this document?" requires traversing `MEMBER_OF` and `INHERITS_FROM` edges to accumulate effective permissions.
+
+```cypher
+-- Effective permissions for a user via group/role hierarchy
+MATCH (u:User {id: $userId})
+      -[:MEMBER_OF*1..4]->(:Group|:Role)
+      -[:HAS_PERMISSION]->(p:Permission)
+      -[:ON_RESOURCE]->(r:Resource {id: $resourceId})
+RETURN COLLECT(DISTINCT p.action) AS allowed_actions
+```
+
+**AWS IAM**, **Google Cloud IAM**, and **Okta** all use graph-like internal models for permission resolution. Open-source tools like **SpiceDB** (by Authzed) and **OpenFGA** (by Okta) explicitly adopt a graph model (they call it a "relation tuple graph") for authorization.
+
+---
+
+## Supply Chain Mapping
+
+Global supply chains form deep multi-tier graphs: a finished product depends on components, components depend on sub-components, sub-components depend on raw materials sourced from specific regions.
+
+After COVID-19 disrupted supply chains, companies like **Apple**, **Toyota**, and **Volkswagen** invested heavily in **multi-tier supplier visibility** — knowing not just their direct (Tier 1) suppliers but their suppliers' suppliers (Tier 2, Tier 3).
+
+Key graph queries:
+
+| Query | Purpose |
+|---|---|
+| Find all Tier 2+ suppliers in a given country | Geopolitical risk assessment |
+| Shortest alternative path if Supplier X fails | Resilience planning |
+| Which finished products use Component Y? | Recall impact analysis |
+| Which suppliers are shared across product lines? | Single-point-of-failure detection |
+
+```cypher
+-- Which finished products are exposed to "TSMC" (Tier 2 supplier)?
+MATCH (tsmc:Supplier {name: "TSMC"})<-[:SUPPLIED_BY*1..4]-(product:FinishedProduct)
+RETURN DISTINCT product.sku, product.name
+```
+
+---
+
+## Decision Guide
+
+### Reach for a Graph Database When...
+
+| Signal | Explanation |
+|---|---|
+| **Queries follow relationships > 2 hops deep** | Recursive SQL becomes unwieldy; graph traversal stays constant-cost per hop |
+| **Relationship types are numerous and evolving** | Adding a new edge type in a graph is schema-free; in SQL it means a new join table |
+| **The question is "find the path"** | Shortest path, all paths, cycle detection — native graph algorithms |
+| **You need pattern matching across the graph** | Subgraph isomorphism (find this connection pattern anywhere in the data) |
+| **Data has variable-depth hierarchy** | Org charts, taxonomies, bill of materials — depth is unknown at query time |
+| **Connected-component analysis** | Find all nodes in a cluster without knowing the cluster size upfront |
+| **Write-heavy edge updates, read-heavy traversals** | Graph storage is optimised for this workload mix |
+
+### Stay with Relational When...
+
+| Signal | Explanation |
+|---|---|
+| **Most queries are flat lookups or 1-hop joins** | Relational indexes handle this efficiently |
+| **Strong ACID guarantees + complex multi-entity transactions** | Mature relational engines have decades of ACID tooling |
+| **Reporting and aggregation are the primary workload** | SQL GROUP BY, window functions, and analytical engines excel here |
+| **Team is SQL-fluent, no Cypher/Gremlin experience** | Operational overhead matters |
+
+---
+
+## Key Takeaways
+
+- **Graph databases shine when relationships are first-class data**, not foreign-key afterthoughts stored in junction tables.
+- **Fraud detection**, **social graphs**, **knowledge graphs**, **IAM**, and **supply chain** all share the same structural property: answers live multiple hops away from the starting node.
+- **The decisive signal** is query depth: if your joins regularly go 3+ levels deep, or if depth is variable and unknown, a graph database will outperform relational by orders of magnitude.
+- **Language matters**: Cypher, Gremlin, and SPARQL express graph patterns declaratively — the same patterns that require nested SQL subqueries or recursive CTEs become one-liners.
+- **Graph databases do not replace relational databases** — they replace them for the specific subset of queries that are fundamentally graph-shaped. Hybrid architectures (relational for transactions, graph for traversal) are common in production.
+- Real-world deployments: **Neo4j** (fraud at ICIJ Panama Papers investigation), **Amazon Neptune** (knowledge graphs at AWS), **TigerGraph** (real-time fraud at financial institutions), **JanusGraph** (infrastructure graphs at Uber).

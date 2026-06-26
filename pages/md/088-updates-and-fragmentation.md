@@ -1,0 +1,78 @@
+When a row is first inserted, the database writes it neatly into a page with room to spare. Updates, however, rarely arrive in the same tidy order — and over time they quietly degrade the physical layout of your data. Understanding *why* this happens, and what engines do about it, demystifies a whole class of performance problems you'll encounter in production.
+
+## What Happens During an In-Place Update
+
+A page is a fixed-size block on disk (commonly 8 KB or 16 KB). Rows are packed into it sequentially. When you update a row that *stays the same size* — say, changing an integer column — the engine simply overwrites those bytes in place. Fast and clean.
+
+The trouble starts with **variable-length columns** (VARCHAR, TEXT, BLOB). If the new value is *larger* than the old one, the existing slot may not have room.
+
+Engines handle this in a few ways:
+
+| Strategy | What happens |
+|---|---|
+| Overflow pointer | Keep a short stub on the original page; write the larger value on another page and link them |
+| In-page compaction | Shift other rows within the same page to make room (expensive, requires a page rewrite) |
+| Delete + re-insert | Mark old slot dead, write a new row at the end of an available page |
+
+Most systems use a combination. PostgreSQL, for example, uses TOAST (The Oversized Attribute Storage Technique) to store values that exceed ~2 KB off the main page. SQLite uses "overflow pages" linked from the B-tree leaf.
+
+## Fragmentation: Two Flavors
+
+Repeated updates and deletes leave two kinds of waste behind.
+
+### Internal fragmentation
+
+Dead row stubs and holes *inside* a page reduce the usable density. The page is still marked "in use," but a scan must skip over garbage to find live rows. The page cannot be released to the OS even though much of it is empty.
+
+```
+Page 42 (8 KB)
+┌───────────────────────────────────┐
+│ row 1 (live)                      │
+│ ████ dead slot (deleted row)      │
+│ row 3 (live)                      │
+│ ████ dead slot (updated, old ver) │
+│ row 5 (live)                      │
+│         (free space)              │
+└───────────────────────────────────┘
+```
+
+### External fragmentation
+
+Logically adjacent rows end up scattered across non-contiguous pages on disk. The engine has to chase page links or index entries across many physical locations, thrashing the buffer pool and increasing I/O.
+
+> **Note:** On modern SSDs, random vs. sequential I/O matters less than it did on spinning disks — but external fragmentation still hurts because it increases the number of pages loaded into the buffer pool, wasting memory and cache capacity.
+
+## How Engines Fight Back
+
+**Vacuum / AUTOVACUUM (PostgreSQL)** — A background process reclaims dead row versions left by MVCC (multi-version concurrency control). It marks pages as reclaimable and rewrites heavily-fragmented pages.
+
+**Page reorganization (MySQL InnoDB)** — `OPTIMIZE TABLE` rebuilds the table's clustered index in order, eliminating both types of fragmentation in one pass. The table is locked briefly (or, on newer versions, rebuilt online).
+
+**SQLite's VACUUM command** — Rewrites the entire database file into a fresh, compacted copy. Useful, but it requires exclusive access and roughly 2x free space on disk.
+
+You can see fragmentation effects live. The example below simulates repeated inserts and deletes, then counts how many "dead" rows remain occupying space alongside live ones.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Fragmentation simulation</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, price REAL); INSERT INTO products VALUES (1, 'Widget A', 9.99); INSERT INTO products VALUES (2, 'Widget B', 14.99); INSERT INTO products VALUES (3, 'Widget C', 4.99); INSERT INTO products VALUES (4, 'Gadget X', 49.99); INSERT INTO products VALUES (5, 'Gadget Y', 59.99); CREATE TABLE audit_log (event TEXT, row_id INTEGER, ts INTEGER); INSERT INTO audit_log VALUES ('insert', 1, 1), ('insert', 2, 2), ('insert', 3, 3), ('insert', 4, 4), ('insert', 5, 5); DELETE FROM products WHERE id IN (2, 4); INSERT INTO audit_log VALUES ('delete', 2, 6), ('delete', 4, 7); UPDATE products SET price = price * 1.10 WHERE id = 3; INSERT INTO audit_log VALUES ('update', 3, 8);">-- After inserts, deletes, and an update:
+-- How many rows are live vs. how many events did we record?
+SELECT
+  (SELECT COUNT(*) FROM products)            AS live_rows,
+  (SELECT COUNT(*) FROM audit_log)           AS total_events,
+  (SELECT COUNT(*) FROM audit_log WHERE event = 'delete') AS rows_deleted;
+
+-- Try: INSERT INTO products VALUES (6, 'New Item', 7.50);
+-- then re-run to see live_rows increase.</textarea>
+  </div>
+</div>
+
+> **Note:** SQLite (used in this widget) keeps things simple — it does not implement MVCC, so deleted rows vanish immediately from queries. In PostgreSQL, those deleted versions stay on disk until VACUUM cleans them up, making fragmentation a much bigger operational concern.
+
+## Practical Takeaways
+
+- **Monitor table bloat** — Most engines expose statistics (e.g., `pg_stat_user_tables` in PostgreSQL, `SHOW TABLE STATUS` in MySQL) that estimate how much space is wasted.
+- **Schedule maintenance** — Let AUTOVACUUM run; tune it for write-heavy tables; run `ANALYZE` after bulk loads.
+- **Avoid wide VARCHAR updates** — If you frequently update a text column to much larger values, consider moving it to a separate table or using a fixed-size alternative where possible.
+
+Fragmentation is the physical side-effect of a logical world where data changes constantly. Every engine trades some write-time simplicity for read-time overhead; knowing which levers to pull puts you back in control.

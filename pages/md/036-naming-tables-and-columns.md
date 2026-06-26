@@ -1,0 +1,89 @@
+The names you give your tables and columns are part of your schema's public contract. Every query, every piece of application code, and every teammate who reads your SQL will use those names constantly. Good naming makes the structure self-explanatory; bad naming forces everyone to consult external documentation just to understand what a column holds.
+
+## The Core Rules
+
+Most SQL engines are case-insensitive for identifiers, but follow these principles regardless of the database you use:
+
+**Use lowercase with underscores (snake_case).** Mixed case is technically allowed, but many engines fold identifiers to lowercase internally, and inconsistent casing causes subtle bugs. Snake_case is the dominant convention in SQL communities.
+
+```sql
+-- Preferred
+CREATE TABLE order_items (
+    id          INTEGER PRIMARY KEY,
+    order_id    INTEGER NOT NULL,
+    unit_price  REAL    NOT NULL
+);
+
+-- Avoid — camelCase and PascalCase look odd in SQL
+CREATE TABLE OrderItems (
+    Id        INTEGER PRIMARY KEY,
+    orderId   INTEGER NOT NULL,
+    unitPrice REAL    NOT NULL
+);
+```
+
+**Name tables as plural nouns.** A table is a collection of things, so `customers`, `orders`, and `products` read naturally: "this table holds many customers." Some teams use singular names (`customer`, `order`) — consistency matters more than which convention you pick, but plural is more common in practice.
+
+**Name columns as singular noun phrases.** A column holds one value per row: `email`, `created_at`, `unit_price`. Reserve plural names for columns that genuinely store lists — which, in a normalized schema, is rare.
+
+**Be specific, not generic.** A column named `name` is ambiguous in any table other than the most obvious. Prefer `customer_name`, `product_name`, or `category_name`. Similarly, `id` alone is fine for a table's own primary key, but a foreign key pointing to `customers.id` should be named `customer_id` — the reference target is implied by the suffix.
+
+## Naming Foreign Keys and Join Columns
+
+Foreign key columns follow a simple pattern: `<referenced_table_singular>_id`. This convention makes relationships visible in the schema itself without needing a diagram.
+
+| Column name | What it means |
+|-------------|---------------|
+| `customer_id` | Foreign key to `customers.id` |
+| `product_id` | Foreign key to `products.id` |
+| `created_by` | Foreign key to `users.id` (role-based alias — acceptable when the role matters) |
+
+> **Note:** When you have two foreign keys to the same table — for example, `sender_id` and `recipient_id` both referencing `users.id` — use role-based names instead of repeating `user_id`. Role clarity beats mechanical consistency here.
+
+## Timestamps, Booleans, and Other Common Columns
+
+A few column types have community-standard naming patterns that signal their purpose instantly:
+
+| Purpose | Preferred name(s) | Avoid |
+|---------|------------------|-------|
+| Row creation time | `created_at` | `date`, `timestamp`, `when` |
+| Last update time | `updated_at` | `modified`, `last_update` |
+| Soft-delete flag | `deleted_at` (NULL = active) | `is_deleted`, `active` |
+| Boolean flag | `is_active`, `has_verified_email` | `active` (adjective, not a noun) |
+| Display order | `position`, `sort_order` | `order` (reserved word in SQL!) |
+
+The `is_` and `has_` prefixes make boolean columns read like true/false questions — a reader can immediately infer the domain of values.
+
+> **Note:** Avoid names that are SQL reserved words: `order`, `group`, `select`, `table`, `value`. If you use them as identifiers, you must quote them everywhere — a maintenance headache. Most engines will let you do it; you just should not.
+
+## See It in Practice
+
+The widget below shows a small e-commerce schema with carefully named tables and columns. Run the default query, then try renaming a column alias in the `SELECT` list to see how name clarity affects readability.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Naming conventions</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, full_name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL); CREATE TABLE products (id INTEGER PRIMARY KEY, product_name TEXT NOT NULL, unit_price REAL NOT NULL CHECK (unit_price >= 0), is_available INTEGER NOT NULL DEFAULT 1); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), placed_at TEXT NOT NULL); CREATE TABLE order_items (id INTEGER PRIMARY KEY, order_id INTEGER NOT NULL REFERENCES orders(id), product_id INTEGER NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL DEFAULT 1); INSERT INTO customers VALUES (1, 'Alice Wong', 'alice@example.com', '2024-01-10'), (2, 'Bob Patel', 'bob@example.com', '2024-03-05'); INSERT INTO products VALUES (1, 'Wireless Keyboard', 59.99, 1), (2, 'USB-C Hub', 34.99, 1), (3, 'Laptop Stand', 29.99, 0); INSERT INTO orders VALUES (1, 1, '2024-06-01'), (2, 2, '2024-06-15'); INSERT INTO order_items VALUES (1, 1, 1, 1), (2, 1, 2, 2), (3, 2, 3, 1);">-- Notice how the column names make the JOIN readable without comments
+SELECT
+  c.full_name      AS customer,
+  p.product_name   AS product,
+  oi.quantity,
+  ROUND(oi.quantity * p.unit_price, 2) AS line_total,
+  p.is_available
+FROM order_items oi
+JOIN orders   o ON o.id = oi.order_id
+JOIN customers c ON c.id = o.customer_id
+JOIN products  p ON p.id = oi.product_id
+ORDER BY c.full_name, p.product_name;</textarea>
+  </div>
+</div>
+
+## When to Break the Rules
+
+Conventions exist to serve communication — not the other way around. There are legitimate reasons to deviate:
+
+- A **legacy schema** you are extending may already use a different convention. Match the existing style rather than mixing two conventions in the same database.
+- **Abbreviations** are acceptable when the full word is genuinely unwieldy and the abbreviation is universally understood in your domain (`qty` for quantity, `amt` for amount).
+- **Domain language** should win over generic naming. If the business universally says "SKU" and not "product_code", name the column `sku`.
+
+The underlying goal is always the same: a reader unfamiliar with your codebase should be able to look at a table definition and understand what each column holds without asking anyone.

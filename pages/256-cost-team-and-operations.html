@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cost, team, and operations — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VI. Engineering Practice</p>
+  <p class="chapter-label">Chapter 26. Choosing a Database</p>
+  <h1 class="content-title">Cost, team, and operations</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="255-managed-vs-self-hosted.html"><span class="dir">← Previous</span><span class="ttl">Managed vs self-hosted</span></a><a class="next" href="257-portability-and-lock-in.html"><span class="dir">Next →</span><span class="ttl">Portability and lock-in</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+The right database for a workload and the right database for a team are not always the same system. A distributed wide-column store might be the theoretically optimal choice for a write-heavy time-series workload — but if your team has three engineers, none of whom have ever operated Cassandra, you have traded a slow query for a slow disaster recovery. The human and organisational dimensions of database selection are as real as the technical ones, and they are more often underweighted.
+
+## The Three Cost Buckets
+
+Every database deployment incurs costs in three categories that are easy to conflate but important to keep separate:
+
+### 1. Infrastructure Cost
+
+The bill from your cloud provider or data centre: compute, storage, network egress, I/O operations. This is the most visible cost and the easiest to benchmark, but it is rarely the largest.
+
+### 2. Engineering Cost
+
+The time your team spends designing schemas, writing migrations, tuning queries, building monitoring, responding to incidents, training new hires, and keeping the system upgraded. This is the least visible cost and almost always the largest at small to medium scale.
+
+### 3. Operational Risk Cost
+
+The expected cost of failure events: downtime, data loss, degraded performance. This is a probabilistic cost — low probability, high impact — and it is routinely underestimated when choosing a less-familiar system. A team that has never operated a Cassandra cluster does not know what failure modes to monitor for, which makes recovery slower and more expensive.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three cost buckets for database operation: infrastructure, engineering, and operational risk">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+  <!-- Bucket 1: Infrastructure -->
+  <rect x="20" y="40" width="170" height="160" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="105" y="66" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Infrastructure</text>
+  <text x="105" y="90" text-anchor="middle" font-size="11" fill="var(--muted)">compute + storage</text>
+  <text x="105" y="110" text-anchor="middle" font-size="11" fill="var(--muted)">network egress</text>
+  <text x="105" y="130" text-anchor="middle" font-size="11" fill="var(--muted)">I/O operations</text>
+  <text x="105" y="162" text-anchor="middle" font-size="12" fill="var(--accent)">Visible</text>
+  <text x="105" y="180" text-anchor="middle" font-size="11" fill="var(--muted)">easy to measure</text>
+
+  <!-- Bucket 2: Engineering -->
+  <rect x="235" y="40" width="170" height="160" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="320" y="66" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Engineering</text>
+  <text x="320" y="90" text-anchor="middle" font-size="11" fill="var(--muted)">schema design</text>
+  <text x="320" y="110" text-anchor="middle" font-size="11" fill="var(--muted)">query tuning</text>
+  <text x="320" y="130" text-anchor="middle" font-size="11" fill="var(--muted)">migrations + ops</text>
+  <text x="320" y="162" text-anchor="middle" font-size="12" fill="var(--accent)">Largest</text>
+  <text x="320" y="180" text-anchor="middle" font-size="11" fill="var(--muted)">often underestimated</text>
+
+  <!-- Bucket 3: Operational Risk -->
+  <rect x="450" y="40" width="170" height="160" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="535" y="66" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Operational Risk</text>
+  <text x="535" y="90" text-anchor="middle" font-size="11" fill="var(--muted)">downtime cost</text>
+  <text x="535" y="110" text-anchor="middle" font-size="11" fill="var(--muted)">incident response</text>
+  <text x="535" y="130" text-anchor="middle" font-size="11" fill="var(--muted)">recovery time</text>
+  <text x="535" y="162" text-anchor="middle" font-size="12" fill="var(--accent)">Probabilistic</text>
+  <text x="535" y="180" text-anchor="middle" font-size="11" fill="var(--muted)">low prob, high impact</text>
+</svg>
+<figcaption>Infrastructure cost is the easiest to see; engineering cost is usually the largest; operational risk cost is probabilistic but can dominate in a bad incident.</figcaption>
+</figure>
+
+## Team Size and Database Complexity
+
+There is a rough relationship between team size and the operational complexity a database can reasonably sustain:
+
+| Team size | Appropriate operational complexity |
+|---|---|
+| 1–3 engineers | Fully managed service; minimal ops; SQLite or single-node PostgreSQL |
+| 4–10 engineers | Managed service with custom tuning; one dedicated ops person per database |
+| 10–30 engineers | Self-hosted with dedicated DBA or platform team; well-documented runbooks |
+| 30+ engineers | Custom tooling, internal database teams, specialised expertise per system |
+
+These ranges are not rules — a three-person team with two experienced DBAs can operate a complex cluster effectively. The point is that **complexity always has an operational cost** that must be staffed, documented, and on-called.
+
+## The On-Call Test
+
+A practical heuristic: imagine this database goes down at 3 am. Walk through the failure:
+
+1. Does your monitoring detect the failure automatically, or does a user report it?
+2. Does your on-call engineer know the database's failure modes and recovery procedures?
+3. Does your runbook cover this failure type?
+4. Can you restore from backup to a known-good state within your RTO (Recovery Time Objective)?
+
+If any of these answers is "no" or "I'm not sure," the database may be introducing operational risk your team isn't equipped to absorb. That is not a reason to avoid the database — it is a reason to invest in runbooks, training, and monitoring before relying on it for production traffic.
+
+## Hiring and Knowledge Transfer
+
+Database expertise is part of your team's bus factor. If one engineer is the sole person who understands how to operate your Cassandra cluster, you have a single point of failure in your org chart. Sustainable database operations require:
+
+- **Documentation:** runbooks for common failure modes, upgrade procedures, backup/restore verification steps
+- **Cross-training:** more than one person can diagnose slow queries and manage failover
+- **Onboarding material:** new engineers can reach baseline competence within weeks, not months
+
+> **Practical note:** When interviewing engineers, "we run Cassandra" is a signal some candidates will see as exciting and others will see as a warning. A less common database shrinks your hiring pool.
+
+## Cost Modelling
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Team Capacity vs Database Complexity</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE db_option (db_name TEXT, infra_monthly_usd INTEGER, ops_hours_monthly REAL, learning_curve_weeks INTEGER, on_call_incidents_per_year REAL, incident_recovery_hours REAL); INSERT INTO db_option VALUES ('Managed PostgreSQL (RDS)',400,3,2,1,0.5); INSERT INTO db_option VALUES ('Self-hosted PostgreSQL',200,10,4,3,2); INSERT INTO db_option VALUES ('Self-hosted Cassandra',600,25,12,6,6); INSERT INTO db_option VALUES ('Managed DynamoDB',500,4,6,1,0.5); INSERT INTO db_option VALUES ('Self-hosted Redis Cluster',300,15,8,4,3);">-- Annual total cost including operations and incident risk (assume $150/hr eng cost)
+SELECT
+  db_name,
+  infra_monthly_usd * 12 AS annual_infra,
+  ROUND(ops_hours_monthly * 150 * 12) AS annual_ops_cost,
+  ROUND(learning_curve_weeks * 40 * 150) AS onboarding_cost,
+  ROUND(on_call_incidents_per_year * incident_recovery_hours * 150) AS annual_incident_cost,
+  ROUND(
+    infra_monthly_usd * 12
+    + ops_hours_monthly * 150 * 12
+    + learning_curve_weeks * 40 * 150
+    + on_call_incidents_per_year * incident_recovery_hours * 150
+  ) AS total_first_year_cost
+FROM db_option
+ORDER BY total_first_year_cost;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- Database cost has three components: infrastructure (visible), engineering time (largest), and operational risk (probabilistic but impactful).
+- Match operational complexity to team size; a cluster that requires a dedicated DBA is a liability for a three-person team.
+- Apply the 3 am test: if your team cannot recover from failure confidently, the database is riskier than its benchmark numbers suggest.
+- Document runbooks, cross-train the team, and factor hiring implications into the decision.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

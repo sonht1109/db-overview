@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nodes, edges, and properties — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part V. Database Families</p>
+  <p class="chapter-label">Chapter 21. Graph Databases</p>
+  <h1 class="content-title">Nodes, edges, and properties</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="199-good-use-cases.html"><span class="dir">← Previous</span><span class="ttl">Good use cases</span></a><a class="next" href="202-traversals-and-path-queries.html"><span class="dir">Next →</span><span class="ttl">Traversals and path queries</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+A graph database stores data as a network of **nodes** (entities) and **edges** (relationships). Instead of spreading related data across multiple tables joined by foreign keys, graph databases make relationships first-class citizens — each edge is a named, directed, typed connection that can carry its own properties. This model is a natural fit for any domain that is fundamentally relational in the non-SQL sense: social networks, supply chains, knowledge graphs, fraud rings, and recommendation engines.
+
+## The Labeled Property Graph Model
+
+The dominant graph model today is the **Labeled Property Graph (LPG)**, used by Neo4j, Amazon Neptune (Gremlin mode), and Memgraph. It has four building blocks:
+
+| Concept | Description | Example |
+|---|---|---|
+| **Node** | An entity (vertex) | A person, a company, a product |
+| **Label** | A type tag on a node (multiple allowed) | `:Person`, `:Employee` |
+| **Edge** | A directed, typed relationship between two nodes | `KNOWS`, `WORKS_AT` |
+| **Property** | A key-value attribute on a node or edge | `name: "Alice"`, `since: 2019` |
+
+> **Note:** Edges are always directed (they have a start node and an end node), but graph engines typically let you traverse them in either direction at query time. The direction is semantic — `(Alice)-[:FOLLOWS]->(Bob)` means Alice follows Bob, not the other way around.
+
+### Nodes
+
+A node is a record with an identity, zero or more labels, and zero or more properties. Labels are like table names but lighter-weight: a node can carry multiple labels simultaneously (`:Person:Employee`), and labels carry no schema constraints by default.
+
+```
+Node id=1
+  labels: [:Person]
+  properties:
+    name: "Alice"
+    age: 34
+    city: "Singapore"
+
+Node id=2
+  labels: [:Person]
+  properties:
+    name: "Bob"
+    age: 29
+    city: "Hanoi"
+
+Node id=3
+  labels: [:Company]
+  properties:
+    name: "Acme Corp"
+    founded: 2010
+```
+
+### Edges
+
+An edge connects exactly two nodes with a mandatory type and optional properties. Every edge has:
+
+- A **start node** (tail)
+- An **end node** (head)
+- A **relationship type** (uppercase by convention in Cypher)
+- Zero or more **properties**
+
+```
+Edge id=10
+  type: KNOWS
+  start: node 1 (Alice)
+  end:   node 2 (Bob)
+  properties:
+    since: 2021
+
+Edge id=11
+  type: WORKS_AT
+  start: node 1 (Alice)
+  end:   node 3 (Acme Corp)
+  properties:
+    role: "Engineer"
+    since: 2022
+
+Edge id=12
+  type: WORKS_AT
+  start: node 2 (Bob)
+  end:   node 3 (Acme Corp)
+  properties:
+    role: "Designer"
+    since: 2023
+```
+
+<figure class="diagram">
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Labeled property graph: Alice and Bob are Person nodes connected by KNOWS edge; both connect to Acme Corp via WORKS_AT edges">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L10,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrow-muted" markerWidth="10" markerHeight="8" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L10,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- Acme Corp node (top center) -->
+  <rect x="240" y="20" width="160" height="72" rx="10" fill="var(--surface-2)" stroke="var(--border)" stroke-width="2"/>
+  <text x="320" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)">:Company</text>
+  <text x="320" y="60" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Acme Corp</text>
+  <text x="320" y="78" text-anchor="middle" font-size="11" fill="var(--muted)">founded: 2010</text>
+
+  <!-- Alice node (bottom left) -->
+  <rect x="60" y="180" width="160" height="90" rx="10" fill="var(--surface-2)" stroke="var(--border)" stroke-width="2"/>
+  <text x="140" y="202" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)">:Person</text>
+  <text x="140" y="220" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Alice</text>
+  <text x="140" y="238" text-anchor="middle" font-size="11" fill="var(--muted)">age: 34</text>
+  <text x="140" y="256" text-anchor="middle" font-size="11" fill="var(--muted)">city: &quot;Singapore&quot;</text>
+
+  <!-- Bob node (bottom right) -->
+  <rect x="420" y="180" width="160" height="90" rx="10" fill="var(--surface-2)" stroke="var(--border)" stroke-width="2"/>
+  <text x="500" y="202" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)">:Person</text>
+  <text x="500" y="220" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Bob</text>
+  <text x="500" y="238" text-anchor="middle" font-size="11" fill="var(--muted)">age: 29</text>
+  <text x="500" y="256" text-anchor="middle" font-size="11" fill="var(--muted)">city: &quot;Hanoi&quot;</text>
+
+  <!-- Alice -> Acme Corp (WORKS_AT) -->
+  <line x1="180" y1="180" x2="262" y2="92" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="168" y="126" width="94" height="20" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="215" y="140" text-anchor="middle" font-size="10" font-weight="600" fill="var(--accent)">WORKS_AT</text>
+  <text x="215" y="158" text-anchor="middle" font-size="10" fill="var(--muted)">role: &quot;Engineer&quot;</text>
+
+  <!-- Bob -> Acme Corp (WORKS_AT) -->
+  <line x1="460" y1="180" x2="378" y2="92" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="378" y="126" width="94" height="20" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="425" y="140" text-anchor="middle" font-size="10" font-weight="600" fill="var(--accent)">WORKS_AT</text>
+  <text x="425" y="158" text-anchor="middle" font-size="10" fill="var(--muted)">role: &quot;Designer&quot;</text>
+
+  <!-- Alice -> Bob (KNOWS) -->
+  <line x1="220" y1="225" x2="418" y2="225" stroke="var(--muted)" stroke-width="2" marker-end="url(#arrow-muted)"/>
+  <rect x="283" y="210" width="74" height="20" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="320" y="224" text-anchor="middle" font-size="10" font-weight="600" fill="var(--muted)">KNOWS</text>
+  <text x="320" y="248" text-anchor="middle" font-size="10" fill="var(--muted)">since: 2021</text>
+</svg>
+<figcaption>A small labeled property graph: two Person nodes and one Company node, connected by typed, directed edges that carry their own properties.</figcaption>
+</figure>
+
+## How This Differs from Relational Tables
+
+In a relational database, relationships are implicit. Two tables are connected by matching values — a foreign key in one row that equals a primary key in another. The relationship itself has no physical representation; it only comes into being when a query performs a join.
+
+In a graph database, relationships are **explicit and stored directly**. Each edge record points directly to its start and end nodes. There are three important consequences:
+
+1. **No join computation at query time.** Following an edge is a pointer traversal, not an index lookup and comparison across two table scans.
+2. **Relationship properties are natural.** To store when a friendship started in a relational model you need a junction table with an extra column. In a graph, you just add a `since` property to the edge itself.
+3. **Schema flexibility.** Nodes with the same label don't need identical property sets. Alice might have a `phone` property; Bob might not. No `NULL` column overhead, no `ALTER TABLE`.
+
+### Relational vs Graph: Storing a Friendship Network
+
+**Relational approach:**
+```sql
+-- Three tables minimum for a "person knows person with timestamp"
+CREATE TABLE persons (id INTEGER PRIMARY KEY, name TEXT, age INTEGER);
+CREATE TABLE friendships (
+  person_a INTEGER REFERENCES persons(id),
+  person_b INTEGER REFERENCES persons(id),
+  since    INTEGER,
+  PRIMARY KEY (person_a, person_b)
+);
+```
+
+**Graph approach (Cypher, Neo4j):**
+```cypher
+CREATE (a:Person {name: "Alice", age: 34})
+CREATE (b:Person {name: "Bob",   age: 29})
+CREATE (a)-[:KNOWS {since: 2021}]->(b)
+```
+
+The graph version has no join table, no nullable foreign keys, and the relationship is a named, typed first-class object. When you ask "who does Alice know?" the engine walks the edges stored on Alice's node record — it never scans the friends table.
+
+## Simulating the Graph Model with Relational Tables
+
+The widget below uses SQLite to emulate a property graph using three tables: `nodes`, `node_props`, and `edges`. This is exactly how a naive relational graph layer works — and why dedicated graph databases exist.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Property Graph in Relational Tables</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE nodes (id INTEGER PRIMARY KEY, label TEXT NOT NULL); CREATE TABLE node_props (node_id INTEGER, key TEXT, value TEXT, PRIMARY KEY (node_id, key)); CREATE TABLE edges (id INTEGER PRIMARY KEY, type TEXT NOT NULL, start_id INTEGER, end_id INTEGER); CREATE TABLE edge_props (edge_id INTEGER, key TEXT, value TEXT, PRIMARY KEY (edge_id, key)); INSERT INTO nodes VALUES (1, 'Person'), (2, 'Person'), (3, 'Company'); INSERT INTO node_props VALUES (1,'name','Alice'),(1,'age','34'),(1,'city','Singapore'),(2,'name','Bob'),(2,'age','29'),(2,'city','Hanoi'),(3,'name','Acme Corp'),(3,'founded','2010'); INSERT INTO edges VALUES (10,'KNOWS',1,2),(11,'WORKS_AT',1,3),(12,'WORKS_AT',2,3); INSERT INTO edge_props VALUES (10,'since','2021'),(11,'role','Engineer'),(11,'since','2022'),(12,'role','Designer'),(12,'since','2023');">-- Find all companies Alice works at, with her role
+-- This requires 4-table joins to answer one hop
+SELECT
+  n_end.label           AS entity_type,
+  np_name.value         AS company_name,
+  ep_role.value         AS role,
+  ep_since.value        AS since
+FROM nodes n_start
+JOIN node_props np_start ON np_start.node_id = n_start.id AND np_start.key = 'name'
+JOIN edges e             ON e.start_id = n_start.id AND e.type = 'WORKS_AT'
+JOIN nodes n_end         ON n_end.id = e.end_id
+JOIN node_props np_name  ON np_name.node_id = n_end.id AND np_name.key = 'name'
+JOIN edge_props ep_role  ON ep_role.edge_id = e.id AND ep_role.key = 'role'
+JOIN edge_props ep_since ON ep_since.edge_id = e.id AND ep_since.key = 'since'
+WHERE np_start.value = 'Alice';</textarea>
+  </div>
+</div>
+
+Notice how answering a single one-hop question — "where does Alice work?" — requires joining four tables. In a native graph database, the same question is resolved by following pointers stored directly on Alice's node record, with no join computation.
+
+## Why Graph Databases Don't Use Foreign Keys
+
+Foreign keys enforce referential integrity, but they don't store physical pointers. When PostgreSQL evaluates `JOIN persons ON friendships.person_b = persons.id`, it looks up an index on `persons.id` for each row in `friendships`. That index lookup has a cost that scales with the size of both tables.
+
+Graph databases use a technique called **index-free adjacency**: each node stores a direct linked list of its edges. Traversing one hop is an O(1) pointer dereference regardless of how many nodes exist in the graph. A social network with 1 billion users doesn't make "find Alice's friends" slower — only the number of Alice's friends matters, not the global population.
+
+| Concept | Relational | Graph (LPG) |
+|---|---|---|
+| Relationship storage | Implicit (matching FK values) | Explicit (edge record with pointers) |
+| Relationship properties | Junction table column | Edge property |
+| Multi-label entity | NULL columns or sub-type tables | Multiple labels on one node |
+| Hop cost | Index lookup per join | Pointer traversal (O(1) per hop) |
+| Schema enforcement | Strict column schema | Optional constraints |
+
+## Key Takeaways
+
+- **Nodes** are entities with labels and properties; **edges** are directed, typed relationships that can carry their own properties.
+- The Labeled Property Graph model makes relationships first-class objects — stored explicitly, not inferred at query time.
+- Graph databases use **index-free adjacency**: nodes hold direct pointers to their edges, making each hop O(1) regardless of graph size.
+- The relational equivalent of a graph requires junction tables and multi-table joins — workable for shallow queries but expensive for multi-hop traversals.
+- Graph databases excel when your questions are about the **connections themselves** — paths, reachability, clusters — rather than aggregate statistics over flat records.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

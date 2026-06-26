@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open source databases to explore — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VII. Building Understanding</p>
+  <p class="chapter-label">Chapter 30. Where to Go Next</p>
+  <h1 class="content-title">Open source databases to explore</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="293-how-to-benchmark-correctly.html"><span class="dir">← Previous</span><span class="ttl">How to benchmark correctly</span></a><a class="next" href="295-what-to-build-for-practice.html"><span class="dir">Next →</span><span class="ttl">What to build for practice</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+The open-source database ecosystem is unusually rich: you can read the source, file issues, follow mailing lists, and even contribute to systems that run at internet scale. Knowing which projects are worth studying — and what each one teaches — is itself a skill. This page maps the landscape so you can pick your next deep dive.
+
+## How to Use This List
+
+The projects below are organized by what they teach you, not just what category they fall into. Pick one from each major category you want to understand, read the paper (if one exists), build it locally, and run the test suite. That combination — paper + code + tests — is the fastest path to genuine understanding.
+
+## Relational (OLTP)
+
+These are traditional SQL databases optimized for transactional workloads.
+
+| Project | Language | What it teaches | Paper / Resource |
+|---|---|---|---|
+| **SQLite** | C | B-tree storage, VDBE bytecode interpreter, WAL mode | `sqlite.org/arch.html` |
+| **PostgreSQL** | C | Full RDBMS: MVCC, planner, extensions, WAL, vacuum | `postgresql.org/docs/current/internals.html` |
+| **MySQL / InnoDB** | C++ | Clustered indexes, doublewrite buffer, redo log | InnoDB internals guide |
+| **MariaDB** | C++ | PostgreSQL/MySQL alternative; Galera cluster replication | `mariadb.com/kb/en/documentation/` |
+| **DuckDB** | C++ | Columnar OLAP embedded in a library; vectorized execution | "DuckDB: an Embeddable Analytical Database" (SIGMOD 2019) |
+
+**Start with SQLite** if you want to read every subsystem end-to-end in a manageable codebase. **PostgreSQL** if you want a full production RDBMS with excellent inline documentation.
+
+## Distributed SQL (NewSQL)
+
+Systems that bring ACID guarantees to distributed deployments.
+
+| Project | Language | What it teaches | Paper |
+|---|---|---|---|
+| **CockroachDB** | Go | Raft consensus per range, distributed transactions, SQL on KV | "CockroachDB: The Resilient Geo-Distributed SQL Database" (SIGMOD 2020) |
+| **TiDB** | Go + Rust | Separation of SQL and storage layers (TiKV); HTAP | "TiDB: A Raft-based HTAP Database" (VLDB 2020) |
+| **YugabyteDB** | C++ | DocDB storage layer; PostgreSQL compatibility | `yugabyte.com/blog/` |
+| **Vitess** | Go | MySQL sharding at YouTube/Slack scale | `vitess.io/docs/` |
+
+<figure class="diagram">
+<svg viewBox="0 0 640 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Database landscape map organized by axes: OLTP vs OLAP on horizontal, single-node vs distributed on vertical, with representative projects placed in each quadrant">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
+    </marker>
+  </defs>
+  <!-- Axes -->
+  <line x1="320" y1="20" x2="320" y2="260" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="30" y1="140" x2="610" y2="140" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <!-- Axis labels -->
+  <text x="100" y="135" text-anchor="middle" font-size="12" font-weight="600" fill="var(--muted)">OLTP</text>
+  <text x="540" y="135" text-anchor="middle" font-size="12" font-weight="600" fill="var(--muted)">OLAP</text>
+  <text x="325" y="18" text-anchor="start" font-size="12" font-weight="600" fill="var(--muted)">Distributed</text>
+  <text x="325" y="258" text-anchor="start" font-size="12" font-weight="600" fill="var(--muted)">Single-node</text>
+  <!-- Q1: single-node OLTP -->
+  <text x="90" y="190" text-anchor="middle" font-size="11" fill="var(--accent)">PostgreSQL</text>
+  <text x="90" y="207" text-anchor="middle" font-size="11" fill="var(--accent)">MySQL</text>
+  <text x="90" y="224" text-anchor="middle" font-size="11" fill="var(--accent)">SQLite</text>
+  <!-- Q2: distributed OLTP -->
+  <text x="90" y="75" text-anchor="middle" font-size="11" fill="var(--accent)">CockroachDB</text>
+  <text x="90" y="92" text-anchor="middle" font-size="11" fill="var(--accent)">TiDB</text>
+  <text x="90" y="109" text-anchor="middle" font-size="11" fill="var(--accent)">YugabyteDB</text>
+  <!-- Q3: single-node OLAP -->
+  <text x="500" y="190" text-anchor="middle" font-size="11" fill="var(--accent)">DuckDB</text>
+  <text x="500" y="207" text-anchor="middle" font-size="11" fill="var(--accent)">ClickHouse*</text>
+  <!-- Q4: distributed OLAP -->
+  <text x="500" y="75" text-anchor="middle" font-size="11" fill="var(--accent)">Apache Druid</text>
+  <text x="500" y="92" text-anchor="middle" font-size="11" fill="var(--accent)">StarRocks</text>
+  <text x="500" y="109" text-anchor="middle" font-size="11" fill="var(--accent)">Trino</text>
+  <!-- Center label -->
+  <text x="320" y="155" text-anchor="middle" font-size="10" fill="var(--muted)">HTAP: TiDB, DuckDB+Postgres</text>
+</svg>
+<figcaption>Database landscape by workload type and deployment model. Most open-source projects cluster in one quadrant; HTAP systems straddle the center.</figcaption>
+</figure>
+
+## Analytical (OLAP / Columnar)
+
+Systems optimized for aggregation, joins, and scans across large datasets.
+
+| Project | Language | What it teaches | Paper |
+|---|---|---|---|
+| **DuckDB** | C++ | Vectorized execution, columnar storage, push-based operators | SIGMOD 2019 |
+| **Apache Druid** | Java | Real-time ingestion, segment-based columnar storage, rollups | "Druid: A Real-time Analytical Data Store" (SIGMOD 2014) |
+| **StarRocks** | C++ | MPP columnar engine; MySQL-compatible SQL | `starrocks.io/blog/` |
+| **Trino (Presto)** | Java | Federated query across data sources; connector architecture | "Presto: SQL on Everything" (ICDE 2019) |
+| **Apache Arrow** | C++/multi | Columnar in-memory format; zero-copy across languages | `arrow.apache.org` |
+
+## Key-Value and Log-Structured
+
+| Project | Language | What it teaches | Paper |
+|---|---|---|---|
+| **RocksDB** | C++ | LSM-tree, compaction strategies, WAL, bloom filters | "RocksDB: Evolution of Development Priorities" (VLDB 2021) |
+| **LevelDB** | C++ | Original LSM-tree from Google; simpler than RocksDB | Bigtable paper for context |
+| **Redis** | C | In-memory hash tables, skiplists, persistence models, clustering | `redis.io/docs/management/persistence/` |
+| **LMDB** | C | Memory-mapped B-tree; copy-on-write; extremely readable | `symas.com/lmdb/technical/` |
+| **etcd** | Go | Raft consensus; distributed KV for Kubernetes | Raft paper |
+
+> **LMDB is underrated for learning.** It is under 10,000 lines of C, implements a full copy-on-write B-tree with MVCC, and has exceptional documentation. Read it after SQLite for a completely different design philosophy.
+
+## Document and Graph
+
+| Project | Language | What it teaches | Paper |
+|---|---|---|---|
+| **MongoDB** | C++ | Document model, WiredTiger storage engine, replica sets | "MongoDB: A Scalable, High-Performance, Open Source, Schema-Free Database" |
+| **Apache CouchDB** | Erlang | Multi-master replication, MVCC, MapReduce views | CouchDB guide |
+| **Neo4j** | Java | Property graph model, Cypher query language, native graph storage | `neo4j.com/docs/internals/` |
+| **Apache AGE** | C (PG ext) | Graph queries on top of PostgreSQL | `age.apache.org` |
+
+## Time-Series
+
+| Project | Language | What it teaches |
+|---|---|---|
+| **InfluxDB** (OSS) | Go | TSM storage (variant of LSM for time series), tag indexing |
+| **TimescaleDB** | C (PG ext) | Hypertables, continuous aggregates, time-series on PostgreSQL |
+| **Prometheus** | Go | Pull-based metrics, TSDB chunks, remote write |
+
+## Where to Start
+
+If you have studied this course in order, a recommended exploration path:
+
+1. **SQLite** — study the B-tree and WAL implementation. Read `btree.c` and `wal.c`.
+2. **PostgreSQL** — study MVCC and the query planner. Read `heapam.c` and `optimizer/`.
+3. **RocksDB** — study LSM-tree compaction. Read `compaction/compaction_picker.cc`.
+4. **DuckDB** — study vectorized execution. Read `execution/operator/`.
+5. **CockroachDB** — study distributed transactions. Read the Raft and MVCC layers.
+
+Each step builds on the previous one. You will recognize patterns from one engine appearing in the next — that recognition is the payoff.
+
+## Key Takeaways
+
+- The open-source ecosystem covers every database category; you can read production code for all of them.
+- SQLite and LMDB are the best starting points for readable, self-contained storage engines.
+- PostgreSQL and RocksDB are the best choices for studying a full production system.
+- DuckDB and CockroachDB represent the modern generation: columnar OLAP and distributed SQL respectively.
+- Follow the recommended path: single-node B-tree → full RDBMS → LSM-tree → columnar → distributed.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

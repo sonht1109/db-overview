@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>High availability basics — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VI. Engineering Practice</p>
+  <p class="chapter-label">Chapter 24. Designing for Reliability</p>
+  <h1 class="content-title">High availability basics</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="232-point-in-time-recovery.html"><span class="dir">← Previous</span><span class="ttl">Point-in-time recovery</span></a><a class="next" href="234-failure-testing.html"><span class="dir">Next →</span><span class="ttl">Failure testing</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+A single database server is a single point of failure. When that server crashes — and it will, eventually — every application connected to it stops working. **High availability (HA)** is the set of architectural patterns that allow a database system to survive individual node failures without significant downtime. This page covers the foundational concepts: replication topologies, failover mechanics, and the trade-offs you accept when designing for HA.
+
+## The Core Problem: Single Points of Failure
+
+Availability is measured in "nines":
+
+| Availability | Downtime per year | Downtime per month |
+|---|---|---|
+| 99% (two nines) | 87.6 hours | 7.3 hours |
+| 99.9% (three nines) | 8.76 hours | 43.8 minutes |
+| 99.99% (four nines) | 52.6 minutes | 4.4 minutes |
+| 99.999% (five nines) | 5.26 minutes | 26.3 seconds |
+
+Moving from two to three nines requires planned maintenance windows and a simple restart procedure. Moving from three to four nines requires redundant hardware and automated failover. Five nines requires every layer of the stack to be redundant, including the database.
+
+## Primary–Replica Replication
+
+The most common HA primitive is **primary–replica (master–slave) replication**: one node (the primary) accepts writes; one or more replicas receive a copy of every change and apply it locally.
+
+Changes flow from primary to replica via the same **write-ahead log** used for crash recovery (in PostgreSQL this is streaming replication; in MySQL it is the binary log). The replica is always slightly behind — this lag is the cost of asynchronous replication.
+
+<figure class="diagram">
+<svg viewBox="0 0 680 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Primary-replica HA topology: application writes to primary, WAL streams to two replicas, reads can go to replicas, VIP floats to replica on failover">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arr-m" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- Application box -->
+  <rect x="270" y="15" width="140" height="44" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="340" y="33" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Application</text>
+  <text x="340" y="50" text-anchor="middle" font-size="10" fill="var(--muted)">connects via VIP / load balancer</text>
+
+  <!-- Primary -->
+  <rect x="210" y="100" width="130" height="60" rx="6" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="2"/>
+  <text x="275" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">Primary</text>
+  <text x="275" y="144" text-anchor="middle" font-size="11" fill="var(--muted)">Reads + Writes</text>
+
+  <!-- Replica 1 -->
+  <rect x="70" y="190" width="130" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="135" y="215" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Replica 1</text>
+  <text x="135" y="234" text-anchor="middle" font-size="11" fill="var(--muted)">Reads only</text>
+
+  <!-- Replica 2 -->
+  <rect x="490" y="190" width="130" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="555" y="215" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Replica 2</text>
+  <text x="555" y="234" text-anchor="middle" font-size="11" fill="var(--muted)">Reads only</text>
+
+  <!-- App to Primary -->
+  <line x1="340" y1="59" x2="310" y2="99" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="310" y="82" text-anchor="end" font-size="10" fill="var(--accent)">writes</text>
+
+  <!-- Primary to Replica 1 (WAL) -->
+  <line x1="235" y1="160" x2="175" y2="190" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr-m)"/>
+  <text x="185" y="178" text-anchor="middle" font-size="10" fill="var(--muted)">WAL stream</text>
+
+  <!-- Primary to Replica 2 (WAL) -->
+  <line x1="315" y1="160" x2="510" y2="190" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr-m)"/>
+  <text x="440" y="178" text-anchor="middle" font-size="10" fill="var(--muted)">WAL stream</text>
+
+  <!-- Failover label -->
+  <text x="340" y="258" text-anchor="middle" font-size="11" fill="var(--text)">On primary failure → promote Replica 1 or 2 → update VIP → resume writes</text>
+</svg>
+<figcaption>A primary receives all writes and streams WAL to replicas. On failure, one replica is promoted and the virtual IP (VIP) is redirected — the application reconnects without code changes.</figcaption>
+</figure>
+
+## Synchronous vs. Asynchronous Replication
+
+The biggest design decision in any HA setup is whether replication is **synchronous** or **asynchronous**.
+
+| | Asynchronous | Synchronous |
+|---|---|---|
+| **Commit latency** | Low — primary does not wait | Higher — must wait for replica acknowledgement |
+| **Data loss on failover** | Possible — replica may lag | Zero — replica has every committed transaction |
+| **Replica failure impact** | None — primary continues | Primary stalls if synchronous replica is unavailable |
+| **Best for** | Read scale-out, reporting | Financial systems, any zero-RPO requirement |
+
+PostgreSQL's `synchronous_commit = on` (or `remote_apply`) makes commits synchronous. MySQL Group Replication offers similar guarantees. The practical middle ground is **semi-synchronous**: the primary waits for at least one replica to acknowledge receipt before confirming the commit.
+
+## Automated Failover
+
+Manual failover is too slow for four-nines availability. Automated failover requires three components:
+
+1. **Health monitoring** — continuously checks whether the primary is responding (TCP ping, query heartbeat)
+2. **Consensus / fencing** — ensures only one node promotes itself to primary at a time, preventing split-brain
+3. **VIP / DNS update** — redirects application connections to the new primary without code changes
+
+Common tools:
+
+- **Patroni** (PostgreSQL) — uses etcd/Consul/ZooKeeper for distributed consensus; most production PostgreSQL HA uses this
+- **Orchestrator** (MySQL) — topology-aware failover with visual dashboard
+- **AWS RDS Multi-AZ** — fully managed; failover in ~60–120 seconds via DNS update
+- **Google Cloud Spanner** — built-in multi-region HA, no operator intervention required
+
+### The Split-Brain Problem
+
+Split-brain occurs when two nodes both believe they are the primary and accept writes simultaneously. Resolving the resulting divergence is extremely painful. Prevent it with **STONITH** (Shoot The Other Node In The Head) — the old primary's network is fenced before the new primary is promoted, guaranteeing the old primary cannot accept writes.
+
+## Read Replicas for Scale-Out
+
+Beyond HA, replicas also serve **read scale-out**: route SELECT-heavy analytics and reporting queries to a replica, leaving the primary free for writes. This is the simplest form of horizontal read scaling and requires zero application changes beyond a read-only connection string.
+
+> **Warning:** Because replicas lag, reads from a replica may not reflect the most recent write. Design applications to tolerate eventual consistency on the replica read path, or use a synchronous replica for reads that must be current.
+
+## Interactive: Replica Lag Monitoring
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Replica Lag &amp; Health</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE replication_status (replica_name TEXT, host TEXT, state TEXT, lag_bytes INTEGER, lag_seconds REAL, sync_state TEXT, last_seen TEXT); INSERT INTO replication_status VALUES ('replica-1','10.0.1.11','streaming',0,0.0,'sync','2024-06-24 15:00:01'); INSERT INTO replication_status VALUES ('replica-2','10.0.1.12','streaming',204800,1.2,'async','2024-06-24 15:00:00'); INSERT INTO replication_status VALUES ('replica-3','10.0.1.13','streaming',5242880,31.5,'async','2024-06-24 14:59:45');">-- Identify replicas that are lagging beyond 10 seconds (alert threshold)
+SELECT replica_name, host, sync_state,
+       lag_bytes / 1048576.0 AS lag_mb,
+       lag_seconds,
+       CASE
+         WHEN lag_seconds &gt; 60  THEN 'CRITICAL'
+         WHEN lag_seconds &gt; 10  THEN 'WARNING'
+         ELSE 'OK'
+       END AS health
+FROM replication_status
+ORDER BY lag_seconds DESC;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- HA requires redundant nodes; a single server cannot meet four-nines availability
+- Primary–replica replication with WAL streaming is the standard building block for PostgreSQL and MySQL HA
+- Choose synchronous replication for zero RPO; accept the latency cost
+- Automated failover requires health checks, distributed consensus (to prevent split-brain), and VIP/DNS redirection
+- Read replicas provide both HA and read scale-out — but replica lag means reads may be slightly stale
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

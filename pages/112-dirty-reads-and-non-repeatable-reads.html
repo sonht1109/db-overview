@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dirty reads and non-repeatable reads — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part III. Storage and Execution</p>
+  <p class="chapter-label">Chapter 12. Concurrency Control</p>
+  <h1 class="content-title">Dirty reads and non-repeatable reads</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="111-the-lost-update-problem.html"><span class="dir">← Previous</span><span class="ttl">The lost update problem</span></a><a class="next" href="113-phantom-reads.html"><span class="dir">Next →</span><span class="ttl">Phantom reads</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+When multiple transactions run at the same time, they can step on each other in subtle ways. Two classic problems are **dirty reads** and **non-repeatable reads** — both arise from insufficient isolation, and both can silently corrupt application logic without triggering any error.
+
+## Dirty Reads: Seeing Uncommitted Data
+
+A **dirty read** happens when Transaction A reads a row that Transaction B has modified but not yet committed. If B later rolls back, A was working with data that never actually existed in the database.
+
+**Example scenario:**
+
+| Step | Transaction A (bank teller) | Transaction B (transfer job) |
+|------|----------------------------|------------------------------|
+| 1 | | `UPDATE accounts SET balance = 0 WHERE id = 1` |
+| 2 | `SELECT balance FROM accounts WHERE id = 1` → sees **0** | |
+| 3 | | `ROLLBACK` — balance reverts to original |
+| 4 | A acts on a balance of 0 that never existed | |
+
+Transaction A made a decision based on phantom data. This is a dirty read.
+
+<figure class="diagram">
+<svg viewBox="0 0 620 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing a dirty read: Txn B writes uncommitted data, Txn A reads it, then Txn B rolls back">
+  <!-- Timeline axis -->
+  <line x1="40" y1="40" x2="40" y2="200" stroke="var(--border)" stroke-width="2"/>
+  <text x="40" y="28" fill="var(--text)" font-size="12" text-anchor="middle">time</text>
+  <line x1="36" y1="40" x2="44" y2="40" stroke="var(--border)" stroke-width="2"/>
+  <line x1="36" y1="200" x2="44" y2="200" stroke="var(--border)" stroke-width="2"/>
+
+  <!-- Txn B lane -->
+  <rect x="80" y="36" width="160" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="160" y="54" fill="var(--text)" font-size="13" text-anchor="middle">Txn B: UPDATE balance=0</text>
+
+  <rect x="80" y="170" width="160" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="160" y="188" fill="var(--text)" font-size="13" text-anchor="middle">Txn B: ROLLBACK</text>
+
+  <!-- Dashed line for uncommitted change -->
+  <line x1="160" y1="62" x2="160" y2="170" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="163" y="120" fill="var(--text)" font-size="11" opacity="0.7">uncommitted</text>
+
+  <!-- Txn A lane -->
+  <rect x="370" y="96" width="190" height="26" rx="4" fill="var(--accent)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="465" y="114" fill="var(--surface-2)" font-size="13" text-anchor="middle">Txn A: READ balance → 0</text>
+
+  <!-- Arrow from Txn B write to Txn A read -->
+  <line x1="240" y1="62" x2="370" y2="109" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <polygon points="370,109 360,104 362,114" fill="var(--accent)"/>
+  <text x="300" y="80" fill="var(--accent)" font-size="11" text-anchor="middle">dirty read</text>
+
+  <!-- Rollback note -->
+  <text x="160" y="214" fill="var(--text)" font-size="11" text-anchor="middle" opacity="0.75">data reverts — A lied to</text>
+
+  <!-- Lane labels -->
+  <text x="160" y="16" fill="var(--text)" font-size="13" font-weight="bold" text-anchor="middle">Transaction B</text>
+  <text x="465" y="16" fill="var(--text)" font-size="13" font-weight="bold" text-anchor="middle">Transaction A</text>
+</svg>
+<figcaption>Dirty read timeline: Txn A reads Txn B's uncommitted write; when B rolls back, A's data was never real.</figcaption>
+</figure>
+
+> **Note:** Most databases prevent dirty reads by default. In SQL standard terms, this requires at least **Read Committed** isolation level. The lowest level, **Read Uncommitted**, explicitly allows dirty reads — it is rarely used in production.
+
+## Non-Repeatable Reads: Data That Changes Under You
+
+A **non-repeatable read** is subtler. Transaction A reads a row, then reads it again later in the same transaction — and gets a *different* value because Transaction B committed a change in between.
+
+**Example scenario:**
+
+| Step | Transaction A (report job) | Transaction B (admin update) |
+|------|---------------------------|------------------------------|
+| 1 | `SELECT price FROM products WHERE id = 7` → **$100** | |
+| 2 | | `UPDATE products SET price = 150 WHERE id = 7` |
+| 3 | | `COMMIT` |
+| 4 | `SELECT price FROM products WHERE id = 7` → **$150** | |
+| 5 | A sees two different prices in one logical operation | |
+
+Transaction A asked the same question twice and got two different answers. This breaks the assumption that a transaction sees a **stable snapshot** of the database.
+
+### Why It Matters
+
+In a pricing report, two reads of the same product during one transaction should agree. Inconsistency here can produce wrong totals, incorrect audit logs, or subtle application bugs that are hard to reproduce.
+
+Preventing non-repeatable reads requires **Repeatable Read** isolation level, which guarantees a transaction always sees the same value for a row it has already read — even if a concurrent transaction commits a change.
+
+## Isolation Levels at a Glance
+
+| Isolation Level | Dirty Reads | Non-Repeatable Reads | Phantom Reads |
+|----------------|:-----------:|:--------------------:|:-------------:|
+| Read Uncommitted | possible | possible | possible |
+| Read Committed | prevented | possible | possible |
+| Repeatable Read | prevented | prevented | possible |
+| Serializable | prevented | prevented | prevented |
+
+Each level adds stronger guarantees at the cost of reduced concurrency (more locking or version tracking). Choosing the right level is always a tradeoff.
+
+---
+
+Try the widget below to observe how read isolation works in practice. The setup creates two "snapshots" by using SQLite's `BEGIN` semantics — notice how a committed change by one session appears in a subsequent read by another.
+
+<div class="widget" data-widget="sql"
+  data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000); INSERT INTO accounts VALUES (2, 'Bob', 500);">
+-- Simulate a non-repeatable read scenario:
+-- Step 1: read Alice's balance (first read)
+SELECT owner, balance FROM accounts WHERE id = 1;
+
+-- Imagine another transaction runs: UPDATE accounts SET balance = 250 WHERE id = 1;
+-- Step 2: apply that change here to simulate a committed update
+UPDATE accounts SET balance = 250 WHERE id = 1;
+
+-- Step 3: read Alice's balance again (second read in the same "transaction")
+SELECT owner, balance FROM accounts WHERE id = 1;
+
+-- Under Read Committed: you see 250. A non-repeatable read occurred.
+-- Under Repeatable Read: the DB would return 1000 again (snapshot isolation).
+</div>
+
+Try changing the `UPDATE` amount and re-running both `SELECT`s to see how the second read reflects the new value — this is exactly the non-repeatable read anomaly in action.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

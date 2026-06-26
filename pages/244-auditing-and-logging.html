@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditing and logging — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VI. Engineering Practice</p>
+  <p class="chapter-label">Chapter 25. Security and Access Control</p>
+  <h1 class="content-title">Auditing and logging</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="243-encryption-in-transit-and-at-rest.html"><span class="dir">← Previous</span><span class="ttl">Encryption in transit and at rest</span></a><a class="next" href="245-secrets-management.html"><span class="dir">Next →</span><span class="ttl">Secrets management</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+When a security incident happens, the first question is always: what happened, who did it, and when? **Auditing and logging** are how databases answer that question. An audit trail is not just a compliance checkbox — it is the difference between a contained breach and one that goes undetected for months. This page covers what to log, how to configure it, and how to query audit data effectively.
+
+## What to Log
+
+Not all database activity is equally worth capturing. Over-logging generates noise that buries real signals; under-logging leaves gaps attackers exploit. A useful audit strategy logs at three levels:
+
+| Level | What | Why |
+|---|---|---|
+| **Connection events** | Login attempts, successful connections, disconnections | Detect brute-force, credential stuffing, unexpected service accounts logging in |
+| **DDL events** | `CREATE`, `ALTER`, `DROP`, `TRUNCATE` | Schema changes are irreversible; catch accidental or malicious structural changes |
+| **DML on sensitive tables** | `SELECT`, `INSERT`, `UPDATE`, `DELETE` on PII/financial tables | Who read or changed sensitive data and when |
+| **Privilege changes** | `GRANT`, `REVOKE`, role membership changes | Privilege escalation is a common attack vector |
+| **Failed queries / errors** | Permission-denied errors, syntax errors in bulk | Probing and injection attempts often leave error traces |
+
+## PostgreSQL Audit Configuration
+
+PostgreSQL's built-in logging is configured in `postgresql.conf`:
+
+```ini
+# Log all connections and disconnections
+log_connections = on
+log_disconnections = on
+
+# Log all DDL statements
+log_statement = 'ddl'
+
+# Log slow queries (useful for performance and unexpected bulk reads)
+log_min_duration_statement = 1000  # milliseconds
+
+# Log failed authentication
+log_failed_connections = on  # (available in PG 15+)
+```
+
+For finer-grained DML auditing, the community extension **pgAudit** (PostgreSQL Audit Extension) logs individual `SELECT`, `INSERT`, `UPDATE`, and `DELETE` statements with full context:
+
+```sql
+-- Enable pgAudit for a specific role
+SET pgaudit.log = 'read,write';
+SET pgaudit.log_relation = on;
+```
+
+pgAudit emits structured log lines that include the statement class, object type, object name, and the full SQL text — far more useful than the raw PostgreSQL log.
+
+## Audit Tables: Logging Data Changes
+
+For application-level auditing — tracking who changed what value in a business table — a trigger-based audit table is the most common pattern:
+
+```sql
+-- Audit table: stores old and new values for every change
+CREATE TABLE audit_log (
+  log_id      SERIAL PRIMARY KEY,
+  table_name  TEXT NOT NULL,
+  operation   TEXT NOT NULL,          -- INSERT / UPDATE / DELETE
+  changed_by  TEXT NOT NULL,          -- current_user
+  changed_at  TEXT NOT NULL,          -- timestamp
+  old_data    TEXT,                   -- JSON of old row
+  new_data    TEXT                    -- JSON of new row
+);
+
+-- Trigger function
+CREATE OR REPLACE FUNCTION audit_trigger_fn()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  INSERT INTO audit_log(table_name, operation, changed_by, changed_at, old_data, new_data)
+  VALUES (
+    TG_TABLE_NAME,
+    TG_OP,
+    current_user,
+    strftime('%Y-%m-%dT%H:%M:%S', 'now'),
+    CASE WHEN TG_OP = 'DELETE' THEN row_to_json(OLD)::text ELSE NULL END,
+    CASE WHEN TG_OP IN ('INSERT','UPDATE') THEN row_to_json(NEW)::text ELSE NULL END
+  );
+  RETURN NULL;
+END;
+$$;
+```
+
+The trigger fires `AFTER INSERT OR UPDATE OR DELETE` on each monitored table and writes a row to `audit_log`. The audit log itself should be insert-only: revoke `UPDATE` and `DELETE` privileges from all application roles.
+
+<figure class="diagram">
+<svg viewBox="0 0 680 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Audit trail flow: application issues DML, trigger fires and writes to audit log, SIEM or reporting tool reads audit log">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- App -->
+  <rect x="20" y="100" width="120" height="70" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="80" y="130" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Application</text>
+  <text x="80" y="147" text-anchor="middle" font-size="11" fill="var(--muted)">UPDATE orders</text>
+
+  <!-- Business table -->
+  <rect x="230" y="60" width="140" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="300" y="87" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">orders</text>
+  <text x="300" y="105" text-anchor="middle" font-size="11" fill="var(--muted)">business table</text>
+
+  <!-- Trigger -->
+  <rect x="230" y="160" width="140" height="50" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="300" y="183" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">AFTER trigger</text>
+  <text x="300" y="200" text-anchor="middle" font-size="10" fill="var(--muted)">audit_trigger_fn()</text>
+
+  <!-- Audit log -->
+  <rect x="470" y="100" width="140" height="70" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="540" y="130" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">audit_log</text>
+  <text x="540" y="147" text-anchor="middle" font-size="11" fill="var(--muted)">insert-only table</text>
+
+  <!-- SIEM -->
+  <rect x="470" y="210" width="140" height="50" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="540" y="233" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">SIEM / Reports</text>
+  <text x="540" y="248" text-anchor="middle" font-size="10" fill="var(--muted)">Splunk, Datadog, etc.</text>
+
+  <!-- Arrows -->
+  <line x1="140" y1="130" x2="228" y2="90" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="300" y1="120" x2="300" y2="158" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="370" y1="185" x2="468" y2="135" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="540" y1="170" x2="540" y2="208" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr2)"/>
+</svg>
+<figcaption>A trigger fires after each DML on the business table, writes an immutable row to audit_log, and the audit log is consumed by reporting or SIEM tools.</figcaption>
+</figure>
+
+## What Makes a Good Audit Log
+
+An audit log entry should contain enough context to reconstruct exactly what happened:
+
+- **Who** — the database user (`current_user`), plus the application-level user if your app tracks that in a session variable
+- **When** — timestamp with time zone (not just a date)
+- **What** — the operation type and the affected table
+- **Old state / New state** — for UPDATE and DELETE, the previous values; for INSERT, the new values
+- **Where from** — client IP address (available in `inet_client_addr()` in PostgreSQL)
+
+### Application-Level User Tracking
+
+The database only knows the database role. If five hundred users share one `app_user` role, the audit log shows `app_user` for all of them. Pass the application user ID through a session variable:
+
+```sql
+-- Set at the start of each session
+SELECT set_config('app.user_id', '12345', false);
+
+-- Read in the trigger
+current_setting('app.user_id', true)
+```
+
+## Querying the Audit Log
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Audit Log Queries</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE audit_log (log_id INTEGER PRIMARY KEY, table_name TEXT, operation TEXT, changed_by TEXT, changed_at TEXT, old_data TEXT, new_data TEXT); INSERT INTO audit_log VALUES (1, 'orders', 'UPDATE', 'app_user', '2024-06-01 09:00:00', '{&quot;status&quot;:&quot;pending&quot;}', '{&quot;status&quot;:&quot;shipped&quot;}'); INSERT INTO audit_log VALUES (2, 'orders', 'DELETE', 'admin', '2024-06-01 09:15:00', '{&quot;id&quot;:99,&quot;status&quot;:&quot;cancelled&quot;}', NULL); INSERT INTO audit_log VALUES (3, 'users', 'UPDATE', 'app_user', '2024-06-01 09:20:00', '{&quot;email&quot;:&quot;old@x.com&quot;}', '{&quot;email&quot;:&quot;new@x.com&quot;}'); INSERT INTO audit_log VALUES (4, 'orders', 'INSERT', 'app_user', '2024-06-01 09:30:00', NULL, '{&quot;id&quot;:100,&quot;status&quot;:&quot;pending&quot;}'); INSERT INTO audit_log VALUES (5, 'orders', 'DELETE', 'app_user', '2024-06-01 09:45:00', '{&quot;id&quot;:100,&quot;status&quot;:&quot;pending&quot;}', NULL);">-- Who deleted rows and when?
+SELECT log_id, table_name, changed_by, changed_at, old_data
+FROM audit_log
+WHERE operation = 'DELETE'
+ORDER BY changed_at;
+
+-- Activity summary by user and operation
+-- SELECT changed_by, operation, COUNT(*) AS cnt
+-- FROM audit_log
+-- GROUP BY changed_by, operation
+-- ORDER BY changed_by, operation;</textarea>
+  </div>
+</div>
+
+## Protecting the Audit Log
+
+An audit log is only useful if it cannot be tampered with. Apply the following:
+
+1. **Revoke modification rights** — application roles should have `INSERT` only on `audit_log`, never `UPDATE` or `DELETE`.
+2. **Ship logs off the database** — stream logs to a separate system (Splunk, Datadog, S3) in real time. If an attacker compromises the database, they should not also be able to erase the trail.
+3. **Immutable log stores** — cloud storage with Object Lock (S3 Object Lock, GCS retention policies) makes log files legally immutable for a configured retention period.
+4. **Rotate and archive** — partition the audit log by month; archive old partitions to cold storage to keep the active table fast.
+
+## Key Takeaways
+
+- Log **connections, DDL, privilege changes, and DML on sensitive tables** at minimum; avoid logging everything (it creates noise and storage pressure).
+- Use trigger-based audit tables to capture **old and new values** for changes — the database log alone does not record this.
+- Always record **who, what, when, and from where** — including the application-layer user ID if multiple users share a database role.
+- **Protect the audit log itself**: insert-only for application roles, shipped to an external immutable store.
+- An audit log that exists only inside the database is a liability: a compromised database can be used to erase the trail.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

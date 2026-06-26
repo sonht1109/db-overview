@@ -1,0 +1,217 @@
+Multi-tenant SaaS means one running application serves many independent customers (tenants), each believing they have their own private system. How you isolate tenant data is the most consequential architectural decision you will make — it affects security, scalability, operational complexity, and cost. This case study compares the three canonical approaches and lands on the one most teams ship.
+
+## The Three Isolation Models
+
+### 1. Database per Tenant
+
+Each tenant gets a completely separate database (or server). Perfect isolation, independent backups, can be located in different regions.
+
+**Pros:** Strongest security boundary. One tenant's schema migration or heavy query never affects another. Easy to delete a tenant (drop the database).  
+**Cons:** 1 000 tenants = 1 000 databases to manage, migrate, monitor, and back up. Connection pool explosion. Expensive.
+
+Use when: regulated industries (healthcare, finance) where data residency or isolation is legally required.
+
+### 2. Schema per Tenant (PostgreSQL)
+
+In PostgreSQL, a "schema" is a namespace within a database. Each tenant gets their own schema (`tenant_acme`, `tenant_globex`) with identical tables inside.
+
+**Pros:** Isolated query plans, separate vacuuming, easy to dump one tenant. Fewer operational objects than separate databases.  
+**Cons:** PostgreSQL-specific. Schema migrations must run against every tenant schema (slow at scale). Still creates many objects.
+
+### 3. Shared Tables with a `tenant_id` Column
+
+All tenants share the same tables. Every row has a `tenant_id` foreign key that the application includes on every query.
+
+**Pros:** Simple to operate (one schema, one database). Scales to millions of tenants. Easy schema migrations.  
+**Cons:** A bug that forgets `tenant_id` in a query is a data leak. Requires rigorous application discipline or a query wrapper layer.
+
+**Most SaaS companies ship option 3** for their first 10 000 tenants, then optionally offer option 1 for enterprise customers who pay for dedicated infrastructure.
+
+## Shared-Table Schema
+
+```sql
+CREATE TABLE tenants (
+  id         INTEGER PRIMARY KEY,
+  slug       TEXT NOT NULL UNIQUE,  -- 'acme-corp' — used in URLs
+  name       TEXT NOT NULL,
+  plan       TEXT NOT NULL DEFAULT 'starter',  -- 'starter','pro','enterprise'
+  created_at INTEGER NOT NULL,
+  suspended  INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE users (
+  id          INTEGER PRIMARY KEY,
+  tenant_id   INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  email       TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  role        TEXT NOT NULL DEFAULT 'member',  -- 'owner','admin','member'
+  created_at  INTEGER NOT NULL,
+  UNIQUE (tenant_id, email)   -- email unique per tenant, not globally
+);
+
+CREATE TABLE projects (
+  id          INTEGER PRIMARY KEY,
+  tenant_id   INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  created_by  INTEGER NOT NULL REFERENCES users(id),
+  created_at  INTEGER NOT NULL
+);
+
+CREATE TABLE audit_log (
+  id         INTEGER PRIMARY KEY,
+  tenant_id  INTEGER NOT NULL REFERENCES tenants(id),
+  user_id    INTEGER REFERENCES users(id),
+  action     TEXT NOT NULL,
+  resource   TEXT NOT NULL,
+  payload    TEXT,           -- JSON details
+  occurred_at INTEGER NOT NULL
+);
+```
+
+### The Critical Index Pattern
+
+Every table that contains tenant data must have `tenant_id` as the **leading column** of its most-used indexes:
+
+```sql
+CREATE INDEX idx_users_tenant    ON users    (tenant_id, email);
+CREATE INDEX idx_projects_tenant ON projects (tenant_id, created_at DESC);
+CREATE INDEX idx_audit_tenant    ON audit_log(tenant_id, occurred_at DESC);
+```
+
+This ensures that a query scoped to one tenant scans only that tenant's rows in the index — not the entire table. Without this, a query like `SELECT * FROM projects WHERE tenant_id = 42` degrades to a full table scan as the table grows.
+
+<figure class="diagram">
+<svg viewBox="0 0 700 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Multi-tenant schema: tenants table anchors users, projects, and audit_log; every row carries tenant_id; index structure shows tenant_id as leading key">
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- tenants -->
+  <rect x="270" y="10" width="160" height="100" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <rect x="270" y="10" width="160" height="26" rx="6" fill="var(--accent)" opacity="0.3"/>
+  <text x="350" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">tenants</text>
+  <text x="284" y="52" font-size="11" fill="var(--muted)">PK id</text>
+  <text x="284" y="68" font-size="11" fill="var(--text)">slug UNIQUE</text>
+  <text x="284" y="84" font-size="11" fill="var(--text)">plan, suspended</text>
+  <text x="284" y="100" font-size="11" fill="var(--text)">created_at</text>
+
+  <!-- users -->
+  <rect x="10" y="160" width="160" height="110" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <rect x="10" y="160" width="160" height="26" rx="6" fill="var(--accent)" opacity="0.2"/>
+  <text x="90" y="178" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">users</text>
+  <text x="24" y="202" font-size="11" fill="var(--muted)">PK id</text>
+  <text x="24" y="218" font-size="11" fill="var(--accent)">FK tenant_id ← leading</text>
+  <text x="24" y="234" font-size="11" fill="var(--text)">email, name, role</text>
+  <text x="24" y="250" font-size="11" fill="var(--muted)">UNIQUE(tenant_id, email)</text>
+
+  <!-- projects -->
+  <rect x="270" y="160" width="160" height="110" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <rect x="270" y="160" width="160" height="26" rx="6" fill="var(--accent)" opacity="0.2"/>
+  <text x="350" y="178" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">projects</text>
+  <text x="284" y="202" font-size="11" fill="var(--muted)">PK id</text>
+  <text x="284" y="218" font-size="11" fill="var(--accent)">FK tenant_id ← leading</text>
+  <text x="284" y="234" font-size="11" fill="var(--text)">name, created_by</text>
+  <text x="284" y="250" font-size="11" fill="var(--text)">created_at</text>
+
+  <!-- audit_log -->
+  <rect x="530" y="160" width="160" height="110" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <rect x="530" y="160" width="160" height="26" rx="6" fill="var(--accent)" opacity="0.2"/>
+  <text x="610" y="178" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">audit_log</text>
+  <text x="544" y="202" font-size="11" fill="var(--muted)">PK id</text>
+  <text x="544" y="218" font-size="11" fill="var(--accent)">FK tenant_id ← leading</text>
+  <text x="544" y="234" font-size="11" fill="var(--text)">action, resource</text>
+  <text x="544" y="250" font-size="11" fill="var(--text)">user_id, occurred_at</text>
+
+  <!-- Arrows from tenants -->
+  <line x1="300" y1="110" x2="140" y2="158" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="350" y1="110" x2="350" y2="158" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="410" y1="110" x2="570" y2="158" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Index annotation -->
+  <rect x="10" y="300" width="680" height="50" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="350" y="318" text-anchor="middle" font-size="11" fill="var(--muted)">Every index starts with tenant_id → queries are scoped to one tenant's B-tree subtree</text>
+  <text x="350" y="336" text-anchor="middle" font-size="11" fill="var(--text)">INDEX (tenant_id, email) · INDEX (tenant_id, created_at DESC) · INDEX (tenant_id, occurred_at DESC)</text>
+</svg>
+<figcaption>All domain tables carry tenant_id as a foreign key. Every index leads with tenant_id so queries are confined to one tenant's data in the B-tree.</figcaption>
+</figure>
+
+## Row-Level Security
+
+In PostgreSQL, you can enforce tenant isolation at the database level with **Row-Level Security (RLS)**:
+
+```sql
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation ON projects
+  USING (tenant_id = current_setting('app.tenant_id')::integer);
+```
+
+Now even if application code forgets a `WHERE tenant_id = ?`, the database silently filters to the current tenant. SQLite has no built-in RLS, so isolation is enforced entirely by the application.
+
+## Plan-Based Feature Flags
+
+```sql
+CREATE TABLE plan_features (
+  plan    TEXT NOT NULL,
+  feature TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  limit_value INTEGER,   -- NULL = unlimited
+  PRIMARY KEY (plan, feature)
+);
+
+INSERT INTO plan_features VALUES
+  ('starter', 'projects', 1, 3),
+  ('starter', 'api_access', 0, NULL),
+  ('pro',     'projects', 1, NULL),
+  ('pro',     'api_access', 1, NULL);
+```
+
+To check if a tenant can create another project:
+
+```sql
+SELECT pf.limit_value
+FROM tenants t
+JOIN plan_features pf ON pf.plan = t.plan AND pf.feature = 'projects'
+WHERE t.id = ? AND pf.enabled = 1;
+```
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Multi-Tenant Queries</span></div>
+  <div class="widget-body">
+    <textarea data-setup="
+CREATE TABLE tenants (id INTEGER PRIMARY KEY, slug TEXT UNIQUE, name TEXT, plan TEXT DEFAULT 'starter', created_at INTEGER, suspended INTEGER DEFAULT 0);
+CREATE TABLE users (id INTEGER PRIMARY KEY, tenant_id INTEGER REFERENCES tenants(id), email TEXT, name TEXT, role TEXT DEFAULT 'member', created_at INTEGER);
+CREATE TABLE projects (id INTEGER PRIMARY KEY, tenant_id INTEGER REFERENCES tenants(id), name TEXT, created_by INTEGER, created_at INTEGER);
+CREATE TABLE audit_log (id INTEGER PRIMARY KEY, tenant_id INTEGER, user_id INTEGER, action TEXT, resource TEXT, occurred_at INTEGER);
+CREATE INDEX idx_users_tenant ON users(tenant_id, email);
+CREATE INDEX idx_projects_tenant ON projects(tenant_id, created_at DESC);
+INSERT INTO tenants VALUES (1,'acme','Acme Corp','pro',1700000000,0),(2,'globex','Globex Inc','starter',1700000100,0),(3,'initech','Initech','pro',1700000200,1);
+INSERT INTO users VALUES (1,1,'alice@acme.com','Alice','owner',1700001000),(2,1,'bob@acme.com','Bob','member',1700002000),(3,2,'carol@globex.com','Carol','owner',1700003000),(4,3,'dave@initech.com','Dave','owner',1700004000);
+INSERT INTO projects VALUES (1,1,'Apollo',1,1700010000),(2,1,'Hermes',1,1700020000),(3,2,'Omega',3,1700030000);
+INSERT INTO audit_log VALUES (1,1,1,'create','project:1',1700010000),(2,1,2,'update','project:1',1700015000),(3,2,3,'create','project:3',1700030000);
+">-- All active tenants with their project count
+SELECT t.slug, t.plan,
+       COUNT(p.id) AS project_count
+FROM tenants t
+LEFT JOIN projects p ON p.tenant_id = t.id
+WHERE t.suspended = 0
+GROUP BY t.id
+ORDER BY project_count DESC;
+
+-- Try: all users for a specific tenant
+-- SELECT u.name, u.email, u.role
+-- FROM users u
+-- WHERE u.tenant_id = 1
+-- ORDER BY u.role, u.name;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- **Shared tables with `tenant_id`** is the pragmatic default: simple to operate, scales to large tenant counts, easy to migrate.
+- **`tenant_id` must be the leading column** of every index — this is what makes per-tenant queries fast rather than full-table scans.
+- **Email uniqueness** should be `UNIQUE(tenant_id, email)`, not globally unique — two tenants can have the same email domain.
+- **Cascade deletes** on tenant removal clean up all related rows automatically.
+- PostgreSQL's **Row-Level Security** can enforce isolation at the database engine level, eliminating a whole class of application bugs.

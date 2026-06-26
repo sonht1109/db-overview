@@ -1,0 +1,57 @@
+Once the optimizer has a logical plan and a set of physical alternatives to consider, it needs a way to compare them. Running every candidate plan against real data to see which one is fastest would be absurdly expensive — a query with five joins already has hundreds of possible orderings. Instead, the optimizer **estimates** the cost of each plan using statistics it has collected about the data. The winning plan is the one with the lowest estimated cost, not necessarily the one that looks simplest to a human.
+
+## What "Cost" Actually Means
+
+Cost is a model, not a stopwatch. Different engines define it differently, but cost almost always comes down to two resources:
+
+| Resource | Why it matters |
+|---|---|
+| **I/O (disk reads/writes)** | Fetching a page from disk is orders of magnitude slower than reading from RAM. For large tables, I/O often dominates. |
+| **CPU cycles** | Comparing values, hashing rows, sorting — these add up, especially in CPU-bound workloads that fit in memory. |
+
+PostgreSQL, for example, expresses cost in arbitrary units where 1.0 ≈ one sequential page read. A random page read costs ~4.0 (configurable), a row-level CPU operation ~0.01. The optimizer sums up these unit costs as it walks the plan tree, so a plan with cost 450 is expected to be cheaper than one with cost 2100 — even if neither number maps directly to milliseconds.
+
+## Statistics: The Foundation of Every Estimate
+
+The optimizer cannot look at the actual rows during planning — that is the whole point of planning ahead. Instead it relies on **statistics** pre-collected by a background process (PostgreSQL's `ANALYZE`, SQLite's auto-statistics, MySQL's `ANALYZE TABLE`, etc.).
+
+The key statistics tracked per column are:
+
+- **n_distinct** — the estimated number of unique values. Tells the optimizer how selective a filter will be.
+- **Histogram buckets** — a compact summary of how values are distributed across the range.
+- **Most-common values (MCV)** — frequency of the top-N values. Critical when data is skewed.
+- **Null fraction** — the fraction of rows where the column is NULL.
+
+From these, the optimizer derives a **selectivity** — the fraction of rows expected to survive a predicate. For a condition like `salary > 80000` on a table of 10,000 rows, if the histogram shows 20% of rows are above that threshold, the optimizer estimates the output as 2,000 rows. That row-count estimate propagates up through the entire plan tree.
+
+> **Note:** Statistics go stale when rows change. A table that was 1,000 rows at last `ANALYZE` but now holds 5,000,000 will produce wildly wrong estimates — and likely a slow plan. Running `ANALYZE` (or its equivalent) after bulk loads is one of the most effective performance habits you can build.
+
+## How Estimates Compound — and Go Wrong
+
+Each operator in the plan tree takes its input row count from the operator below it, applies a selectivity model, and passes an output count upward. A join of tables R and S, for instance, starts with the cross-product size (|R| × |S|) and then applies the join selectivity — typically 1 / max(n_distinct_R, n_distinct_S) for an equijoin on independent columns.
+
+The problem is that selectivity errors multiply. If the optimizer overestimates the output of a filter by 10×, and that output feeds into a join whose estimate is also off by 10×, the final estimate can be off by 100×. In practice, plans with three or more joins are notoriously hard to estimate well. This is why modern engines like PostgreSQL introduced **extended statistics** (multi-column correlation) and why some research systems use machine-learning models trained on query results.
+
+The widget below lets you see how row-count estimates appear in SQLite's `EXPLAIN QUERY PLAN` output. Run the first query, then try dropping the index to see how the plan changes.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · EXPLAIN and cost hints</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x < 500) INSERT INTO orders SELECT x, (x % 50) + 1, (x % 100) * 9.5, CASE WHEN x % 10 = 0 THEN 'refunded' ELSE 'completed' END FROM cnt; CREATE INDEX idx_orders_status ON orders(status); ANALYZE;">-- Ask SQLite how it plans to execute this query.
+-- SCAN means a full table read; SEARCH means it used an index.
+EXPLAIN QUERY PLAN
+SELECT customer_id, SUM(amount)
+FROM orders
+WHERE status = 'refunded'
+GROUP BY customer_id;
+
+-- Try dropping the index and re-running:
+-- DROP INDEX idx_orders_status;
+-- ANALYZE;
+-- Then re-run the EXPLAIN QUERY PLAN above.</textarea>
+  </div>
+</div>
+
+With the index present you should see `SEARCH orders USING INDEX idx_orders_status`. Drop the index and it falls back to `SCAN orders`. SQLite chose between the two by estimating — using its statistics — that scanning a small fraction of rows via the index is cheaper than reading every page.
+
+<details class="reveal"><summary>Reveal: Why can a full table scan sometimes beat an index?</summary><div class="reveal-body">An index read is a <em>random</em> I/O pattern: the engine jumps to different pages on disk for each matching row. A full table scan reads pages <em>sequentially</em>, which modern storage handles far more efficiently. When a predicate matches a large fraction of rows (say, 30% or more), the cost model determines that the many random seeks needed to follow the index are more expensive in total than simply streaming through every page. The optimizer's selectivity estimate is what decides where that crossover point lies — which is why accurate statistics matter so much.</div></details>

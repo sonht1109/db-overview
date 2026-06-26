@@ -1,0 +1,92 @@
+By now you know what tables, rows, columns, keys, constraints, and NULL are. But the relational model — tables with fixed schemas and foreign-key relationships — is not the only way to organize data. Several other models exist, each making different trade-offs. Picking the wrong one early can cost weeks of painful migration later. This page gives you a clear map for making that call.
+
+## The Major Data Models at a Glance
+
+Every database organizes data around a central metaphor. Here are the four you will encounter most often:
+
+| Model | Central metaphor | Typical system |
+|---|---|---|
+| **Relational** | Tables of typed rows connected by keys | PostgreSQL, MySQL, SQLite |
+| **Document** | Self-contained JSON/BSON objects in collections | MongoDB, Firestore |
+| **Key-value** | A giant dictionary: look up a value by its key | Redis, DynamoDB (simple mode) |
+| **Graph** | Nodes (things) and edges (relationships between things) | Neo4j, Amazon Neptune |
+
+A fifth model — **wide-column** (Cassandra, HBase) — is used in very high-throughput analytics, but it is specialized enough that you will know when you need it.
+
+## When Each Model Wins
+
+### Relational — your default choice
+
+If you are not sure which model to use, start here. The relational model is 50 years old and battle-tested. It excels when:
+
+- Your data has a **predictable, consistent structure** (every user has an email, every order has a total).
+- You need **cross-table queries** — finding all unpaid invoices for customers in a specific region, for example.
+- **Data integrity** matters — foreign keys, unique constraints, and transactions prevent your data from ending up in an inconsistent state.
+
+The cost is rigidity: adding a new column to a table with 100 million rows can be slow, and storing truly irregular data (where different records have different fields) feels awkward.
+
+### Document — when your data is naturally nested
+
+A document store treats each record as a self-contained blob of JSON. This fits well when:
+
+- Records vary significantly from one to the next (a product catalog where a TV has 20 specs and a book has 5 different ones).
+- You almost always read or write a record **as a whole unit** — you load the full user profile, not half of it.
+- Your team is iterating fast and the schema is still changing.
+
+The trade-off: joining across documents is painful and often done in application code instead of the database. Consistency guarantees are typically weaker than in relational systems.
+
+### Key-value — for speed above all else
+
+A key-value store is deliberately simple: store a value, retrieve it by key, delete it. Nothing more. This model wins when:
+
+- You need **sub-millisecond reads** (session tokens, user preferences, feature flags).
+- Your access pattern is always "get by ID" — no filtering, no aggregation, no joins.
+- The values can be opaque blobs the database does not need to interpret.
+
+If you ever find yourself embedding query logic into your keys (e.g., `user:42:orders:recent`), that is a sign you have outgrown the model.
+
+### Graph — when relationships *are* the data
+
+A graph database stores nodes and the edges between them as first-class objects. It shines when:
+
+- You need to traverse **chains of relationships** — friends of friends, shortest path between two people, hierarchies of arbitrary depth.
+- Relationship attributes (when did Alice follow Bob? with what weight?) matter as much as the node attributes.
+
+Fraud detection, social networks, and knowledge graphs are classic fits. For most business applications, a relational database with a self-join handles "graph-like" queries well enough.
+
+## A Practical Decision Checklist
+
+Work through these questions in order:
+
+1. **Is the structure predictable and consistent?** → Start with relational.
+2. **Are you joining across many entities, or enforcing referential integrity?** → Relational stays the right call.
+3. **Are records deeply nested and variable, read as whole units?** → Consider document.
+4. **Is the primary access pattern a single key lookup that must be fast?** → Key-value.
+5. **Is the query "how are these things connected, and by how many hops?"** → Graph.
+
+> **Note:** Many modern applications use more than one model. A typical stack might use PostgreSQL for core business data, Redis for caching session tokens, and a graph store for a recommendations feature. Each tool does what it is best at.
+
+## Seeing the Trade-off in SQL
+
+The relational model's biggest strength is expressive querying across related tables. Try this example — it is the kind of question that is trivial in SQL and painful in a document or key-value store.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Cross-table query (relational strength)</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, country TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, product TEXT NOT NULL, total_cents INTEGER NOT NULL, paid INTEGER NOT NULL DEFAULT 0); INSERT INTO customers VALUES (1, 'Alice', 'US'), (2, 'Bob', 'CA'), (3, 'Carol', 'US'), (4, 'Dave', 'MX'); INSERT INTO orders VALUES (1, 1, 'Keyboard', 8999, 1), (2, 1, 'Monitor', 34999, 0), (3, 2, 'Mouse', 2999, 1), (4, 3, 'Webcam', 7499, 0), (5, 3, 'Desk', 49999, 0), (6, 4, 'Headset', 5999, 1);">-- Find all unpaid orders, with the customer name and country.
+-- This cross-table join is natural in relational; awkward elsewhere.
+SELECT
+  c.name        AS customer,
+  c.country,
+  o.product,
+  o.total_cents / 100.0 AS total_usd
+FROM orders o
+JOIN customers c ON c.id = o.customer_id
+WHERE o.paid = 0
+ORDER BY o.total_cents DESC;</textarea>
+  </div>
+</div>
+
+Try changing the `WHERE` clause to filter by country (`AND c.country = 'US'`), or replace the join with an aggregation (`GROUP BY c.country`) to see total unpaid debt per country. A key-value or document store would require you to load records individually and do this logic in your application code.
+
+The right data model does not just affect query complexity — it affects data integrity, scalability, and how fast your team can move. Relational is the right default for most applications. Reach for a different model only when you can name the specific trade-off it solves for you.

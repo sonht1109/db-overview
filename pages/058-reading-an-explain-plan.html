@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading an explain plan — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part II. Querying and Language</p>
+  <p class="chapter-label">Chapter 6. How Query Processing Works</p>
+  <h1 class="content-title">Reading an explain plan</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="057-why-the-same-query-can-run-differently.html"><span class="dir">← Previous</span><span class="ttl">Why the same query can run differently</span></a><a class="next" href="059-query-planning-mistakes.html"><span class="dir">Next →</span><span class="ttl">Query planning mistakes</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+When something runs slowly, the first thing a database engineer reaches for is the explain plan. You saw `EXPLAIN QUERY PLAN` in the previous section — this page goes one level deeper: how to read the numbers, what each term signals, and how to recognize the patterns that warn you a query is in trouble.
+
+## What an Explain Plan Actually Shows
+
+An explain plan is the optimizer's annotated recipe for executing your query. It is a **tree of operators**, evaluated bottom-up: leaf nodes read raw data, inner nodes transform or combine it, and the root node produces the final result set.
+
+Every node in a PostgreSQL-style plan carries three key estimates:
+
+| Field | Meaning |
+|---|---|
+| `cost=N..M` | Estimated work units. `N` is startup cost (before first row); `M` is total cost. |
+| `rows=K` | Estimated number of rows this node will emit. |
+| `width=B` | Estimated average row size in bytes. |
+
+These are **estimates** computed from statistics — not measured timings. When you run `EXPLAIN ANALYZE` (PostgreSQL) the engine also shows **actual** rows and time, letting you compare estimate vs. reality.
+
+A simplified PostgreSQL explain output looks like this:
+
+```
+Hash Join  (cost=12.50..38.80 rows=120 width=72)
+  Hash Cond: (orders.customer_id = customers.id)
+  ->  Seq Scan on orders  (cost=0.00..18.40 rows=840 width=36)
+  ->  Hash  (cost=8.20..8.20 rows=370 width=36)
+        ->  Seq Scan on customers  (cost=0.00..8.20 rows=370 width=36)
+```
+
+Read it from the **innermost indentation outward**: SQLite scans `customers`, builds a hash table from those rows, then streams `orders` through the hash to find matches. The root `Hash Join` emits 120 rows at a total estimated cost of 38.80 units.
+
+## The Signals That Matter
+
+### Scan type
+
+The scan type tells you how the engine is reading a table:
+
+| Scan label | What it means | When it is OK |
+|---|---|---|
+| `Seq Scan` / `SCAN` | Reads every row in the table | Table is tiny, or you need most rows anyway |
+| `Index Scan` / `SEARCH … USING INDEX` | Follows an index, then fetches matching rows | Selective filter — few rows match |
+| `Index Only Scan` | Reads the index alone, never touches the table | All needed columns are in the index |
+| `Bitmap Heap Scan` | Collects matching pages via index, then reads in order | Multiple range conditions, moderate selectivity |
+
+A `Seq Scan` on a million-row table with a `WHERE id = 42` clause is almost always a bug — it means no index is being used where one should exist.
+
+### Row estimate accuracy
+
+The ratio of estimated rows to actual rows is one of the most revealing numbers in the plan. When the optimizer guesses 10 rows but 100,000 arrive at a join, it may have chosen the wrong join algorithm and the wrong join order. Stale statistics are the most common cause; running `ANALYZE` (PostgreSQL) or `ANALYZE tablename` (SQLite) refreshes them.
+
+> **Note:** A cost unit has no fixed real-world unit — it is relative within one plan. Do not compare cost numbers across different databases or even across different queries; use them only to compare nodes within the same plan.
+
+### Nested loops with large inputs
+
+A nested-loop join is fine when the outer side is small. If you see a nested loop where the outer scan emits tens of thousands of rows and there is no index on the inner join key, every outer row triggers a full scan of the inner table. That is O(n × m) work and will be painfully slow on any real dataset.
+
+## Putting It Together: A Worked Example
+
+The widget below sets up a small `orders`/`customers` schema. Run the default `EXPLAIN QUERY PLAN` and note the scan types. Then add the index in the comment and re-run — watch the plan change from a full scan to an index search.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Reading EXPLAIN QUERY PLAN</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, country TEXT); INSERT INTO customers VALUES (1,'Alice','US'),(2,'Bob','UK'),(3,'Carol','US'),(4,'Dan','DE'),(5,'Eve','US'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1,1,250.0,'shipped'),(2,1,80.0,'pending'),(3,2,430.0,'shipped'),(4,3,90.0,'shipped'),(5,3,310.0,'pending'),(6,4,75.0,'shipped'),(7,5,520.0,'shipped'),(8,5,60.0,'pending');">-- Plan without an index on customer_id:
+EXPLAIN QUERY PLAN
+SELECT c.name, SUM(o.amount) AS total
+FROM orders o
+JOIN customers c ON o.customer_id = c.id
+WHERE c.country = 'US'
+GROUP BY c.name;
+
+-- Try adding this index, then re-run the EXPLAIN:
+-- CREATE INDEX idx_orders_customer ON orders(customer_id);</textarea>
+  </div>
+</div>
+
+Without the index, SQLite scans the entire `orders` table for every customer lookup. With `idx_orders_customer` in place, it switches to `SEARCH orders USING INDEX` — reading only the relevant rows.
+
+## A Quick Checklist When Reading a Plan
+
+1. **Start at the leaves** — identify what is being scanned and whether indexes are used.
+2. **Check row estimates** — a large gap between estimate and actual signals stale statistics or a missing histogram.
+3. **Look at join types** — nested loops on large un-indexed inputs are the most common source of runaway query times.
+4. **Find the most expensive node** — in `EXPLAIN ANALYZE` output, look for the node with the highest actual time. That is where to focus optimization effort.
+5. **Verify after every change** — re-run the explain after adding an index or rewriting a query. Plans can shift in unexpected ways.
+
+Explain plans are dense at first glance, but they follow a consistent grammar. Once you can parse the scan type, cost estimate, and join algorithm at each node, you have everything you need to diagnose and fix slow queries systematically.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

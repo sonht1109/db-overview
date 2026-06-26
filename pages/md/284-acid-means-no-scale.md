@@ -1,0 +1,126 @@
+For years the conventional wisdom was clear: if you need to scale, you give up ACID. The NoSQL movement of the 2010s was in large part built on this premise — MongoDB, Cassandra, and DynamoDB gained adoption partly because they promised horizontal scale in exchange for weakened consistency guarantees. Today that trade-off is far more nuanced, and in many cases it no longer exists at all.
+
+## The Myth: ACID and Scale Are Opposites
+
+The argument runs like this: ACID transactions require coordination — locks, log flushes, two-phase commits. Coordination requires waiting. Waiting doesn't scale. Therefore, ACID doesn't scale. This is a reasonable argument about **distributed** ACID, but it conflates several different things.
+
+## Unpacking ACID
+
+**ACID** is four independent properties, and they have different scaling costs:
+
+| Property | What it guarantees | Scaling cost |
+|---|---|---|
+| **Atomicity** | All-or-nothing writes | Low — local to one transaction |
+| **Consistency** | Constraints always hold | Low — enforced at write time |
+| **Isolation** | Concurrent transactions don't corrupt each other | Medium — depends on isolation level |
+| **Durability** | Committed data survives crashes | Low — write-ahead log, async replication |
+
+The expensive one is **Isolation** — specifically, serializable isolation across distributed nodes. Everything else scales well.
+
+Most ACID databases offer multiple isolation levels. `READ COMMITTED` (the PostgreSQL default) is cheap and handles the vast majority of production workloads. Full `SERIALIZABLE` is expensive, but you rarely need it for every query.
+
+## Single-Node Scale Is Enormous
+
+Before discussing distributed systems, consider what a single well-tuned relational database can handle:
+
+- **PostgreSQL** on a 96-core, 768 GB RAM server handles hundreds of thousands of transactions per second.
+- **MySQL** at Facebook, Google, and Twitter served billions of users from sharded single-node databases for years.
+- **SQLite** — a fully ACID embedded database — handles hundreds of thousands of transactions per second on modest hardware.
+
+The vast majority of applications will never outgrow a single node with proper indexing and query tuning. Choosing a weaker consistency model to scale a system that doesn't actually need it is premature optimization with real correctness costs.
+
+<figure class="diagram">
+<svg viewBox="0 0 660 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ACID scale spectrum: single-node ACID is fast, distributed ACID with optimistic concurrency is scalable, distributed ACID with global serializability has highest coordination cost">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Scale axis -->
+  <line x1="40" y1="240" x2="620" y2="240" stroke="var(--border)" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="330" y="270" text-anchor="middle" font-size="12" fill="var(--muted)">→ Scale (throughput / nodes)</text>
+
+  <!-- Cost axis -->
+  <line x1="40" y1="240" x2="40" y2="30" stroke="var(--border)" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="20" y="135" text-anchor="middle" font-size="12" fill="var(--muted)" transform="rotate(-90 20 135)">Coordination Cost</text>
+
+  <!-- Single node ACID block -->
+  <rect x="60" y="170" width="130" height="68" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="125" y="194" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">Single-Node ACID</text>
+  <text x="125" y="212" text-anchor="middle" font-size="11" fill="var(--text)">Local locks + WAL</text>
+  <text x="125" y="228" text-anchor="middle" font-size="11" fill="var(--muted)">Low coordination cost</text>
+
+  <!-- Distributed ACID optimistic -->
+  <rect x="240" y="110" width="150" height="68" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="315" y="131" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">Dist. ACID (MVCC)</text>
+  <text x="315" y="149" text-anchor="middle" font-size="11" fill="var(--text)">CockroachDB, Spanner</text>
+  <text x="315" y="165" text-anchor="middle" font-size="11" fill="var(--muted)">Medium coordination</text>
+
+  <!-- Dist ACID serializable -->
+  <rect x="450" y="55" width="150" height="68" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="525" y="75" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">Global Serializability</text>
+  <text x="525" y="93" text-anchor="middle" font-size="11" fill="var(--text)">Spanner (TrueTime)</text>
+  <text x="525" y="111" text-anchor="middle" font-size="11" fill="var(--muted)">High coordination cost</text>
+
+  <!-- "Good enough" zone annotation -->
+  <rect x="60" y="150" width="230" height="100" rx="4" fill="none" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+  <text x="175" y="144" text-anchor="middle" font-size="10" fill="var(--accent)">"most apps live here"</text>
+</svg>
+<figcaption>Coordination cost grows with distribution, but single-node and optimistic MVCC-based distributed ACID cover the vast majority of production workloads at very reasonable cost.</figcaption>
+</figure>
+
+## Distributed ACID Is Real and Deployable
+
+The 2010s produced genuine distributed ACID databases that are now in wide production use:
+
+- **Google Spanner** (2012) — globally distributed, externally consistent transactions using TrueTime atomic clocks. Powers Google's entire ads and payments infrastructure.
+- **CockroachDB** — serializable, distributed, horizontally scalable. Uses optimistic MVCC concurrency to minimize lock contention.
+- **YugabyteDB** — distributed PostgreSQL wire-compatible with ACID guarantees.
+- **TiDB** — distributed MySQL-compatible database with full ACID transactions.
+
+These systems prove that ACID and horizontal scale are not mutually exclusive. The trade-off is **latency**, not correctness: a cross-shard commit takes longer than a local one, but both are correct.
+
+## The Actual Trade-off: Latency vs. Consistency
+
+What distributed ACID databases actually cost is **commit latency** on cross-shard transactions. A local commit in PostgreSQL takes ~1 ms. A cross-region commit in Spanner takes ~20–100 ms (the speed of light imposes a floor). This is a real cost — for applications that need sub-millisecond commits, a single-region single-node database often wins.
+
+The NoSQL trade-off (eventual consistency, BASE semantics) solves a real problem: if you cannot tolerate that latency spike, you relax consistency. But that means accepting the possibility of reading stale data, handling write conflicts in application code, and giving up the ability to express multi-row invariants. Those costs are real too.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · ACID in Action — Multi-Row Consistency</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance REAL NOT NULL CHECK(balance &gt;= 0)); INSERT INTO accounts VALUES (1, 'Alice', 1000.00); INSERT INTO accounts VALUES (2, 'Bob', 500.00);">-- ACID guarantees both rows change together or not at all.
+-- The CHECK(balance >= 0) constraint enforces consistency.
+BEGIN;
+  UPDATE accounts SET balance = balance - 200 WHERE id = 1;
+  UPDATE accounts SET balance = balance + 200 WHERE id = 2;
+COMMIT;
+
+-- Verify the invariant: total must equal 1500
+SELECT owner, balance FROM accounts;
+SELECT SUM(balance) AS total_must_be_1500 FROM accounts;
+
+-- Try to violate it (will fail due to CHECK constraint):
+-- UPDATE accounts SET balance = balance - 2000 WHERE id = 1;</textarea>
+  </div>
+</div>
+
+> **Note:** This is exactly the transfer pattern that financial systems rely on. In an eventually-consistent system, a read between the two `UPDATE`s could see an intermediate state where money has "disappeared." ACID prevents that at the database level — no application-level compensation logic required.
+
+## When Eventual Consistency Is the Right Call
+
+Weakening ACID genuinely makes sense when:
+
+- **Cross-geography latency is unavoidable** and your application can tolerate stale reads (social feeds, analytics dashboards, product catalogs).
+- **Write throughput is so high** that even MVCC conflicts impose unacceptable tail latency (e.g., global real-time gaming leaderboards).
+- **The data model is naturally independent** — user preferences, device settings, and shopping carts where conflicts can be resolved by last-write-wins or application merge logic.
+
+The key word is "genuinely." Many systems choose eventual consistency because of the myth that ACID doesn't scale, not because they have measured a real need.
+
+## Key Takeaways
+
+- ACID and scale are not opposites. Single-node ACID databases handle enormous workloads; distributed ACID databases (Spanner, CockroachDB) provide horizontal scale with correctness.
+- The real trade-off is **commit latency on distributed transactions**, not throughput.
+- Most applications never exhaust a single well-tuned ACID database — choose the distributed model only after measuring the bottleneck.
+- Eventual consistency is a real and valid choice, but it shifts correctness responsibility to the application; that cost must be weighed against the latency savings.

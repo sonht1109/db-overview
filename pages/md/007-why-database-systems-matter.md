@@ -1,0 +1,67 @@
+Before the relational database existed, every application that needed to store data had to invent its own storage format, its own query logic, and its own approach to handling two users writing at the same time. This led to a landscape of incompatible, fragile, and expensive-to-maintain systems. Database systems emerged to solve that problem once — correctly — so every application built on top of them could inherit the solution for free.
+
+## The core problems databases solve
+
+At its heart, a database system exists to answer five recurring challenges that arise whenever software needs to persist and retrieve structured data at any meaningful scale.
+
+| Problem | Without a database | With a database |
+|---|---|---|
+| **Finding records** | Scan every record in the file | Query with an index; fetch only what you need |
+| **Concurrent writers** | Two writers overwrite each other | Locking and transaction isolation prevent conflicts |
+| **Partial failure** | A crash mid-write corrupts data | The engine rolls back incomplete changes automatically |
+| **Enforcing rules** | Application code checks every write | Constraints and foreign keys enforced at the storage layer |
+| **Sharing data** | Each app maintains its own copy | Multiple apps query one authoritative source |
+
+Each of these problems sounds manageable when you are building something small. They compound quickly once you have thousands of records, dozens of concurrent users, or a codebase maintained by multiple teams.
+
+## A motivating scenario
+
+Consider a ride-sharing app. At any given second:
+
+- A driver updates their location.
+- A passenger books a new ride.
+- A billing service reads trip totals for invoicing.
+- An analytics job counts completed rides per city.
+
+Without a database, each of those four actions would need its own file or in-memory store, carefully synchronised by hand. A crash between writing a booking and debiting a wallet would leave the system in an inconsistent state. Recovering from that inconsistency would require custom code — code that is notoriously hard to get right.
+
+A database system handles all four workloads simultaneously, protects against the mid-write crash, and lets engineers focus on ride-matching logic rather than storage plumbing.
+
+> **Note:** "Database system" (or DBMS — Database Management System) refers to the engine itself: the software that manages storage, concurrency, and recovery. The *database* is the collection of data it manages. The distinction matters; you will hear both terms throughout this guide.
+
+## What you get out of the box
+
+When you reach for a database system instead of rolling your own storage, you inherit decades of engineering work without writing a single line of infrastructure code:
+
+- **Durability.** Committed data survives a server crash. The engine uses a write-ahead log (WAL) to replay any writes that didn't fully flush to disk before the failure.
+- **Isolation.** Concurrent queries don't see each other's half-finished work unless you explicitly ask them to.
+- **Declarative querying.** You describe *what* you want; the query planner figures out the most efficient *how*.
+- **A shared interface.** SQL is understood by thousands of tools, languages, and frameworks — one skill transfers everywhere.
+
+The widget below lets you see declarative querying in action. The database holds a simplified snapshot of rides. Try changing `'completed'` to `'active'`, or swap `SUM` for `COUNT` — notice you never tell the database *how* to find the rows, only *what* to return.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · ride-sharing snapshot</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE rides (id INTEGER PRIMARY KEY, driver TEXT, city TEXT, status TEXT, fare REAL);
+INSERT INTO rides VALUES
+  (1,'Amara','Lagos','completed',12.50),
+  (2,'Bayo','Lagos','completed',8.00),
+  (3,'Chidi','Abuja','active',0.00),
+  (4,'Dami','Lagos','completed',22.75),
+  (5,'Emeka','Abuja','completed',15.00),
+  (6,'Fola','Abuja','active',0.00);">SELECT city,
+       COUNT(*)        AS total_rides,
+       SUM(fare)       AS total_revenue
+FROM rides
+WHERE status = 'completed'
+GROUP BY city
+ORDER BY total_revenue DESC;</textarea>
+  </div>
+</div>
+
+## Why this matters beyond the technical details
+
+The existence of reliable database systems changed what software could do. Before them, building a payroll system, an airline reservation system, or a hospital record system meant months of custom storage work before you could write a single line of business logic. Database systems moved that burden out of individual projects and into a shared, well-tested layer.
+
+Today, virtually every piece of software you interact with — your bank's website, the app on your phone, the service that streams your music — rests on a database system of some kind. Learning how they work is not an academic exercise: it is the foundation for understanding how data-driven software is built, scaled, and kept correct under pressure.

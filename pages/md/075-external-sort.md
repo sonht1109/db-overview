@@ -1,0 +1,87 @@
+Sorting a handful of rows in memory is trivial. Sorting a table that is larger than available RAM is not — and databases face exactly that challenge whenever you write `ORDER BY` on a big result set, or when the engine needs sorted input for a merge join or a `GROUP BY`. The solution is **external sort**, a classic algorithm that does the work in two phases, shuttling data between memory and disk.
+
+## Why "External"?
+
+An *internal* sort (like quicksort) assumes all data fits in memory at once. An *external* sort is designed for the case where it does not. The database engine gets a fixed **memory budget** — say 4 MB — and must produce a fully sorted output from a 10 GB table without violating that budget.
+
+The key insight: sort small pieces in memory, write each piece to disk as a **sorted run**, then **merge** the runs together. You only need to hold a small slice of each run in memory at merge time.
+
+## Phase 1 — Building Sorted Runs
+
+The engine reads as many rows as fit in the memory budget, sorts them (any in-memory sort works here), then writes them out as a **run** — a sorted temporary file on disk. It repeats until the whole input is consumed.
+
+```
+Memory budget = B rows
+
+1. Read B rows from the input table.
+2. Sort those B rows in memory.
+3. Write the sorted chunk to a temporary "run" file on disk.
+4. Repeat until all rows are read.
+
+Result: ⌈N / B⌉ sorted runs, each of size ≤ B.
+```
+
+For example, with 1 000 000 rows and a budget of 100 000 rows at a time, you produce 10 sorted runs.
+
+## Phase 2 — Merging the Runs
+
+Now the engine opens all the run files simultaneously and does a **k-way merge**: it keeps a small buffer from each run in memory, always emitting the smallest current value across all buffers. When a buffer is exhausted, it refills from the corresponding run file.
+
+```
+Open k run files (one buffer slot per run in memory).
+
+while any run has rows remaining:
+    find the run whose next row has the smallest sort key
+    emit that row to the output
+    advance that run's buffer
+```
+
+This is exactly the same idea as merging k sorted lists. At any moment, only a few rows per run need to be in memory, so the memory budget is respected.
+
+### Multi-Pass Merging
+
+If there are too many runs to merge in one pass (more runs than memory can buffer), the engine does multiple passes: merge groups of runs into larger runs, reducing the total count, then merge again. In practice, two passes almost always suffice because modern databases use large memory budgets and produce relatively few initial runs.
+
+> **Note:** PostgreSQL calls its memory budget `work_mem`. Doubling `work_mem` can cut external sort from two passes to one, which meaningfully speeds up large `ORDER BY` queries.
+
+## What This Looks Like in a Query Plan
+
+Run `EXPLAIN QUERY PLAN` (SQLite) or `EXPLAIN ANALYZE` (PostgreSQL) on a query with `ORDER BY` and no suitable index. You will often see a note like **"USE TEMP B-TREE FOR ORDER BY"** (SQLite) or **"Sort Method: external merge"** (PostgreSQL) — that is the external sort at work.
+
+The best way to avoid external sort is an **index** whose key order matches the `ORDER BY` clause. When such an index exists, the engine reads rows in sorted order directly from the index with no sort phase at all.
+
+## Try It Live
+
+The widget below creates a small `sales` table and lets you observe how `ORDER BY` changes the output. In a real engine on a large table, this `ORDER BY` would trigger external sort when no index covers the sort key. Try sorting by different columns or adding `EXPLAIN QUERY PLAN` in front of the query.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · ORDER BY and sort plans</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, region TEXT, amount REAL, sale_date TEXT); INSERT INTO sales VALUES (1, 'North', 520.00, '2024-03-01'), (2, 'South', 310.50, '2024-03-02'), (3, 'East', 875.25, '2024-02-28'), (4, 'North', 200.00, '2024-03-05'), (5, 'South', 640.75, '2024-03-03'), (6, 'East', 130.00, '2024-02-20'), (7, 'West', 990.10, '2024-03-07'), (8, 'West', 450.00, '2024-03-01');">-- Sort by amount descending (no index on amount -- engine must sort)
+SELECT region, amount, sale_date
+FROM sales
+ORDER BY amount DESC;</textarea>
+  </div>
+</div>
+
+Now check what the query planner says. Notice the "USE TEMP B-TREE" note on the unindexed column, then create an index and re-run to see it disappear.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Eliminating the sort with an index</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, region TEXT, amount REAL, sale_date TEXT); INSERT INTO sales VALUES (1, 'North', 520.00, '2024-03-01'), (2, 'South', 310.50, '2024-03-02'), (3, 'East', 875.25, '2024-02-28'), (4, 'North', 200.00, '2024-03-05'), (5, 'South', 640.75, '2024-03-03'), (6, 'East', 130.00, '2024-02-20'), (7, 'West', 990.10, '2024-03-07'), (8, 'West', 450.00, '2024-03-01');">-- Step 1: see the plan without an index
+EXPLAIN QUERY PLAN
+SELECT region, amount FROM sales ORDER BY amount DESC;
+
+-- Step 2: create an index, then re-run the EXPLAIN above
+-- CREATE INDEX idx_sales_amount ON sales(amount DESC);</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- External sort handles tables larger than RAM by sorting small **runs** in memory, writing them to disk, then **merging** them.
+- Cost is roughly **O(N log N)** in data volume, with the constant dominated by disk I/O.
+- More memory → fewer runs → fewer merge passes → faster sort.
+- An index that matches the `ORDER BY` key eliminates the sort entirely — the engine reads already-ordered rows straight from the index.
+- External sort is also used internally for sort-merge joins and some `GROUP BY` operations, not just explicit `ORDER BY` clauses.

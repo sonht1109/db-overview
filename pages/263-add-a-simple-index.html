@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add a simple index — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VII. Building Understanding</p>
+  <p class="chapter-label">Chapter 27. A Tiny Database from Scratch</p>
+  <h1 class="content-title">Add a simple index</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="262-insert-and-scan.html"><span class="dir">← Previous</span><span class="ttl">Insert and scan</span></a><a class="next" href="264-add-a-parser.html"><span class="dir">Next →</span><span class="ttl">Add a parser</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+The full table scan works, but it reads every row on disk for every query. Once your table grows past a few thousand rows, that becomes intolerable. The classic solution is an **index**: a separate data structure that maps a column's values to the row numbers where they live, letting the engine skip straight to the relevant rows without touching the rest of the file.
+
+## What an Index Is
+
+An index is a sorted or hashed auxiliary structure maintained alongside the main table. Our toy engine uses the simplest possible design: a **Python dict** (hash map) that maps a column value to a list of row numbers.
+
+```python
+# The index lives entirely in memory for now.
+# Key   = column value (e.g. a salary integer or a name string)
+# Value = list of row numbers that have that value
+Index = dict[int | str, list[int]]
+```
+
+When we insert a row we update the index in the same call. When we query, we look up the value in the index and read only those row numbers — skipping every other row on disk.
+
+```python
+def insert_with_index(
+    table: TableFile,
+    idx: Index,
+    indexed_col: str,
+    row: dict,
+) -> int:
+    row_num = table.write_row(row)            # append to data file
+    key = row[indexed_col]
+    idx.setdefault(key, []).append(row_num)   # update index
+    return row_num
+
+def lookup(
+    table: TableFile,
+    idx: Index,
+    value,
+) -> list[dict]:
+    row_nums = idx.get(value, [])
+    return [table.read_row(n) for n in row_nums]  # only these rows
+```
+
+## Build vs. Maintain
+
+There are two ways an index comes into existence:
+
+1. **Build-time**: scan the whole table once and populate the index. Expensive upfront, O(n).
+2. **Write-time maintenance**: update the index on every insert (and later update/delete). Adds latency to writes; keeps the index current.
+
+```python
+def build_index(table: TableFile, col: str) -> Index:
+    """One-time full scan to create an index on `col`."""
+    idx: Index = {}
+    for i in range(table.num_rows()):
+        row = table.read_row(i)
+        key = row[col]
+        idx.setdefault(key, []).append(i)
+    return idx
+```
+
+Real databases use the build approach for `CREATE INDEX` on an existing table, then switch to write-time maintenance for all subsequent DML.
+
+<figure class="diagram">
+<svg viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hash index maps salary values to row numbers; lookup skips directly to matching rows">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- Data file (right) -->
+  <text x="430" y="24" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Data File</text>
+  <rect x="360" y="34" width="140" height="30" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="430" y="54" text-anchor="middle" font-size="11" fill="var(--text)">Row 0 — Alice  70k</text>
+  <rect x="360" y="66" width="140" height="30" rx="3" fill="var(--accent)" opacity="0.2" stroke="var(--accent)" stroke-width="2"/>
+  <text x="430" y="86" text-anchor="middle" font-size="11" fill="var(--text)">Row 1 — Bob    55k</text>
+  <rect x="360" y="98" width="140" height="30" rx="3" fill="var(--accent)" opacity="0.2" stroke="var(--accent)" stroke-width="2"/>
+  <text x="430" y="118" text-anchor="middle" font-size="11" fill="var(--text)">Row 2 — Carol  92k</text>
+  <rect x="360" y="130" width="140" height="30" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="430" y="150" text-anchor="middle" font-size="11" fill="var(--text)">Row 3 — Dave   61k</text>
+  <rect x="360" y="162" width="140" height="30" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="430" y="182" text-anchor="middle" font-size="11" fill="var(--text)">Row 4 — Eve   110k</text>
+
+  <!-- Index (left) -->
+  <text x="175" y="24" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Index (name → rows)</text>
+  <rect x="80" y="34" width="190" height="26" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="175" y="52" text-anchor="middle" font-size="11" fill="var(--text)">"Alice" → [0]</text>
+  <rect x="80" y="62" width="190" height="26" rx="3" fill="var(--accent)" opacity="0.2" stroke="var(--accent)" stroke-width="2"/>
+  <text x="175" y="80" text-anchor="middle" font-size="11" fill="var(--text)">"Bob"   → [1]</text>
+  <rect x="80" y="90" width="190" height="26" rx="3" fill="var(--accent)" opacity="0.2" stroke="var(--accent)" stroke-width="2"/>
+  <text x="175" y="108" text-anchor="middle" font-size="11" fill="var(--text)">"Carol" → [2]</text>
+  <rect x="80" y="118" width="190" height="26" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="175" y="136" text-anchor="middle" font-size="11" fill="var(--text)">"Dave"  → [3]</text>
+  <rect x="80" y="146" width="190" height="26" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="175" y="164" text-anchor="middle" font-size="11" fill="var(--text)">"Eve"   → [4]</text>
+
+  <!-- Query arrow -->
+  <text x="18" y="79" font-size="11" fill="var(--muted)">lookup</text>
+  <text x="18" y="92" font-size="11" fill="var(--accent)" font-weight="600">"Bob"</text>
+  <line x1="60" y1="82" x2="78" y2="82" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Index to data arrows -->
+  <line x1="272" y1="75" x2="358" y2="81" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="272" y1="103" x2="358" y2="113" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Skip annotation -->
+  <text x="430" y="218" text-anchor="middle" font-size="11" fill="var(--muted)">Rows 0, 3, 4 not read at all</text>
+
+  <!-- O(1) label -->
+  <text x="175" y="200" text-anchor="middle" font-size="11" fill="var(--muted)">hash lookup O(1)</text>
+  <text x="430" y="232" text-anchor="middle" font-size="11" fill="var(--muted)">only 1–2 file reads</text>
+</svg>
+<figcaption>A hash index on the name column maps each name to a list of row numbers. A lookup touches only those rows — the rest of the file is skipped.</figcaption>
+</figure>
+
+## Equality Lookups vs. Range Queries
+
+A dict-based hash index handles **equality** queries (`name = 'Bob'`) in O(1). It cannot handle **range** queries (`salary BETWEEN 60000 AND 90000`) efficiently — you would have to iterate every key in the dict and filter.
+
+For ranges, a sorted structure like a **B-tree** or **sorted array** is needed:
+
+```python
+import bisect
+
+# Sorted index: list of (value, row_num) pairs, kept in sorted order
+SortedIndex = list[tuple[int, int]]
+
+def range_lookup(sidx: SortedIndex, lo, hi) -> list[int]:
+    """Return row numbers where value is in [lo, hi]."""
+    left  = bisect.bisect_left(sidx,  (lo, -1))
+    right = bisect.bisect_right(sidx, (hi, float("inf")))
+    return [row_num for _, row_num in sidx[left:right]]
+```
+
+This is essentially what a B-tree leaf-level scan does: find the lower bound, then walk forward until the upper bound.
+
+| Index type | Best for | Not good for |
+|---|---|---|
+| Hash (dict) | Exact equality | Range queries, ordering |
+| Sorted list / B-tree | Range, ORDER BY | High write throughput |
+| Bitmap | Low-cardinality cols | High-cardinality cols |
+
+## The Write Cost of Indexes
+
+Every index you add makes reads faster and writes slower. Our `insert_with_index` does two operations: one file append (data) and one dict update (index). Real databases may maintain a dozen indexes per table, turning a single INSERT into a dozen B-tree insertions.
+
+> **Note:** This is why bulk-loading a table is often faster with indexes disabled, then rebuilt afterwards — the build is more cache-friendly than thousands of individual B-tree insertions scattered across pages.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Index vs. Full Scan</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice',30,70000),(2,'Bob',25,55000),(3,'Carol',34,92000),(4,'Dave',28,61000),(5,'Eve',40,110000); CREATE INDEX idx_name ON employees(name); CREATE INDEX idx_salary ON employees(salary);">-- Equality lookup: SQLite uses idx_name (O(1) hash-like seek)
+SELECT * FROM employees WHERE name = 'Carol';
+
+-- Range query: SQLite uses idx_salary (B-tree range scan)
+-- SELECT * FROM employees WHERE salary BETWEEN 60000 AND 95000;
+
+-- Show the query plan (uses index or not):
+-- EXPLAIN QUERY PLAN SELECT * FROM employees WHERE salary &gt; 80000;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- An index trades **write overhead** for **read speed**: every insert must update the index, but queries skip most rows.
+- A **hash index** (dict) gives O(1) equality lookups; it cannot serve range queries.
+- A **sorted/B-tree index** supports both equality and range queries at O(log n) cost.
+- Indexes must be kept consistent with the table — a bug that updates the table but not the index produces **stale or phantom reads**, one of the hardest bugs to diagnose in a home-grown engine.
+- Next we add a **parser** so callers can write `SELECT name FROM employees WHERE salary > 80000` instead of calling Python functions directly.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

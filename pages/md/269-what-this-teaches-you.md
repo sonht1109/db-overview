@@ -1,0 +1,146 @@
+You have now built a tiny database from scratch: a fixed-row table file, insert and scan operations, a hash index, a recursive-descent SQL parser, a rule-based query planner, an atomic transaction manager, a write-ahead log for crash recovery, and a sketch of three concurrency control strategies. The engine spans roughly 400 lines of Python and fits in your head. That is exactly the point. This final page reflects on what the exercise teaches — and what it does not.
+
+## The Architecture Map
+
+Every piece of our toy maps to a subsystem in a production database:
+
+| Toy component | Production equivalent |
+|---|---|
+| Fixed-row binary file | Heap file / table pages (PostgreSQL) |
+| `encode_row` / `decode_row` | Tuple descriptor, varlena, null bitmap |
+| `scan()` iterator | Sequential scan node in the executor |
+| Hash index (dict) | Hash index / GiST / GIN |
+| Sorted index (bisect) | B-tree index (almost universally) |
+| Recursive descent parser | Full SQL parser (lex + yacc or hand-written) |
+| Rule-based planner | Cost-based optimizer with statistics |
+| `Transaction` context manager | Transaction manager + lock table |
+| WAL append | Write-ahead log (PostgreSQL) / redo log (InnoDB) |
+| `recover()` | ARIES redo + undo phases |
+| OCC validate-at-commit | Serializable Snapshot Isolation |
+| MVCC row versions | `xmin` / `xmax` in PostgreSQL heap tuples |
+
+The toy is a 1:1 structural analogy. Every production concept has a direct counterpart in the 400 lines you just read.
+
+<figure class="diagram">
+<svg viewBox="0 0 660 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Full database stack from SQL string to durable storage, with each layer labeled">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Layers (top to bottom) -->
+  <!-- SQL Interface -->
+  <rect x="60" y="10" width="540" height="40" rx="6" fill="var(--accent)" opacity="0.18" stroke="var(--accent)" stroke-width="2"/>
+  <text x="330" y="35" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">SQL Interface · Parser</text>
+
+  <line x1="330" y1="52" x2="330" y2="68" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Planner -->
+  <rect x="60" y="70" width="540" height="40" rx="6" fill="var(--accent)" opacity="0.14" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="330" y="95" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">Query Planner · Optimizer</text>
+
+  <line x1="330" y1="112" x2="330" y2="128" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Executor -->
+  <rect x="60" y="130" width="540" height="40" rx="6" fill="var(--accent)" opacity="0.10" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="330" y="155" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">Executor · Index Access · SeqScan</text>
+
+  <line x1="330" y1="172" x2="330" y2="188" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Transaction + Concurrency -->
+  <rect x="60" y="190" width="260" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="190" y="215" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">Transaction Manager</text>
+
+  <rect x="340" y="190" width="260" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="470" y="215" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">Concurrency Control (locks/MVCC)</text>
+
+  <line x1="330" y1="232" x2="330" y2="248" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- WAL -->
+  <rect x="60" y="250" width="260" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="190" y="275" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">Write-Ahead Log</text>
+
+  <!-- Storage -->
+  <rect x="340" y="250" width="260" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="470" y="275" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">Data Files · Indexes</text>
+</svg>
+<figcaption>The full database stack. Our toy engine implemented each of these layers, in order, across this chapter.</figcaption>
+</figure>
+
+## What the Toy Gets Right
+
+**Separation of concerns.** Each layer has one job. The parser does not know about indexes. The planner does not know about log formats. The transaction manager does not know about SQL. This is not incidental — it is the design that lets production databases evolve each layer independently. When PostgreSQL switched to a new MVCC visibility algorithm, the parser and planner were untouched.
+
+**The append-only log as a source of truth.** The WAL exercise shows why the log is more fundamental than the data file. A database can be reconstructed entirely from a WAL. The data file is an optimized cache of the log's truth. This insight recurs in Kafka, event sourcing, and CRDTs — all of which are, at their core, append-only logs with replay.
+
+**The cost of every feature.** Each new subsystem added latency to writes:
+- Index → +1 dict insert per indexed column
+- WAL → +1 sequential log write + flush per commit
+- Locking → +1 lock acquisition per row touched
+
+There is no free lunch. The toy makes these costs visceral in a way that reading a textbook does not.
+
+## What the Toy Skips
+
+| Missing feature | Why it matters in production |
+|---|---|
+| B-tree index | Range queries, ORDER BY, multi-column indexes |
+| Buffer pool | Avoids re-reading pages from disk on every access |
+| Page-level storage | Allows in-place updates and deletion |
+| Statistics / cost model | Accurate plan selection for complex queries |
+| Multi-table joins | JOINs, hash join, merge join, nested loop |
+| NULL handling | Null bitmaps, NULL propagation in expressions |
+| Full ARIES recovery | Undo phase for aborted transactions |
+| Network protocol | Clients over TCP (PostgreSQL wire protocol) |
+| DDL (CREATE TABLE) | Schema management, catalog tables |
+
+Each of these is a chapter in a database textbook. The toy gives you the skeleton; those chapters are the flesh.
+
+## How to Keep Learning
+
+The best next steps after building a toy are reading the source of a real engine:
+
+- **SQLite** — ~170 000 lines of C, extraordinarily readable. Start with `btree.c` and `vdbe.c` (the virtual machine that executes query plans). The [SQLite Architecture](https://www.sqlite.org/arch.html) page maps perfectly onto our toy.
+- **PostgreSQL** — `src/backend/storage/smgr/` for storage, `src/backend/optimizer/` for the planner, `src/backend/access/transam/` for WAL and MVCC.
+- **CMU's 15-445 Database Systems** — open course with projects that build the exact same pipeline (buffer pool → B-tree → executor → concurrency → recovery) in C++.
+
+<details class="reveal">
+<summary>Quiz: match each anomaly to the minimum isolation level that prevents it</summary>
+
+| Anomaly | Minimum isolation level |
+|---|---|
+| Dirty read | **Read Committed** — only read committed data |
+| Non-repeatable read | **Repeatable Read** — re-reading the same row always returns the same value |
+| Lost update | **Repeatable Read** — detecting write-write conflicts |
+| Phantom read | **Serializable** — range locks or predicate locking required |
+
+PostgreSQL's default is **Read Committed**. MySQL InnoDB's default is **Repeatable Read**. SQLite defaults to **Serializable** (it serializes all writers).
+</details>
+
+## Key Takeaways
+
+- Building a toy database from scratch is the single most effective way to stop treating production databases as magic and start reading their documentation with comprehension.
+- Every major concept — storage layout, indexing, SQL parsing, query planning, transactions, crash recovery, concurrency — has a simple core that fits in a few dozen lines of code. The production complexity is engineering, not theoretical mystery.
+- The append-only log is the deepest idea: it appears in WALs, Kafka, event sourcing, blockchain, and CRDTs. Once you see it in our 30-line `write_log_record`, you will recognise it everywhere.
+- The toy stops where the interesting engineering begins. That is the invitation to keep going.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Full Stack Query</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, dept TEXT NOT NULL, salary INTEGER NOT NULL); CREATE TABLE departments (id INTEGER PRIMARY KEY, dept TEXT NOT NULL, budget INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice','Eng',92000),(2,'Bob','Eng',78000),(3,'Carol','Sales',61000),(4,'Dave','Sales',55000),(5,'Eve','Eng',110000); INSERT INTO departments VALUES (1,'Eng',500000),(2,'Sales',200000); CREATE INDEX idx_dept ON employees(dept);">-- A query that exercises every layer we built:
+-- Parser: tokenise + parse SQL
+-- Planner: use idx_dept for employees filter, hash join with departments
+-- Executor: nested loop or hash join
+-- Transactions: implicit autocommit
+
+SELECT d.dept,
+       COUNT(e.id)    AS headcount,
+       AVG(e.salary)  AS avg_salary,
+       d.budget       AS dept_budget
+FROM   employees e
+JOIN   departments d ON e.dept = d.dept
+GROUP  BY d.dept, d.budget
+ORDER  BY avg_salary DESC;</textarea>
+  </div>
+</div>

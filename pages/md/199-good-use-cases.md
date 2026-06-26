@@ -1,0 +1,198 @@
+Column-family databases like Cassandra were not built to replace relational databases — they were built for workloads that relational databases handle poorly at scale. When the write rate is extremely high, when data must be distributed across many nodes or data centers, and when access patterns are well-understood and stable, column-family databases deliver performance and availability that would require heroic effort to achieve with SQL. This chapter maps the specific workload characteristics that make a column-family database the right choice, and explains why each use case fits the data model so naturally.
+
+## Use Case 1: Time-Series and IoT Sensor Data
+
+**Why it fits:** IoT devices write data continuously — one row per measurement, per device, per second. A fleet of 100,000 sensors each writing once per second generates 100,000 writes per second. Cassandra's LSM-tree storage engine is **write-optimized**: it buffers writes in memory and flushes them sequentially to disk, avoiding the expensive random-write penalty of B-tree structures.
+
+The data model is a natural fit: partition by device (or device + time bucket to bound partition size), cluster by timestamp. Every write goes to the correct partition, and reading the last N readings for a device is a cheap in-partition range scan.
+
+```sql
+CREATE TABLE sensor_readings (
+  device_id   UUID,
+  recorded_at TIMESTAMP,
+  temperature FLOAT,
+  humidity    FLOAT,
+  PRIMARY KEY (device_id, recorded_at)
+) WITH CLUSTERING ORDER BY (recorded_at DESC);
+```
+
+**What would be painful in SQL:** A single PostgreSQL instance at 100,000 inserts/second would require extensive tuning, partitioning, and eventually sharding. Horizontal scaling of writes in relational databases is hard; in Cassandra it is the default mode.
+
+## Use Case 2: User Activity and Event Logs
+
+**Why it fits:** Application event logs — page views, clicks, API calls — are append-heavy and partitioned naturally by user. Each user's activity stream is a wide row: the partition key is `user_id`, the clustering key is `event_timestamp`. Fetching a user's recent activity is a single-partition, range-bounded read.
+
+```sql
+CREATE TABLE user_activity (
+  user_id    UUID,
+  event_time TIMESTAMP,
+  event_type TEXT,
+  metadata   TEXT,
+  PRIMARY KEY (user_id, event_time)
+) WITH CLUSTERING ORDER BY (event_time DESC);
+
+-- Retrieve the last 50 events for a user — single partition read
+SELECT event_type, event_time, metadata
+FROM user_activity
+WHERE user_id = 'u-4291'
+LIMIT 50;
+```
+
+Write volume is high and bursty; reads are always by user. Cassandra distributes users across nodes evenly (user UUIDs hash well). No joins are needed — each user's data is self-contained in their partition.
+
+**What would be painful in SQL:** A relational events table grows without bound. Partitioning by user_id in PostgreSQL or MySQL helps but requires manual management. Cassandra handles the distribution automatically.
+
+## Use Case 3: Messaging Inbox
+
+**Why it fits:** A messaging system needs to store all messages for a recipient and retrieve them sorted by timestamp — newest first for inbox rendering, oldest first for conversation scrollback. This is a classic wide-row pattern: partition by `recipient_id`, cluster by `sent_at`.
+
+<figure class="diagram">
+<svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Messaging inbox data model: three partitions, one per user, each containing rows of messages sorted by timestamp. Each partition lives on a different node.">
+  <defs>
+    <marker id="arr199" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <text x="340" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">Wide-Row Inbox: One Partition Per User</text>
+
+  <!-- User A partition -->
+  <rect x="20" y="40" width="200" height="230" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="120" y="60" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">Partition: alice</text>
+
+  <rect x="30" y="68" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="120" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-25 09:00</text>
+  <text x="120" y="97" text-anchor="middle" font-size="10" fill="var(--text)">"Hey, are you free today?"</text>
+
+  <rect x="30" y="110" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="120" y="124" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-25 09:05</text>
+  <text x="120" y="139" text-anchor="middle" font-size="10" fill="var(--text)">"Sure! What time works?"</text>
+
+  <rect x="30" y="152" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="120" y="166" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-25 10:15</text>
+  <text x="120" y="181" text-anchor="middle" font-size="10" fill="var(--text)">"Let's meet at 2pm"</text>
+
+  <text x="120" y="220" text-anchor="middle" font-size="20">⋮</text>
+  <text x="120" y="258" text-anchor="middle" font-size="10" fill="var(--muted)">→ Node 1</text>
+
+  <!-- User B partition -->
+  <rect x="240" y="40" width="200" height="230" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="340" y="60" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">Partition: bob</text>
+
+  <rect x="250" y="68" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="340" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-25 08:45</text>
+  <text x="340" y="97" text-anchor="middle" font-size="10" fill="var(--text)">"Project update attached"</text>
+
+  <rect x="250" y="110" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="340" y="124" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-25 11:30</text>
+  <text x="340" y="139" text-anchor="middle" font-size="10" fill="var(--text)">"Looks good, approved!"</text>
+
+  <text x="340" y="200" text-anchor="middle" font-size="20">⋮</text>
+  <text x="340" y="258" text-anchor="middle" font-size="10" fill="var(--muted)">→ Node 2</text>
+
+  <!-- User C partition -->
+  <rect x="460" y="40" width="200" height="230" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="560" y="60" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">Partition: carol</text>
+
+  <rect x="470" y="68" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="560" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-24 16:00</text>
+  <text x="560" y="97" text-anchor="middle" font-size="10" fill="var(--text)">"Team lunch tomorrow?"</text>
+
+  <rect x="470" y="110" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="560" y="124" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-24 16:12</text>
+  <text x="560" y="139" text-anchor="middle" font-size="10" fill="var(--text)">"Yes! Italian place?"</text>
+
+  <text x="560" y="200" text-anchor="middle" font-size="20">⋮</text>
+  <text x="560" y="258" text-anchor="middle" font-size="10" fill="var(--muted)">→ Node 3</text>
+</svg>
+<figcaption>Each user's inbox is a partition. Messages within the partition are sorted by timestamp. Loading a user's inbox is a single-partition read — no cross-node coordination required.</figcaption>
+</figure>
+
+**What would be painful in SQL:** A single messages table with hundreds of millions of rows requires careful indexing and partitioning. Pagination by timestamp per recipient involves complex queries. Cassandra's data model makes this the default, not the exception.
+
+## Use Case 4: Product Catalog with Variable Attributes
+
+**Why it fits:** Products in an e-commerce catalog have radically different schemas: a laptop has processor speed and RAM; a shirt has size and color; a book has ISBN and author. Relational databases handle this with EAV (Entity-Attribute-Value) tables — notoriously ugly — or JSONB columns. Cassandra supports **sparse columns**: you can define hundreds of columns in a table, but each row only stores the columns it actually has. Unused columns consume no storage.
+
+This makes Cassandra a natural fit for wide, sparse product data where each category has a different set of attributes.
+
+**What would be painful in SQL:** Adding a new product category attribute requires an ALTER TABLE or a schema workaround. With Cassandra, adding a column is a metadata-only operation.
+
+## Use Case 5: Leaderboards and Counters
+
+**Why it fits:** Cassandra offers **native counter columns** — a special column type where `UPDATE ... SET score = score + 1` is an atomic, distributed increment. Counter columns are designed for high-frequency increments from multiple nodes without read-before-write overhead.
+
+Leaderboards pair well with Cassandra when the ranking dimension maps to a clustering key. For example, partition by `game_id` and cluster by `score DESC` to always have the top scores for a game in order within a partition.
+
+```sql
+CREATE TABLE game_scores (
+  game_id  TEXT,
+  score    BIGINT,
+  user_id  UUID,
+  PRIMARY KEY (game_id, score, user_id)
+) WITH CLUSTERING ORDER BY (score DESC);
+```
+
+**Limitation to note:** Native counters cannot be mixed with regular columns and have their own consistency quirks. For complex leaderboard logic, sorted sets in Redis may be simpler.
+
+## Use Case 6: Recommendation Systems (Wide-Row User Preferences)
+
+**Why it fits:** A recommendation system needs to store a large set of user preferences, ratings, or interaction signals per user. In Cassandra, this is a natural wide row: partition by `user_id`, cluster by `item_id` or `interaction_time`. You can store tens of thousands of item interactions per user in a single partition and scan them efficiently.
+
+Batch reads for model training can scan partitions sequentially using token-range queries, which align with Cassandra's storage layout.
+
+## Decision Matrix
+
+Use this table to evaluate whether a column-family database fits your workload:
+
+| Characteristic | Use Column-Family | Avoid Column-Family |
+|---|---|---|
+| Write volume | Very high (100k+ writes/sec) | Moderate (SQL handles it) |
+| Write pattern | Append-heavy, few updates | Heavy update/delete workload |
+| Read pattern | Known, stable access patterns | Ad-hoc, exploratory queries |
+| Data structure | Wide rows, sparse columns | Normalized, heavily joined entities |
+| Scale requirement | Horizontal, multi-datacenter | Single node or vertical scaling |
+| Consistency need | Eventual / tunable | Strong ACID transactions |
+| Analytics need | Operational reads only | Complex aggregations, reporting |
+| Team expertise | Cassandra/wide-column specialists | Generalist SQL developers |
+| Schema stability | Partition key fixed at design | Frequent schema evolution |
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Messaging Inbox Model</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE messages (recipient TEXT, sent_at TEXT, sender TEXT, body TEXT, PRIMARY KEY (recipient, sent_at)); INSERT INTO messages VALUES ('alice', '2024-06-25 09:00', 'bob',   'Hey, are you free today?'); INSERT INTO messages VALUES ('alice', '2024-06-25 09:05', 'carol', 'Sure! What time works?'); INSERT INTO messages VALUES ('alice', '2024-06-25 10:15', 'bob',   'Meet at 2pm?'); INSERT INTO messages VALUES ('alice', '2024-06-25 10:20', 'alice', 'Works for me!'); INSERT INTO messages VALUES ('bob',   '2024-06-25 08:45', 'alice', 'Project update attached'); INSERT INTO messages VALUES ('bob',   '2024-06-25 11:30', 'carol', 'Approved!'); INSERT INTO messages VALUES ('carol', '2024-06-24 16:00', 'alice', 'Team lunch tomorrow?'); INSERT INTO messages VALUES ('carol', '2024-06-24 16:12', 'bob',   'Italian place?'); INSERT INTO messages VALUES ('carol', '2024-06-25 12:00', 'alice', 'Confirmed, 1pm!');">-- Fetch all messages for alice, newest first (single-partition read)
+SELECT recipient, sent_at, sender, body
+FROM messages
+WHERE recipient = 'alice'
+ORDER BY sent_at DESC;
+
+-- Fetch only messages received after a given time (range scan within partition)
+-- SELECT sent_at, sender, body
+-- FROM messages
+-- WHERE recipient = 'alice'
+--   AND sent_at &gt;= '2024-06-25 09:00'
+-- ORDER BY sent_at ASC;
+
+-- Count messages per recipient (shows natural partitioning)
+-- SELECT recipient, COUNT(*) AS message_count
+-- FROM messages
+-- GROUP BY recipient
+-- ORDER BY message_count DESC;</textarea>
+  </div>
+</div>
+
+## Workload Characteristics vs. Database Fit
+
+The clearest signal for choosing a column-family database is the combination of **high write volume** and **well-understood, stable read patterns**. When both conditions hold, the query-first design constraint is a feature, not a limitation — you cannot accidentally write an expensive query because the schema does not allow it.
+
+The clearest signal to stay with SQL is the need for **ad-hoc queries** or **multi-entity transactions**. Analytical workloads, reporting dashboards, and any logic requiring joins across entity types all belong in relational or analytical databases.
+
+## Key Takeaways
+
+- **Time-series and IoT** are the canonical column-family use case: high write volume, per-device partitioning, time-ordered clustering keys.
+- **User activity logs and event streams** fit naturally: append-heavy, partitioned by user, time-sorted within partitions.
+- **Messaging inboxes** are a textbook wide-row use case: partition by recipient, cluster by timestamp — inbox reads are single-partition.
+- **Sparse product catalogs** benefit from Cassandra's ability to store only the columns a row actually uses, avoiding EAV complexity.
+- **Counters and leaderboards** are supported by native counter columns and clustered-key ranking.
+- **The decision matrix** comes down to: high write volume + stable access patterns = column-family wins; ad-hoc queries + multi-row transactions = stay relational.
+- **Column-family is a specialist tool.** When it fits, it is dramatically better than SQL. When it does not fit, it is dramatically worse.

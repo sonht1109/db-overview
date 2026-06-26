@@ -1,0 +1,199 @@
+One of the defining features of document databases is the ability to store **nested objects and arrays** directly inside a document — no separate tables, no join keys, no foreign-key relationships. This page explores how nesting works, why it is powerful, and where it creates problems that catch teams off guard.
+
+## What Nesting Actually Means
+
+In JSON (and therefore in most document databases), a value can itself be an object or an array. That means a "row" is not a flat list of scalar values — it is a **tree**:
+
+```json
+{
+  "_id": "order-9901",
+  "placed_at": "2025-06-01T08:30:00Z",
+  "customer": {
+    "id": "cust-441",
+    "name": "Aroha Ngata",
+    "email": "aroha@example.com"
+  },
+  "shipping_address": {
+    "street": "14 Quay St",
+    "city": "Auckland",
+    "country": "NZ"
+  },
+  "items": [
+    { "sku": "SHOE-9B", "size": 42, "qty": 1, "unit_price": 120.00 },
+    { "sku": "SOCK-3P", "size": null, "qty": 3, "unit_price": 8.50 }
+  ],
+  "discounts": ["SUMMER10", "LOYALTY5"],
+  "total": 145.50
+}
+```
+
+The `customer` and `shipping_address` fields are nested objects. `items` is an array of objects. `discounts` is an array of strings. All of this ships as one blob — one read retrieves the complete entity.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tree diagram showing a document with nested objects and arrays: root order node branches into customer object, shipping_address object, items array (two sub-objects), and discounts array (two strings)">
+  <defs>
+    <marker id="arrn" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="var(--border)"/>
+    </marker>
+  </defs>
+
+  <!-- Root -->
+  <rect x="265" y="10" width="110" height="36" rx="6" fill="var(--accent)" fill-opacity="0.2" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="320" y="32" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">order-9901</text>
+
+  <!-- Level 1 nodes -->
+  <!-- customer -->
+  <rect x="20" y="100" width="120" height="34" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="80" y="121" text-anchor="middle" font-size="12" fill="var(--text)">customer { }</text>
+  <line x1="320" y1="46" x2="80" y2="100" stroke="var(--border)" stroke-width="1.2" marker-end="url(#arrn)"/>
+
+  <!-- shipping_address -->
+  <rect x="158" y="100" width="150" height="34" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="233" y="121" text-anchor="middle" font-size="12" fill="var(--text)">shipping_address { }</text>
+  <line x1="320" y1="46" x2="233" y2="100" stroke="var(--border)" stroke-width="1.2" marker-end="url(#arrn)"/>
+
+  <!-- items array -->
+  <rect x="328" y="100" width="120" height="34" rx="5" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="388" y="121" text-anchor="middle" font-size="12" fill="var(--accent)">items [ ]</text>
+  <line x1="320" y1="46" x2="388" y2="100" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#arrn)"/>
+
+  <!-- discounts array -->
+  <rect x="468" y="100" width="140" height="34" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="538" y="121" text-anchor="middle" font-size="12" fill="var(--text)">discounts [ ]</text>
+  <line x1="320" y1="46" x2="538" y2="100" stroke="var(--border)" stroke-width="1.2" marker-end="url(#arrn)"/>
+
+  <!-- customer children -->
+  <rect x="10" y="190" width="60" height="28" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="40" y="208" text-anchor="middle" font-size="10" fill="var(--text)">id</text>
+  <line x1="80" y1="134" x2="40" y2="190" stroke="var(--border)" stroke-width="1" marker-end="url(#arrn)"/>
+  <rect x="80" y="190" width="60" height="28" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="110" y="208" text-anchor="middle" font-size="10" fill="var(--text)">name</text>
+  <line x1="80" y1="134" x2="110" y2="190" stroke="var(--border)" stroke-width="1" marker-end="url(#arrn)"/>
+
+  <!-- items children -->
+  <rect x="310" y="190" width="90" height="28" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.2"/>
+  <text x="355" y="208" text-anchor="middle" font-size="10" fill="var(--accent)">item[0] { }</text>
+  <line x1="388" y1="134" x2="355" y2="190" stroke="var(--accent)" stroke-width="1" marker-end="url(#arrn)"/>
+  <rect x="412" y="190" width="90" height="28" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.2"/>
+  <text x="457" y="208" text-anchor="middle" font-size="10" fill="var(--accent)">item[1] { }</text>
+  <line x1="388" y1="134" x2="457" y2="190" stroke="var(--accent)" stroke-width="1" marker-end="url(#arrn)"/>
+
+  <!-- discounts children -->
+  <rect x="468" y="190" width="70" height="28" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="503" y="208" text-anchor="middle" font-size="10" fill="var(--text)">"SUMMER10"</text>
+  <line x1="538" y1="134" x2="503" y2="190" stroke="var(--border)" stroke-width="1" marker-end="url(#arrn)"/>
+  <rect x="548" y="190" width="70" height="28" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="583" y="208" text-anchor="middle" font-size="10" fill="var(--text)">"LOYALTY5"</text>
+  <line x1="538" y1="134" x2="583" y2="190" stroke="var(--border)" stroke-width="1" marker-end="url(#arrn)"/>
+
+  <!-- legend -->
+  <rect x="10" y="300" width="16" height="10" rx="2" fill="var(--accent)" fill-opacity="0.3" stroke="var(--accent)" stroke-width="1"/>
+  <text x="32" y="310" font-size="11" fill="var(--muted)">Array node</text>
+  <rect x="130" y="300" width="16" height="10" rx="2" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="152" y="310" font-size="11" fill="var(--muted)">Object / scalar</text>
+</svg>
+<figcaption>A document is a tree. A single read retrieves the entire tree — no joins needed.</figcaption>
+</figure>
+
+## Arrays of Objects: The Most Common Pattern
+
+Arrays of embedded objects are ubiquitous in document databases. Common examples:
+
+| Parent Document | Embedded Array |
+|---|---|
+| Order | Line items |
+| Blog post | Comments |
+| Invoice | Tax breakdown entries |
+| User profile | Notification preferences |
+| Product | Variant sizes/colors |
+
+The advantage: reading one document gives you everything. No `JOIN orders LEFT JOIN order_items ON …`. That's one round trip instead of two, and no join algorithm to plan.
+
+### Querying Into Arrays
+
+Document databases provide operators that work against array contents. In MongoDB the `$elemMatch` operator filters on element-level conditions:
+
+```js
+// Find orders that contain a SHOE-9B item with qty >= 2
+db.orders.find({
+  items: {
+    $elemMatch: { sku: "SHOE-9B", qty: { $gte: 2 } }
+  }
+})
+```
+
+SQLite exposes the same concept through `json_each()` — a table-valued function that unnests an array into rows you can filter with `WHERE`:
+
+```sql
+SELECT o.order_id, e.value->>'$.sku' AS sku
+FROM orders o, json_each(json_extract(o.doc, '$.items')) e
+WHERE json_extract(e.value, '$.qty') >= 2;
+```
+
+## When Nesting Causes Problems
+
+Nesting is efficient when the embedded data is **bounded** and **owned** by the parent. It creates problems in three scenarios:
+
+### 1. Unbounded Growth
+If you embed every comment inside a blog post, the post document grows without limit. Large documents:
+- Require reading the entire blob even when you only want the title.
+- Hit document size limits (MongoDB's 16 MB BSON limit, for example).
+- Cause high write amplification — rewriting the full document just to add one comment.
+
+**Fix:** Move high-cardinality arrays (comments, events, log entries) to a separate collection and reference them.
+
+### 2. Updating a Specific Element
+To update `item[1].qty` in a document, most databases require a positional operator (MongoDB's `$` or `$[filter]`), which can be tricky:
+
+```js
+// Increment qty for the SOCK-3P item
+db.orders.updateOne(
+  { _id: "order-9901", "items.sku": "SOCK-3P" },
+  { $inc: { "items.$.qty": 1 } }
+)
+```
+
+In contrast, updating a row in a relational `order_items` table is a simple `UPDATE … WHERE id = ?`.
+
+### 3. Querying Across Parents
+Arrays are great when your query starts from the parent. They break down when you need to ask "find all items where the item's supplier is X" — now you must scan every document and unnest every array. A separate `items` collection with an index on `supplier_id` handles this in milliseconds.
+
+> **Rule of thumb:** If you need to query the array elements *from the outside* more than you need to load them as part of the parent, move them to their own collection.
+
+## Practical Nesting Decision Table
+
+| Scenario | Embed (nest) | Reference (separate collection) |
+|---|---|---|
+| Tags, categories on a post | Yes — few, bounded | No |
+| Line items on an order | Usually yes | If items are shared across orders |
+| Comments on a post | No — unbounded | Yes |
+| Activity log on a user | No — unbounded | Yes |
+| Address on a user | Yes — owned, 1-3 max | No |
+| Product variants | Yes — bounded | If variants are a large catalog |
+
+## Interactive Example: Unnesting Arrays with SQLite
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Querying nested arrays with json_each</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders (order_id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO orders VALUES ('ORD-9901', '{&quot;customer&quot;:&quot;aroha&quot;,&quot;items&quot;:[{&quot;sku&quot;:&quot;SHOE-9B&quot;,&quot;qty&quot;:1,&quot;price&quot;:120},{&quot;sku&quot;:&quot;SOCK-3P&quot;,&quot;qty&quot;:3,&quot;price&quot;:8.5}]}'); INSERT INTO orders VALUES ('ORD-9902', '{&quot;customer&quot;:&quot;leo&quot;,&quot;items&quot;:[{&quot;sku&quot;:&quot;SHOE-9B&quot;,&quot;qty&quot;:2,&quot;price&quot;:120}]}'); INSERT INTO orders VALUES ('ORD-9903', '{&quot;customer&quot;:&quot;priya&quot;,&quot;items&quot;:[{&quot;sku&quot;:&quot;HAT-1X&quot;,&quot;qty&quot;:1,&quot;price&quot;:45}]}');">-- Unnest items and find all orders containing SHOE-9B
+SELECT
+  o.order_id,
+  json_extract(o.doc, '$.customer') AS customer,
+  json_extract(e.value, '$.sku')    AS sku,
+  json_extract(e.value, '$.qty')    AS qty
+FROM orders o, json_each(json_extract(o.doc, '$.items')) e
+WHERE json_extract(e.value, '$.sku') = 'SHOE-9B'
+ORDER BY o.order_id;</textarea>
+  </div>
+</div>
+
+Try changing `'SHOE-9B'` to `'SOCK-3P'` or `'HAT-1X'` to query different items. Notice that `json_each` effectively "joins" the array elements back into rows — the same mental model used by document database array query operators.
+
+## Key Takeaways
+
+- Nesting is natural in documents: use nested objects and arrays for data that is *owned by* and *always loaded with* the parent.
+- Arrays of objects eliminate joins for the common "load the parent with all its children" pattern.
+- Watch out for unbounded arrays — every added element bloats the parent document and increases write cost.
+- Querying *into* arrays is possible but expensive at scale; indexes on array elements help, but separate collections are often the right answer for high-cardinality child data.
+- The decision to embed vs. reference is the most important modeling decision in a document database.

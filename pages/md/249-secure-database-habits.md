@@ -1,0 +1,154 @@
+Security is not a feature you add at the end — it is a set of habits applied consistently across every decision: how you configure databases, how you write queries, how you handle credentials, and how you respond when something goes wrong. This page collects the most high-value, day-to-day practices that collectively move a database deployment from "probably fine" to genuinely defensible. Think of it as a checklist you run once per project and revisit on every new deployment.
+
+## Principle of Least Privilege — Applied Everywhere
+
+The single most impactful habit is never granting more access than strictly needed. Apply it at every level:
+
+- **Database roles**: one role per service, each with only the tables and operations it uses. The payment service does not need to read the analytics schema.
+- **OS users**: the database process should run as a non-root user with minimal file system permissions.
+- **Network**: the database port should not be reachable from the public internet. Place it in a private subnet; access via bastion host, VPN, or IAM-authenticated proxy only.
+- **Cloud IAM**: if using a managed database service, restrict which IAM roles can list, describe, or modify the database instance.
+
+```sql
+-- Revoke dangerous defaults
+REVOKE ALL ON DATABASE myapp FROM PUBLIC;
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+
+-- Grant exactly what the app role needs
+GRANT CONNECT ON DATABASE myapp TO app_user;
+GRANT USAGE ON SCHEMA public TO app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;
+```
+
+## Network Hardening
+
+### Bind to the Right Interface
+
+By default, some databases bind to all interfaces (`0.0.0.0`). Bind to the private interface only:
+
+```ini
+# PostgreSQL postgresql.conf
+listen_addresses = '10.0.1.5'   # private IP only, not 0.0.0.0
+
+# MySQL my.cnf
+bind-address = 10.0.1.5
+```
+
+### Firewall Rules
+
+Allow inbound traffic on the database port only from the application server's IP range and your bastion/VPN. Deny everything else at the security group or firewall level — not at the database level, which is a second line of defense.
+
+### Disable Unused Features
+
+Every enabled feature is attack surface. Disable what you don't use:
+
+```sql
+-- PostgreSQL: disable COPY TO/FROM FILE (reads/writes OS files)
+-- Achieved by not granting pg_read_server_files / pg_write_server_files
+
+-- MySQL: disable local_infile (reads local files via LOAD DATA LOCAL INFILE)
+SET GLOBAL local_infile = 0;
+```
+
+## Configuration Hardening
+
+| Setting | Default | Secure practice |
+|---|---|---|
+| `log_connections` | off | on — log all auth attempts |
+| `log_statement` | none | ddl — capture all schema changes |
+| `password_encryption` | md5 (old PG) | scram-sha-256 |
+| `ssl` | off (some installs) | on — require TLS |
+| `shared_preload_libraries` | empty | Include pgaudit for audit logging |
+| `client_min_messages` | notice | error — don't leak schema info to clients |
+
+> **Regularly review the configuration.** Cloud provider defaults are not always security-optimal. Run a configuration review whenever you upgrade the database engine — new versions may change defaults or introduce new settings.
+
+<figure class="diagram">
+<svg viewBox="0 0 680 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Defense in depth layers for a database: network firewall, TLS encryption, authentication, authorization (RBAC/RLS), audit logging — each layer stops different attack vectors">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Concentric layers -->
+  <ellipse cx="340" cy="155" rx="310" ry="135" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="340" y="38" text-anchor="middle" font-size="11" fill="var(--muted)">Network Firewall / VPC</text>
+
+  <ellipse cx="340" cy="155" rx="255" ry="110" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="340" y="63" text-anchor="middle" font-size="11" fill="var(--muted)">TLS Encryption</text>
+
+  <ellipse cx="340" cy="155" rx="200" ry="85" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="340" y="85" text-anchor="middle" font-size="11" fill="var(--muted)">Authentication</text>
+
+  <ellipse cx="340" cy="155" rx="145" ry="60" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="340" y="108" text-anchor="middle" font-size="11" fill="var(--muted)">Authorization (RBAC / RLS)</text>
+
+  <ellipse cx="340" cy="155" rx="90" ry="36" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="2"/>
+  <text x="340" y="151" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">Database</text>
+  <text x="340" y="167" text-anchor="middle" font-size="10" fill="var(--muted)">+ Audit Logging</text>
+
+  <!-- Attack vector labels -->
+  <text x="605" y="80" text-anchor="start" font-size="10" fill="var(--muted)">Stops: port scans</text>
+  <text x="605" y="110" text-anchor="start" font-size="10" fill="var(--muted)">Stops: eavesdropping</text>
+  <text x="605" y="140" text-anchor="start" font-size="10" fill="var(--muted)">Stops: impersonation</text>
+  <text x="605" y="170" text-anchor="start" font-size="10" fill="var(--muted)">Stops: privilege misuse</text>
+  <text x="605" y="200" text-anchor="start" font-size="10" fill="var(--accent)">Detects: all breaches</text>
+</svg>
+<figcaption>Defense in depth: each layer addresses a different attack category. A breach of one layer does not automatically compromise the next.</figcaption>
+</figure>
+
+## Patch Management
+
+Databases receive security patches regularly. Unpatched databases are among the most common breach vectors:
+
+1. **Subscribe to security advisories** for your database (PostgreSQL security announcements, MySQL security advisories, CVE feeds).
+2. **Test patches in staging** before applying to production — major version upgrades require careful compatibility testing; minor patches are usually safe to apply quickly.
+3. **Automate minor updates** where possible. Cloud managed databases (RDS, Cloud SQL) support automatic minor version upgrades during maintenance windows.
+4. **Track your version** across all environments — it is surprisingly common for staging and production to run different versions.
+
+## Incident Response Readiness
+
+A breach is a question of when, not if. Be prepared:
+
+- **Know where your logs are** — audit logs, connection logs, slow query logs — and confirm they are being shipped to an external system before you need them.
+- **Practice revocation**: can you revoke a compromised service account credential in under five minutes? Test it in staging.
+- **Have a runbook** for the "all credentials may be compromised" scenario: rotate every secret, invalidate every active session, alert on new connection attempts.
+- **Enable point-in-time recovery (PITR)**: if data is deleted or corrupted, you need to be able to restore to a moment just before the incident.
+
+## Interactive Security Checklist Simulation
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Security Configuration Audit</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE security_checks (id INTEGER PRIMARY KEY, category TEXT, check_name TEXT, status TEXT, notes TEXT); INSERT INTO security_checks VALUES (1, 'Network', 'Database not internet-accessible', 'PASS', 'Private subnet only'); INSERT INTO security_checks VALUES (2, 'Auth', 'TLS enabled for all connections', 'PASS', 'pg_hba.conf: hostssl'); INSERT INTO security_checks VALUES (3, 'Auth', 'SCRAM-SHA-256 password hashing', 'PASS', 'password_encryption = scram-sha-256'); INSERT INTO security_checks VALUES (4, 'Auth', 'No superuser app connections', 'FAIL', 'api_user has SUPERUSER attribute'); INSERT INTO security_checks VALUES (5, 'Auth', 'Password rotation &lt; 90 days', 'FAIL', 'Last rotation: 180 days ago'); INSERT INTO security_checks VALUES (6, 'Authz', 'Least privilege roles', 'PASS', 'Roles reviewed Q1'); INSERT INTO security_checks VALUES (7, 'Authz', 'RLS on multi-tenant tables', 'PASS', 'orders, transactions'); INSERT INTO security_checks VALUES (8, 'Audit', 'DDL logging enabled', 'PASS', 'log_statement=ddl'); INSERT INTO security_checks VALUES (9, 'Audit', 'Audit logs shipped externally', 'FAIL', 'Logs only on local disk'); INSERT INTO security_checks VALUES (10, 'Ops', 'PITR enabled', 'PASS', '7-day retention'); INSERT INTO security_checks VALUES (11, 'Ops', 'Patches current', 'PASS', 'Running PG 16.2');">-- View all failing checks — these are your immediate priorities
+SELECT category, check_name, notes
+FROM security_checks
+WHERE status = 'FAIL'
+ORDER BY category;
+
+-- Summary: pass vs fail by category
+-- SELECT category,
+--   SUM(CASE WHEN status = 'PASS' THEN 1 ELSE 0 END) AS passed,
+--   SUM(CASE WHEN status = 'FAIL' THEN 1 ELSE 0 END) AS failed
+-- FROM security_checks
+-- GROUP BY category;</textarea>
+  </div>
+</div>
+
+## The Security Habit Loop
+
+Security erodes without maintenance. Build these habits into your regular engineering cycle:
+
+1. **Every deploy**: verify that new tables have RLS if they hold tenant or user data; verify that new secrets go into the secrets manager, not the config file.
+2. **Every quarter**: review role memberships and revoke stale access; rotate long-lived credentials; check for unpatched versions.
+3. **Every year**: full access review; test your incident response runbook; verify backup restores actually work.
+4. **After every incident**: update threat models, close identified gaps, and add new security checks to your audit query.
+
+## Key Takeaways
+
+- **Least privilege everywhere**: network, OS, database roles, cloud IAM — each layer applies the same principle independently.
+- **Harden the configuration** out of the box: disable unused features, bind to private interfaces, require TLS and strong password hashing.
+- **Patch promptly**: subscribe to security advisories and apply patches quickly, especially for CVEs affecting your database engine.
+- **Prepare for incidents before they happen**: know where your logs are, test credential revocation, and maintain point-in-time recovery.
+- Security is a **recurring habit loop**, not a one-time setup — build quarterly reviews and per-deploy checks into your normal workflow.

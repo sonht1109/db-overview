@@ -1,0 +1,230 @@
+The **Log-Structured Merge-Tree (LSM-tree)** is one of the most influential data structures in modern database engineering. It powers Cassandra, HBase, RocksDB, LevelDB, and indirectly every system built on top of them. The central insight: sequential writes to disk are *orders of magnitude faster* than random writes, so instead of modifying data in place, the LSM-tree converts all writes into sequential appends — and pays the cost of organization later, in the background.
+
+## The Core Lifecycle of a Write
+
+When you write a key-value pair to an LSM-tree-backed database, five things happen in order:
+
+1. **WAL append** — the write is appended to the Write-Ahead Log (WAL), a sequential file on disk. This is the durability guarantee: if the process crashes, the WAL replays the write on restart.
+2. **Memtable insert** — the write is applied to the **memtable**, an in-memory data structure (often a red-black tree or skip list) that keeps all recent writes sorted by key.
+3. **Memtable fills up** — once the memtable reaches its size threshold (typically 64–256 MB), it is made immutable and a fresh, empty memtable takes its place.
+4. **SSTable flush** — the immutable memtable is flushed to disk as an **SSTable** (Sorted String Table) — a file where entries are written in key order and never modified again.
+5. **Accumulation** — SSTables pile up on disk. New flushes produce new SSTables at **Level 0** (L0). Background compaction periodically merges them.
+
+```
+Write("sensor:42:temp", 71.3)
+     │
+     ├─ Append to WAL  ──────────────────────── durability
+     └─ Insert into Memtable (sorted, in RAM)── fast path
+              │
+              │ (when full)
+              ▼
+         SSTable (immutable, sorted on disk)
+```
+
+> **Why "sorted"?** Keeping data sorted by key is what makes compaction and range scans efficient. The memtable is a sorted structure in RAM; SSTables preserve that order on disk.
+
+## SSTables: The On-Disk Format
+
+Each SSTable is a file containing:
+
+| Section | Contents |
+|---|---|
+| **Data blocks** | Key-value pairs, sorted by key |
+| **Index block** | Sparse index: one entry per data block, storing the first key |
+| **Bloom filter** | A probabilistic structure for fast key-existence checks |
+| **Metadata** | Min key, max key, entry count, compression info |
+
+SSTables are **immutable**: once written, they are never modified. Updates write a new entry with the same key at a higher sequence number. Deletes write a **tombstone** — a special marker that says "this key was deleted." The old value is reclaimed later, during compaction.
+
+## Reading Data: The Multi-Level Check
+
+Reads are more expensive than writes in an LSM-tree. A read must check:
+
+1. **Memtable** — most recent data is here; O(log n) lookup in the sorted tree.
+2. **Immutable memtables** — any recently flushed but not yet fully compacted tables.
+3. **L0 SSTables** — can overlap in key range; all must be checked.
+4. **L1, L2, … SSTables** — at each level below L0, files are non-overlapping, so at most one file needs to be checked per level.
+
+In the worst case a read touches every level. Without mitigation, this gets slow as data accumulates.
+
+### Bloom Filters to the Rescue
+
+A **bloom filter** is a probabilistic data structure attached to each SSTable. It answers the question: "Is this key in this file?"
+
+- If it says **"No"** → the key is *definitely* not in this SSTable. Skip it.
+- If it says **"Yes"** → the key is *probably* in this SSTable (may be a false positive). Check the file.
+
+A well-tuned bloom filter (1–10 bits per key) eliminates the vast majority of unnecessary SSTable reads. A read for a non-existent key barely touches disk at all.
+
+```
+Read("sensor:99:temp")
+     │
+     ├─ Check memtable → not found
+     ├─ Check L0 SSTable 1 bloom filter → "No" → skip
+     ├─ Check L0 SSTable 2 bloom filter → "Yes" → check file → not found (false positive)
+     ├─ Check L1 SSTable bloom filter  → "No" → skip
+     └─ Check L2 SSTable bloom filter  → "Yes" → check file → FOUND
+```
+
+<figure class="diagram">
+<svg viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LSM-tree layered structure: writes flow through WAL and Memtable into L0 SSTables then L1 and L2, with compaction arrows between levels">
+  <defs>
+    <marker id="arrlsm" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrlsm2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- Write path label -->
+  <text x="30" y="22" font-size="12" fill="var(--muted)" font-style="italic">Write path →</text>
+
+  <!-- WAL box -->
+  <rect x="20" y="34" width="100" height="44" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="70" y="54" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">WAL</text>
+  <text x="70" y="70" text-anchor="middle" font-size="10" fill="var(--muted)">(durability)</text>
+
+  <!-- Memtable box -->
+  <rect x="160" y="34" width="130" height="44" rx="6" fill="var(--accent)" opacity="0.18" stroke="var(--accent)" stroke-width="2"/>
+  <text x="225" y="54" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Memtable</text>
+  <text x="225" y="70" text-anchor="middle" font-size="10" fill="var(--muted)">sorted, in RAM</text>
+
+  <!-- Write arrow client → WAL -->
+  <line x1="14" y1="56" x2="18" y2="56" stroke="var(--accent)" stroke-width="2"/>
+
+  <!-- Arrow WAL → Memtable -->
+  <line x1="122" y1="56" x2="158" y2="56" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arrlsm)"/>
+  <text x="140" y="50" text-anchor="middle" font-size="10" fill="var(--muted)">also</text>
+
+  <!-- Flush arrow Memtable → L0 -->
+  <line x1="225" y1="80" x2="225" y2="108" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrlsm)"/>
+  <text x="240" y="98" font-size="10" fill="var(--muted)">flush</text>
+
+  <!-- L0 section -->
+  <rect x="20" y="112" width="620" height="54" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="32" y="132" font-size="11" font-weight="600" fill="var(--text)">Level 0 (L0)</text>
+  <text x="32" y="148" font-size="10" fill="var(--muted)">SSTables may overlap in key range; all must be checked on read</text>
+
+  <!-- L0 SSTable chips -->
+  <rect x="200" y="120" width="90" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="245" y="137" text-anchor="middle" font-size="11" fill="var(--text)">SST-1</text>
+  <text x="245" y="150" text-anchor="middle" font-size="10" fill="var(--muted)">a…m</text>
+
+  <rect x="300" y="120" width="90" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="345" y="137" text-anchor="middle" font-size="11" fill="var(--text)">SST-2</text>
+  <text x="345" y="150" text-anchor="middle" font-size="10" fill="var(--muted)">g…z</text>
+
+  <rect x="400" y="120" width="90" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="445" y="137" text-anchor="middle" font-size="11" fill="var(--text)">SST-3</text>
+  <text x="445" y="150" text-anchor="middle" font-size="10" fill="var(--muted)">c…r</text>
+
+  <!-- Compact arrow L0 → L1 -->
+  <line x1="340" y1="168" x2="340" y2="196" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrlsm2)"/>
+  <text x="356" y="186" font-size="10" fill="var(--muted)">compact</text>
+
+  <!-- L1 section -->
+  <rect x="20" y="200" width="620" height="54" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="32" y="220" font-size="11" font-weight="600" fill="var(--text)">Level 1 (L1)</text>
+  <text x="32" y="236" font-size="10" fill="var(--muted)">Non-overlapping; sorted; at most one file to check per read</text>
+
+  <rect x="200" y="208" width="80" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="240" y="225" text-anchor="middle" font-size="11" fill="var(--text)">SST-A</text>
+  <text x="240" y="238" text-anchor="middle" font-size="10" fill="var(--muted)">a…f</text>
+
+  <rect x="290" y="208" width="80" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="330" y="225" text-anchor="middle" font-size="11" fill="var(--text)">SST-B</text>
+  <text x="330" y="238" text-anchor="middle" font-size="10" fill="var(--muted)">g…n</text>
+
+  <rect x="380" y="208" width="80" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="420" y="225" text-anchor="middle" font-size="11" fill="var(--text)">SST-C</text>
+  <text x="420" y="238" text-anchor="middle" font-size="10" fill="var(--muted)">o…z</text>
+
+  <!-- Compact arrow L1 → L2 -->
+  <line x1="340" y1="256" x2="340" y2="284" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrlsm2)"/>
+  <text x="356" y="274" font-size="10" fill="var(--muted)">compact</text>
+
+  <!-- L2 section -->
+  <rect x="20" y="288" width="620" height="54" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="32" y="308" font-size="11" font-weight="600" fill="var(--text)">Level 2 (L2)</text>
+  <text x="32" y="324" font-size="10" fill="var(--muted)">Larger, fewer files; also non-overlapping; deepest data lives here</text>
+
+  <rect x="200" y="296" width="60" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="230" y="313" text-anchor="middle" font-size="11" fill="var(--text)">SST-X</text>
+  <text x="230" y="326" text-anchor="middle" font-size="10" fill="var(--muted)">a…d</text>
+
+  <rect x="270" y="296" width="60" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="300" y="313" text-anchor="middle" font-size="11" fill="var(--text)">SST-Y</text>
+  <text x="300" y="326" text-anchor="middle" font-size="10" fill="var(--muted)">e…k</text>
+
+  <rect x="340" y="296" width="60" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="370" y="313" text-anchor="middle" font-size="11" fill="var(--text)">SST-Z</text>
+  <text x="370" y="326" text-anchor="middle" font-size="10" fill="var(--muted)">l…z</text>
+
+  <!-- Read path label -->
+  <text x="560" y="22" font-size="12" fill="var(--muted)" font-style="italic" text-anchor="end">↓ Read checks each level</text>
+  <line x1="570" y1="34" x2="570" y2="340" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="560" y1="56" x2="572" y2="56" stroke="var(--muted)" stroke-width="1"/>
+  <line x1="560" y1="140" x2="572" y2="140" stroke="var(--muted)" stroke-width="1"/>
+  <line x1="560" y1="228" x2="572" y2="228" stroke="var(--muted)" stroke-width="1"/>
+  <line x1="560" y1="316" x2="572" y2="316" stroke="var(--muted)" stroke-width="1"/>
+
+  <!-- Legend -->
+  <rect x="580" y="120" width="14" height="14" rx="2" fill="var(--accent)" opacity="0.4"/>
+  <text x="598" y="132" font-size="10" fill="var(--muted)">bloom</text>
+  <rect x="580" y="138" width="14" height="14" rx="2" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="598" y="150" font-size="10" fill="var(--muted)">SSTable</text>
+</svg>
+<figcaption>LSM-tree layer structure. Writes flow through WAL → Memtable → L0 SSTables. Compaction progressively merges data down through levels. Reads must check every level, but bloom filters skip most files.</figcaption>
+</figure>
+
+## Read vs. Write Cost Comparison
+
+| Metric | LSM-tree | B-tree |
+|---|---|---|
+| **Write** | Sequential append (fast) | Random in-place update (slower) |
+| **Read (hot key)** | Memtable hit → very fast | Single B-tree traversal → fast |
+| **Read (cold key)** | Must check multiple levels | Single B-tree traversal |
+| **Write amplification** | High (data written multiple times during compaction) | Lower |
+| **Read amplification** | Higher (multiple files) | Lower |
+| **Space amplification** | Higher (old versions accumulate until compaction) | Lower |
+
+The LSM-tree wins at **write throughput** — especially when writes are spread randomly across the key space. This is why it's the default for time-series workloads, event ingestion, and Cassandra's write-heavy use cases.
+
+## Key Concepts in Practice
+
+### Sequence Numbers
+
+Every write carries a monotonically increasing **sequence number**. When the same key appears in both L0 and L2, the version with the higher sequence number wins. This is how LSM-trees handle updates without ever overwriting old data.
+
+### Write-Ahead Log and Crash Recovery
+
+The WAL is written *before* the memtable is updated. On crash: the database replays the WAL to reconstruct the memtable. Once the memtable is safely flushed to an SSTable, those WAL segments can be discarded.
+
+### Memory Pressure
+
+Most production deployments set a **memtable size limit** (e.g., 128 MB in Cassandra). When it fills, the write is blocked briefly while the flush to disk completes. Tuning this limit is one of the most impactful knobs in write-heavy systems.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Reading Across LSM Levels</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE lsm_levels (level TEXT, seq INTEGER, key TEXT, value TEXT); INSERT INTO lsm_levels VALUES ('memtable', 9, 'sensor:42', '71.3'); INSERT INTO lsm_levels VALUES ('L0_sst1', 7, 'sensor:42', '70.1'); INSERT INTO lsm_levels VALUES ('L0_sst1', 6, 'sensor:99', '55.0'); INSERT INTO lsm_levels VALUES ('L1_sstA', 4, 'sensor:42', '68.9'); INSERT INTO lsm_levels VALUES ('L1_sstA', 3, 'sensor:10', '22.4'); INSERT INTO lsm_levels VALUES ('L2_sstX', 1, 'sensor:42', '65.0'); INSERT INTO lsm_levels VALUES ('L2_sstX', 2, 'sensor:10', '21.8');">-- Simulate an LSM read: find the most recent version of a key across all levels.
+-- The highest sequence number wins (latest write).
+SELECT level, seq, key, value
+FROM lsm_levels
+WHERE key = 'sensor:42'
+ORDER BY seq DESC;
+
+-- Only the first row is the current value.
+-- Try key = 'sensor:10' or 'sensor:99' to see other patterns.</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- LSM-trees convert all writes into **sequential disk appends**, making them dramatically faster than random in-place writes.
+- Data flows through a pipeline: **WAL → Memtable → L0 SSTables → L1 → L2**, with each level holding progressively older and larger chunks of sorted data.
+- **SSTables are immutable** — updates and deletes create new entries with higher sequence numbers; old data is cleaned up by compaction.
+- **Bloom filters** make reads efficient by quickly ruling out SSTables that don't contain the target key — turning O(N files) reads into O(levels) reads for existing keys.
+- LSM-trees trade **read amplification** and **write amplification** for exceptional **write throughput** — the right trade-off for write-heavy workloads like time-series ingestion, event logging, and column-family databases.
+- Understanding LSM-trees is essential for tuning Cassandra, RocksDB, and any system built on them: memtable size, bloom filter bits-per-key, and compaction strategy are the primary levers.

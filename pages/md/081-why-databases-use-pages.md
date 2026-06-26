@@ -1,0 +1,71 @@
+Every database stores its data somewhere on disk. But it does not write raw bytes one row at a time — instead, the storage engine groups data into fixed-size chunks called **pages** (sometimes called *blocks*). Understanding why pages exist unlocks almost everything else about how databases read, write, index, and cache data.
+
+## The Physics of Disk I/O
+
+Hard drives and SSDs do not let you fetch a single byte in isolation. The operating system and the hardware both transfer data in minimum-sized chunks aligned to disk sectors. Asking for one byte means reading an entire sector (typically 512 bytes) or filesystem block (typically 4 KB) anyway.
+
+Database designers turned this constraint into an advantage: if you are paying the I/O cost of a large chunk regardless, you should pack as many useful bytes into that chunk as possible. A database **page** is usually 8 KB (PostgreSQL's default), 16 KB (MySQL InnoDB's default), or a power-of-two size you choose at creation time. SQLite defaults to 4 KB.
+
+| Database | Default page size |
+|---|---|
+| SQLite | 4 KB |
+| PostgreSQL | 8 KB |
+| MySQL (InnoDB) | 16 KB |
+| SQL Server | 8 KB |
+
+> **Note:** "Page" (database term) and "page" (OS virtual-memory term) are different things. In database literature, "page" always means a fixed-size storage unit on disk and in the buffer pool.
+
+## What Lives Inside a Page
+
+A page is not a raw dump of rows. It has structure: a small **header** that records the page type, a checksum for corruption detection, and bookkeeping for the storage engine; then a **slot array** that points to where each record starts; and finally the **records** themselves.
+
+```
+┌─────────────────────────────────────────┐
+│  Page header (type, LSN, checksum, …)   │
+├─────────────────────────────────────────┤
+│  Slot array  [offset₁, offset₂, …]      │
+├─────────────────────────────────────────┤
+│  Free space                             │
+├─────────────────────────────────────────┤
+│  Records (packed from the bottom up)    │
+└─────────────────────────────────────────┘
+```
+
+The slot array grows downward from the top; records grow upward from the bottom. Inserts are cheap until the free space in the middle is exhausted — at that point the page is *full* and the engine must find another page or split this one.
+
+A single page can hold many rows. At 8 KB with a 200-byte average row, one page holds roughly 40 rows. That means one disk read can fetch 40 rows simultaneously — a massive win over fetching rows one at a time.
+
+## Pages as the Unit of Caching
+
+The real payoff comes in memory. Databases maintain a **buffer pool** (also called the buffer cache): a region of RAM where recently-used pages live. When a query needs a row, the engine checks the buffer pool first. If the page is already there, no disk I/O happens at all — the data is served from RAM at nanosecond speed instead of millisecond disk speed.
+
+Because the page is the unit of transfer, this caching works naturally: load one page, cache the whole page, serve every subsequent access to any row on that page from RAM. A hot table that fits in the buffer pool is effectively an in-memory table.
+
+This also explains why query performance often "falls off a cliff" once a working set grows larger than the buffer pool: pages start getting evicted before they are reused, and every access goes back to disk.
+
+## Pages as the Unit of Locking and Transactions
+
+Pages matter beyond I/O. Many storage engines acquire page-level latches when reading or writing, ensuring that two threads do not corrupt the same page simultaneously. Write-ahead logging (WAL) records changes page by page. When the engine needs to roll back a transaction or recover from a crash, it replays or undoes changes at page granularity.
+
+In short, the page is the fundamental atom of the storage layer — the thing that gets read, written, cached, locked, logged, and recovered as one indivisible unit.
+
+---
+
+Try the widget below to see page-size reasoning in action. The query counts how many rows of different sizes would fit on a single 4 KB page (leaving 100 bytes for the page header and slot overhead per row).
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Rows per page calculator</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE row_sizes (label TEXT, row_bytes INTEGER); INSERT INTO row_sizes VALUES ('Tiny row (50 B)', 50), ('Small row (200 B)', 200), ('Medium row (500 B)', 500), ('Large row (1 000 B)', 1000), ('Near-page row (3 000 B)', 3000);">-- How many rows fit on a 4 KB page?
+-- We assume 100 bytes overhead per row (slot entry + alignment).
+SELECT
+    label,
+    row_bytes,
+    CAST(4096.0 / (row_bytes + 100) AS INTEGER) AS rows_per_4kb_page,
+    CAST(8192.0 / (row_bytes + 100) AS INTEGER) AS rows_per_8kb_page
+FROM row_sizes
+ORDER BY row_bytes;</textarea>
+  </div>
+</div>
+
+Change the page sizes in the query (try `16384` for MySQL's default 16 KB) or add a row size that matches a table you are designing. Notice how a wide row can drop a page down to just one or two records — a strong signal to reconsider your schema or choose a larger page size.

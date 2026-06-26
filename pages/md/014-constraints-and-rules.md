@@ -1,0 +1,87 @@
+A database without rules is just a pile of data waiting to become a mess. Constraints are the rules you bake into the schema itself — enforced automatically by the database engine every time data is inserted, updated, or deleted. Instead of writing defensive code in every application that touches your data, you define the rules once and let the engine guard them forever.
+
+## The Core Constraints
+
+Every major relational database supports a standard set of constraints. Here are the ones you will encounter constantly.
+
+| Constraint | What it enforces |
+|---|---|
+| `NOT NULL` | The column must always have a value — `NULL` is rejected |
+| `UNIQUE` | No two rows may share the same value in this column (or column group) |
+| `PRIMARY KEY` | `NOT NULL` + `UNIQUE` combined; identifies each row unambiguously |
+| `FOREIGN KEY` | A value in this column must exist in a referenced column of another table |
+| `CHECK` | A boolean expression that every row must satisfy |
+| `DEFAULT` | Supplies a value automatically when none is provided |
+
+### Primary and foreign keys working together
+
+A **primary key** is the anchor of a table — it uniquely names every row. A **foreign key** in another table points back to that anchor, creating a *referential link* between the two. The database will refuse to insert a foreign key value that has no matching primary key, and (depending on configuration) will refuse to delete a primary key row while child rows still reference it.
+
+```sql
+CREATE TABLE departments (
+    id   INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE employees (
+    id            INTEGER PRIMARY KEY,
+    name          TEXT NOT NULL,
+    department_id INTEGER NOT NULL
+        REFERENCES departments(id)   -- foreign key
+);
+```
+
+If you try `INSERT INTO employees VALUES (1, 'Alice', 99)` when no department with `id = 99` exists, the database rejects it immediately — the constraint fires before the row is written.
+
+### CHECK constraints
+
+`CHECK` lets you express any rule that can be written as a SQL expression. Common uses: enforcing a range, restricting a column to a known set of values, or requiring that one column's value relates sensibly to another's.
+
+```sql
+CREATE TABLE products (
+    id       INTEGER PRIMARY KEY,
+    name     TEXT    NOT NULL,
+    price    REAL    NOT NULL CHECK (price >= 0),
+    status   TEXT    NOT NULL CHECK (status IN ('active', 'discontinued', 'draft'))
+);
+```
+
+> **Note:** SQLite enforces `CHECK` constraints on `INSERT` and `UPDATE`, but does not enforce foreign keys by default — you must run `PRAGMA foreign_keys = ON;` at the start of each connection.
+
+## Seeing Constraints Fail in Real Time
+
+The best way to understand constraints is to violate them and watch the engine push back. The widget below creates a small `orders` table with several constraints in place. Try running each of the commented statements to see exactly which constraint fires.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Constraints in action</span></div>
+  <div class="widget-body">
+    <textarea data-setup="PRAGMA foreign_keys = ON; CREATE TABLE customers (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), amount REAL NOT NULL CHECK (amount > 0), status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'shipped', 'cancelled'))); INSERT INTO customers VALUES (1, 'alice@example.com'); INSERT INTO customers VALUES (2, 'bob@example.com'); INSERT INTO orders VALUES (1, 1, 49.99, 'pending'); INSERT INTO orders VALUES (2, 2, 12.50, 'shipped');">-- Succeeds: valid data
+SELECT * FROM orders;
+
+-- Try these one at a time to see each constraint fire:
+
+-- Violates CHECK (amount must be > 0):
+-- INSERT INTO orders VALUES (3, 1, -5.00, 'pending');
+
+-- Violates FOREIGN KEY (no customer with id = 99):
+-- INSERT INTO orders VALUES (4, 99, 20.00, 'pending');
+
+-- Violates CHECK (status must be a known value):
+-- INSERT INTO orders VALUES (5, 1, 30.00, 'lost');
+
+-- Violates UNIQUE on email:
+-- INSERT INTO customers VALUES (3, 'alice@example.com');</textarea>
+  </div>
+</div>
+
+Uncomment one statement at a time, re-run, and read the error message the engine returns. Notice that the engine tells you *which* constraint was violated, not just that something went wrong.
+
+## Why Define Rules in the Schema?
+
+You might wonder: why not just validate data in the application layer? The short answer is that applications come and go — the database often outlives several generations of software. Rules in the schema are enforced by *every* client unconditionally: the web app, the admin script, the data-import tool, and the junior developer poking around in a SQL shell.
+
+Constraints also let the engine make smarter decisions. A `PRIMARY KEY` tells the engine it can build an efficient index for lookups. A `NOT NULL` column can be stored more compactly. Rules are not just about correctness — they are information the engine uses to optimize.
+
+> **Key idea:** Constraints shift data-quality guarantees from "every application must remember to check" to "the database makes it impossible to forget."
+
+The next topic explores how the schema itself is defined and changed over time — a process called schema migration.

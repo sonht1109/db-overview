@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Authentication and authorization — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VI. Engineering Practice</p>
+  <p class="chapter-label">Chapter 25. Security and Access Control</p>
+  <h1 class="content-title">Authentication and authorization</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="239-common-failure-stories.html"><span class="dir">← Previous</span><span class="ttl">Common failure stories</span></a><a class="next" href="242-roles-and-permissions.html"><span class="dir">Next →</span><span class="ttl">Roles and permissions</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Every database interaction starts with two questions: **who are you?** and **what are you allowed to do?** Authentication answers the first; authorization answers the second. Getting both right is the foundation of database security — a misconfigured auth layer can expose every row to anyone on the network, while a misconfigured authorization model can let any authenticated user read or destroy data they should never touch.
+
+## Authentication: Proving Identity
+
+Authentication is the mechanism by which a client proves it is who it claims to be. Databases support several mechanisms, and most production systems layer more than one.
+
+### Password-Based Authentication
+
+The simplest mechanism: the client sends a username and password; the database verifies the password hash stored in its catalog.
+
+```sql
+-- PostgreSQL: create a login role with a password
+CREATE ROLE app_user LOGIN PASSWORD 'hunter2';
+
+-- MySQL equivalent
+CREATE USER 'app_user'@'%' IDENTIFIED BY 'hunter2';
+```
+
+Plain password auth is adequate when combined with TLS (so the password never travels in the clear) and a strong hashing algorithm. PostgreSQL uses SCRAM-SHA-256 by default since version 14; older deployments may still use the weaker MD5 method. Always check `pg_hba.conf` and set `password_encryption = scram-sha-256`.
+
+### Certificate-Based Authentication
+
+Databases that sit behind a load balancer or inside a VPC often use **mutual TLS (mTLS)**: the client presents an X.509 certificate; the database validates it against a trusted CA. No password is stored or transmitted. This is common in cloud-managed databases (AWS RDS, Google Cloud SQL) where the certificate authority is managed by the cloud provider.
+
+### IAM / Token-Based Authentication
+
+Cloud databases increasingly delegate authentication entirely to an IAM system. The application exchanges a short-lived IAM token (valid for 15 minutes) for a database session. The token is signed by the IAM service and verified by the database plugin.
+
+```
+# AWS RDS — generate an auth token (no permanent DB password)
+aws rds generate-db-auth-token \
+  --hostname mydb.cluster-xxx.us-east-1.rds.amazonaws.com \
+  --port 5432 --username app_user
+```
+
+Benefits: no long-lived secrets in config files; automatic rotation; audit trail tied to IAM activity logs.
+
+### Peer / OS Authentication
+
+On the same machine, PostgreSQL's `peer` method trusts that the OS username maps to a database role. Useful for local admin scripts; never use it over a network.
+
+<figure class="diagram">
+<svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three authentication methods: password, certificate, and IAM token, all converging on the database">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+  <!-- Database -->
+  <rect x="530" y="110" width="130" height="70" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="595" y="141" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Database</text>
+  <text x="595" y="160" text-anchor="middle" font-size="11" fill="var(--muted)">auth plugin</text>
+
+  <!-- Method boxes -->
+  <rect x="20" y="30" width="170" height="55" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="105" y="53" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Password + TLS</text>
+  <text x="105" y="72" text-anchor="middle" font-size="11" fill="var(--muted)">SCRAM-SHA-256</text>
+
+  <rect x="20" y="130" width="170" height="55" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="105" y="153" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">mTLS Certificate</text>
+  <text x="105" y="172" text-anchor="middle" font-size="11" fill="var(--muted)">X.509 / CA verify</text>
+
+  <rect x="20" y="230" width="170" height="55" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="105" y="253" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">IAM Token</text>
+  <text x="105" y="272" text-anchor="middle" font-size="11" fill="var(--muted)">Short-lived, rotated</text>
+
+  <!-- Arrows -->
+  <line x1="190" y1="57" x2="528" y2="130" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="190" y1="157" x2="528" y2="145" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="190" y1="257" x2="528" y2="160" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <text x="340" y="290" text-anchor="middle" font-size="11" fill="var(--muted)">All methods produce an authenticated session</text>
+</svg>
+<figcaption>Three common authentication paths. All converge on the same outcome: a verified session with an associated database role.</figcaption>
+</figure>
+
+## Authorization: Controlling What Authenticated Users Can Do
+
+Once a user is authenticated, the database applies its **access control model** to decide what operations are permitted.
+
+### SQL GRANT / REVOKE
+
+The standard SQL mechanism. Privileges are granted on objects (tables, views, sequences, functions) to roles.
+
+```sql
+-- Grant read-only access to a reporting role
+GRANT SELECT ON ALL TABLES IN SCHEMA analytics TO reporter;
+
+-- Grant specific column access
+GRANT SELECT (id, email) ON users TO support_agent;
+
+-- Revoke dangerous privileges
+REVOKE DELETE ON orders FROM app_user;
+```
+
+> **Principle of least privilege:** Every role should have the minimum privileges required for its purpose. An application role that only reads product data should never hold `DELETE` or `DROP TABLE` rights — even if it never uses them.
+
+### Row-Level Security (RLS)
+
+Column-level grants restrict which columns a role can see. **Row-level security** restricts which *rows* a role can access — an orthogonal and equally important dimension.
+
+```sql
+-- Enable RLS on the orders table
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+-- Policy: each user sees only their own orders
+CREATE POLICY user_orders ON orders
+  USING (customer_id = current_setting('app.current_user_id')::int);
+```
+
+With this policy in place, even a `SELECT * FROM orders` returns only the rows matching the policy expression. The filter is enforced by the database engine, not the application layer — so no amount of application-layer bugs can expose another user's data.
+
+### Separation of Admin and Application Roles
+
+A common mistake is connecting the application to the database as a superuser (`postgres`, `root`) because it is convenient. This is catastrophic if the application is compromised.
+
+| Role | Typical privileges |
+|---|---|
+| `superuser` / `root` | Everything — DDL, DROP DATABASE, pg_read_file |
+| `migration_user` | DDL on the target schema only; used only during deploys |
+| `app_user` | DML (SELECT / INSERT / UPDATE / DELETE) on owned tables |
+| `reporter` | SELECT on analytics schema only |
+| `readonly` | SELECT on specific tables; used by dashboards |
+
+## The Authentication vs. Authorization Boundary
+
+It is tempting to blur the two concepts, but keeping them separate pays dividends:
+
+- **Authentication** is stateless relative to data: it does not look at your rows.
+- **Authorization** is context-sensitive: the same user may have different privileges on different schemas, tables, or even rows depending on tenant, time, or application state.
+
+Separating them also means you can swap authentication providers (move from password to IAM) without touching your GRANT structure, and you can audit each layer independently.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Role Privileges</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 101, 250.00, 'shipped'); INSERT INTO orders VALUES (2, 102, 89.50, 'pending'); INSERT INTO orders VALUES (3, 101, 410.00, 'delivered'); INSERT INTO orders VALUES (4, 103, 33.00, 'pending'); CREATE TABLE audit_log (event TEXT, happened_at TEXT); INSERT INTO audit_log VALUES ('login: user 101', '2024-06-01 09:00'); INSERT INTO audit_log VALUES ('login: user 102', '2024-06-01 09:05');">-- Simulate row-level security: a customer sees only their own orders.
+-- In a real DB, RLS enforces this automatically; here we use a WHERE clause
+-- to show what the filtered view looks like for customer_id = 101.
+
+SELECT id, amount, status
+FROM orders
+WHERE customer_id = 101;
+
+-- Uncomment to see what the unrestricted admin view looks like:
+-- SELECT * FROM orders;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- **Authentication** (who are you?) and **authorization** (what can you do?) are distinct layers — design and audit them separately.
+- Prefer strong authentication: SCRAM-SHA-256 for passwords, mTLS or IAM tokens for production cloud deployments.
+- Apply the **principle of least privilege**: every role gets only what it needs; revoke defaults aggressively.
+- Use **row-level security** when multiple users or tenants share a table — enforcement in the database engine is safer than enforcement in application code.
+- Never connect production applications as a superuser.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

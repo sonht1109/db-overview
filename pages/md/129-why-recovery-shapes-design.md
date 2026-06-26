@@ -1,0 +1,137 @@
+Everything you have read about the write-ahead log, redo/undo passes, checkpoints, and steal/force policies has one thing in common: none of it was optional. Each mechanism exists because the database made a promise — **durability** and **atomicity** — and keeping that promise under any crash scenario forces specific, concrete design choices. This page steps back and shows how those choices ripple through the entire storage engine.
+
+## The Promise That Drives Everything
+
+When a client receives `COMMIT OK`, the database has guaranteed two things:
+
+1. **Atomicity** — either all changes from that transaction are visible, or none are.
+2. **Durability** — the committed data will survive any subsequent crash.
+
+Both guarantees must hold even if a power failure occurs one microsecond after `COMMIT` returns. That constraint — survive *any* crash — is the forcing function behind nearly every design decision in a storage engine.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram showing how the durability and atomicity promises drive four concrete storage engine design choices: WAL, buffer policy, checkpoints, and crash-safe data structures">
+
+  <!-- Central promise box -->
+  <rect x="220" y="130" width="200" height="70" rx="8" fill="var(--accent)" opacity="0.18" stroke="var(--accent)" stroke-width="2"/>
+  <text x="320" y="158" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--accent)">The Durability Promise</text>
+  <text x="320" y="178" text-anchor="middle" font-size="12" fill="var(--text)">COMMIT means committed,</text>
+  <text x="320" y="193" text-anchor="middle" font-size="12" fill="var(--text)">crash or no crash.</text>
+
+  <!-- Four consequence boxes -->
+  <!-- Top-left: WAL -->
+  <rect x="30" y="20" width="170" height="70" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="115" y="46" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Write-Ahead Log</text>
+  <text x="115" y="64" text-anchor="middle" font-size="11" fill="var(--text)">Log before data.</text>
+  <text x="115" y="79" text-anchor="middle" font-size="11" fill="var(--text)">Sequential I/O at commit.</text>
+
+  <!-- Top-right: Steal/Force policy -->
+  <rect x="440" y="20" width="180" height="70" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="530" y="46" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Buffer Policy</text>
+  <text x="530" y="64" text-anchor="middle" font-size="11" fill="var(--text)">Steal + no-force keeps</text>
+  <text x="530" y="79" text-anchor="middle" font-size="11" fill="var(--text)">memory bounded.</text>
+
+  <!-- Bottom-left: Checkpoints -->
+  <rect x="30" y="260" width="170" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="115" y="284" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Checkpoints</text>
+  <text x="115" y="302" text-anchor="middle" font-size="11" fill="var(--text)">Bound recovery time.</text>
+  <text x="115" y="317" text-anchor="middle" font-size="11" fill="var(--text)">Log can be truncated.</text>
+
+  <!-- Bottom-right: Crash-safe structures -->
+  <rect x="440" y="260" width="180" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="530" y="284" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Crash-Safe Structures</text>
+  <text x="530" y="302" text-anchor="middle" font-size="11" fill="var(--text)">B-trees + double-write</text>
+  <text x="530" y="317" text-anchor="middle" font-size="11" fill="var(--text)">buffer / atomic writes.</text>
+
+  <!-- Arrows from promise to each box -->
+  <defs>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
+    </marker>
+  </defs>
+
+  <!-- To WAL (top-left) -->
+  <line x1="240" y1="130" x2="195" y2="90" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <!-- To Buffer policy (top-right) -->
+  <line x1="400" y1="130" x2="445" y2="90" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <!-- To Checkpoints (bottom-left) -->
+  <line x1="240" y1="200" x2="195" y2="258" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <!-- To Crash-safe structures (bottom-right) -->
+  <line x1="400" y1="200" x2="445" y2="258" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr2)"/>
+</svg>
+<figcaption>The durability promise is the root cause of four major storage engine design constraints.</figcaption>
+</figure>
+
+## How Recovery Requirements Shape Specific Choices
+
+### Logging forces sequential I/O at commit time
+
+A naive approach to durability would flush every dirty data page to disk on each `COMMIT`. That is correct, but the pages touched by a transaction are scattered across many disk locations — random I/O is orders of magnitude slower than sequential I/O on spinning disks, and still expensive on SSDs.
+
+The WAL sidesteps this by making the log the *only* thing that must reach disk at commit time. Log records are appended sequentially to a single file — one fast sequential write replaces dozens of random page writes. The data pages can follow later, batched and reordered by the I/O scheduler. Recovery is what makes this safe: if the engine crashes before the pages catch up, redo reconstructs them from the log.
+
+**Key insight:** the existence of recovery *enables* a faster commit path. Without a recovery mechanism, you would be forced into the slow, synchronous approach.
+
+### Buffer pool freedom comes at the cost of undo
+
+Steal policy (evicting dirty pages before commit) keeps the buffer pool from bloating under large transactions. But it means committed-looking data might hit disk before its transaction commits — so recovery must be able to undo those writes. The WAL's before-images (undo records) exist precisely to support this. Remove the recovery requirement and you could use no-steal — simpler, but impractical for any transaction that touches more pages than fit in RAM.
+
+### Checkpoint frequency is a latency vs. recovery-time trade-off
+
+Checkpoints flush dirty pages and write a marker to the log. They serve recovery: on restart, the engine only needs to replay the log from the last checkpoint, not from the beginning of time. But checkpoints are expensive — they cause a burst of I/O. DBAs tune checkpoint frequency to balance two competing costs:
+
+| Checkpoints | Recovery time | Checkpoint I/O cost |
+|---|---|---|
+| More frequent | Short (less log to replay) | Higher ongoing I/O |
+| Less frequent | Long (more log to replay) | Lower ongoing I/O |
+
+PostgreSQL exposes `checkpoint_completion_target` and `max_wal_size` precisely to tune this trade-off.
+
+### Data structures must be crash-safe by construction
+
+A B-tree node split writes to multiple disk locations. If a crash interrupts the split halfway, the tree is structurally corrupt — and no amount of WAL replay will help if the tree's own metadata pages are inconsistent. This forces engines to either:
+
+- **Double-write** the page to a safe location before writing it in place (MySQL InnoDB's double-write buffer), or
+- **Log the structural change** at a granular level so recovery can redo the partial split safely (PostgreSQL full-page writes after a checkpoint).
+
+The choice of index structure is therefore not just a performance decision — it is a *recoverability* decision. A structure that cannot be repaired by log replay cannot be used in a crash-safe engine without extra protection.
+
+## Seeing the Log-Then-Data Constraint in SQLite
+
+SQLite makes these trade-offs visible. The widget below lets you simulate the order in which log entries would need to appear relative to a data write. Explore which log sequence numbers (LSNs) on the page would need to be flushed before a given data page is safe to evict.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Recovery design constraints</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE pages (page_id INTEGER PRIMARY KEY, last_lsn INTEGER, is_dirty INTEGER, txn_id INTEGER); CREATE TABLE log_records (lsn INTEGER PRIMARY KEY, txn_id INTEGER, page_id INTEGER, record_type TEXT, flushed_to_disk INTEGER); INSERT INTO pages VALUES (7, 1042, 1, 55); INSERT INTO pages VALUES (3, 1038, 1, 55); INSERT INTO pages VALUES (9, 1044, 0, NULL); INSERT INTO log_records VALUES (1038, 55, 3, 'UPDATE', 1); INSERT INTO log_records VALUES (1040, 55, 3, 'UPDATE', 1); INSERT INTO log_records VALUES (1042, 55, 7, 'UPDATE', 1); INSERT INTO log_records VALUES (1044, 88, 9, 'UPDATE', 1); INSERT INTO log_records VALUES (1046, 55, 7, 'COMMIT', 1); INSERT INTO log_records VALUES (1048, 55, 3, 'COMMIT', 1);">-- Which dirty pages are safe to evict to disk?
+-- A page is safe to evict only if its last_lsn log record
+-- is already flushed (flushed_to_disk = 1).
+SELECT p.page_id,
+       p.last_lsn,
+       p.is_dirty,
+       p.txn_id,
+       lr.flushed_to_disk AS log_flushed,
+       CASE WHEN lr.flushed_to_disk = 1 THEN 'Safe to evict'
+            ELSE 'Must flush log first'
+       END AS eviction_status
+FROM pages p
+JOIN log_records lr ON lr.lsn = p.last_lsn
+WHERE p.is_dirty = 1;</textarea>
+  </div>
+</div>
+
+Try changing a `flushed_to_disk` value to `0` and re-running — the status will flip to "Must flush log first", showing exactly the WAL constraint that prevents data loss.
+
+## The Cascading Effect
+
+Recovery is not a feature bolted onto the side of a database. It is a foundational constraint that determines:
+
+- **What the log must record** (before and after images)
+- **How the buffer pool can behave** (steal is allowed; no-force is allowed)
+- **How often checkpoints run** (bounded recovery time)
+- **What data structures are permissible** (must survive partial writes)
+- **What "COMMIT" actually does** (log flush, not necessarily page flush)
+
+Every time you tune `wal_level`, `innodb_flush_log_at_trx_commit`, or `synchronous_commit`, you are adjusting exactly where your system sits on the durability-vs-performance axis — a dial that only exists because the recovery system was designed to make it tunable.
+
+> **Note:** SQLite in WAL mode, PostgreSQL with `synchronous_commit = off`, and MySQL with `innodb_flush_log_at_trx_commit = 2` all weaken the durability guarantee deliberately — trading the risk of losing a few seconds of commits on a crash for significantly higher write throughput. Understanding recovery is what lets you make that trade consciously.

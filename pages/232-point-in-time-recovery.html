@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Point-in-time recovery — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VI. Engineering Practice</p>
+  <p class="chapter-label">Chapter 24. Designing for Reliability</p>
+  <h1 class="content-title">Point-in-time recovery</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="231-backups-and-restores.html"><span class="dir">← Previous</span><span class="ttl">Backups and restores</span></a><a class="next" href="233-high-availability-basics.html"><span class="dir">Next →</span><span class="ttl">High availability basics</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+A developer runs `DELETE FROM orders;` without a `WHERE` clause at 14:32 on a Tuesday. With a weekly backup, you lose up to six days of data. With **point-in-time recovery (PITR)**, you restore to 14:31:59 and lose nothing but 60 seconds. PITR is the capability that transforms a coarse backup strategy into a precise surgical tool — and understanding how it works is essential for any database reliability practice.
+
+## How PITR Works
+
+All major relational databases maintain a **write-ahead log (WAL)** — a sequential record of every change made to the database, written before the change hits the data files. Crash recovery already relies on this log. PITR extends that mechanism for restore purposes:
+
+1. Take a **base backup** (a consistent snapshot of the data files at a known LSN/position)
+2. **Archive WAL segments** continuously to durable storage as they are filled
+3. At restore time, copy the base backup to a fresh server, then **replay WAL forward** from the backup's end position to any target point (timestamp, transaction ID, or named restore point)
+
+The database reaches exactly the state it was in at the chosen moment — every committed transaction before that point is present, every transaction after is absent.
+
+<figure class="diagram">
+<svg viewBox="0 0 700 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PITR timeline: base backup taken at LSN 1000, WAL archived continuously, restore target at LSN 2847 just before accidental delete at LSN 2848">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arr-muted" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+    <marker id="arr-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--text)"/>
+    </marker>
+  </defs>
+
+  <!-- Time axis -->
+  <line x1="30" y1="100" x2="670" y2="100" stroke="var(--border)" stroke-width="2"/>
+  <text x="350" y="125" text-anchor="middle" font-size="11" fill="var(--muted)">time →</text>
+
+  <!-- Base backup marker -->
+  <rect x="30" y="65" width="70" height="35" rx="5" fill="var(--accent)" opacity="0.8"/>
+  <text x="65" y="80" text-anchor="middle" font-size="11" font-weight="700" fill="var(--surface-2)">Base</text>
+  <text x="65" y="94" text-anchor="middle" font-size="11" fill="var(--surface-2)">Backup</text>
+  <text x="65" y="140" text-anchor="middle" font-size="10" fill="var(--muted)">LSN 1000</text>
+  <text x="65" y="153" text-anchor="middle" font-size="10" fill="var(--muted)">02:00</text>
+
+  <!-- WAL archive stream -->
+  <rect x="110" y="88" width="380" height="24" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="300" y="105" text-anchor="middle" font-size="11" fill="var(--muted)">WAL segments archived →→→→→→→→→→→→→</text>
+
+  <!-- Disaster marker -->
+  <line x1="490" y1="55" x2="490" y2="115" stroke="var(--text)" stroke-width="2" stroke-dasharray="4,3"/>
+  <text x="490" y="48" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text)">DELETE!</text>
+  <text x="490" y="140" text-anchor="middle" font-size="10" fill="var(--text)">LSN 2848</text>
+  <text x="490" y="153" text-anchor="middle" font-size="10" fill="var(--text)">14:32:01</text>
+
+  <!-- Restore target -->
+  <line x1="450" y1="60" x2="450" y2="115" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4,3"/>
+  <rect x="410" y="50" width="80" height="22" rx="4" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="450" y="65" text-anchor="middle" font-size="10" fill="var(--accent)" font-weight="600">Target</text>
+  <text x="450" y="140" text-anchor="middle" font-size="10" fill="var(--accent)">14:31:59</text>
+
+  <!-- Current LSN (right edge) -->
+  <circle cx="660" cy="100" r="5" fill="var(--border)"/>
+  <text x="660" y="140" text-anchor="middle" font-size="10" fill="var(--muted)">now</text>
+
+  <!-- Restore flow arrows below -->
+  <text x="65" y="185" text-anchor="middle" font-size="11" fill="var(--text)">1. Copy base</text>
+  <line x1="105" y1="185" x2="165" y2="185" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="230" y="185" text-anchor="middle" font-size="11" fill="var(--text)">2. Replay WAL</text>
+  <line x1="295" y1="185" x2="365" y2="185" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="450" y="185" text-anchor="middle" font-size="11" fill="var(--accent)" font-weight="600">3. Stop at 14:31:59 ✓</text>
+</svg>
+<figcaption>PITR replay: the base backup is copied to a fresh server, then WAL segments are fed forward until the engine reaches the target timestamp and halts.</figcaption>
+</figure>
+
+## Configuring PITR in PostgreSQL
+
+### Step 1 — Enable WAL archiving
+
+```ini
+# postgresql.conf
+wal_level = replica          # or logical
+archive_mode = on
+archive_command = 'aws s3 cp %p s3://my-wal-archive/%f'
+```
+
+`%p` is the WAL segment path; `%f` is the filename. The archive command must return exit code 0 only when the file is safely stored.
+
+### Step 2 — Take a base backup
+
+```bash
+pg_basebackup -h localhost -U replicator -Ft -z -Xs -P \
+  -D /mnt/backups/base_$(date +%Y%m%d)
+```
+
+`-Xs` streams WAL during the backup so no segments are missed. `-Ft -z` produces a compressed tar.
+
+### Step 3 — Restore to a point in time
+
+```bash
+# 1. Place base backup in data directory
+tar -xzf base_20240624.tar.gz -C /var/lib/postgresql/data
+
+# 2. Create recovery configuration (Postgres ≥ 12)
+cat >> /var/lib/postgresql/data/postgresql.conf <<EOF
+restore_command = 'aws s3 cp s3://my-wal-archive/%f %p'
+recovery_target_time = '2024-06-24 14:31:59'
+recovery_target_action = 'promote'
+EOF
+
+touch /var/lib/postgresql/data/recovery.signal
+
+# 3. Start — engine replays WAL, stops at target, promotes to read-write
+pg_ctl start -D /var/lib/postgresql/data
+```
+
+### Named Restore Points
+
+Instead of a timestamp, you can use a **named restore point** created with `SELECT pg_create_restore_point('before-big-migration');`. This is more reliable than matching a clock time and is common practice before large schema changes.
+
+## RPO and RTO Implications
+
+| Metric | Meaning | How PITR affects it |
+|---|---|---|
+| **RPO** (Recovery Point Objective) | Maximum data loss acceptable | WAL archiving gives RPO down to the last archived segment (typically seconds) |
+| **RTO** (Recovery Time Objective) | Maximum time to restore | Depends on base backup size + WAL replay volume; can range from minutes to hours |
+
+> **Practical note:** WAL replay speed is roughly 1–3 GB/minute on modern hardware. A 500 GB base backup plus 60 GB of WAL (6 hours of heavy write load) may take 45–90 minutes to restore. Plan for this in your SLA.
+
+## Try It: Simulating Restore Point Selection
+
+The widget below shows how you might query a WAL archive metadata table to identify the correct segments needed to restore to a given time.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · WAL Archive Segment Lookup</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE wal_segments (segment_name TEXT PRIMARY KEY, start_lsn TEXT, end_lsn TEXT, archived_at TEXT, size_mb INTEGER); INSERT INTO wal_segments VALUES ('000000010000000000000001','0/1000000','0/2000000','2024-06-24 02:00:05',16); INSERT INTO wal_segments VALUES ('000000010000000000000002','0/2000000','0/3000000','2024-06-24 06:15:02',16); INSERT INTO wal_segments VALUES ('000000010000000000000003','0/3000000','0/4000000','2024-06-24 10:30:18',16); INSERT INTO wal_segments VALUES ('000000010000000000000004','0/4000000','0/4B20000','2024-06-24 14:40:55',11); CREATE TABLE base_backups (id INTEGER PRIMARY KEY, taken_at TEXT, end_lsn TEXT, size_mb INTEGER); INSERT INTO base_backups VALUES (1,'2024-06-24 02:00:00','0/1000000',84000);">-- Find the base backup and WAL segments needed to restore to 14:31:59
+-- Base backup: everything taken before or at the target time
+SELECT * FROM (
+SELECT 'base backup' AS component, taken_at AS at, size_mb
+FROM base_backups
+WHERE taken_at &lt;= '2024-06-24 14:31:59'
+ORDER BY taken_at DESC LIMIT 1
+)
+
+UNION ALL
+
+-- WAL segments: all archived after the base backup's end LSN
+SELECT 'WAL ' || segment_name, archived_at, size_mb
+FROM wal_segments
+WHERE archived_at &gt; '2024-06-24 02:00:00'
+  AND archived_at &lt;= '2024-06-24 14:35:00'
+ORDER BY at;</textarea>
+  </div>
+</div>
+
+## Common Pitfalls
+
+- **Gaps in WAL archive** — if one segment fails to archive, replay stops before the target time. Monitor archive success with alerts on `pg_stat_archiver.failed_count`.
+- **Clock skew** — recovery target times are wall clock times on the standby server. Ensure NTP is synchronised.
+- **WAL level too low** — `wal_level = minimal` does not produce enough WAL for PITR. Set to `replica` or `logical`.
+- **Forgotten `recovery.signal`** — without this file (Postgres ≥ 12), the engine starts normally, ignoring `restore_command` and `recovery_target_time`.
+
+## Key Takeaways
+
+- PITR replays the WAL forward from a base backup to any chosen second — it is your best tool against accidental data loss
+- Configure WAL archiving before you need it; you cannot archive retroactively
+- Named restore points are more reliable than clock timestamps before risky operations
+- WAL replay speed sets your RTO floor; size base backups and archive storage accordingly
+- Monitor the archive process actively — a silent failure means the next restore will fall short
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

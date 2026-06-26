@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Joining tables — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part II. Querying and Language</p>
+  <p class="chapter-label">Chapter 5. A Gentle Introduction to SQL</p>
+  <h1 class="content-title">Joining tables</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="046-aggregates-and-group-by.html"><span class="dir">← Previous</span><span class="ttl">Aggregates and GROUP BY</span></a><a class="next" href="048-subqueries-and-common-table-expressions.html"><span class="dir">Next →</span><span class="ttl">Subqueries and common table expressions</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Real databases spread information across multiple tables. A `customers` table holds who people are; an `orders` table records what they bought. To answer "which customers placed orders over $200?" you need rows from both tables at once — that is exactly what a **join** does. Joins are the mechanism SQL uses to reassemble related data that has been stored separately.
+
+## Why Data Lives in Multiple Tables
+
+If you stored a customer's name and address in every order row, you would repeat the same data thousands of times and risk it going out of sync. Splitting the data — customers in one table, orders in another, linked by a shared key — eliminates that redundancy. The tradeoff is that you need to *join* the tables whenever you want the full picture.
+
+This is the payoff for the normalization you read about in Chapter 2: data is stored once, and queries assemble it on demand.
+
+## INNER JOIN: Matching Rows Only
+
+The most common join returns only rows that have a match in **both** tables. The syntax names the second table and the condition that connects them:
+
+```sql
+SELECT customers.name, orders.amount, orders.product
+FROM customers
+INNER JOIN orders ON customers.id = orders.customer_id;
+```
+
+The `ON` clause is the join condition — it tells the engine which column pairs correspond to each other. Rows with no partner are silently dropped from the result.
+
+> **Note:** `JOIN` without a qualifier is `INNER JOIN` in SQLite and standard SQL — both spellings are equivalent.
+
+### Column Aliases Keep Queries Readable
+
+When joining multiple tables, columns can share names. Qualify them with `table.column`, or use table aliases to keep things concise:
+
+```sql
+SELECT c.name, o.amount, o.product
+FROM customers AS c
+INNER JOIN orders AS o ON c.id = o.customer_id;
+```
+
+## LEFT JOIN: Keep All Rows from the Left Table
+
+Sometimes you want every row from the first (left) table, even if there is no matching row in the second. A `LEFT JOIN` (also written `LEFT OUTER JOIN`) fills in `NULL` for missing right-side columns:
+
+```sql
+SELECT c.name, o.amount
+FROM customers AS c
+LEFT JOIN orders AS o ON c.id = o.customer_id;
+```
+
+A customer who has never ordered will still appear — with `NULL` in the `amount` column. This is useful for "find all customers who have *not* placed an order":
+
+```sql
+SELECT c.name
+FROM customers AS c
+LEFT JOIN orders AS o ON c.id = o.customer_id
+WHERE o.id IS NULL;
+```
+
+## Join Types at a Glance
+
+| Join type | What it returns |
+|---|---|
+| `INNER JOIN` | Only rows with a match in both tables |
+| `LEFT JOIN` | All rows from the left table; NULLs for unmatched right rows |
+| `RIGHT JOIN` | All rows from the right table; NULLs for unmatched left rows |
+| `FULL OUTER JOIN` | All rows from both tables; NULLs where no match exists |
+| `CROSS JOIN` | Every combination of rows (Cartesian product) — use with care |
+
+SQLite supports `INNER`, `LEFT`, and `CROSS` joins natively. `RIGHT` and `FULL OUTER` are available in PostgreSQL, MySQL 8+, and SQL Server, but you can always rewrite them as a `LEFT JOIN` with the tables swapped.
+
+## Try It Yourself
+
+The widget below seeds a `customers` table and an `orders` table linked by `customer_id`. Run the default query to see the inner join in action, then try switching to `LEFT JOIN` and notice that Alice (who has no orders) appears with `NULL` values.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · INNER JOIN vs LEFT JOIN</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, city TEXT); INSERT INTO customers VALUES (1, 'Alice', 'London'), (2, 'Bob', 'Paris'), (3, 'Carol', 'Berlin'), (4, 'Dave', 'Tokyo'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 2, 'Widget', 120), (2, 2, 'Gadget', 340), (3, 3, 'Widget', 210), (4, 3, 'Gadget', 450), (5, 4, 'Widget', 95);">SELECT c.name, c.city, o.product, o.amount
+FROM customers AS c
+INNER JOIN orders AS o ON c.id = o.customer_id
+ORDER BY c.name;</textarea>
+  </div>
+</div>
+
+Now try aggregating across the join. The query below counts orders and totals spend per customer — combine what you learned in the previous topic with joins:
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Aggregating a join</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, city TEXT); INSERT INTO customers VALUES (1, 'Alice', 'London'), (2, 'Bob', 'Paris'), (3, 'Carol', 'Berlin'), (4, 'Dave', 'Tokyo'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 2, 'Widget', 120), (2, 2, 'Gadget', 340), (3, 3, 'Widget', 210), (4, 3, 'Gadget', 450), (5, 4, 'Widget', 95);">SELECT c.name,
+       COUNT(o.id)         AS num_orders,
+       SUM(o.amount)       AS total_spent
+FROM customers AS c
+LEFT JOIN orders AS o ON c.id = o.customer_id
+GROUP BY c.id, c.name
+ORDER BY total_spent DESC;</textarea>
+  </div>
+</div>
+
+Notice Alice appears with `0` orders and a `NULL` total — the `LEFT JOIN` kept her row even though she has no matching orders. Try replacing `LEFT JOIN` with `INNER JOIN` and see how the result changes.
+
+## A Note on Performance
+
+Every join asks the engine to match rows across tables. On small datasets this is instant. On large tables, a missing index on the join column (`customer_id` in our example) can make a query scan millions of rows unnecessarily. Indexing foreign-key columns is one of the first things to do when a joined query runs slowly — a topic covered in depth in Part IV.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+When you send a SQL query to a database engine, the engine does not execute it line by line the way an interpreter might run a script. Instead, it translates your SQL into a **logical plan** — a tree of relational algebra operators that captures *what* the query must compute, completely independent of *how* to compute it. Understanding logical plans is the key to understanding why two queries that look different can produce identical results, and why a query optimizer has room to rewrite your query before it ever touches a disk.
+
+## From SQL to a Tree of Operators
+
+Every SQL query can be represented as a tree where:
+- **Leaves** are table scans — the raw relations being read.
+- **Internal nodes** are operators like Selection (σ), Projection (π), and Join (⋈).
+- **The root** is the operator whose output is the final result.
+
+Take a simple example:
+
+```sql
+SELECT e.name, d.name AS dept
+FROM employee e
+JOIN department d ON e.dept_id = d.id
+WHERE e.salary > 80000;
+```
+
+The parser turns this into a logical plan that looks roughly like this:
+
+```
+π(e.name, d.name)
+    └── σ(e.salary > 80000)
+            └── ⋈(e.dept_id = d.id)
+                    ├── Scan(employee)
+                    └── Scan(department)
+```
+
+Read it bottom-up: first scan both tables, then join on the matching key, then filter to high-salary rows, then project down to just the two columns we want. The tree is a precise, unambiguous description of the computation — far easier for the optimizer to reason about than raw SQL text.
+
+## Why "Logical" and Not "Physical"?
+
+The plan above says nothing about *how* to join the two tables. Should the engine use a nested-loop join, a hash join, or a sort-merge join? Should it read `employee` from an index or do a full scan? Those are **physical** decisions, made by the optimizer in the next step. The logical plan deliberately omits them.
+
+This separation matters for two reasons:
+
+1. **Correctness first.** The logical plan guarantees the query will produce the right answer regardless of which physical strategy is chosen.
+2. **Freedom to optimize.** Because the plan is an abstract tree, the optimizer can rewrite it using algebraic equivalences before choosing any physical implementation. It can push the filter *below* the join, for instance — scanning fewer rows before the expensive join starts.
+
+| Logical concept | SQL counterpart | Relational algebra |
+|---|---|---|
+| Selection | `WHERE` clause | σ_condition(R) |
+| Projection | Column list in `SELECT` | π_cols(R) |
+| Inner join | `JOIN … ON` | R ⋈_condition S |
+| Grouping + aggregation | `GROUP BY` + aggregate fn | γ |
+| Sorting | `ORDER BY` | τ |
+
+> **Note:** Real engines often extend relational algebra with additional operators for aggregation (γ) and sorting (τ) because SQL needs them and they do not reduce neatly to the original five set operations. You may see these in execution plan output under names like `HashAgg`, `Sort`, or `Gather`.
+
+## Algebraic Equivalences: The Optimizer's Toolkit
+
+The optimizer transforms a logical plan by applying rules that preserve correctness. A few of the most important ones:
+
+- **Push selections down.** Filtering early shrinks intermediate results. `σ_p(R ⋈ S)` can often become `σ_p(R) ⋈ S` when the predicate only references columns from R.
+- **Reorder joins.** Join is commutative and associative: `(A ⋈ B) ⋈ C = A ⋈ (B ⋈ C)`. Joining the two smallest tables first can dramatically reduce the size of intermediate results.
+- **Push projections down.** Dropping unneeded columns early reduces the width of intermediate tuples moving through the tree.
+
+These rewrites happen on the logical plan before any index or storage layout is considered, which is why the optimizer can improve a query even without knowing physical details.
+
+Try the widget below. The query joins two tables and applies a filter. Notice how changing the `WHERE` predicate — or moving it into a subquery — does not change the result. The engine's logical planner is free to rearrange both forms into the same internal tree.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Logical plan equivalence</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE department (id INTEGER PRIMARY KEY, name TEXT NOT NULL); INSERT INTO department VALUES (1, 'Engineering'); INSERT INTO department VALUES (2, 'Marketing'); INSERT INTO department VALUES (3, 'Finance'); CREATE TABLE employee (id INTEGER PRIMARY KEY, name TEXT NOT NULL, dept_id INTEGER, salary INTEGER); INSERT INTO employee VALUES (1, 'Ada', 1, 95000); INSERT INTO employee VALUES (2, 'Brian', 2, 72000); INSERT INTO employee VALUES (3, 'Carmen', 1, 105000); INSERT INTO employee VALUES (4, 'David', 2, 65000); INSERT INTO employee VALUES (5, 'Elena', 3, 88000); INSERT INTO employee VALUES (6, 'Felix', 1, 75000);">-- Form A: filter after the join (what you wrote)
+SELECT e.name, d.name AS dept, e.salary
+FROM employee e
+JOIN department d ON e.dept_id = d.id
+WHERE e.salary > 80000
+ORDER BY e.salary DESC;
+
+-- Try Form B: push the filter into a subquery -- same logical result
+-- SELECT e.name, d.name AS dept, e.salary
+-- FROM (SELECT * FROM employee WHERE salary > 80000) e
+-- JOIN department d ON e.dept_id = d.id
+-- ORDER BY e.salary DESC;</textarea>
+  </div>
+</div>
+
+Both forms produce the same rows. In most engines, the optimizer will also produce the same (or very similar) logical plan for both — the "push selections down" rule converts Form A into something equivalent to Form B automatically.
+
+<details class="reveal"><summary>Reveal: What is the difference between a logical plan and an execution plan?</summary><div class="reveal-body">A <strong>logical plan</strong> describes <em>what</em> to compute using abstract relational operators. An <strong>execution plan</strong> (also called a physical plan) describes <em>how</em> to compute it: which join algorithm to use, whether to hit an index or do a full table scan, how much memory to allocate for sorting, and so on. The optimizer translates a logical plan into an execution plan by estimating costs for each physical alternative and picking the cheapest one. When you run <code>EXPLAIN</code> in SQLite or PostgreSQL, you are reading the execution plan — but the logical plan is the invisible step that came first.</div></details>

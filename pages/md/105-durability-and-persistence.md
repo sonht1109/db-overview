@@ -1,0 +1,120 @@
+A committed transaction must survive anything the real world throws at it: a power cut, a crashed process, a rebooted server. **Durability** is the ACID property that makes this promise. Once the database says "committed," that data is permanently recorded — not just sitting in memory waiting to be written, but safely on stable storage.
+
+## What Durability Actually Guarantees
+
+Durability draws a hard line at the moment of `COMMIT`. Before that moment, nothing is promised — the database is free to keep changes in memory. After that moment, the changes must be recoverable even if the machine loses power the very next millisecond.
+
+This is a stronger claim than it sounds. Modern hardware has several layers of memory that can lose their contents on power loss:
+
+| Layer | Survives power loss? |
+|---|---|
+| CPU registers & cache | No |
+| OS page cache (RAM) | No |
+| Storage controller write cache (no battery) | No |
+| Storage controller write cache (battery-backed) | Yes |
+| SSD / HDD physical media | Yes |
+
+A naive implementation that just writes to the OS page cache and calls `COMMIT` is not durable: the OS has not yet flushed those pages to disk. A crash before the flush erases the data. Real database engines call `fsync()` (or the platform equivalent) to force the OS to push data all the way to the physical medium before acknowledging a commit.
+
+> **Note:** `fsync()` is expensive — it can take milliseconds. This is exactly why batching many transactions into a single fsync (group commit) is a common optimization. The durability guarantee is maintained; you are just sharing the cost.
+
+## Write-Ahead Logging: The Engine of Durability
+
+Chapter 10 introduced the write-ahead log (WAL). It is the key mechanism behind durability.
+
+The rule is simple: **before any data page is changed on disk, the intended change is written to the log first.** On commit, the engine only needs to flush the log record — not the full data pages. Log writes are sequential and therefore fast. The data pages can be flushed later, lazily, during a checkpoint.
+
+If a crash happens after a commit but before the data pages are flushed, recovery is straightforward: the engine reads the log on restart and **redoes** the committed changes, bringing the data pages up to date. No data is lost.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing WAL write and fsync before COMMIT is acknowledged, then data page flush happening later">
+  <!-- Timeline bar -->
+  <line x1="40" y1="130" x2="600" y2="130" stroke="var(--border)" stroke-width="2"/>
+  <!-- Arrow head -->
+  <polygon points="600,124 616,130 600,136" fill="var(--border)"/>
+
+  <!-- Phase 1: WAL write -->
+  <rect x="60" y="90" width="130" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="125" y="106" text-anchor="middle" font-size="13" fill="var(--text)">Write to WAL</text>
+  <text x="125" y="122" text-anchor="middle" font-size="12" fill="var(--text)" opacity="0.7">(sequential log)</text>
+
+  <!-- Phase 2: fsync log -->
+  <rect x="210" y="90" width="130" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="275" y="106" text-anchor="middle" font-size="13" fill="var(--text)">fsync log</text>
+  <text x="275" y="122" text-anchor="middle" font-size="12" fill="var(--text)" opacity="0.7">(durable on disk)</text>
+
+  <!-- COMMIT marker -->
+  <line x1="360" y1="70" x2="360" y2="155" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="360" y="64" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--accent)">COMMIT</text>
+  <text x="360" y="170" text-anchor="middle" font-size="12" fill="var(--accent)">← durability guaranteed</text>
+
+  <!-- Phase 3: data page flush (lazy) -->
+  <rect x="390" y="90" width="150" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="465" y="106" text-anchor="middle" font-size="13" fill="var(--text)">Flush data pages</text>
+  <text x="465" y="122" text-anchor="middle" font-size="12" fill="var(--text)" opacity="0.7">(checkpoint, lazy)</text>
+
+  <!-- Connector arrows -->
+  <line x1="190" y1="110" x2="210" y2="110" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="340" y1="110" x2="360" y2="110" stroke="var(--border)" stroke-width="1.5"/>
+  <line x1="360" y1="110" x2="390" y2="110" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+  <!-- Crash scenario note -->
+  <rect x="60" y="190" width="510" height="38" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="315" y="207" text-anchor="middle" font-size="12" fill="var(--text)">If crash occurs here (after COMMIT, before page flush):</text>
+  <text x="315" y="222" text-anchor="middle" font-size="12" fill="var(--text)" opacity="0.8">recovery replays WAL → data pages are rebuilt → no data lost</text>
+
+  <!-- Arrow marker def -->
+  <defs>
+    <marker id="arr" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--border)"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>WAL ensures durability: the log is fsynced before COMMIT returns. Data page flushes happen later, lazily.</figcaption>
+</figure>
+
+## Durability vs. Availability
+
+Durability is about surviving crashes, not about being available after a crash. A single-server database that loses its storage drive is durable right up until that moment — all previously committed data was intact — but it is now unavailable (and the data on that drive may be gone).
+
+True long-term durability at scale requires replication: a second server (or more) holds a copy of the data. The most durable configurations replicate the WAL itself, so a standby can replay it to a current state. Some systems require a commit to be acknowledged by at least two nodes before returning success — a practice called **synchronous replication**. This trades some write latency for a stronger guarantee: even if the primary fails immediately after committing, the standby already has the log record.
+
+| Strategy | Survives process crash | Survives machine failure | Survives data-center loss |
+|---|---|---|---|
+| WAL + fsync (single node) | Yes | No | No |
+| Async replication | Yes | Usually | No |
+| Sync replication (multi-node) | Yes | Yes | No |
+| Geo-redundant sync replication | Yes | Yes | Yes |
+
+## Seeing Durability Boundaries in SQL
+
+SQLite (which the widget below uses) writes WAL records and calls fsync on commit by default. You can observe the session-level durability boundary with `PRAGMA synchronous`. The `FULL` mode forces an fsync after every commit; `OFF` skips it entirely (fast, but unsafe on power loss).
+
+Try the widget to see how SQLite reports its own synchronous setting, and experiment with how `BEGIN`/`COMMIT` define the unit that gets durably written:
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Durability and COMMIT boundaries</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE ledger (id INTEGER PRIMARY KEY, description TEXT, amount INTEGER); INSERT INTO ledger VALUES (1, 'Opening balance', 5000);">-- Check SQLite's current durability mode
+PRAGMA synchronous;
+-- 2 = FULL (fsync on every commit — maximum durability)
+-- 1 = NORMAL  0 = OFF (dangerous: skips fsync)
+
+-- Each COMMIT is the durability boundary.
+-- Everything inside BEGIN...COMMIT is written atomically AND durably.
+BEGIN;
+  INSERT INTO ledger VALUES (2, 'Invoice payment received', 1200);
+  INSERT INTO ledger VALUES (3, 'Supplier payment sent', -800);
+COMMIT;
+
+-- This is now durable: a crash after COMMIT cannot lose these rows.
+SELECT id, description, amount,
+       SUM(amount) OVER (ORDER BY id) AS running_balance
+FROM ledger
+ORDER BY id;</textarea>
+  </div>
+</div>
+
+After running the query, try replacing `COMMIT` with `ROLLBACK` — the inserts disappear entirely, because the uncommitted changes were never made durable.
+
+> **Note:** In application code, always check that your database driver is not silently operating in autocommit mode with `synchronous=OFF`. That combination is the most common cause of data loss after unexpected restarts in development and testing environments.

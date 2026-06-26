@@ -1,0 +1,165 @@
+With a table file that stores fixed-width rows, the first two operations write themselves almost automatically. **Insert** appends an encoded row to the end of the file. **Scan** reads every row from start to finish and emits the ones that pass a filter. Together they form the outermost skeleton of every database engine — even the most sophisticated query planner eventually reduces to variations of these two primitives.
+
+## Insert: Append to the End
+
+The simplest durability-safe insert strategy is a sequential append. There are no free-list lookups, no B-tree rebalances, no page splits. The new row goes at the end, and the file grows by exactly `ROW_SIZE` bytes.
+
+```python
+def insert(table: TableFile, row: dict) -> int:
+    """
+    Append a new row and return its row number.
+    Raises ValueError if a field is missing or the name is too long.
+    """
+    if len(row["name"]) > 32:
+        raise ValueError("name exceeds 32 characters")
+    return table.write_row(row)
+```
+
+Because appends are sequential, insert throughput is dominated by the underlying filesystem's write bandwidth — typically 100–500 MB/s on an SSD, giving hundreds of thousands of inserts per second even with `fsync()` after each one.
+
+> **Note:** We are deliberately not calling `fsync()` in this toy. A real engine would flush the OS page cache to durable storage before acknowledging the insert. We will add that when we implement the write-ahead log in the recovery page.
+
+## Scan: Sequential Read with an Optional Filter
+
+A full table scan reads every row in file order and tests each one against a predicate:
+
+```python
+from typing import Callable, Iterator
+
+def scan(
+    table: TableFile,
+    predicate: Callable[[dict], bool] = lambda _: True,
+) -> Iterator[dict]:
+    """
+    Yield every row that matches predicate.
+    Reads the file sequentially from row 0 to num_rows-1.
+    """
+    for i in range(table.num_rows()):
+        row = table.read_row(i)
+        if predicate(row):
+            yield row
+```
+
+The predicate is just a Python callable — the equivalent of a SQL `WHERE` clause. Callers pass lambdas:
+
+```python
+# All employees earning more than $80 000
+expensive = list(scan(table, lambda r: r["salary"] > 80_000))
+
+# Everyone named Alice
+alices = list(scan(table, lambda r: r["name"] == "Alice"))
+```
+
+### Scan Cost
+
+Every call to `scan()` reads the entire file — O(n) in the number of rows. For a 1 000-row table that is 41 KB: imperceptible. For a 10 000 000-row table that is 410 MB: it takes seconds. This is precisely the problem that indexes solve, and we will add one on the next page.
+
+<figure class="diagram">
+<svg viewBox="0 0 660 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Insert appends to file end; scan reads every row and emits matching ones">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrm" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- File rows -->
+  <text x="20" y="28" font-size="13" font-weight="700" fill="var(--text)">INSERT</text>
+  <text x="320" y="28" font-size="13" font-weight="700" fill="var(--text)">SCAN</text>
+
+  <!-- Left: file with append arrow -->
+  <rect x="20" y="40" width="100" height="34" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="70" y="62" text-anchor="middle" font-size="11" fill="var(--text)">Row 0</text>
+  <rect x="20" y="76" width="100" height="34" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="70" y="98" text-anchor="middle" font-size="11" fill="var(--text)">Row 1</text>
+  <rect x="20" y="112" width="100" height="34" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="70" y="134" text-anchor="middle" font-size="11" fill="var(--text)">Row 2</text>
+  <rect x="20" y="148" width="100" height="34" rx="3" fill="var(--accent)" opacity="0.25" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="70" y="170" text-anchor="middle" font-size="11" font-style="italic" fill="var(--accent)">New row ← append</text>
+
+  <!-- Arrow from caller to new row -->
+  <text x="70" y="212" text-anchor="middle" font-size="11" fill="var(--muted)">O(1) — sequential write</text>
+
+  <!-- Right: scan with predicate -->
+  <rect x="320" y="40" width="100" height="34" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="370" y="62" text-anchor="middle" font-size="11" fill="var(--text)">Row 0</text>
+  <rect x="320" y="76" width="100" height="34" rx="3" fill="var(--accent)" opacity="0.25" stroke="var(--accent)" stroke-width="2"/>
+  <text x="370" y="98" text-anchor="middle" font-size="11" fill="var(--text)">Row 1 ✓</text>
+  <rect x="320" y="112" width="100" height="34" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="370" y="134" text-anchor="middle" font-size="11" fill="var(--text)">Row 2</text>
+  <rect x="320" y="148" width="100" height="34" rx="3" fill="var(--accent)" opacity="0.25" stroke="var(--accent)" stroke-width="2"/>
+  <text x="370" y="170" text-anchor="middle" font-size="11" fill="var(--text)">Row 3 ✓</text>
+
+  <!-- Arrow: scan reads top to bottom -->
+  <line x1="290" y1="57" x2="320" y2="57" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrm)"/>
+  <line x1="290" y1="93" x2="320" y2="93" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrm)"/>
+  <line x1="290" y1="129" x2="320" y2="129" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrm)"/>
+  <line x1="290" y1="165" x2="320" y2="165" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrm)"/>
+  <text x="285" y="90" text-anchor="end" font-size="10" fill="var(--muted)">read</text>
+  <text x="285" y="102" text-anchor="end" font-size="10" fill="var(--muted)">each</text>
+  <text x="285" y="114" text-anchor="end" font-size="10" fill="var(--muted)">row</text>
+
+  <!-- Output -->
+  <rect x="460" y="71" width="120" height="34" rx="3" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="520" y="93" text-anchor="middle" font-size="11" fill="var(--text)">Row 1 → yield</text>
+  <rect x="460" y="143" width="120" height="34" rx="3" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="520" y="165" text-anchor="middle" font-size="11" fill="var(--text)">Row 3 → yield</text>
+
+  <line x1="422" y1="93" x2="458" y2="93" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="422" y1="165" x2="458" y2="165" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <text x="370" y="212" text-anchor="middle" font-size="11" fill="var(--muted)">O(n) — reads every row</text>
+</svg>
+<figcaption>Insert appends at the end in O(1). Scan reads every row and emits those that pass the predicate — O(n).</figcaption>
+</figure>
+
+## Putting It Together: A Mini REPL
+
+With insert and scan we can already answer real questions. Here is a tiny session against an in-memory version of our table:
+
+```python
+# Seed data
+rows = [
+    {"id": 1, "name": "Alice",  "age": 30, "salary": 70_000},
+    {"id": 2, "name": "Bob",    "age": 25, "salary": 55_000},
+    {"id": 3, "name": "Carol",  "age": 34, "salary": 92_000},
+    {"id": 4, "name": "Dave",   "age": 28, "salary": 61_000},
+    {"id": 5, "name": "Eve",    "age": 40, "salary": 110_000},
+]
+
+# Equivalent of: SELECT * FROM employees WHERE salary > 80000
+result = [r for r in rows if r["salary"] > 80_000]
+# → [{"name":"Carol","salary":92000}, {"name":"Eve","salary":110000}]
+
+# Equivalent of: SELECT COUNT(*) FROM employees
+count = sum(1 for _ in rows)  # → 5
+```
+
+The SQL widget below lets you run exactly these queries against the same data — the SQLite engine performs the same sequential scan our toy would.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Insert and Scan</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice',30,70000),(2,'Bob',25,55000),(3,'Carol',34,92000),(4,'Dave',28,61000),(5,'Eve',40,110000);">-- Full table scan (all rows)
+SELECT * FROM employees;
+
+-- Filtered scan: salary > 80000
+-- SELECT * FROM employees WHERE salary &gt; 80000;
+
+-- Aggregate over the full scan
+-- SELECT COUNT(*), AVG(salary) FROM employees;</textarea>
+  </div>
+</div>
+
+## The Cost of Not Having an Index
+
+Try mentally scaling the scan to 10 million rows. Every `SELECT … WHERE salary > 80000` must read all 10 M × 41 B = 410 MB from disk. On a 500 MB/s SSD that is almost a full second, per query, with no concurrency. A database serving hundreds of queries per second cannot afford this. The solution is an **index** — a separate structure that maps column values to row numbers so the engine can skip to the right rows without reading everything.
+
+## Key Takeaways
+
+- **Insert** = encode the row as bytes and append to the file. O(1), sequential, fast.
+- **Scan** = read every row in file order, test each against a predicate, yield matches. O(n), slow at scale.
+- The scan cost grows linearly with table size — the fundamental motivation for every indexing scheme that follows.
+- The generator pattern (`yield`) maps directly to how real database cursors work: rows flow one at a time through a pipeline, avoiding loading the whole result into memory.

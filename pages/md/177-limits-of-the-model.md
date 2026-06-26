@@ -1,0 +1,122 @@
+The key-value model's radical simplicity is its greatest strength — and its most important constraint. Once you step outside the narrow corridor of "look up a value by its exact key," the model offers you very little help. Understanding where the walls are is just as important as knowing where the model excels.
+
+## The One Rule Everything Else Follows
+
+A key-value store has exactly one access path: **the key**. If you know the full key, you get constant-time retrieval. If you do not know the full key, you are in trouble. There is no query planner, no secondary index (in the base model), no `WHERE` clause. Every limitation below flows directly from this single design decision.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram contrasting what key-value stores can and cannot do efficiently">
+  <!-- Title row -->
+  <text x="180" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="var(--accent)">Efficient (O(1))</text>
+  <text x="480" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="var(--text)" opacity="0.6">Requires Full Scan (Slow)</text>
+
+  <!-- Divider -->
+  <line x1="320" y1="10" x2="320" y2="300" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="6,3"/>
+
+  <!-- Left column - efficient -->
+  <rect x="20" y="36" width="280" height="44" rx="6" fill="var(--accent)" opacity="0.12" stroke="var(--accent)" stroke-width="1.2"/>
+  <text x="160" y="55" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="500">GET session:user:4291</text>
+  <text x="160" y="72" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.65">exact key → value in one hop</text>
+
+  <rect x="20" y="90" width="280" height="44" rx="6" fill="var(--accent)" opacity="0.12" stroke="var(--accent)" stroke-width="1.2"/>
+  <text x="160" y="109" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="500">SET cache:homepage:en &lt;html&gt;</text>
+  <text x="160" y="126" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.65">write by key, overwrite any old value</text>
+
+  <rect x="20" y="144" width="280" height="44" rx="6" fill="var(--accent)" opacity="0.12" stroke="var(--accent)" stroke-width="1.2"/>
+  <text x="160" y="163" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="500">INCR ratelimit:user:8:day</text>
+  <text x="160" y="180" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.65">atomic counter on a known key</text>
+
+  <rect x="20" y="198" width="280" height="44" rx="6" fill="var(--accent)" opacity="0.12" stroke="var(--accent)" stroke-width="1.2"/>
+  <text x="160" y="217" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="500">EXISTS feature:dark_mode</text>
+  <text x="160" y="234" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.65">presence check in constant time</text>
+
+  <!-- Right column - slow -->
+  <rect x="335" y="36" width="290" height="44" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="480" y="55" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="500">Find all sessions for Germany</text>
+  <text x="480" y="72" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.65">must inspect every value — no index</text>
+
+  <rect x="335" y="90" width="290" height="44" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="480" y="109" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="500">List users with role = admin</text>
+  <text x="480" y="126" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.65">role lives inside value — opaque to store</text>
+
+  <rect x="335" y="144" width="290" height="44" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="480" y="163" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="500">JOIN sessions with user profiles</text>
+  <text x="480" y="180" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.65">no concept of relations or foreign keys</text>
+
+  <rect x="335" y="198" width="290" height="44" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="480" y="217" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="500">SUM all counters by prefix</text>
+  <text x="480" y="234" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.65">aggregate across keys = full scan</text>
+
+  <!-- Legend -->
+  <rect x="20" y="258" width="14" height="14" rx="3" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1"/>
+  <text x="40" y="270" font-size="11" fill="var(--text)">Key-value store excels here</text>
+  <rect x="220" y="258" width="14" height="14" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="240" y="270" font-size="11" fill="var(--text)">Use a different database model</text>
+</svg>
+<figcaption>Everything on the left is O(1) by design. Everything on the right requires inspecting values — the key-value model offers no help here.</figcaption>
+</figure>
+
+## The Four Core Limits
+
+### 1. You Cannot Query Inside Values
+
+The store treats every value as an opaque blob of bytes. It never parses, indexes, or interprets what is inside. If you store `{"role":"admin","country":"DE"}` as a JSON value, there is no command to ask "give me all keys where role is admin." You must either:
+
+- **Know the key in advance** (which defeats the point of searching), or
+- **Scan every key**, deserialize every value, and filter in your application.
+
+That scan is O(n) over your entire dataset — exactly what the hash-map design was built to avoid.
+
+### 2. There Are No Relations
+
+A key-value store has no foreign keys, no join semantics, and no referential integrity. If you store a user profile under `user:8` and a set of sessions under `session:8:*`, nothing in the database enforces the link. Delete the user and the sessions remain. There is no cascade, no constraint, no transaction that spans multiple logical entities by default.
+
+> **Note:** Some systems (Redis Lua scripts, Redis transactions via `MULTI/EXEC`) allow multi-key atomicity, but these are bolt-on features, not first-class relational semantics. They do not give you joins or foreign-key enforcement.
+
+### 3. Range Queries Are Second-Class
+
+In a hash-based store, keys are scattered by hash — there is no natural ordering. Asking for "all rate-limit counters from the last hour" requires knowing every key in advance, or scanning the entire keyspace. Some key-value engines (like RocksDB or sorted key spaces in Redis with `ZRANGE`) support **lexicographic key ranges**, which partially addresses this — but only if you have deliberately designed your keys so that the range you want maps to a contiguous prefix. This requires careful, upfront key design and cannot be retrofitted.
+
+### 4. Consistency Across Multiple Keys Is Hard
+
+Operations on a **single** key are typically atomic. Operations across **two or more** keys are not, unless the engine provides an explicit multi-key transaction (which many do not, and those that do often sacrifice performance to offer it). This means patterns like "decrement inventory AND create an order" require extra design work — optimistic locking, application-level locking, or choosing a database with first-class transaction support.
+
+## When You Hit a Wall: What to Reach For
+
+| Limitation you are hitting | Better tool |
+|---|---|
+| Need to query inside values | Document store (MongoDB, Firestore) |
+| Need joins and relations | Relational database (PostgreSQL, MySQL) |
+| Need range scans and ordering | Wide-column or relational store |
+| Need cross-entity transactions | Relational DB with ACID transactions |
+| Need full-text search | Search engine (Elasticsearch, Typesense) |
+
+This is not a failure of key-value databases — it is a deliberate design trade-off. They give up expressiveness to achieve speed and operational simplicity. The moment your access patterns stop fitting the "I know the key" mold, that trade-off is no longer working in your favor.
+
+---
+
+The widget below makes the wall concrete. Notice what happens when you try to search *inside* values or aggregate across keys — the query must scan every row, bypassing the primary key index entirely.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Where the key-value model breaks down</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO kv VALUES ('session:user:1', '{&quot;role&quot;:&quot;admin&quot;,&quot;country&quot;:&quot;DE&quot;,&quot;hits&quot;:12}'); INSERT INTO kv VALUES ('session:user:2', '{&quot;role&quot;:&quot;viewer&quot;,&quot;country&quot;:&quot;US&quot;,&quot;hits&quot;:4}'); INSERT INTO kv VALUES ('session:user:3', '{&quot;role&quot;:&quot;admin&quot;,&quot;country&quot;:&quot;DE&quot;,&quot;hits&quot;:99}'); INSERT INTO kv VALUES ('session:user:4', '{&quot;role&quot;:&quot;viewer&quot;,&quot;country&quot;:&quot;FR&quot;,&quot;hits&quot;:7}'); INSERT INTO kv VALUES ('cache:page:home', 'rendered html...'); INSERT INTO kv VALUES ('cache:page:about', 'rendered html...'); INSERT INTO kv VALUES ('feature:dark_mode', 'on');">-- Fast: exact key lookup (uses the PRIMARY KEY index)
+SELECT key, value FROM kv WHERE key = 'session:user:3';
+
+-- Slow: searching INSIDE values forces a full table scan.
+-- The store has no idea what is inside the JSON blob.
+-- Try: SELECT key FROM kv WHERE value LIKE '%admin%';
+
+-- Slow: prefix scan across all sessions
+-- Try: SELECT key, value FROM kv WHERE key LIKE 'session:%';
+
+-- Cannot do: SUM(hits) across sessions without parsing every value
+-- Try: SELECT COUNT(*) FROM kv WHERE key LIKE 'session:%' AND value LIKE '%"hits"%';</textarea>
+  </div>
+</div>
+
+<details class="reveal"><summary>Reveal: Why can't we just add an index on value?</summary><div class="reveal-body">
+
+A secondary index on the raw `value` column only lets you do exact or prefix matches on the *entire* serialized blob — it cannot index a field *inside* the JSON. To query efficiently on `role` or `country`, you would need to extract those fields into separate columns (breaking the key-value model) or use a document store that maintains indexes on nested fields natively. That is exactly why document databases exist: they are key-value stores that understand the structure of their values.
+
+</div></details>

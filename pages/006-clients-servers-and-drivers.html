@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clients, servers, and drivers — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part I. Foundations</p>
+  <p class="chapter-label">Chapter 1. What a Database System Is</p>
+  <h1 class="content-title">Clients, servers, and drivers</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="005-the-role-of-the-database-engine.html"><span class="dir">← Previous</span><span class="ttl">The role of the database engine</span></a><a class="next" href="007-why-database-systems-matter.html"><span class="dir">Next →</span><span class="ttl">Why database systems matter</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+When you run a query, you are rarely talking to the database directly. Almost every database interaction involves three distinct roles: a **client** that asks questions, a **server** that stores and processes data, and a **driver** that makes them speak the same language. Understanding these three pieces explains why databases work the same way across a dozen programming languages — and what actually happens in the milliseconds between you calling a function and getting a result back.
+
+## The client-server model
+
+A **database server** is a long-running process dedicated to managing data. It listens on a network port (PostgreSQL defaults to `5432`, MySQL to `3306`, SQL Server to `1433`), accepts connections, runs queries, and returns results. The server owns the data files on disk and enforces rules — access control, transactions, constraints — on everything that touches them.
+
+A **client** is anything that connects to that server to send queries and receive results. The client could be:
+
+| Client type | Example |
+|---|---|
+| Interactive shell | `psql`, `mysql`, `sqlite3` |
+| GUI tool | DBeaver, TablePlus, DataGrip |
+| Application code | A Node.js API, a Django app |
+| Another server | A reporting service, an ETL job |
+
+The key insight: the server does the heavy lifting. Sorting a million rows, joining three tables, enforcing a foreign-key constraint — all of that happens inside the server process. The client just sends SQL text and gets rows back.
+
+> **Note:** SQLite breaks this pattern intentionally. It is an *embedded* database — the "server" is a library linked directly into your application, and the data file is local. There is no network port or separate process. This makes SQLite ideal for local tools and tests but unsuitable for multiple simultaneous writers.
+
+## What a driver does
+
+The client and server need a common wire protocol — a byte-level agreement on how to frame a query, authenticate, stream rows, and signal errors. Writing that protocol by hand for every application would be painful. That is what a **driver** (sometimes called a **connector** or **adapter**) is for.
+
+A driver is a language-specific library that:
+
+1. Opens and manages a TCP connection to the server.
+2. Handles authentication (username/password, SSL certificates, Kerberos, etc.).
+3. Serialises your query string into the protocol format the server expects.
+4. Deserialises the binary response back into native language types (strings, integers, dates).
+5. Exposes a clean API your application code can call.
+
+Each database has official or community drivers for every popular language:
+
+| Database | Python driver | Node.js driver | Java driver |
+|---|---|---|---|
+| PostgreSQL | `psycopg2` / `asyncpg` | `pg` | `pgjdbc` |
+| MySQL | `mysql-connector-python` | `mysql2` | `MySQL Connector/J` |
+| SQLite | built-in `sqlite3` module | `better-sqlite3` | `xerial/sqlite-jdbc` |
+
+A higher-level library (an ORM like SQLAlchemy or Prisma) sits *on top of* a driver — it generates SQL for you, but it still needs the driver to actually talk to the server.
+
+## Putting it together: a query's round trip
+
+Here is what happens when an application runs `SELECT * FROM orders WHERE status = 'pending'`:
+
+```
+Application code
+    │  calls driver API (e.g., cursor.execute(...))
+    ▼
+Driver
+    │  serialises query → TCP bytes → sends to port 5432
+    ▼
+Database server (network)
+    │  parses SQL, plans query, reads data pages
+    │  serialises result rows → TCP bytes → sends back
+    ▼
+Driver
+    │  deserialises bytes → Python list / JS array / Java ResultSet
+    ▼
+Application code
+    │  iterates rows
+```
+
+The round-trip time on a local network is typically under 1 ms. Over the public internet it can be 50–200 ms — which is why database servers are always deployed close to the application servers that query them, and why connection pooling (reusing an already-open TCP connection rather than opening a new one for every query) matters at scale.
+
+## Try it live
+
+The widget below runs SQLite entirely in your browser — `sql.js` plays the role of both the driver and the embedded server. The `data-setup` attribute seeds the database (like migrations run at startup), and the textarea is the query your "application" sends. Try changing `'pending'` to `'shipped'` and re-running.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · orders round-trip</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders (id INTEGER, customer TEXT, status TEXT, amount REAL);
+INSERT INTO orders VALUES (1,'Ada','pending',49.99),(2,'Bola','shipped',120.00),(3,'Chidi','pending',8.50),(4,'Dara','shipped',200.00);">SELECT id, customer, amount FROM orders WHERE status = 'pending';</textarea>
+  </div>
+</div>
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

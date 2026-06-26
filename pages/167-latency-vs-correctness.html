@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Latency vs correctness — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part IV. Distributed Systems</p>
+  <p class="chapter-label">Chapter 17. Consistency in Distributed Databases</p>
+  <h1 class="content-title">Latency vs correctness</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="166-cap-as-a-tradeoff-lens.html"><span class="dir">← Previous</span><span class="ttl">CAP as a tradeoff lens</span></a><a class="next" href="168-conflict-free-approaches.html"><span class="dir">Next →</span><span class="ttl">Conflict-free approaches</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Every distributed database forces you to make a choice that has no perfect answer: **how fast do you want to be, and how wrong are you willing to be?** These two goals pull in opposite directions. Stronger correctness requires more coordination between nodes — and coordination costs time. This chapter puts a name and a framework on that tension.
+
+## What "correctness" means here
+
+In the context of distributed databases, correctness is about what a reader sees relative to what a writer has stored. The gold standard is **linearizability**: every operation appears to take effect instantaneously at a single moment in time, and every subsequent read reflects every prior write. It behaves as if the entire distributed system were one perfectly reliable single-node database.
+
+Achieving linearizability across nodes requires a **coordination round** before a read or write can complete: nodes must agree on ordering. That round-trip — even at the speed of light — takes time. A client in Tokyo reading from a leader in Frankfurt waits at least ~120 ms for one coordination round-trip, no matter how fast the hardware is.
+
+> **Note:** This is not an engineering limitation you can optimize away. The speed of light, geographic distance, and the laws of physics set a hard floor on coordination latency. It is a fundamental constraint, not a bug.
+
+## The spectrum: from fast-but-stale to slow-but-safe
+
+Consistency is not binary. Real systems expose a dial with several named positions:
+
+| Level | What the reader sees | Typical extra latency | Example |
+|---|---|---|---|
+| **Linearizable** | Latest write, globally ordered | High (coordination round) | etcd, Zookeeper, Spanner |
+| **Serializability** | Transactions appear in some serial order | Medium–high | CockroachDB, Postgres with SSI |
+| **Read-your-writes** | Your own writes are visible to you | Low–medium | Sticky sessions, read-after-write routing |
+| **Monotonic reads** | You never see data go backwards in time | Low | Session-level replica pinning |
+| **Eventual** | Replica may be arbitrarily behind | Near-zero | Cassandra default, DynamoDB default reads |
+
+Moving down the table: reads get faster and more available, but the gap between "what a reader sees" and "what is actually stored" widens.
+
+## Visualizing the tradeoff
+
+The diagram below shows how a write to a leader propagates to two replicas under different consistency policies, and when a client read can safely return.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline comparing linearizable vs eventual read return points after a write">
+  <defs>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arr3" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--border)"/>
+    </marker>
+  </defs>
+
+  <!-- Time axis -->
+  <line x1="80" y1="40" x2="620" y2="40" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="80" y="28" font-size="12" fill="var(--text)" text-anchor="middle">t=0</text>
+  <text x="220" y="28" font-size="12" fill="var(--text)" text-anchor="middle">t=1</text>
+  <text x="360" y="28" font-size="12" fill="var(--text)" text-anchor="middle">t=2</text>
+  <text x="500" y="28" font-size="12" fill="var(--text)" text-anchor="middle">t=3</text>
+  <line x1="80"  y1="36" x2="80"  y2="44" stroke="var(--border)" stroke-width="1.5"/>
+  <line x1="220" y1="36" x2="220" y2="44" stroke="var(--border)" stroke-width="1.5"/>
+  <line x1="360" y1="36" x2="360" y2="44" stroke="var(--border)" stroke-width="1.5"/>
+  <line x1="500" y1="36" x2="500" y2="44" stroke="var(--border)" stroke-width="1.5"/>
+
+  <!-- Leader row -->
+  <text x="38" y="88" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">Leader</text>
+  <circle cx="80" cy="80" r="7" fill="var(--accent)"/>
+  <text x="80" y="68" font-size="11" fill="var(--accent)" text-anchor="middle">WRITE</text>
+  <rect x="90" y="68" width="510" height="28" rx="5" fill="var(--accent)" fill-opacity="0.14" stroke="var(--accent)"/>
+  <text x="345" y="87" font-size="12" fill="var(--text)" text-anchor="middle">v=42 committed on leader</text>
+
+  <!-- Replica 1 row -->
+  <text x="38" y="158" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">R1</text>
+  <rect x="90" y="136" width="120" height="28" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-dasharray="4,3"/>
+  <text x="150" y="155" font-size="12" fill="var(--text)" text-anchor="middle">v=41 (stale)</text>
+  <!-- replication arrow to R1 -->
+  <line x1="220" y1="96" x2="220" y2="134" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr3)"/>
+  <text x="232" y="118" font-size="10" fill="var(--text)" fill-opacity="0.7">replicate</text>
+  <rect x="230" y="136" width="370" height="28" rx="5" fill="var(--accent)" fill-opacity="0.14" stroke="var(--accent)"/>
+  <text x="415" y="155" font-size="12" fill="var(--text)" text-anchor="middle">v=42 (synced)</text>
+
+  <!-- Replica 2 row -->
+  <text x="38" y="228" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">R2</text>
+  <rect x="90" y="206" width="260" height="28" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-dasharray="4,3"/>
+  <text x="220" y="225" font-size="12" fill="var(--text)" text-anchor="middle">v=41 (stale — slow link)</text>
+  <!-- replication arrow to R2 -->
+  <line x1="360" y1="96" x2="360" y2="204" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr3)"/>
+  <text x="372" y="158" font-size="10" fill="var(--text)" fill-opacity="0.7">replicate</text>
+  <rect x="370" y="206" width="230" height="28" rx="5" fill="var(--accent)" fill-opacity="0.14" stroke="var(--accent)"/>
+  <text x="485" y="225" font-size="12" fill="var(--text)" text-anchor="middle">v=42 (synced)</text>
+
+  <!-- Read-return markers -->
+  <!-- Eventual: return immediately -->
+  <line x1="100" y1="260" x2="100" y2="288" stroke="var(--border)" stroke-width="1.5"/>
+  <rect x="70" y="270" width="130" height="22" rx="4" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="135" y="285" font-size="11" fill="var(--text)" text-anchor="middle">Eventual read returns</text>
+
+  <!-- Linearizable: only after R2 syncs -->
+  <line x1="370" y1="260" x2="370" y2="288" stroke="var(--accent)" stroke-width="1.5"/>
+  <rect x="290" y="270" width="175" height="22" rx="4" fill="var(--accent)" fill-opacity="0.12" stroke="var(--accent)"/>
+  <text x="377" y="285" font-size="11" fill="var(--accent)" text-anchor="middle">Linearizable read returns</text>
+</svg>
+<figcaption>An eventual read can return instantly (possibly stale); a linearizable read must wait until all required replicas confirm the write — incurring real latency.</figcaption>
+</figure>
+
+## Why the tradeoff is unavoidable: a quick proof
+
+Suppose you want a read to always return the most recent write. The reader must somehow *know* what the most recent write is. In a distributed system, that knowledge requires communicating with other nodes. Communication takes time. Therefore: strong correctness implies latency. This is not a matter of clever engineering — it is a consequence of the **network partition** and **message-delay** models that underpin all distributed systems.
+
+The **PACELC model** (an extension of CAP) makes this explicit: even when the system is *not* partitioned, there is a tradeoff between **latency** and **consistency** (the "ELC" part: Else, Latency vs Consistency).
+
+## Choosing your point on the dial
+
+The right choice depends on the cost asymmetry for your specific workload:
+
+- **High cost of staleness** (bank balance, inventory that can go negative, authentication tokens) → pay the latency for linearizability or at least read-your-writes.
+- **Low cost of staleness** (view counts, search index freshness, analytics dashboards) → accept eventual consistency and enjoy lower latency and higher availability.
+- **Mixed workloads** → most production systems use tunable consistency per operation. DynamoDB lets you request strongly-consistent reads for critical paths while defaulting to eventual reads elsewhere.
+
+Try this widget to see how quorum reads encode the latency/correctness tradeoff in a concrete numeric model. A write quorum `W` and read quorum `R` satisfy `R + W > N` (where `N` is the replica count) to guarantee overlap — but larger quorums mean waiting for more nodes.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Quorum overlap calculator</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE quorum_configs (label TEXT, N INTEGER, W INTEGER, R INTEGER); INSERT INTO quorum_configs VALUES ('Fast writes (W=1)', 3, 1, 3), ('Balanced (W=2, R=2)', 3, 2, 2), ('Fast reads (R=1)', 3, 3, 1), ('5-node balanced', 5, 3, 3), ('5-node fast read', 5, 4, 2);">
+-- R + W > N guarantees at least one node overlaps between read and write sets,
+-- ensuring a read always sees the latest confirmed write.
+-- A higher overlap = stronger correctness; a lower W or R = lower latency.
+SELECT
+  label,
+  N,
+  W,
+  R,
+  W + R AS overlap_sum,
+  CASE WHEN W + R > N THEN 'YES - correct' ELSE 'NO  - stale reads possible' END AS guarantees_latest
+FROM quorum_configs
+ORDER BY N, W;
+</textarea>
+  </div>
+</div>
+
+Experiment: edit a row to set `W=1, R=1` with `N=3` and watch the guarantee disappear. That is exactly what "eventual consistency" looks like in quorum arithmetic — the read and write sets need not overlap at all.
+
+## Key takeaways
+
+- **Coordination costs time.** Every guarantee stronger than eventual consistency requires at least one synchronous round-trip between nodes.
+- **The PACELC model** captures the permanent latency/consistency tradeoff that exists even without network partitions.
+- **Staleness has a price too.** Choosing low latency means accepting the risk of serving outdated data — and that risk must be weighed against its business cost.
+- **Most real systems make the dial tunable** per query or operation, rather than committing the whole database to one point on the spectrum.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

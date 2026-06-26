@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why scanning everything is slow — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part II. Querying and Language</p>
+  <p class="chapter-label">Chapter 7. Indexes</p>
+  <h1 class="content-title">Why scanning everything is slow</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="059-query-planning-mistakes.html"><span class="dir">← Previous</span><span class="ttl">Query planning mistakes</span></a><a class="next" href="062-what-an-index-really-is.html"><span class="dir">Next →</span><span class="ttl">What an index really is</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Every query you write ultimately needs to find rows that match your criteria. The naive way to do that is also the obvious way: start at the first row in the table and check every single one. This is called a **full table scan** (or sequential scan), and it works perfectly well — until your table has a million rows and you only need three of them.
+
+## The Cost of Reading Every Row
+
+A database stores rows in pages — fixed-size blocks of data on disk (typically 8 KB or 16 KB each). When a full scan runs, the engine must read **every page** of the table into memory, even if the rows you want are clustered at the very start.
+
+Consider a table of 1 000 000 orders:
+
+| Table size | Pages to read (at 8 KB/page, ~100 rows/page) | Rows actually needed | Wasted reads |
+|---|---|---|---|
+| 1 000 000 rows | ~10 000 pages | 3 | ~9 999 pages |
+| 10 000 000 rows | ~100 000 pages | 3 | ~99 999 pages |
+
+Disk I/O is the slowest operation a database performs — orders of magnitude slower than CPU work or reading from RAM. Reading 100 000 pages you do not need is not just inefficient; on a busy system it floods the I/O bandwidth and slows down every other query running at the same time.
+
+Even when data is cached in memory, a scan through a million-row table still costs CPU time to evaluate the `WHERE` predicate against each row, one by one.
+
+## Seeing the Problem in Practice
+
+The widget below creates an `orders` table with 10 000 rows using SQLite's `generate_series`. The first query scans every row to find the three orders belonging to a specific customer. Try running it and watch how many rows the engine processes to return just a handful of results.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Full scan cost</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, product TEXT NOT NULL, amount REAL NOT NULL); WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n < 10000) INSERT INTO orders SELECT n, ((n * 1103515245 + 12345) % 5000) + 1, CASE ((n * 6364136223846793005 + 1442695040888963407) % 4) WHEN 0 THEN 'Widget' WHEN 1 THEN 'Gadget' WHEN 2 THEN 'Doohickey' ELSE 'Thingamajig' END, ROUND(((n * 1103515245 + 12345) % 9900) / 100.0 + 1.0, 2) FROM seq;">-- Find all orders for customer 42.
+-- The engine checks every one of the 10,000 rows.
+SELECT id, product, amount
+FROM orders
+WHERE customer_id = 42;</textarea>
+  </div>
+</div>
+
+SQLite retrieves the right rows, but it examined all 10 000 rows to find them. Now run `EXPLAIN QUERY PLAN SELECT id, product, amount FROM orders WHERE customer_id = 42;` — you will see `SCAN orders` in the output, confirming a full table scan with no index involved.
+
+## Why Linear Scaling Hurts
+
+A full scan is an **O(n)** operation: double the rows, double the work. That is fine when n is 500. It is catastrophic when n is 50 000 000.
+
+```
+Rows in table     Time for full scan (relative)
+-----------       ----------------------------
+    10 000              1×
+   100 000             10×
+ 1 000 000            100×
+10 000 000          1 000×
+```
+
+Real-world tables in production systems routinely hold tens or hundreds of millions of rows. A query that runs in 20 ms on a development database with 10 000 rows can silently balloon to 20 *seconds* in production — not because the query changed, but because the data grew.
+
+> **Note:** This is why query performance problems so often appear suddenly, long after a feature ships. The code is fine; the table just grew past the point where a scan is tolerable.
+
+## What We Need Instead
+
+The fix is to give the database a **data structure it can search quickly** — one that locates matching rows without reading the entire table. That data structure is an **index**.
+
+An index trades a small amount of write overhead and disk space for dramatically faster reads. Instead of O(n) row-by-row checking, a well-designed index turns the same lookup into an O(log n) tree traversal — finding 3 rows in a 10-million-row table by reading roughly 24 pages instead of 100 000.
+
+The rest of this chapter explains how indexes are built, how the query planner decides when to use them, and how to choose the right indexes for your queries.
+
+<details class="reveal"><summary>Reveal: If a full scan is so slow, why does the engine ever choose one?</summary><div class="reveal-body">A full scan is sometimes the <em>best</em> option. If a query needs the majority of rows in a table — say, a monthly report that aggregates every order — reading the table sequentially in large, contiguous page chunks is faster than jumping around the file to follow index pointers. The query optimizer estimates how many rows will match the <code>WHERE</code> predicate; if the fraction is high enough (a rough rule of thumb: above ~5–10% of the table), it skips the index and scans instead. Indexes pay off most when you are finding a small needle in a large haystack.</div></details>
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

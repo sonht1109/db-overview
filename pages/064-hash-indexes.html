@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hash indexes — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part II. Querying and Language</p>
+  <p class="chapter-label">Chapter 7. Indexes</p>
+  <h1 class="content-title">Hash indexes</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="063-b-tree-indexes.html"><span class="dir">← Previous</span><span class="ttl">B-tree indexes</span></a><a class="next" href="065-composite-indexes.html"><span class="dir">Next →</span><span class="ttl">Composite indexes</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+A B-tree index is great for range queries, but it is doing more work than necessary when all you ever ask is "give me the row where `id = 42`." A **hash index** is built for exactly that case — pure equality lookups — and it does so with O(1) average-case time instead of O(log n).
+
+## How a Hash Index Works
+
+The idea is borrowed directly from hash tables in programming. When a row is inserted, the database applies a **hash function** to the indexed column's value. The hash function maps that value to a **bucket** — a slot in a fixed array. The bucket stores a pointer to the actual row on disk.
+
+```
+hash("alice@example.com")  →  bucket 7  →  [row pointer]
+hash("bob@example.com")    →  bucket 2  →  [row pointer]
+hash("carol@example.com")  →  bucket 7  →  [row pointer, row pointer]  ← collision
+```
+
+At query time the engine hashes the search value, jumps directly to that bucket, and returns the matching row pointers — no tree traversal required.
+
+| Operation | B-tree index | Hash index |
+|---|---|---|
+| Equality (`= 42`) | O(log n) | **O(1) average** |
+| Range (`BETWEEN 10 AND 50`) | O(log n + k) | **Not supported** |
+| `ORDER BY` / sorting | Supported | Not supported |
+| `LIKE 'abc%'` prefix | Supported | Not supported |
+| Space overhead | Moderate | Low to moderate |
+
+> **Note:** Hash indexes trade range capability for raw equality speed. If your workload is overwhelmingly point lookups (session tokens, UUIDs, email addresses), a hash index can be the right choice. If you need ordering or ranges even occasionally, a B-tree is safer.
+
+## Collisions and Growth
+
+No hash function is perfect — two different values can land in the same bucket (a **collision**). The common fix is **chaining**: each bucket holds a short linked list, and the engine scans the list for an exact match. With a healthy **load factor** (entries ÷ buckets) kept below ~0.75, chains stay short and lookups remain fast. When a table grows past that threshold, the index is **rehashed** — all entries redistributed into a larger bucket array.
+
+## Database Support and Caveats
+
+Not every database offers hash indexes as a first-class citizen:
+
+- **PostgreSQL** — explicit `CREATE INDEX ... USING hash` is supported and WAL-logged since PostgreSQL 10 (earlier versions had durability limitations).
+- **MySQL / InnoDB** — InnoDB builds an **adaptive hash index** automatically in memory for frequently accessed B-tree pages; you cannot create one explicitly.
+- **SQLite** — does not support hash indexes natively; all indexes are B-trees. The widget below uses a standard index but demonstrates the same equality-lookup pattern a hash index is optimized for.
+
+> **Note:** SQLite's planner shows `SEARCH ... USING INDEX` for equality lookups regardless of index type. The O(log n) vs O(1) difference is internal to the index structure and not visible in plan output.
+
+## Seeing Point Lookups in Action
+
+The widget below creates a `sessions` table — a classic hash-index use case, since applications almost always look up a session by its exact token. Run the default query, then try creating an index and comparing the query plan.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Point lookups on session tokens</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE sessions (token TEXT PRIMARY KEY, user_id INTEGER, created_at TEXT, expires_at TEXT); INSERT INTO sessions VALUES ('tok_a1b2c3', 101, '2024-01-01 08:00', '2024-01-02 08:00'), ('tok_d4e5f6', 102, '2024-01-01 09:00', '2024-01-02 09:00'), ('tok_g7h8i9', 103, '2024-01-01 10:00', '2024-01-02 10:00'), ('tok_j0k1l2', 101, '2024-01-02 08:00', '2024-01-03 08:00'), ('tok_m3n4o5', 104, '2024-01-02 11:00', '2024-01-03 11:00'); CREATE INDEX idx_sessions_token ON sessions(token);">-- Equality lookup: this is what hash indexes are built for.
+-- SQLite uses its B-tree index here; a real hash index would cost O(1).
+EXPLAIN QUERY PLAN
+SELECT user_id, expires_at
+FROM sessions
+WHERE token = 'tok_d4e5f6';
+
+-- Try dropping the index and re-running to see the full scan:
+-- DROP INDEX idx_sessions_token;</textarea>
+  </div>
+</div>
+
+With the index in place SQLite reports `SEARCH sessions USING INDEX` — it goes straight to the matching row. Drop the index and it falls back to `SCAN sessions`, reading every row. A true hash index skips even the log(n) tree descent and hashes directly to the answer.
+
+## When to Choose a Hash Index
+
+Reach for a hash index when:
+
+1. **You only query by exact equality** — no ranges, no prefix matches, no `ORDER BY` on that column.
+2. **The column has high cardinality** — UUIDs, session tokens, email addresses. Low-cardinality columns (like a boolean) gain nothing from any index.
+3. **Your workload is insert-heavy** — hash indexes skip tree rebalancing, so maintenance cost can be lower than a B-tree (though rehashing has its own cost).
+
+When in doubt, a B-tree is the safer default — it handles equality nearly as fast and keeps all other query patterns open.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

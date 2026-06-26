@@ -1,0 +1,91 @@
+A single-column index helps the database find rows by one attribute — but real queries rarely filter on just one column. A **composite index** (also called a multi-column or compound index) covers two or more columns in a defined order, letting the database narrow a search across several dimensions at once.
+
+## How a Composite Index Is Built
+
+Imagine you have an `orders` table with columns `customer_id`, `status`, and `created_at`. A composite index on `(customer_id, status)` sorts rows first by `customer_id`, then by `status` within each customer. The result is a single B-tree whose keys look like:
+
+```
+(42, 'pending')
+(42, 'shipped')
+(99, 'cancelled')
+(99, 'pending')
+(99, 'shipped')
+```
+
+The database can leap directly to the right `customer_id` bucket and scan only the matching `status` entries — two filters served by one index seek.
+
+## The Left-Prefix Rule
+
+This is the most important rule about composite indexes: **the index is useful only when your query references a leading prefix of the indexed columns.** If the index is on `(a, b, c)`, these filters can use it:
+
+| Query filter | Uses index? |
+|---|---|
+| `WHERE a = 1` | Yes — leftmost column only |
+| `WHERE a = 1 AND b = 2` | Yes — first two columns |
+| `WHERE a = 1 AND b = 2 AND c = 3` | Yes — all three columns |
+| `WHERE b = 2` | No — skips `a` |
+| `WHERE b = 2 AND c = 3` | No — skips `a` |
+| `WHERE a = 1 AND c = 3` | Partial — uses `a`, cannot skip to `c` |
+
+> **Note:** The rule is about the *prefix*, not the order you write the conditions in SQL. `WHERE b = 2 AND a = 1` is the same as `WHERE a = 1 AND b = 2` — the optimizer reorders them. What matters is that the leftmost column(s) of the index are present in the filter.
+
+## Range Conditions Stop the Prefix
+
+Equality predicates (`=`) let the index continue scanning into the next column. A range predicate (`>`, `<`, `BETWEEN`, `LIKE 'x%'`) **stops** the index's ability to prune further columns. For an index on `(customer_id, created_at, status)`:
+
+```sql
+-- Uses all three columns
+WHERE customer_id = 42 AND created_at = '2024-01-15' AND status = 'shipped'
+
+-- Uses first two; 'status' cannot be filtered via the index
+WHERE customer_id = 42 AND created_at > '2024-01-01' AND status = 'shipped'
+```
+
+This means column order in a composite index matters: put equality-filtered columns first, range-filtered columns last.
+
+## Try It: Composite Index in Action
+
+The widget below creates an `orders` table and two indexes. Run the first query, observe the query plan, then try the queries in the comments to see which index gets used.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Composite indexes</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, created_at TEXT, amount REAL); INSERT INTO orders VALUES (1, 42, 'pending',   '2024-01-10', 99.00); INSERT INTO orders VALUES (2, 42, 'shipped',   '2024-01-15', 149.50); INSERT INTO orders VALUES (3, 42, 'cancelled', '2024-02-01', 29.99); INSERT INTO orders VALUES (4, 99, 'pending',   '2024-01-20', 59.00); INSERT INTO orders VALUES (5, 99, 'shipped',   '2024-02-05', 210.00); INSERT INTO orders VALUES (6, 7,  'shipped',   '2024-01-08', 75.00); CREATE INDEX idx_cust_status ON orders (customer_id, status); CREATE INDEX idx_cust_date  ON orders (customer_id, created_at);">-- Uses idx_cust_status (leading prefix match)
+EXPLAIN QUERY PLAN
+SELECT * FROM orders
+WHERE customer_id = 42 AND status = 'shipped';
+
+-- Try this next — does it use an index?
+-- EXPLAIN QUERY PLAN
+-- SELECT * FROM orders WHERE status = 'shipped';
+
+-- Try a range query — which index is chosen?
+-- EXPLAIN QUERY PLAN
+-- SELECT * FROM orders
+-- WHERE customer_id = 42 AND created_at > '2024-01-12';</textarea>
+  </div>
+</div>
+
+Look for `USING INDEX` in the output. When you uncomment the second query (filter on `status` alone), you'll see a full table scan instead — proof that skipping the leftmost column defeats the index.
+
+## Composite Indexes and Sorting
+
+A composite index can also eliminate a sort step. If your query orders by the same columns in the same direction as the index, the database reads them in order for free:
+
+```sql
+-- idx_cust_date covers both the filter and the sort
+SELECT * FROM orders
+WHERE customer_id = 42
+ORDER BY created_at;
+```
+
+This is one reason composite indexes are so valuable in reporting queries: one index can satisfy `WHERE`, `ORDER BY`, and sometimes even `SELECT` (a covering index) in a single pass.
+
+## Choosing Column Order
+
+A practical checklist for ordering columns in a composite index:
+
+1. **Equality first** — columns you filter with `=` should come before range columns.
+2. **Selectivity matters** — among equality columns, higher-cardinality columns first can reduce the scan size.
+3. **Cover your `ORDER BY`** — if a common query sorts by a column, include it at the end of the index.
+4. **Don't over-index** — each index costs write overhead. Prefer a well-ordered composite index over many narrow single-column indexes.

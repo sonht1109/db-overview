@@ -1,0 +1,181 @@
+A database incident at 3 AM is the wrong time to figure out the recovery procedure. **Operational runbooks** are pre-written, step-by-step guides that on-call engineers follow when something breaks — eliminating guesswork, reducing cognitive load, and shortening time-to-resolution. A runbook is not a design document or a how-it-works explanation; it is a recipe written for a stressed engineer who may be half-awake and whose hands need to know what to type.
+
+## What Makes a Good Runbook
+
+A runbook succeeds or fails based on specificity and trustworthiness. The test: could a competent engineer who has never seen this system before follow the runbook to resolution without additional research?
+
+### Anatomy of a Runbook
+
+```
+# Runbook: High Replication Lag
+Last updated: 2024-06-15   Owner: @db-team   Severity: WARNING → CRITICAL
+
+## Alert
+- Alert name: ReplicaLagHigh
+- Fires when: pg_replication_lag_seconds > 30 for 2+ minutes
+
+## Impact
+- Reads from replicas may be stale by > 30 seconds
+- Risk: replica cannot be promoted quickly if primary fails
+
+## Diagnosis (run in order, stop when you find the cause)
+1. Check replica is still connected:
+   SELECT client_addr, state, sent_lsn, write_lsn, flush_lsn, replay_lsn
+   FROM pg_stat_replication;
+
+2. Check replica's lag on the replica itself:
+   SELECT now() - pg_last_xact_replay_timestamp() AS lag;
+
+3. Check for long-running transactions on primary blocking vacuum / WAL:
+   SELECT pid, now() - xact_start AS age, state, query
+   FROM pg_stat_activity WHERE xact_start IS NOT NULL ORDER BY age DESC;
+
+4. Check disk I/O on replica:
+   iostat -x 5 3
+
+## Resolution
+- If replica disconnected: restart replication (pg_ctl reload on replica)
+- If long-running txn: pg_terminate_backend(pid) after confirming with team lead
+- If disk I/O saturated: page @infra-oncall to resize replica disk / instance
+- If lag > 5 minutes: switch read traffic away from this replica (update load balancer)
+
+## Escalation
+- 0–10 min: on-call DB engineer
+- 10–30 min: escalate to DB team lead
+- 30 min+:   escalate to VP Engineering
+```
+
+The elements that matter:
+- **Alert name** — links the runbook directly to the alert that triggered it
+- **Impact** — tells the engineer why this matters before they start
+- **Ordered diagnosis steps** — numbered, specific commands, stop-when-found structure
+- **Resolution options** — covers the most common causes; links to escalation if none apply
+- **Escalation path** — when to ask for help, and who to ask
+
+## The Runbook Library
+
+Every recurring alert should have a corresponding runbook. Common database runbooks:
+
+| Alert | Runbook covers |
+|---|---|
+| Disk usage > 85% | Find largest tables/indexes, enable tablespace, escalate disk resize |
+| Connection pool exhausted | Identify connection hogs, tune max_connections, restart pooler |
+| Replication lag | Diagnose WAL lag, long transactions, disk saturation |
+| Deadlock spike | Capture pg_locks snapshot, identify conflicting queries, notify developers |
+| Autovacuum not keeping up | Tune autovacuum parameters, trigger manual VACUUM, identify bloat |
+| Backup job failed | Check archive destination, re-run backup, verify WAL continuity |
+| Slow query (p99 > threshold) | EXPLAIN ANALYZE suspect queries, check for missing indexes, check autovacuum |
+
+<figure class="diagram">
+<svg viewBox="0 0 680 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Runbook workflow: alert fires, links to runbook, engineer runs diagnosis steps, resolves or escalates, then updates runbook based on outcome">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arr-m" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- Alert -->
+  <rect x="20" y="95" width="100" height="50" rx="6" fill="var(--text)" opacity="0.1" stroke="var(--text)" stroke-width="1.5"/>
+  <text x="70" y="117" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">Alert</text>
+  <text x="70" y="134" text-anchor="middle" font-size="10" fill="var(--muted)">fires at 3 AM</text>
+
+  <!-- Runbook -->
+  <rect x="175" y="85" width="120" height="70" rx="6" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="2"/>
+  <text x="235" y="113" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">Runbook</text>
+  <text x="235" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Diagnosis steps</text>
+  <text x="235" y="146" text-anchor="middle" font-size="10" fill="var(--muted)">Resolution options</text>
+
+  <!-- Resolve -->
+  <rect x="355" y="70" width="100" height="45" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="405" y="91" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Resolve</text>
+  <text x="405" y="107" text-anchor="middle" font-size="10" fill="var(--muted)">apply fix</text>
+
+  <!-- Escalate -->
+  <rect x="355" y="135" width="100" height="45" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="405" y="156" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Escalate</text>
+  <text x="405" y="172" text-anchor="middle" font-size="10" fill="var(--muted)">follow path</text>
+
+  <!-- Update Runbook -->
+  <rect x="510" y="95" width="140" height="50" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="580" y="115" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Update Runbook</text>
+  <text x="580" y="133" text-anchor="middle" font-size="10" fill="var(--muted)">add new findings</text>
+
+  <!-- Arrows -->
+  <line x1="120" y1="120" x2="173" y2="120" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="295" y1="108" x2="353" y2="93" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="295" y1="130" x2="353" y2="150" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="455" y1="93" x2="508" y2="108" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-m)"/>
+  <line x1="455" y1="155" x2="508" y2="130" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-m)"/>
+  <text x="120" y="116" font-size="9" fill="var(--accent)">links to →</text>
+  <text x="590" y="195" text-anchor="middle" font-size="10" fill="var(--muted)">post-incident learning</text>
+</svg>
+<figcaption>Every alert links to a runbook; the engineer follows diagnosis steps to either resolve or escalate; findings are fed back to improve the runbook after each incident.</figcaption>
+</figure>
+
+## Runbook Anti-Patterns
+
+**Stale runbooks** are dangerous — an outdated procedure can mislead an engineer into making the situation worse. Common problems:
+
+- Commands reference old server names or deprecated flags
+- Steps assume a software version that has since been upgraded
+- Escalation contacts list people who have left the company
+- The runbook was written once and never reviewed
+
+**Fix:** treat runbooks like code — they live in version control (Git), have owners, and are reviewed after every incident that used them.
+
+**Too high-level runbooks** give principles instead of commands:
+
+```
+Bad:  "Check the database health and restart if necessary"
+Good: "Run: SELECT pg_reload_conf(); — if that does not resolve,
+       run: sudo systemctl restart postgresql@14-main"
+```
+
+**Missing expected state** — a good runbook tells the engineer what normal looks like so they can confirm the fix worked:
+
+```
+After restarting replication, verify:
+  SELECT state, sent_lsn = replay_lsn AS caught_up
+  FROM pg_stat_replication;
+  -- Expected: state = 'streaming', caught_up = true within 60s
+```
+
+## Interactive: Runbook Coverage Audit
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Alert-to-Runbook Coverage</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE alerts (alert_name TEXT PRIMARY KEY, severity TEXT, fires_last_30d INTEGER); CREATE TABLE runbooks (alert_name TEXT PRIMARY KEY, last_updated TEXT, owner TEXT, tested_last TEXT); INSERT INTO alerts VALUES ('DiskUsageHigh','critical',3); INSERT INTO alerts VALUES ('ReplicaLagHigh','critical',7); INSERT INTO alerts VALUES ('ConnectionsNearMax','warning',12); INSERT INTO alerts VALUES ('DeadlockSpike','warning',1); INSERT INTO alerts VALUES ('BackupJobFailed','critical',2); INSERT INTO alerts VALUES ('SlowQueryP99','warning',22); INSERT INTO runbooks VALUES ('DiskUsageHigh','2024-05-10','@db-team','2024-04-01'); INSERT INTO runbooks VALUES ('ReplicaLagHigh','2024-06-01','@db-team','2024-06-01'); INSERT INTO runbooks VALUES ('ConnectionsNearMax','2023-11-15','@db-team','2023-11-15'); INSERT INTO runbooks VALUES ('BackupJobFailed','2024-01-20','@db-team','2024-01-20');">-- Find alerts missing a runbook or with stale runbooks (&gt; 90 days old)
+SELECT a.alert_name, a.severity, a.fires_last_30d AS fires,
+  CASE WHEN r.alert_name IS NULL THEN 'NO RUNBOOK'
+       WHEN julianday('now') - julianday(r.last_updated) &gt; 90 THEN 'STALE (&gt;90 days)'
+       ELSE 'OK'
+  END AS runbook_status,
+  r.last_updated
+FROM alerts a
+LEFT JOIN runbooks r ON a.alert_name = r.alert_name
+ORDER BY a.fires_last_30d DESC;</textarea>
+  </div>
+</div>
+
+## Post-Incident Runbook Updates
+
+Every incident that used a runbook is an opportunity to improve it. After resolution, answer:
+
+1. Did the diagnosis steps lead to the actual cause, or did you have to improvise?
+2. Was any step unclear, incorrect, or missing?
+3. What command or observation actually identified the root cause — and should be added?
+4. Was the escalation path correct and fast enough?
+
+A runbook that gets updated after every incident becomes increasingly reliable. One that is never touched accumulates drift until it is worse than no runbook at all.
+
+## Key Takeaways
+
+- A runbook is a recipe, not an explanation — specific commands, expected output, stop-when-found structure
+- Every recurring alert should link directly to a runbook
+- Treat runbooks like code: version-controlled, owned, reviewed after every incident that uses them
+- Include expected output ("expected: state = streaming") so engineers can verify the fix worked
+- Audit runbook coverage regularly — high-firing alerts with no runbook are gaps that will bite you at 3 AM

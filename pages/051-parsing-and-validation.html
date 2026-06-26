@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parsing and validation — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part II. Querying and Language</p>
+  <p class="chapter-label">Chapter 6. How Query Processing Works</p>
+  <h1 class="content-title">Parsing and validation</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="049-reading-sql-as-a-data-flow.html"><span class="dir">← Previous</span><span class="ttl">Reading SQL as a data flow</span></a><a class="next" href="052-logical-plans.html"><span class="dir">Next →</span><span class="ttl">Logical plans</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Every time you send a SQL query to a database engine, it goes through several stages before a single row of data is touched. The very first two stages — **parsing** and **validation** — turn your raw text into something the engine can reason about and check for correctness. Understanding them helps you read error messages, write better SQL, and build an accurate mental model of how the engine works.
+
+## Stage 1: Parsing — From Text to Tree
+
+A SQL query arrives as a plain string of characters. The parser's job is to verify that the string follows SQL's grammar rules and, if it does, convert it into a structured representation called an **abstract syntax tree (AST)**.
+
+The AST is an in-memory tree where each node represents a syntactic element:
+
+```
+SELECT name, salary FROM employees WHERE salary > 50000
+```
+
+Produces a tree roughly like:
+
+```
+SelectStatement
+├── Columns: [name, salary]
+├── From: employees
+└── Where: BinaryOp(>)
+         ├── Left: salary
+         └── Right: 50000
+```
+
+The parser does **not** know whether the table `employees` exists, or whether `salary` is a real column — that comes next. Its only concern is grammar. If you write `SELECT FROM WHERE name`, it fails here because the structure violates SQL syntax rules, regardless of what tables you have.
+
+> **Note:** Databases typically implement their parser as a hand-written or generated **tokenizer + recursive descent parser**. The tokenizer breaks the string into tokens (`SELECT`, `name`, `,`, `FROM`, …), then the parser builds the tree according to the language grammar.
+
+### What Causes a Parse Error?
+
+Parse errors come from broken grammar:
+
+| Broken query | Why the parser rejects it |
+|---|---|
+| `SELEC name FROM t` | Unrecognized keyword |
+| `SELECT name FROM` | Missing table reference after `FROM` |
+| `SELECT name, FROM t` | Trailing comma before a keyword |
+| `SELECT (name FROM t` | Unclosed parenthesis |
+
+The error message usually names the unexpected token and its position, which is why database errors often say something like `syntax error near "FROM"`.
+
+## Stage 2: Validation — Does This Query Make Sense?
+
+Once the AST exists, the engine passes it to the **semantic analyzer** (often called the validator or binder). This stage checks that the *meaning* of the query is valid against the actual schema stored in the **catalog** (the database's internal directory of tables, columns, types, and constraints).
+
+Three things are checked:
+
+1. **Object existence** — Does the table `employees` exist in this database?
+2. **Column resolution** — Does `salary` exist as a column in `employees`? If a query references multiple tables, which table does an ambiguous column name belong to?
+3. **Type compatibility** — Is comparing `salary > 50000` valid given `salary`'s declared data type? Would `salary > 'hello'` cause a type mismatch?
+
+If any check fails, the query is rejected before any data is read — a useful guarantee that saves wasted I/O.
+
+> **Note:** The catalog is also called the **system catalog** or **data dictionary**. In SQLite you can inspect it directly via `sqlite_schema`. In PostgreSQL it lives in `pg_catalog`. It is just a set of tables that the engine itself queries internally during validation.
+
+### Seeing Validation Errors in Practice
+
+A **parse error** and a **validation error** feel similar from the outside, but they come from different stages:
+
+```sql
+-- Parse error: broken syntax (no table given)
+SELECT name FROM;
+
+-- Validation error: table does not exist (syntax is fine)
+SELECT name FROM ghost_table;
+
+-- Validation error: column does not exist
+SELECT ghost_column FROM employees;
+```
+
+## From Validated AST to Execution
+
+After parsing and validation succeed, the engine has a clean, fully-resolved AST — every name is confirmed to refer to a real object, and types are consistent. This validated AST is what gets handed off to the **query optimizer**, which we will cover on the next page.
+
+The diagram below summarizes the flow:
+
+```
+SQL text
+   │
+   ▼  (parser)
+Abstract Syntax Tree  ──► parse error if grammar is wrong
+   │
+   ▼  (semantic analyzer / binder)
+Validated AST         ──► validation error if objects/types are wrong
+   │
+   ▼
+Query optimizer
+```
+
+## Try It Yourself
+
+The widget below has a working query against a small `employees` table. Try deliberately breaking it in different ways and observe the error messages:
+
+- Remove the table name after `FROM` to trigger a **parse error**
+- Change `employees` to a table name that does not exist for a **validation error**
+- Change `salary` in the `WHERE` clause to a column that does not exist
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Parse and validation errors</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 'Engineering', 95000), (2, 'Bob', 'Marketing', 62000), (3, 'Carol', 'Engineering', 110000), (4, 'Dan', 'HR', 58000), (5, 'Eve', 'Engineering', 87000);">SELECT name, department, salary
+FROM employees
+WHERE salary > 80000
+ORDER BY salary DESC;</textarea>
+  </div>
+</div>
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

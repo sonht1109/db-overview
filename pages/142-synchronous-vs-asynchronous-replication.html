@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synchronous vs asynchronous replication — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part IV. Distributed Systems</p>
+  <p class="chapter-label">Chapter 15. Replication</p>
+  <h1 class="content-title">Synchronous vs asynchronous replication</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="141-leader-follower-replication.html"><span class="dir">← Previous</span><span class="ttl">Leader-follower replication</span></a><a class="next" href="143-read-replicas.html"><span class="dir">Next →</span><span class="ttl">Read replicas</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+When a leader node accepts a write, it must eventually send that change to its replicas. The critical question is: *when does the leader tell the client "done"?* Does it wait until at least one replica has confirmed the write, or does it acknowledge immediately and let replication happen in the background? That choice — synchronous versus asynchronous — shapes every durability and latency tradeoff in a replicated system.
+
+## The Two Modes
+
+**Synchronous replication** means the leader waits for the replica to confirm it has received (and usually persisted) the write before acknowledging success to the client. The client's `COMMIT` does not return until the replica says "got it."
+
+**Asynchronous replication** means the leader acknowledges the client as soon as the write is durable locally. The replica will catch up eventually — maybe milliseconds later, maybe seconds later if the network is busy — but the client is not held waiting.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline comparing synchronous and asynchronous replication across client, leader, and replica">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- === SYNCHRONOUS (top half) === -->
+  <text x="10" y="18" font-size="13" font-weight="bold" fill="var(--text)">Synchronous replication</text>
+
+  <!-- lane labels -->
+  <text x="10" y="44" font-size="12" fill="var(--text)">Client</text>
+  <text x="10" y="84" font-size="12" fill="var(--text)">Leader</text>
+  <text x="10" y="124" font-size="12" fill="var(--text)">Replica</text>
+
+  <!-- lane lines -->
+  <line x1="80" y1="38" x2="620" y2="38" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="80" y1="78" x2="620" y2="78" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="80" y1="118" x2="620" y2="118" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Client sends write -->
+  <line x1="100" y1="38" x2="100" y2="78" stroke="var(--text)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="104" y="62" font-size="11" fill="var(--text)">WRITE</text>
+
+  <!-- Leader writes locally -->
+  <rect x="100" y="72" width="50" height="12" rx="3" fill="var(--accent)" opacity="0.5"/>
+  <text x="125" y="82" text-anchor="middle" font-size="10" fill="var(--text)">local</text>
+
+  <!-- Leader → Replica -->
+  <line x1="150" y1="78" x2="150" y2="118" stroke="var(--text)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="154" y="102" font-size="11" fill="var(--text)">replicate</text>
+
+  <!-- Replica writes -->
+  <rect x="150" y="112" width="50" height="12" rx="3" fill="var(--accent)" opacity="0.5"/>
+  <text x="175" y="122" text-anchor="middle" font-size="10" fill="var(--text)">local</text>
+
+  <!-- Replica ACK back to leader -->
+  <line x1="200" y1="118" x2="200" y2="78" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="204" y="102" font-size="11" fill="var(--accent)">ACK</text>
+
+  <!-- Leader ACK back to client -->
+  <line x1="250" y1="78" x2="250" y2="38" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="254" y="62" font-size="11" fill="var(--accent)">OK</text>
+
+  <!-- client waits brace -->
+  <line x1="100" y1="28" x2="250" y2="28" stroke="var(--accent)" stroke-width="1.5"/>
+  <line x1="100" y1="24" x2="100" y2="32" stroke="var(--accent)" stroke-width="1.5"/>
+  <line x1="250" y1="24" x2="250" y2="32" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="175" y="22" text-anchor="middle" font-size="11" fill="var(--accent)">client waits</text>
+
+  <!-- === ASYNC (bottom half) === -->
+  <text x="10" y="168" font-size="13" font-weight="bold" fill="var(--text)">Asynchronous replication</text>
+
+  <!-- lane labels -->
+  <text x="10" y="194" font-size="12" fill="var(--text)">Client</text>
+  <text x="10" y="234" font-size="12" fill="var(--text)">Leader</text>
+  <text x="10" y="274" font-size="12" fill="var(--text)">Replica</text>
+
+  <!-- lane lines -->
+  <line x1="80" y1="188" x2="620" y2="188" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="80" y1="228" x2="620" y2="228" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="80" y1="268" x2="620" y2="268" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Client sends write -->
+  <line x1="100" y1="188" x2="100" y2="228" stroke="var(--text)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="104" y="212" font-size="11" fill="var(--text)">WRITE</text>
+
+  <!-- Leader writes locally -->
+  <rect x="100" y="222" width="50" height="12" rx="3" fill="var(--accent)" opacity="0.5"/>
+  <text x="125" y="232" text-anchor="middle" font-size="10" fill="var(--text)">local</text>
+
+  <!-- Leader immediately ACKs client -->
+  <line x1="150" y1="228" x2="150" y2="188" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="154" y="212" font-size="11" fill="var(--accent)">OK</text>
+
+  <!-- short wait brace -->
+  <line x1="100" y1="178" x2="150" y2="178" stroke="var(--accent)" stroke-width="1.5"/>
+  <line x1="100" y1="174" x2="100" y2="182" stroke="var(--accent)" stroke-width="1.5"/>
+  <line x1="150" y1="174" x2="150" y2="182" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="125" y="172" text-anchor="middle" font-size="11" fill="var(--accent)">client waits</text>
+
+  <!-- Leader → Replica async (later, dashed) -->
+  <line x1="220" y1="228" x2="340" y2="268" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arr)"/>
+  <text x="300" y="248" font-size="11" fill="var(--text)">replicate (later)</text>
+
+  <!-- Replica writes -->
+  <rect x="340" y="262" width="50" height="12" rx="3" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="365" y="272" text-anchor="middle" font-size="10" fill="var(--text)">local</text>
+
+  <!-- replication lag label -->
+  <line x1="150" y1="290" x2="390" y2="290" stroke="var(--border)" stroke-width="1"/>
+  <line x1="150" y1="286" x2="150" y2="294" stroke="var(--border)" stroke-width="1"/>
+  <line x1="390" y1="286" x2="390" y2="294" stroke="var(--border)" stroke-width="1"/>
+  <text x="270" y="308" text-anchor="middle" font-size="11" fill="var(--text)">replication lag</text>
+</svg>
+<figcaption>Synchronous replication holds the client until the replica acknowledges; asynchronous replication acknowledges immediately and replicates in the background, creating a lag window.</figcaption>
+</figure>
+
+## Tradeoffs at a Glance
+
+| | Synchronous | Asynchronous |
+|---|---|---|
+| **Durability on crash** | Strong — replica already has the data | Weaker — unconfirmed writes can be lost |
+| **Write latency** | Higher — adds one network round-trip | Lower — no waiting for replica |
+| **Replica availability** | Required — a slow replica stalls writes | Optional — leader proceeds regardless |
+| **Read-your-writes on replica** | Guaranteed immediately after commit | Not guaranteed; reads may be stale |
+| **Replication lag** | Zero (by definition) | Variable; can be seconds or more |
+
+> **Note:** Most production systems use a hybrid approach: one synchronous replica for durability, and additional asynchronous replicas for read scale. PostgreSQL calls this "synchronous_standby_names" — you nominate one standby that must confirm each commit; all others replicate asynchronously.
+
+## Why Lag Matters in Practice
+
+With asynchronous replication, a replica lags behind the leader by some number of seconds. This creates real problems:
+
+- **Read-your-writes violation.** A user posts a comment, then immediately reloads the page. If the read hits a replica, they may not see their own comment.
+- **Failover data loss.** If the leader crashes before a write is replicated, promoting the replica means that write is silently gone.
+- **Stale metrics.** Analytics queries on a lagging replica undercount recent events.
+
+The lag is not constant. Under low load, a healthy replica might be milliseconds behind. During a network hiccup, writes queue up and lag can spike to minutes. A replica that is too far behind is called **unavailable for consistent reads** in some systems, and can be taken out of the read pool automatically.
+
+## Semi-Synchronous Replication
+
+MySQL's default (since 5.7) is **semi-synchronous**: the leader waits for *at least one* replica to acknowledge receipt, but not necessarily to flush to disk. This is a middle ground — you avoid the scenario where no replica has the data, without fully blocking on a disk flush. If no replica acknowledges within a timeout, MySQL falls back to asynchronous mode automatically.
+
+The distinction matters:
+- **Receive-and-buffer** (semi-sync): replica has the data in memory but maybe not on disk. Still survives a leader crash if the replica doesn't crash simultaneously.
+- **Receive-and-fsync** (fully synchronous): replica has flushed to disk. Survives even if both machines lose power simultaneously.
+
+Use this widget to explore what a replication lag monitor might look like. The query identifies which replicas are dangerously behind.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Replication lag monitor</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE replicas (replica_id TEXT PRIMARY KEY, mode TEXT, leader_lsn INTEGER, replica_lsn INTEGER, last_contact_sec INTEGER); INSERT INTO replicas VALUES ('replica-1', 'sync',  10500, 10500, 1); INSERT INTO replicas VALUES ('replica-2', 'async', 10500, 10480, 3); INSERT INTO replicas VALUES ('replica-3', 'async', 10500, 10100, 8); INSERT INTO replicas VALUES ('replica-4', 'async', 10500,  9800, 45);">
+-- How far behind is each replica?
+-- lag_bytes = how many log bytes the replica hasn't applied yet.
+-- A replica that is too far behind may serve stale reads.
+SELECT
+  replica_id,
+  mode,
+  leader_lsn - replica_lsn   AS lag_bytes,
+  last_contact_sec            AS secs_since_contact,
+  CASE
+    WHEN mode = 'sync'                          THEN 'in-sync (guaranteed)'
+    WHEN leader_lsn - replica_lsn = 0          THEN 'caught up'
+    WHEN leader_lsn - replica_lsn < 100        THEN 'slight lag'
+    WHEN leader_lsn - replica_lsn < 500        THEN 'moderate lag'
+    ELSE                                             'WARNING: high lag'
+  END AS status
+FROM replicas
+ORDER BY lag_bytes DESC;
+</textarea>
+  </div>
+</div>
+
+Try changing `replica_lsn` values or switching a replica's mode from `'async'` to `'sync'` to see how the status column shifts. Notice that only the synchronous replica is guaranteed to be current — the others reflect the tradeoff you accept when you prioritise write throughput over read consistency.
+
+<details class="reveal"><summary>Reveal: If the leader crashes right now, which replicas can safely be promoted without data loss?</summary><div class="reveal-body">Only <strong>replica-1</strong> (sync mode, zero lag). Replica-2 through replica-4 have not yet applied all writes — promoting any of them would silently lose the writes they haven't received. In a real system, the failover controller must check each replica's log position and pick the one closest to the leader, then accept that some commits may be rolled back.</div></details>
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

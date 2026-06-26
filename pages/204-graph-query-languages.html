@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graph query languages — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part V. Database Families</p>
+  <p class="chapter-label">Chapter 21. Graph Databases</p>
+  <h1 class="content-title">Graph query languages</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="203-modeling-relationships-directly.html"><span class="dir">← Previous</span><span class="ttl">Modeling relationships directly</span></a><a class="next" href="205-when-joins-become-graph-walks.html"><span class="dir">Next →</span><span class="ttl">When joins become graph walks</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Graph databases need query languages that can express path patterns, variable-depth traversals, and relationship conditions naturally — things SQL was never designed for. Several languages have emerged, each with a different philosophy. This page covers the major contenders: **Cypher**, **Gremlin**, **SPARQL**, and the emerging ISO standard **GQL**.
+
+## Why SQL Falls Short for Graphs
+
+SQL can express graph queries — recursive CTEs (Common Table Expressions) let you walk edges — but the syntax is verbose, the depth must often be bounded at compile time, and the query planner is not optimized for pointer-chasing. A three-hop path query in SQL is already painful; a variable-length path query is nearly unwritable.
+
+Graph query languages solve this by treating path patterns as first-class syntax.
+
+## Cypher: Pattern Matching with ASCII Art
+
+**Cypher** is the query language of Neo4j (open-sourced as openCypher). Its defining feature is an ASCII-art notation for graph patterns that reads almost like a diagram drawn in text.
+
+```
+(a:Person)-[:KNOWS]->(b:Person)
+```
+
+Round brackets `()` denote nodes; square brackets `[]` denote relationships; `-` and `->` indicate direction. You read this exactly as it looks: "a Person node connected via a KNOWS edge to another Person node."
+
+### Core Cypher Clauses
+
+| Clause | Purpose | SQL analogue |
+|---|---|---|
+| `MATCH` | Declare a pattern to find | `FROM` + `JOIN` |
+| `WHERE` | Filter matched results | `WHERE` |
+| `RETURN` | Specify output | `SELECT` |
+| `CREATE` | Insert nodes or edges | `INSERT` |
+| `MERGE` | Upsert — create if not found | `INSERT OR IGNORE` + `UPDATE` |
+| `SET` | Update properties | `UPDATE … SET` |
+| `DELETE` | Remove nodes or edges | `DELETE` |
+
+### Cypher Query Examples
+
+**Find all people Alice knows:**
+```cypher
+MATCH (alice:Person {name: "Alice"})-[:KNOWS]->(friend:Person)
+RETURN friend.name;
+```
+
+**Friend of friend (2 hops) — depth is a parameter, not a join:**
+```cypher
+MATCH (alice:Person {name: "Alice"})-[:KNOWS*2]->(fof:Person)
+WHERE fof.name <> "Alice"
+RETURN DISTINCT fof.name;
+```
+
+The `*2` means exactly 2 hops. Use `*1..3` for variable depth (1 to 3 hops). There is no rewrite needed — just change the number.
+
+**Create a new relationship with a property:**
+```cypher
+MATCH (a:Person {name: "Alice"}), (b:Person {name: "Bob"})
+MERGE (a)-[:FOLLOWS {since: "2024-01"}]->(b);
+```
+
+**Shortest path between two nodes:**
+```cypher
+MATCH p = shortestPath(
+  (alice:Person {name:"Alice"})-[:KNOWS*]-(target:Person {name:"Eve"})
+)
+RETURN length(p), [n IN nodes(p) | n.name] AS path;
+```
+
+<figure class="diagram">
+<svg viewBox="0 0 680 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cypher pattern diagram: (alice:Person)-[:KNOWS]->(bob:Person)-[:KNOWS]->(carol:Person) with MATCH clause annotation">
+  <defs>
+    <marker id="ca" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="cm" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- Cypher code block at top -->
+  <rect x="20" y="14" width="640" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="36" y="31" font-size="13" font-family="monospace" fill="var(--muted)">MATCH</text>
+  <text x="96" y="31" font-size="13" font-family="monospace" fill="var(--accent)">(alice:Person)</text>
+  <text x="246" y="31" font-size="13" font-family="monospace" fill="var(--text)">-</text>
+  <text x="258" y="31" font-size="13" font-family="monospace" fill="var(--accent)">[:KNOWS]</text>
+  <text x="358" y="31" font-size="13" font-family="monospace" fill="var(--text)">-&gt;</text>
+  <text x="382" y="31" font-size="13" font-family="monospace" fill="var(--accent)">(bob:Person)</text>
+  <text x="36" y="48" font-size="12" font-family="monospace" fill="var(--muted)">RETURN bob.name</text>
+
+  <!-- Node: Alice -->
+  <circle cx="120" cy="185" r="48" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2.5"/>
+  <text x="120" y="178" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">alice</text>
+  <text x="120" y="196" text-anchor="middle" font-size="11" fill="var(--accent)">:Person</text>
+  <text x="120" y="212" text-anchor="middle" font-size="10" fill="var(--muted)">name: &quot;Alice&quot;</text>
+
+  <!-- Node: Bob -->
+  <circle cx="360" cy="185" r="48" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2.5"/>
+  <text x="360" y="178" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">bob</text>
+  <text x="360" y="196" text-anchor="middle" font-size="11" fill="var(--accent)">:Person</text>
+  <text x="360" y="212" text-anchor="middle" font-size="10" fill="var(--muted)">name: &quot;Bob&quot;</text>
+
+  <!-- Node: Carol -->
+  <circle cx="580" cy="185" r="44" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="580" y="178" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">carol</text>
+  <text x="580" y="196" text-anchor="middle" font-size="11" fill="var(--muted)">:Person</text>
+  <text x="580" y="212" text-anchor="middle" font-size="10" fill="var(--muted)">name: &quot;Carol&quot;</text>
+
+  <!-- Edge: Alice -> Bob -->
+  <line x1="168" y1="185" x2="310" y2="185" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#ca)"/>
+  <rect x="205" y="165" width="70" height="22" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1"/>
+  <text x="240" y="180" text-anchor="middle" font-size="11" font-family="monospace" fill="var(--accent)">:KNOWS</text>
+
+  <!-- Edge: Bob -> Carol (dimmed — not in MATCH) -->
+  <line x1="408" y1="185" x2="534" y2="185" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#cm)"/>
+  <rect x="435" y="165" width="70" height="22" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="470" y="180" text-anchor="middle" font-size="11" font-family="monospace" fill="var(--muted)">:KNOWS</text>
+
+  <!-- Annotation -->
+  <text x="240" y="148" text-anchor="middle" font-size="11" fill="var(--accent)">matched edge</text>
+  <text x="470" y="148" text-anchor="middle" font-size="11" fill="var(--muted)">out of scope</text>
+
+  <text x="340" y="260" text-anchor="middle" font-size="11" fill="var(--muted)">The Cypher MATCH clause maps directly onto the visual graph pattern</text>
+</svg>
+<figcaption>A Cypher MATCH pattern reads like an ASCII diagram of the graph. The pattern <code>(alice:Person)-[:KNOWS]-&gt;(bob:Person)</code> binds node variables to matching subgraphs.</figcaption>
+</figure>
+
+## Gremlin: Imperative Traversal Steps
+
+**Gremlin** is the query language of Apache TinkerPop, a graph computing framework used by Amazon Neptune, JanusGraph, and others. Where Cypher is declarative (describe the pattern, let the engine plan), Gremlin is **imperative**: you describe the exact traversal steps.
+
+```groovy
+// Start at Alice, follow outgoing KNOWS edges, return names
+g.V().has('name', 'Alice').out('KNOWS').values('name')
+
+// Friend of friend
+g.V().has('name', 'Alice').out('KNOWS').out('KNOWS').values('name').dedup()
+
+// Variable depth: 1 to 3 hops
+g.V().has('name', 'Alice').repeat(out('KNOWS')).times(2).values('name')
+
+// Shortest path
+g.V().has('name','Alice').
+  repeat(both().simplePath()).
+  until(has('name','Eve')).
+  path().
+  limit(1)
+```
+
+Gremlin steps chain like a pipeline: each step produces a traverser that the next step filters or transforms. This is familiar to developers comfortable with functional pipelines.
+
+> **Gremlin vs Cypher:** Cypher is easier to read for graph patterns; Gremlin gives finer procedural control and works across multiple backends. Choose based on your database (Neo4j → Cypher; Neptune/JanusGraph → Gremlin).
+
+## SPARQL: Querying RDF Graphs
+
+**SPARQL** targets a different graph model: **RDF (Resource Description Framework)**, used in semantic web and linked data. In RDF, all data is triples: `(subject, predicate, object)`. A graph is a bag of triples.
+
+```sparql
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?friendName
+WHERE {
+  ?alice foaf:name "Alice" .
+  ?alice foaf:knows ?friend .
+  ?friend foaf:name ?friendName .
+}
+```
+
+SPARQL is critical for **knowledge graphs**, ontology reasoning, and linked open data (Wikidata, DBpedia). For property graph use cases, Cypher or Gremlin are more common.
+
+## GQL: The ISO Standard
+
+**GQL (Graph Query Language)** was ratified as ISO/IEC 39075 in 2024 — the first international standard for graph databases, filling the same role SQL plays for relational systems. GQL is heavily influenced by Cypher and incorporates ideas from PGQL and G-CORE.
+
+```gql
+-- GQL (ISO 39075) — syntax resembles Cypher
+MATCH (p:Person)-[:KNOWS]->(friend:Person)
+WHERE p.name = 'Alice'
+RETURN friend.name;
+```
+
+GQL's significance: vendors can implement it without a license, and tooling can target a single standard. It is still early (2024–2025 adoption), but most major graph databases have announced GQL roadmaps.
+
+## Language Comparison
+
+| Language | Model | Style | Primary DB | Standardized |
+|---|---|---|---|---|
+| **Cypher** | Property graph | Declarative / pattern | Neo4j, Memgraph, AgensGraph | openCypher (open spec) |
+| **Gremlin** | Property graph | Imperative / pipeline | Neptune, JanusGraph, TinkerPop | Apache TinkerPop |
+| **SPARQL** | RDF triples | Declarative / pattern | Virtuoso, GraphDB, Blazegraph | W3C standard |
+| **GQL** | Property graph | Declarative / pattern | Emerging across vendors | ISO/IEC 39075 (2024) |
+
+## Simulating Cypher-Style Queries with SQL
+
+The widget below uses SQLite to simulate a Cypher MATCH pattern using relational tables. The `nodes` and `edges` tables represent the property graph; the SQL JOIN replicates what `MATCH (a)-[:KNOWS]->(b)` does. Notice how the SQL grows with each additional hop — the core pain point that Cypher solves.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Simulating Cypher MATCH with Relational Tables</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE nodes (id INTEGER PRIMARY KEY, label TEXT, name TEXT, age INTEGER); INSERT INTO nodes VALUES (1,'Person','Alice',31),(2,'Person','Bob',28),(3,'Person','Carol',35),(4,'Person','Dave',24),(5,'Person','Eve',29); CREATE TABLE edges (id INTEGER PRIMARY KEY, from_id INTEGER, to_id INTEGER, type TEXT, since TEXT); INSERT INTO edges VALUES (1,1,2,'KNOWS','2020-03'),(2,1,3,'KNOWS','2019-07'),(3,2,4,'KNOWS','2021-11'),(4,3,5,'KNOWS','2022-05'),(5,4,1,'KNOWS','2023-01');">-- Simulates: MATCH (a:Person {name:&quot;Alice&quot;})-[:KNOWS]-&gt;(b:Person) RETURN b.name
+SELECT b.name AS friend
+FROM nodes a
+JOIN edges e ON a.id = e.from_id AND e.type = 'KNOWS'
+JOIN nodes b ON e.to_id = b.id
+WHERE a.name = 'Alice' AND b.label = 'Person';
+
+-- Simulates 2-hop: MATCH (a)-[:KNOWS*2]-&gt;(c) WHERE a.name=&quot;Alice&quot; RETURN c.name
+-- SELECT DISTINCT c.name AS friend_of_friend
+-- FROM nodes a
+-- JOIN edges e1 ON a.id = e1.from_id AND e1.type = 'KNOWS'
+-- JOIN nodes b  ON e1.to_id = b.id
+-- JOIN edges e2 ON b.id = e2.from_id AND e2.type = 'KNOWS'
+-- JOIN nodes c  ON e2.to_id = c.id
+-- WHERE a.name = 'Alice' AND c.id != a.id;</textarea>
+  </div>
+</div>
+
+In Cypher, the 2-hop query above becomes `MATCH (a {name:"Alice"})-[:KNOWS*2]->(c) RETURN DISTINCT c.name` — a single pattern change. In SQL, you must add two more JOINs.
+
+## Key Takeaways
+
+- **Cypher** (openCypher / Neo4j) uses ASCII-art pattern syntax and is the most readable graph query language for property graphs; variable-depth traversal is a first-class feature.
+- **Gremlin** (Apache TinkerPop) takes an imperative pipeline approach, giving developers fine-grained control over traversal strategy and working across multiple graph backends.
+- **SPARQL** is the W3C standard for RDF / semantic web graphs and underpins knowledge graphs and linked open data.
+- **GQL** (ISO/IEC 39075, 2024) is the emerging international standard for property graph queries, designed to be to graphs what SQL is to relational databases.
+- The core advantage of all graph query languages over SQL: **variable-depth traversal is a parameter, not a structural rewrite**. `[:KNOWS*1..5]` in Cypher replaces five pairs of joins in SQL.
+- Adoption is still fragmented, but GQL standardization will drive convergence over the next decade.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

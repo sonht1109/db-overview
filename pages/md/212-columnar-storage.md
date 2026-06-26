@@ -1,0 +1,325 @@
+Most databases store a row's columns side by side on disk — a design that works beautifully when you need to read or write entire records. But analytical workloads flip this requirement on its head: they read a handful of columns from millions of rows, aggregating values across the entire dataset while ignoring most of what each record contains. Columnar storage reorders data on disk to match that access pattern, grouping all values from the same column together. The result is a dramatic reduction in I/O, better compression ratios, and query execution strategies that would be impossible in a row-oriented world.
+
+## Row Storage vs Column Storage
+
+### How Row-Oriented Engines Lay Out Data
+
+A traditional, row-oriented storage engine (PostgreSQL, MySQL, SQLite, Oracle) writes data in **heap pages**, where each page holds several complete rows one after another. A simplified view of a 4-row employees table on disk looks like this:
+
+```
+Page 1
+┌────────────────────────────────────────────────────────────────────┐
+│ ROW 1: id=1 | name="Alice"  | dept="Eng" | salary=95000 | hire=... │
+│ ROW 2: id=2 | name="Bob"    | dept="HR"  | salary=72000 | hire=... │
+│ ROW 3: id=3 | name="Carol"  | dept="Eng" | salary=88000 | hire=... │
+│ ROW 4: id=4 | name="David"  | dept="Fin" | salary=61000 | hire=... │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+Every column value for a row lives close together on disk. Writing a new row or updating an existing one is efficient because you touch one contiguous region. Reading a single row by primary key is equally fast — you fetch one page and most of what you need is right there.
+
+The problem emerges with analytical queries. Consider:
+
+```sql
+SELECT department, AVG(salary)
+FROM employees
+GROUP BY department;
+```
+
+To compute this, the engine needs **only `department` and `salary`**. But because every row's columns are interleaved, the engine must read entire pages — including `name`, `hire_date`, `email`, `phone`, `address`, `country`, and `is_active` — even though those fields contribute nothing to the result. On a table with 50 columns and 100 million rows, the wasted I/O can be enormous.
+
+### How Columnar Storage Reorders Data
+
+A column-oriented engine stores each column as a separate, contiguous sequence of values. The same four rows from above look like this:
+
+```
+id column file:     [ 1, 2, 3, 4 ]
+name column file:   [ "Alice", "Bob", "Carol", "David" ]
+dept column file:   [ "Eng", "HR", "Eng", "Fin" ]
+salary column file: [ 95000, 72000, 88000, 61000 ]
+hire column file:   [ ..., ..., ..., ... ]
+```
+
+Position is the implicit join key. The value at index `i` in the `dept` file and the value at index `i` in the `salary` file belong to the same logical row. When the query needs only `dept` and `salary`, the engine opens exactly those two files and reads no other bytes.
+
+<figure class="diagram">
+<svg viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Side-by-side comparison: row storage on the left shows rows as horizontal bands where all columns of each row are grouped together; columnar storage on the right shows each column as a vertical band with all values of that column grouped together">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="8" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L10,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Left panel label -->
+  <text x="170" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">Row Storage</text>
+  <text x="170" y="38" text-anchor="middle" font-size="11" fill="var(--muted)">each row stored contiguously</text>
+
+  <!-- Row 1 -->
+  <rect x="20"  y="54" width="48" height="36" fill="var(--accent)" opacity="0.25" stroke="var(--border)" stroke-width="1"/>
+  <rect x="68"  y="54" width="62" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="130" y="54" width="48" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="178" y="54" width="60" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="238" y="54" width="62" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="44"  y="77" text-anchor="middle" font-size="9" fill="var(--text)">id=1</text>
+  <text x="99"  y="77" text-anchor="middle" font-size="9" fill="var(--text)">Alice</text>
+  <text x="154" y="77" text-anchor="middle" font-size="9" fill="var(--text)">Eng</text>
+  <text x="208" y="77" text-anchor="middle" font-size="9" fill="var(--text)">95000</text>
+  <text x="269" y="77" text-anchor="middle" font-size="9" fill="var(--muted)">2019-03…</text>
+
+  <!-- Row 2 -->
+  <rect x="20"  y="94" width="48" height="36" fill="var(--accent)" opacity="0.25" stroke="var(--border)" stroke-width="1"/>
+  <rect x="68"  y="94" width="62" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="130" y="94" width="48" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="178" y="94" width="60" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="238" y="94" width="62" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="44"  y="117" text-anchor="middle" font-size="9" fill="var(--text)">id=2</text>
+  <text x="99"  y="117" text-anchor="middle" font-size="9" fill="var(--text)">Bob</text>
+  <text x="154" y="117" text-anchor="middle" font-size="9" fill="var(--text)">HR</text>
+  <text x="208" y="117" text-anchor="middle" font-size="9" fill="var(--text)">72000</text>
+  <text x="269" y="117" text-anchor="middle" font-size="9" fill="var(--muted)">2021-07…</text>
+
+  <!-- Row 3 -->
+  <rect x="20"  y="134" width="48" height="36" fill="var(--accent)" opacity="0.25" stroke="var(--border)" stroke-width="1"/>
+  <rect x="68"  y="134" width="62" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="130" y="134" width="48" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="178" y="134" width="60" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="238" y="134" width="62" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="44"  y="157" text-anchor="middle" font-size="9" fill="var(--text)">id=3</text>
+  <text x="99"  y="157" text-anchor="middle" font-size="9" fill="var(--text)">Carol</text>
+  <text x="154" y="157" text-anchor="middle" font-size="9" fill="var(--text)">Eng</text>
+  <text x="208" y="157" text-anchor="middle" font-size="9" fill="var(--text)">88000</text>
+  <text x="269" y="157" text-anchor="middle" font-size="9" fill="var(--muted)">2020-11…</text>
+
+  <!-- Row 4 -->
+  <rect x="20"  y="174" width="48" height="36" fill="var(--accent)" opacity="0.25" stroke="var(--border)" stroke-width="1"/>
+  <rect x="68"  y="174" width="62" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="130" y="174" width="48" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="178" y="174" width="60" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="238" y="174" width="62" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="44"  y="197" text-anchor="middle" font-size="9" fill="var(--text)">id=4</text>
+  <text x="99"  y="197" text-anchor="middle" font-size="9" fill="var(--text)">David</text>
+  <text x="154" y="197" text-anchor="middle" font-size="9" fill="var(--text)">Fin</text>
+  <text x="208" y="197" text-anchor="middle" font-size="9" fill="var(--text)">61000</text>
+  <text x="269" y="197" text-anchor="middle" font-size="9" fill="var(--muted)">2018-05…</text>
+
+  <!-- col headers row storage -->
+  <text x="44"  y="50" text-anchor="middle" font-size="8" fill="var(--muted)">id</text>
+  <text x="99"  y="50" text-anchor="middle" font-size="8" fill="var(--muted)">name</text>
+  <text x="154" y="50" text-anchor="middle" font-size="8" fill="var(--muted)">dept</text>
+  <text x="208" y="50" text-anchor="middle" font-size="8" fill="var(--muted)">salary</text>
+  <text x="269" y="50" text-anchor="middle" font-size="8" fill="var(--muted)">hire_date</text>
+
+  <!-- Row labels -->
+  <text x="6" y="77"  text-anchor="start" font-size="8" fill="var(--muted)">R1</text>
+  <text x="6" y="117" text-anchor="start" font-size="8" fill="var(--muted)">R2</text>
+  <text x="6" y="157" text-anchor="start" font-size="8" fill="var(--muted)">R3</text>
+  <text x="6" y="197" text-anchor="start" font-size="8" fill="var(--muted)">R4</text>
+
+  <!-- reads all columns annotation -->
+  <rect x="20" y="220" width="280" height="24" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="160" y="236" text-anchor="middle" font-size="10" fill="var(--muted)">Query reads ENTIRE rows — even unused columns</text>
+
+  <!-- Divider -->
+  <line x1="360" y1="30" x2="360" y2="310" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+  <!-- Right panel label -->
+  <text x="544" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">Columnar Storage</text>
+  <text x="544" y="38" text-anchor="middle" font-size="11" fill="var(--muted)">each column stored contiguously</text>
+
+  <!-- id column -->
+  <rect x="380" y="54" width="52" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="380" y="90" width="52" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="380" y="126" width="52" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="380" y="162" width="52" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="406" y="77"  text-anchor="middle" font-size="9" fill="var(--muted)">1</text>
+  <text x="406" y="113" text-anchor="middle" font-size="9" fill="var(--muted)">2</text>
+  <text x="406" y="149" text-anchor="middle" font-size="9" fill="var(--muted)">3</text>
+  <text x="406" y="185" text-anchor="middle" font-size="9" fill="var(--muted)">4</text>
+  <text x="406" y="50"  text-anchor="middle" font-size="8" fill="var(--muted)">id</text>
+
+  <!-- name column -->
+  <rect x="436" y="54" width="58" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="436" y="90" width="58" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="436" y="126" width="58" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="436" y="162" width="58" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="465" y="77"  text-anchor="middle" font-size="9" fill="var(--muted)">Alice</text>
+  <text x="465" y="113" text-anchor="middle" font-size="9" fill="var(--muted)">Bob</text>
+  <text x="465" y="149" text-anchor="middle" font-size="9" fill="var(--muted)">Carol</text>
+  <text x="465" y="185" text-anchor="middle" font-size="9" fill="var(--muted)">David</text>
+  <text x="465" y="50"  text-anchor="middle" font-size="8" fill="var(--muted)">name</text>
+
+  <!-- dept column — highlighted as queried -->
+  <rect x="498" y="54" width="48" height="36" fill="var(--accent)" opacity="0.30" stroke="var(--accent)" stroke-width="1.5"/>
+  <rect x="498" y="90" width="48" height="36" fill="var(--accent)" opacity="0.30" stroke="var(--accent)" stroke-width="1.5"/>
+  <rect x="498" y="126" width="48" height="36" fill="var(--accent)" opacity="0.30" stroke="var(--accent)" stroke-width="1.5"/>
+  <rect x="498" y="162" width="48" height="36" fill="var(--accent)" opacity="0.30" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="522" y="77"  text-anchor="middle" font-size="9" fill="var(--text)">Eng</text>
+  <text x="522" y="113" text-anchor="middle" font-size="9" fill="var(--text)">HR</text>
+  <text x="522" y="149" text-anchor="middle" font-size="9" fill="var(--text)">Eng</text>
+  <text x="522" y="185" text-anchor="middle" font-size="9" fill="var(--text)">Fin</text>
+  <text x="522" y="50"  text-anchor="middle" font-size="8" font-weight="700" fill="var(--accent)">dept</text>
+
+  <!-- salary column — highlighted as queried -->
+  <rect x="550" y="54" width="58" height="36" fill="var(--accent)" opacity="0.30" stroke="var(--accent)" stroke-width="1.5"/>
+  <rect x="550" y="90" width="58" height="36" fill="var(--accent)" opacity="0.30" stroke="var(--accent)" stroke-width="1.5"/>
+  <rect x="550" y="126" width="58" height="36" fill="var(--accent)" opacity="0.30" stroke="var(--accent)" stroke-width="1.5"/>
+  <rect x="550" y="162" width="58" height="36" fill="var(--accent)" opacity="0.30" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="579" y="77"  text-anchor="middle" font-size="9" fill="var(--text)">95000</text>
+  <text x="579" y="113" text-anchor="middle" font-size="9" fill="var(--text)">72000</text>
+  <text x="579" y="149" text-anchor="middle" font-size="9" fill="var(--text)">88000</text>
+  <text x="579" y="185" text-anchor="middle" font-size="9" fill="var(--text)">61000</text>
+  <text x="579" y="50"  text-anchor="middle" font-size="8" font-weight="700" fill="var(--accent)">salary</text>
+
+  <!-- hire_date column -->
+  <rect x="612" y="54" width="90" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="612" y="90" width="90" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="612" y="126" width="90" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <rect x="612" y="162" width="90" height="36" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="657" y="77"  text-anchor="middle" font-size="9" fill="var(--muted)">2019-03…</text>
+  <text x="657" y="113" text-anchor="middle" font-size="9" fill="var(--muted)">2021-07…</text>
+  <text x="657" y="149" text-anchor="middle" font-size="9" fill="var(--muted)">2020-11…</text>
+  <text x="657" y="185" text-anchor="middle" font-size="9" fill="var(--muted)">2018-05…</text>
+  <text x="657" y="50"  text-anchor="middle" font-size="8" fill="var(--muted)">hire_date</text>
+
+  <!-- reads only two columns annotation -->
+  <rect x="380" y="220" width="330" height="24" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1"/>
+  <text x="545" y="236" text-anchor="middle" font-size="10" fill="var(--accent)">Query reads ONLY dept + salary — skips everything else</text>
+
+  <!-- Legend -->
+  <rect x="380" y="270" width="14" height="14" fill="var(--accent)" opacity="0.30" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="400" y="281" font-size="10" fill="var(--text)">columns read by the query</text>
+  <rect x="530" y="270" width="14" height="14" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="550" y="281" font-size="10" fill="var(--muted)">columns skipped</text>
+</svg>
+<figcaption>Row storage (left) interleaves all columns for each row, so analytics must read the full width of every row. Columnar storage (right) places all values of each column together, so a two-column query reads only those two column files and skips everything else.</figcaption>
+</figure>
+
+## The I/O Savings in Practice
+
+### Column Projection
+
+The key analytical optimization is **column projection** — reading only the columns referenced by a query. Suppose a table has 50 columns and 100 million rows. Each row is 500 bytes on average. A `SELECT *` scans:
+
+```
+50 columns × 100M rows × ~10 bytes/column avg = ~50 GB
+```
+
+A narrow analytics query touching 3 columns scans:
+
+```
+3 columns × 100M rows × ~10 bytes/column avg = ~3 GB
+```
+
+That is a **94 % reduction in bytes read from disk** before any other optimization kicks in. On cloud storage where I/O is billed per byte and latency is proportional to data volume, this is not academic — it is the difference between a 30-second query and a 2-second query.
+
+> **Note:** Column projection also benefits cache efficiency. All 100 million `salary` values are one sequential stream — a CPU prefetcher can read ahead aggressively. Row-oriented data interleaves unrelated fields, causing more cache misses per useful byte loaded.
+
+### Why Columnar Stores Win at Aggregates
+
+Aggregation functions like `SUM`, `AVG`, `COUNT`, `MIN`, and `MAX` operate over all values in a single column. In a columnar store, those values are already laid out as a contiguous array. The CPU can operate on them with tight loops, no indirection, and no field-width parsing — characteristics that map directly to SIMD (single instruction, multiple data) vectorized execution, discussed further in the next chapter.
+
+## Column File Layout and Encoding
+
+### Physical Organization
+
+Each column in a columnar engine is stored as a sequence of fixed-width or variable-length values, typically split into **row-group chunks** (Apache Parquet calls them row groups; Apache ORC calls them stripes). A row group contains, say, 128,000 rows. Within each row group, the column values are encoded and optionally compressed independently.
+
+```
+salary.col (simplified)
+┌─────────────────────────────────────────────────────┐
+│ Row group 0 (rows 0–127,999)                        │
+│   min=42000  max=210000  nulls=0                    │
+│   encoding: PLAIN_DICTIONARY                        │
+│   data: [95000, 72000, 88000, 61000, ...]           │
+├─────────────────────────────────────────────────────┤
+│ Row group 1 (rows 128,000–255,999)                  │
+│   min=38000  max=195000  nulls=3                    │
+│   encoding: RLE_DICTIONARY                          │
+│   data: [...]                                       │
+└─────────────────────────────────────────────────────┘
+```
+
+The per-row-group metadata (min, max, null count) enables **predicate pushdown**: if a query filters `WHERE salary > 500000` and a row group's max is 210,000, the entire row group is skipped without reading a single value.
+
+### Run-Length Encoding (RLE)
+
+When column values repeat in long runs — which is common for low-cardinality columns like `department`, `country`, or `is_active` — **run-length encoding** replaces repeated values with a (value, count) pair:
+
+```
+Raw:  [Eng, Eng, Eng, HR, HR, Eng, Eng, Fin, Fin, Fin, Fin]
+RLE:  [(Eng,3), (HR,2), (Eng,2), (Fin,4)]
+```
+
+Eleven values become four pairs. The compression ratio improves as the run length increases, and operations like `WHERE department = 'Eng'` can be evaluated directly on the RLE representation without decoding the full sequence.
+
+### Dictionary Encoding
+
+**Dictionary encoding** is applied when a column has many repeated string values. A compact integer dictionary maps each unique string to a small integer, and the column stores only the integers:
+
+```
+Dictionary: { 0: "Engineering", 1: "HR", 2: "Finance", 3: "Marketing" }
+Column:     [ 0, 1, 0, 2, 0, 3, 1, 0, 2, 0 ]
+```
+
+Storing 4-byte integers instead of variable-length strings shrinks the column file and allows the engine to evaluate equality filters (`WHERE department = 'Engineering'`) by looking up the dictionary integer (0) once and then scanning the compact integer array — a much tighter operation than string comparison.
+
+> **Note:** These encodings are previews; the next chapter (Compression and Vectorized Execution) covers them and additional techniques (bit-packing, delta encoding, ZSTD compression) in depth, and explains how the engine executes queries directly over encoded data without a full decode pass.
+
+## Column Families and Partial Columnar Designs
+
+Not all databases are purely row-oriented or purely column-oriented. Several hybrid designs exist:
+
+| Approach | Description | Examples |
+|---|---|---|
+| **Pure row store** | All columns for a row stored together | PostgreSQL, MySQL, SQLite |
+| **Pure column store** | Each column stored separately | DuckDB, ClickHouse, Amazon Redshift |
+| **Column families** | Groups of columns stored together; different families separate | Apache HBase, Apache Cassandra |
+| **Hybrid / PAX** | Row groups on disk, columnar layout within each group | Apache Parquet on row-oriented engines |
+| **Columnar indexes** | Row store with an additional columnar index for analytics | SQL Server Columnstore Index, Oracle In-Memory |
+
+Column families (used in wide-column stores like HBase) are a middle ground: if you always read `first_name` and `last_name` together, grouping them in one family avoids a cross-file join while still separating them from rarely-read columns like `audit_log`.
+
+## When Columnar Storage Hurts
+
+Columnar storage trades write simplicity for read efficiency. There are workloads where row storage wins:
+
+| Scenario | Why Row Wins |
+|---|---|
+| **Single-row lookup by primary key** | One seek fetches all columns in one contiguous read |
+| **Full-row INSERT / UPDATE / DELETE** | Writing to 50 separate column files is slower than one append |
+| **Narrow queries with many columns needed** | If you need 40 of 50 columns, I/O savings are minimal |
+| **High-frequency OLTP** | Row locks and page-level concurrency are well-optimised in row stores |
+
+Most real-world analytical systems address write cost through **batch ingestion** and **immutable file formats** (Parquet, ORC). Rather than updating individual values in column files, new data is written as new row groups, and old data is periodically compacted. This makes columnar stores a natural fit for append-heavy workloads where historical data rarely changes.
+
+## Interactive Example
+
+The widget below demonstrates the column projection principle in SQLite. The `employees` table has 10 columns. Compare a narrow projection (only `department` and `salary`) with a `SELECT *`.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Columnar Projection Demo</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary INTEGER, hire_date TEXT, email TEXT, phone TEXT, address TEXT, country TEXT, is_active INTEGER); INSERT INTO employees VALUES (1,'Alice Chen','Engineering',95000,'2019-03-12','alice@corp.com','+1-555-0101','123 Main St','US',1), (2,'Bob Okafor','HR',72000,'2021-07-05','bob@corp.com','+1-555-0102','456 Oak Ave','US',1), (3,'Carol Lima','Engineering',88000,'2020-11-20','carol@corp.com','+44-555-0103','789 Park Rd','GB',1), (4,'David Park','Finance',61000,'2018-05-14','david@corp.com','+82-555-0104','321 Pine Ln','KR',1), (5,'Elena Rossi','Marketing',79000,'2022-01-08','elena@corp.com','+39-555-0105','654 Elm St','IT',1), (6,'Frank Nguyen','Engineering',102000,'2017-09-30','frank@corp.com','+84-555-0106','987 Birch Blvd','VN',0), (7,'Grace Kim','Finance',68000,'2023-04-17','grace@corp.com','+82-555-0107','147 Cedar Way','KR',1), (8,'Hiro Tanaka','Marketing',74000,'2021-12-01','hiro@corp.com','+81-555-0108','258 Maple Dr','JP',1);">-- Narrow projection: only 2 of 10 columns
+-- In a true columnar engine, this reads ~20% of the data
+SELECT department, AVG(salary) AS avg_salary
+FROM employees
+GROUP BY department
+ORDER BY avg_salary DESC;
+
+-- Try switching to SELECT * to see all 10 columns:
+-- SELECT * FROM employees;</textarea>
+  </div>
+</div>
+
+In SQLite (a row store), both queries read the same data. In a true columnar engine like DuckDB or Redshift, the narrow query would read only the `department` and `salary` column files — about 20 % of the total bytes — while `SELECT *` reads every column. The result sets are the same; the I/O cost is radically different.
+
+## Key Takeaways
+
+- **Row storage** groups all columns of each row together on disk — ideal for OLTP workloads that read or write complete records.
+- **Columnar storage** groups all values of each column together — ideal for OLAP workloads that scan a few columns across millions of rows.
+- **Column projection** is the primary I/O benefit: a query touching 2 of 50 columns reads roughly 4 % of the data a row scan would read.
+- Column values are stored as contiguous arrays, enabling tight CPU loops, hardware prefetching, and vectorized (SIMD) execution.
+- **Run-length encoding** exploits repeated values in low-cardinality columns; **dictionary encoding** replaces repeated strings with compact integers — both reduce file size and enable filter evaluation without full decoding.
+- **Per-row-group statistics** (min, max, null count) allow entire chunks of data to be skipped via predicate pushdown, multiplying the projection benefit.
+- Columnar stores pay a higher write cost; they compensate with batch ingestion and immutable file formats (Parquet, ORC) rather than in-place updates.
+- Pure columnar (DuckDB, ClickHouse, Redshift), hybrid column families (HBase), and columnstore indexes (SQL Server) all apply this principle to different degrees and workload profiles.

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rule-based and cost-based planning — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part II. Querying and Language</p>
+  <p class="chapter-label">Chapter 6. How Query Processing Works</p>
+  <h1 class="content-title">Rule-based and cost-based planning</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="055-cost-estimation.html"><span class="dir">← Previous</span><span class="ttl">Cost estimation</span></a><a class="next" href="057-why-the-same-query-can-run-differently.html"><span class="dir">Next →</span><span class="ttl">Why the same query can run differently</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Once the optimizer has a logical plan, it faces a decision: which of the many equivalent ways to execute that plan is the fastest? Historically, databases answered this question in two very different ways — one by following hand-crafted rules, the other by estimating the cost of every realistic option. Most modern engines blend both approaches, so understanding the distinction helps you read query plans and write queries that the optimizer can handle well.
+
+## Rule-Based Optimization (RBO)
+
+Early query optimizers — most famously Oracle before version 7 — used a fixed catalog of rules to rewrite and rank plans. The rules were deterministic: given this kind of query shape, always do X.
+
+Common examples of rule-based transformations:
+
+| Rule | What it does |
+|---|---|
+| Push selections down | Move `WHERE` filters as close to the table scan as possible |
+| Eliminate redundant projections | Drop columns that are not needed further up the tree |
+| Flatten subqueries | Rewrite a correlated subquery as a join when safe to do so |
+| Use an available index | Prefer an index scan over a full scan whenever a matching index exists |
+
+The big advantage of RBO is **predictability**: the same query always produces the same plan, which makes behavior easy to reason about. The fatal weakness is that rules ignore data. A rule might say "use the index on `customer_id`," but if the `orders` table has only 50 rows, a full scan is faster than chasing index pointers. RBO has no way to know that.
+
+## Cost-Based Optimization (CBO)
+
+Cost-based optimizers, pioneered by System R at IBM in the 1970s and now the default in PostgreSQL, MySQL, SQL Server, and virtually every serious engine, take a different approach. Instead of following fixed rules, the optimizer:
+
+1. **Enumerates candidate plans** — different join orderings, different access methods (index vs. full scan), different join algorithms (nested loop, hash join, sort-merge join).
+2. **Estimates the cost of each plan** using statistics: table row counts, column cardinality, histograms of value distributions, and correlation between columns.
+3. **Picks the plan with the lowest estimated cost**, measured in units like I/O operations or CPU cycles.
+
+The statistics that drive this are stored in the catalog and updated by commands like `ANALYZE` (PostgreSQL/SQLite) or `UPDATE STATISTICS` (SQL Server). Stale statistics are one of the most common causes of bad query plans in production.
+
+> **Note:** SQLite's optimizer is a simplified CBO. It tracks row counts and some column statistics, and it can choose between index scans and full table scans based on those numbers. Running `ANALYZE` in SQLite updates these statistics in the `sqlite_stat1` table.
+
+## How Cost Estimates Drive Plan Choice
+
+Consider a join between `orders` (large) and `customers` (small). The optimizer considers options like:
+
+```
+Option A: Hash-join(orders, customers)  -- build hash table on customers (small side)
+Option B: Nested-loop(customers, orders) -- for each customer, scan orders
+Option C: Index-lookup on orders.customer_id -- follow index pointers per customer
+```
+
+Without statistics, a rule might blindly pick the index. With statistics, the optimizer sees that the `customer_id` filter is highly selective and the `customers` table is small, making the hash join cheapest. That is cost-based reasoning.
+
+The widget below sets up two tables — a small `customers` table and a larger `orders` table. Try running `EXPLAIN QUERY PLAN` to see which access strategy SQLite's CBO chooses. Then drop the index and run `ANALYZE` again to see if the plan changes.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · CBO in action with EXPLAIN QUERY PLAN</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, region TEXT); INSERT INTO customers VALUES (1, 'Acme Corp', 'north'), (2, 'Globex', 'south'), (3, 'Initech', 'north'), (4, 'Umbrella', 'east'), (5, 'Hooli', 'west'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1,1,120.0,'shipped'),(2,2,45.0,'pending'),(3,1,300.0,'delivered'),(4,3,90.0,'shipped'),(5,4,60.0,'pending'),(6,5,200.0,'delivered'),(7,1,75.0,'shipped'),(8,2,500.0,'delivered'),(9,3,30.0,'pending'),(10,5,410.0,'shipped'),(11,1,55.0,'delivered'),(12,4,180.0,'shipped'),(13,2,95.0,'pending'),(14,3,340.0,'delivered'),(15,5,22.0,'shipped'),(16,1,88.0,'delivered'),(17,2,260.0,'shipped'),(18,4,47.0,'pending'),(19,3,130.0,'delivered'),(20,5,310.0,'shipped'); CREATE INDEX idx_orders_customer ON orders(customer_id); ANALYZE;">-- Ask SQLite how it plans to execute this join.
+-- SCAN = full table read; SEARCH = index used.
+EXPLAIN QUERY PLAN
+SELECT c.name, COUNT(o.id) AS order_count, SUM(o.amount) AS total
+FROM customers c
+JOIN orders o ON o.customer_id = c.id
+WHERE c.region = 'north'
+GROUP BY c.id, c.name;
+
+-- Try: DROP INDEX idx_orders_customer; then re-run to see the plan change.</textarea>
+  </div>
+</div>
+
+## RBO and CBO Together
+
+In practice, modern engines layer both approaches. Rule-based transformations happen first — the optimizer applies algebraic rewrites (push predicates down, eliminate unnecessary joins) that are *always* beneficial regardless of data. Only after that structural cleanup does the cost model kick in to choose among the remaining physical options.
+
+This hybrid approach means:
+
+- **Deterministic rewrites** (RBO) handle structural improvements cheaply and predictably.
+- **Cost estimation** (CBO) handles data-sensitive choices like join order and access paths.
+
+Understanding which layer is responsible for which decision is the key to diagnosing slow queries: if a structural rewrite did not fire, check whether your query can be expressed more cleanly; if the wrong physical plan was chosen, check whether your statistics are fresh.
+
+<details class="reveal"><summary>Reveal: Why might a query suddenly run slower after a data load?</summary><div class="reveal-body">The cost-based optimizer made its plan choice using statistics collected when the table was smaller. As data grows, old statistics describe a different distribution — a column that was once highly selective may now return a large fraction of rows, making an index scan more expensive than a full scan. Running <code>ANALYZE</code> (or the equivalent for your database) refreshes these statistics so the optimizer can make an accurate new decision. Routine statistics maintenance is a standard DBA task in production systems for exactly this reason.</div></details>
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

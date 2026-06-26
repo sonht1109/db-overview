@@ -1,0 +1,106 @@
+Every database starts as a description of the real world — customers, products, appointments, sensor readings. The challenge is translating that messy reality into the precise, structured form a database engine can enforce and query efficiently. That translation process is called **data modeling**, and the result is a **schema**: the formal definition of tables, columns, types, and relationships that governs how data is stored.
+
+## Step 1 — Identify Entities and Attributes
+
+The first step is to ask: *what are the distinct "things" the system needs to track?* Each distinct thing is an **entity** and becomes a table. The properties that describe it are **attributes** and become columns.
+
+Take a small online bookstore as a running example. Three obvious entities emerge:
+
+| Entity | What it represents | Example attributes |
+|--------|-------------------|-------------------|
+| `books` | A title in the catalog | title, author, isbn, price |
+| `customers` | A person who buys | name, email, signup_date |
+| `orders` | A purchase event | placed_at, total |
+
+Notice that `orders` is itself an entity — not just a property of a customer. Anything that has its own lifecycle, its own set of facts, or needs to be referenced independently usually deserves its own table.
+
+> **Note:** Not everything that sounds like a thing needs its own table. A customer's billing *address* might be a handful of columns on the `customers` table rather than a separate `addresses` table — unless you need to store multiple addresses per customer, in which case it earns its own table.
+
+## Step 2 — Define Relationships
+
+Entities rarely stand alone. After listing them, identify how they relate:
+
+- A **book** can appear in many **orders** (and one order can contain many books) — a **many-to-many** relationship.
+- A **customer** can place many **orders**, but each order belongs to exactly one customer — a **one-to-many** relationship.
+
+Many-to-many relationships cannot be expressed with a single foreign key. They require a **junction table** (also called a bridge or associative table) that holds one row per pairing:
+
+```sql
+-- The junction table for books ↔ orders
+CREATE TABLE order_items (
+  order_id  INTEGER NOT NULL REFERENCES orders(id),
+  book_id   INTEGER NOT NULL REFERENCES books(id),
+  quantity  INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (order_id, book_id)
+);
+```
+
+`order_items` turns the many-to-many into two one-to-many relationships, each expressed with a foreign key. This is the standard relational solution.
+
+## Step 3 — Choose Data Types and Constraints
+
+Once you know the columns, assign a **data type** to each and decide which **constraints** to enforce. This is where the database becomes an active guardian of your rules, not just a passive store.
+
+```sql
+CREATE TABLE books (
+  id         INTEGER PRIMARY KEY,
+  title      TEXT    NOT NULL,
+  isbn       TEXT    NOT NULL UNIQUE,
+  price      REAL    NOT NULL CHECK (price >= 0),
+  published  TEXT                              -- nullable: unknown for some books
+);
+
+CREATE TABLE customers (
+  id          INTEGER PRIMARY KEY,
+  name        TEXT NOT NULL,
+  email       TEXT NOT NULL UNIQUE,
+  signup_date TEXT NOT NULL
+);
+
+CREATE TABLE orders (
+  id          INTEGER PRIMARY KEY,
+  customer_id INTEGER NOT NULL REFERENCES customers(id),
+  placed_at   TEXT    NOT NULL
+);
+```
+
+Every constraint above has a concrete reason:
+- `NOT NULL` — title, email, and price must always be present; there is no meaningful default.
+- `UNIQUE` on `isbn` — two books cannot share the same ISBN.
+- `CHECK (price >= 0)` — a negative price is a data error, caught at the boundary.
+- `REFERENCES` — an order must belong to a real customer; orphan orders are prevented.
+
+The widget below creates this schema and seeds it with sample data. Run the default query to see a full order summary, then try modifying the `WHERE` clause or adding a new column to the `SELECT` list.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Bookstore schema</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT NOT NULL, isbn TEXT NOT NULL UNIQUE, price REAL NOT NULL CHECK (price >= 0)); CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, signup_date TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), placed_at TEXT NOT NULL); CREATE TABLE order_items (order_id INTEGER NOT NULL REFERENCES orders(id), book_id INTEGER NOT NULL REFERENCES books(id), quantity INTEGER NOT NULL DEFAULT 1, PRIMARY KEY (order_id, book_id)); INSERT INTO books VALUES (1, 'The Pragmatic Programmer', '978-0135957059', 49.99); INSERT INTO books VALUES (2, 'Designing Data-Intensive Applications', '978-1449373320', 54.99); INSERT INTO books VALUES (3, 'Clean Code', '978-0132350884', 39.99); INSERT INTO customers VALUES (1, 'Alice Wong', 'alice@example.com', '2024-01-10'); INSERT INTO customers VALUES (2, 'Bob Patel', 'bob@example.com', '2024-03-05'); INSERT INTO orders VALUES (1, 1, '2024-06-01'); INSERT INTO orders VALUES (2, 1, '2024-06-15'); INSERT INTO orders VALUES (3, 2, '2024-06-20'); INSERT INTO order_items VALUES (1, 1, 1); INSERT INTO order_items VALUES (1, 2, 1); INSERT INTO order_items VALUES (2, 3, 2); INSERT INTO order_items VALUES (3, 2, 1); INSERT INTO order_items VALUES (3, 1, 1);">-- Full order summary: who bought what and for how much
+SELECT
+  c.name         AS customer,
+  o.placed_at    AS date,
+  b.title        AS book,
+  oi.quantity,
+  ROUND(oi.quantity * b.price, 2) AS line_total
+FROM orders o
+JOIN customers c    ON c.id = o.customer_id
+JOIN order_items oi ON oi.order_id = o.id
+JOIN books b        ON b.id = oi.book_id
+ORDER BY o.placed_at, c.name;</textarea>
+  </div>
+</div>
+
+## From Model to Living Schema
+
+A schema is not final on day one. Real systems evolve: new requirements appear, edge cases surface, performance needs shift. What a good initial schema buys you is **a clean foundation** — clear entity boundaries, enforced constraints, and relationships expressed explicitly rather than implied by application code.
+
+The modeling loop repeats whenever requirements change:
+
+1. **Identify** the new entity or attribute.
+2. **Decide** where it belongs (new table, new column, or a junction table).
+3. **Enforce** the relevant constraints.
+4. **Migrate** the existing data to the new shape.
+
+Getting comfortable with this loop — moving fluidly between the real-world description and the table-and-column representation — is the core skill of schema design. The earlier chapters gave you the vocabulary (tables, keys, constraints, types); this chapter is about applying that vocabulary deliberately, starting from a blank page and a set of requirements.
+
+<details class="reveal"><summary>Reveal: Why not just use one big table for everything?</summary><div class="reveal-body">One giant table forces you to repeat data (customer name on every order row), leaves many cells empty (a book column on an order makes no sense), and makes updates dangerous (change a name in one place but miss another). Splitting into entities eliminates redundancy, keeps each table focused on one concept, and lets constraints protect each piece of data independently. This is exactly the problem normalization (covered in the previous chapter) was designed to solve.</div></details>

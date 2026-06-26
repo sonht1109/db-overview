@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schema migrations in production — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VI. Engineering Practice</p>
+  <p class="chapter-label">Chapter 24. Designing for Reliability</p>
+  <h1 class="content-title">Schema migrations in production</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="234-failure-testing.html"><span class="dir">← Previous</span><span class="ttl">Failure testing</span></a><a class="next" href="236-monitoring-and-alerts.html"><span class="dir">Next →</span><span class="ttl">Monitoring and alerts</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Changing a database schema while the application is running is one of the most dangerous operations in software engineering. A naive `ALTER TABLE` that would complete instantly on a development laptop can lock millions of rows for minutes on a production table — taking down the application in the process. **Schema migrations in production** require a completely different mindset from development migrations: every change must be safe to run while traffic flows.
+
+## Why Production Migrations Are Hard
+
+On a development database with 1,000 rows, `ALTER TABLE orders ADD COLUMN discount NUMERIC;` finishes in milliseconds. On a production table with 200 million rows, the same statement may:
+
+- Acquire an **exclusive table lock** that blocks all reads and writes for the duration
+- Cause every query touching that table to queue up, exhausting connection pool slots
+- Time out after 30 seconds, leaving the schema unchanged but the application degraded
+
+The problem is compounded by high availability: with replicas, the DDL must also propagate and re-execute on each replica, which can lag behind and cause further issues.
+
+## The Lock Hierarchy
+
+Understanding what each operation locks is the key to safe migrations. PostgreSQL's lock levels from weakest to strongest:
+
+| Lock | Blocks | Common operations |
+|---|---|---|
+| `ACCESS SHARE` | Nothing except `ACCESS EXCLUSIVE` | Normal SELECT |
+| `ROW SHARE` | `ACCESS EXCLUSIVE` | SELECT FOR UPDATE |
+| `ROW EXCLUSIVE` | `SHARE`, `SHARE ROW EXCLUSIVE`, `EXCLUSIVE`, `ACCESS EXCLUSIVE` | INSERT, UPDATE, DELETE |
+| `SHARE UPDATE EXCLUSIVE` | `SHARE UPDATE EXCLUSIVE`, `SHARE`, and above | `VACUUM`, `CREATE INDEX CONCURRENTLY` |
+| `ACCESS EXCLUSIVE` | **Everything** | `ALTER TABLE`, `DROP TABLE`, `TRUNCATE` |
+
+Any `ACCESS EXCLUSIVE` operation will block all reads and writes. The goal of safe migrations is to **avoid ACCESS EXCLUSIVE locks on hot tables**, or to hold them for the absolute minimum time.
+
+## The Expand-Contract Pattern
+
+The safest way to change a schema that is actively in use is the **expand-contract** (also called additive migration) pattern. Changes are split into three phases deployed independently:
+
+```
+Phase 1 — Expand:   Add the new column/table (nullable, no constraints)
+Phase 2 — Migrate:  Backfill data; deploy code that writes both old and new
+Phase 3 — Contract: Drop the old column after all code uses the new one
+```
+
+### Example: Renaming a Column
+
+Renaming `user_name` to `display_name` in a live system:
+
+**Phase 1 (Expand)**
+```sql
+-- Safe: adding a nullable column takes near-zero lock time
+ALTER TABLE users ADD COLUMN display_name TEXT;
+```
+
+**Application code update (dual-write)**
+```python
+# Write to both columns; read from old until backfill complete
+user.display_name = user.user_name  # copy on write
+```
+
+**Phase 2 (Backfill — in batches)**
+```sql
+-- Update in small batches to avoid long-running locks
+UPDATE users SET display_name = user_name
+WHERE id BETWEEN 1 AND 10000 AND display_name IS NULL;
+-- repeat for next batch...
+```
+
+**Phase 3 (Contract — after all code uses display_name)**
+```sql
+ALTER TABLE users DROP COLUMN user_name;
+```
+
+<figure class="diagram">
+<svg viewBox="0 0 680 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Expand-contract migration timeline: three deployment phases — expand adds column, migrate backfills and dual-writes, contract drops old column">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Timeline -->
+  <line x1="30" y1="110" x2="650" y2="110" stroke="var(--border)" stroke-width="2"/>
+
+  <!-- Phase 1 Expand -->
+  <rect x="30" y="70" width="150" height="40" rx="5" fill="var(--accent)" opacity="0.2" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="105" y="88" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">Phase 1: Expand</text>
+  <text x="105" y="104" text-anchor="middle" font-size="10" fill="var(--muted)">ADD COLUMN display_name</text>
+  <text x="105" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">old code still works ✓</text>
+
+  <!-- Phase 2 Migrate -->
+  <rect x="240" y="70" width="200" height="40" rx="5" fill="var(--accent)" opacity="0.35" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="340" y="88" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">Phase 2: Migrate</text>
+  <text x="340" y="104" text-anchor="middle" font-size="10" fill="var(--muted)">backfill + dual-write code</text>
+  <text x="340" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">both columns live ✓</text>
+
+  <!-- Phase 3 Contract -->
+  <rect x="500" y="70" width="150" height="40" rx="5" fill="var(--accent)" opacity="0.7" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="575" y="88" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">Phase 3: Contract</text>
+  <text x="575" y="104" text-anchor="middle" font-size="10" fill="var(--muted)">DROP COLUMN user_name</text>
+  <text x="575" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">cleanup complete ✓</text>
+
+  <!-- Arrows -->
+  <line x1="183" y1="90" x2="237" y2="90" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="443" y1="90" x2="497" y2="90" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Deploy labels -->
+  <text x="210" y="168" text-anchor="middle" font-size="10" fill="var(--muted)">Deploy #1</text>
+  <text x="210" y="180" text-anchor="middle" font-size="10" fill="var(--muted)">(migration only)</text>
+  <text x="340" y="168" text-anchor="middle" font-size="10" fill="var(--muted)">Deploy #2</text>
+  <text x="340" y="180" text-anchor="middle" font-size="10" fill="var(--muted)">(app code)</text>
+  <text x="575" y="168" text-anchor="middle" font-size="10" fill="var(--muted)">Deploy #3</text>
+  <text x="575" y="180" text-anchor="middle" font-size="10" fill="var(--muted)">(cleanup)</text>
+</svg>
+<figcaption>Expand-contract splits a dangerous rename into three safe deployments, each independently rollback-able.</figcaption>
+</figure>
+
+## Concurrent Index Creation
+
+Adding an index the normal way takes a full `SHARE` lock on the table, blocking writes for as long as the index build takes. For large tables this can be 10–60 minutes.
+
+```sql
+-- Dangerous: blocks all writes while building the index
+CREATE INDEX idx_orders_user ON orders(user_id);
+
+-- Safe: builds index in the background without blocking writes
+CREATE INDEX CONCURRENTLY idx_orders_user ON orders(user_id);
+```
+
+`CREATE INDEX CONCURRENTLY` takes longer and uses more I/O, but only acquires `SHARE UPDATE EXCLUSIVE`, which does not block normal reads or writes. It cannot be run inside a transaction block.
+
+> **Caveat:** Concurrent index builds can fail partway through, leaving an `INVALID` index. Check `pg_indexes` or `pg_index.indisvalid` after creation. Drop and retry if the index is marked invalid.
+
+## Online Schema Change Tools
+
+For the most disruptive changes (adding NOT NULL columns, changing column types), dedicated tools perform the migration transparently by creating a shadow table:
+
+| Tool | Database | Technique |
+|---|---|---|
+| **pg_repack** | PostgreSQL | Rebuilds table online, swaps with minimal lock |
+| **pglogical** | PostgreSQL | Logical replication-based schema changes |
+| **gh-ost** | MySQL | Ghost table + binary log streaming |
+| **pt-online-schema-change** | MySQL | Triggers on shadow table |
+| **Online DDL** | MySQL 8+ / InnoDB | Built-in: many operations are now lock-free |
+
+## Migration Tooling and Version Control
+
+Schema changes must be version-controlled like code. Common migration frameworks:
+
+```
+Flyway:     versioned SQL files (V001__add_discount.sql)
+Liquibase:  XML or YAML changesets, supports rollback
+Alembic:    Python (SQLAlchemy); auto-generates diffs
+sqitch:     dependency-aware; works with any SQL dialect
+```
+
+Every migration should have:
+- A forward migration (apply)
+- A rollback migration (undo) — or explicit documentation that the change is non-reversible
+- A tested execution plan against production data volume
+
+## Interactive: Checking for Dangerous Lock Holders
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Lock Wait Analysis</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE pg_locks_sim (pid INTEGER, relation TEXT, lock_type TEXT, granted INTEGER, query TEXT, wait_seconds INTEGER); INSERT INTO pg_locks_sim VALUES (1234,'orders','AccessExclusiveLock',1,'ALTER TABLE orders ADD COLUMN discount NUMERIC',0); INSERT INTO pg_locks_sim VALUES (5678,'orders','RowExclusiveLock',0,'UPDATE orders SET status=''shipped'' WHERE id=99',45); INSERT INTO pg_locks_sim VALUES (9012,'orders','AccessShareLock',0,'SELECT * FROM orders WHERE user_id=42',45); INSERT INTO pg_locks_sim VALUES (3456,'orders','RowExclusiveLock',0,'INSERT INTO orders VALUES (...)',46);">-- Find queries blocked by the ALTER TABLE lock
+SELECT pid,
+       lock_type,
+       CASE granted WHEN 1 THEN 'holding' ELSE 'waiting' END AS status,
+       wait_seconds || 's waited' AS waited,
+       query
+FROM pg_locks_sim
+ORDER BY granted DESC, wait_seconds;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- `ALTER TABLE` acquires `ACCESS EXCLUSIVE` lock — it blocks everything; never run naively on a hot table
+- Use the **expand-contract pattern**: add columns first (nullable), backfill in batches, then contract
+- Use `CREATE INDEX CONCURRENTLY` to build indexes without blocking writes
+- For extreme cases, use online schema tools (gh-ost, pg_repack) that shadow-copy and swap tables
+- Version-control every migration; always have a rollback plan before running against production
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

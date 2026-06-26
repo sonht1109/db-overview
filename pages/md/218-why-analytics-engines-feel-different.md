@@ -1,0 +1,235 @@
+If you have used a transactional database — Postgres, MySQL, SQLite — and then sit down at a Snowflake console or a Spark shell, something feels off. Queries that should be "fast" take 20 seconds. Simple `COUNT(*)` commands trigger multi-second cluster activity. The mental model you built for OLTP does not transfer cleanly. This page explains *why* analytics engines are architected so differently, and what that means for how you use them.
+
+## The Latency Contract Is Different
+
+The most fundamental difference is the **expected response time**.
+
+| System type | Acceptable query latency | Why |
+|---|---|---|
+| OLTP (Postgres, MySQL) | &lt; 10 ms for simple queries | User is waiting at a UI; every 100 ms matters |
+| OLAP (Snowflake, BigQuery) | Seconds to minutes | Analyst runs a report; 30 seconds is fine |
+| Streaming (Flink, Kafka Streams) | Milliseconds | Per-event processing pipeline |
+
+This difference in latency tolerance cascades through every design decision an analytics engine makes. When you're willing to wait 20 seconds, you can do things that would be unacceptable in an OLTP context: compile queries to native machine code, spin up dozens of worker processes, sort terabytes of data by shuffling it across a network.
+
+## No Row-Level Locking Needed
+
+OLTP databases spend enormous effort on **concurrency control**: lock managers, MVCC version chains, deadlock detection. Analytics workloads are almost entirely **read-only at query time**. Analytical queries don't update individual rows — they aggregate millions of them.
+
+This means:
+- No row-level locks
+- No write-write conflicts to resolve
+- Simpler isolation model — most analytics engines offer snapshot isolation at the query level, reading a consistent point-in-time view without holding any locks
+- Writers (ETL jobs loading new data) operate separately, often with exclusive access to partitions they're writing
+
+The result is that analytics engines can devote their complexity budget to query execution rather than concurrency control.
+
+## Massively Parallel Processing (MPP)
+
+The defining architectural feature of analytics engines is **massively parallel processing**. A single SQL query is automatically split across many nodes, each responsible for a subset of the data.
+
+<figure class="diagram">
+<svg viewBox="0 0 700 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MPP query fan-out: coordinator splits query to worker nodes, each scans a partition, results merged back">
+  <defs>
+    <marker id="arrow218" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrow218b" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto">
+      <path d="M8,0 L8,6 L0,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+  <!-- Client -->
+  <rect x="290" y="10" width="120" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="350" y="35" text-anchor="middle" font-size="12" fill="var(--text)">SQL Client</text>
+  <!-- Coordinator -->
+  <rect x="265" y="90" width="170" height="50" rx="6" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="2"/>
+  <text x="350" y="112" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--accent)">Coordinator Node</text>
+  <text x="350" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Parse · Plan · Distribute · Merge</text>
+  <!-- Arrow client to coordinator -->
+  <line x1="350" y1="50" x2="350" y2="88" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arrow218)"/>
+  <text x="370" y="72" font-size="10" fill="var(--muted)">query</text>
+  <!-- Workers -->
+  <rect x="40" y="210" width="130" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="105" y="234" text-anchor="middle" font-size="11" font-weight="bold" fill="var(--text)">Worker 1</text>
+  <text x="105" y="252" text-anchor="middle" font-size="10" fill="var(--muted)">Partition 1 (Jan)</text>
+  <text x="105" y="264" text-anchor="middle" font-size="10" fill="var(--muted)">scan · filter · agg</text>
+  <rect x="195" y="210" width="130" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="260" y="234" text-anchor="middle" font-size="11" font-weight="bold" fill="var(--text)">Worker 2</text>
+  <text x="260" y="252" text-anchor="middle" font-size="10" fill="var(--muted)">Partition 2 (Feb)</text>
+  <text x="260" y="264" text-anchor="middle" font-size="10" fill="var(--muted)">scan · filter · agg</text>
+  <rect x="350" y="210" width="130" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="415" y="234" text-anchor="middle" font-size="11" font-weight="bold" fill="var(--text)">Worker 3</text>
+  <text x="415" y="252" text-anchor="middle" font-size="10" fill="var(--muted)">Partition 3 (Mar)</text>
+  <text x="415" y="264" text-anchor="middle" font-size="10" fill="var(--muted)">scan · filter · agg</text>
+  <rect x="505" y="210" width="130" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="570" y="234" text-anchor="middle" font-size="11" font-weight="bold" fill="var(--text)">Worker 4</text>
+  <text x="570" y="252" text-anchor="middle" font-size="10" fill="var(--muted)">Partition 4 (Apr)</text>
+  <text x="570" y="264" text-anchor="middle" font-size="10" fill="var(--muted)">scan · filter · agg</text>
+  <!-- Fan-out arrows -->
+  <line x1="310" y1="140" x2="130" y2="208" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#arrow218)"/>
+  <line x1="335" y1="140" x2="270" y2="208" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#arrow218)"/>
+  <line x1="365" y1="140" x2="405" y2="208" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#arrow218)"/>
+  <line x1="390" y1="140" x2="545" y2="208" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#arrow218)"/>
+  <!-- Merge arrows back -->
+  <line x1="130" y1="271" x2="320" y2="330" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow218)"/>
+  <line x1="265" y1="271" x2="338" y2="330" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow218)"/>
+  <line x1="415" y1="271" x2="370" y2="330" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow218)"/>
+  <line x1="545" y1="271" x2="385" y2="330" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow218)"/>
+  <!-- Final merge -->
+  <rect x="280" y="330" width="140" height="40" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="350" y="350" text-anchor="middle" font-size="11" font-weight="bold" fill="var(--accent)">Merge &amp; Return</text>
+  <text x="350" y="364" text-anchor="middle" font-size="10" fill="var(--muted)">final aggregate</text>
+  <text x="105" y="295" text-anchor="middle" font-size="10" fill="var(--muted)">partial results</text>
+  <text x="570" y="295" text-anchor="middle" font-size="10" fill="var(--muted)">partial results</text>
+</svg>
+<figcaption>MPP query fan-out: the coordinator distributes sub-queries to workers, each scans its own data partition independently, then partial results are merged at the coordinator.</figcaption>
+</figure>
+
+### Shared-Nothing Architecture
+
+Each worker node in an MPP system has **its own CPU, RAM, and local disk** (or its own access to a slice of object storage). Nodes do not share memory or a storage bus. This design scales horizontally: double the nodes and you roughly double throughput for scan-heavy queries.
+
+Compare this to a single Postgres instance: all queries share one CPU pool, one buffer pool, one set of disk I/O channels.
+
+```
+Shared-everything (OLTP)          Shared-nothing (OLAP)
+─────────────────────────         ──────────────────────────────
+          CPU / RAM                  Node1        Node2        Node3
+             │                    CPU│RAM       CPU│RAM       CPU│RAM
+         Shared disk               Data1        Data2        Data3
+```
+
+### Data Shuffles
+
+Not everything parallelizes perfectly. A `JOIN` between two large tables requires that matching rows land on the **same worker node**. The engine must **shuffle** rows across the network — redistributing data by join key before the join can execute.
+
+Shuffles are expensive: they saturate network bandwidth and introduce coordination overhead. Badly written queries that force large shuffles are a common cause of slow analytics jobs.
+
+## Query Compilation vs. Interpretation
+
+Traditional databases interpret query plans at runtime: a tree of operator objects, each calling a `next()` method to pull one row at a time through the pipeline. This is flexible but slow — the CPU spends more time on virtual function dispatch overhead than on actual data work.
+
+Modern analytics engines take a different approach:
+
+**Vectorized execution** (DuckDB, ClickHouse, Velox): instead of processing one row at a time, process a **batch of 1,024–8,192 rows** per operator call. This:
+- Amortizes function call overhead
+- Enables SIMD (CPU vector instructions) to process multiple values in parallel
+- Improves CPU cache utilization
+
+**Full query compilation** (Snowflake, HyPer, some Spark paths): generate native machine code specific to the query. The compiler emits tight loops without virtual dispatch. First-query latency is higher (compilation takes time), but execution is 2–10x faster for CPU-bound operations.
+
+```
+Interpreted (row-at-a-time):   Filter→Project→Agg  each pulls 1 row
+Vectorized:                    Filter→Project→Agg  each pulls 1024 rows
+Compiled:                      Fused tight loop in native machine code
+```
+
+## Result Caching
+
+Dashboards often run the same query repeatedly. Analytics engines implement multiple caching layers:
+
+1. **Result cache**: if the exact same SQL runs against unchanged data, return the cached result immediately — no execution at all. Snowflake and BigQuery both do this.
+2. **Compiled plan cache**: store the compiled query plan; skip re-optimization on repeated queries.
+3. **Materialized views / pre-aggregated tables**: manually or automatically pre-compute common aggregations.
+
+> **Note:** Result caches are invalidated when underlying data changes. In a warehouse that loads data hourly, cache hit rates can exceed 90% for routine dashboard queries.
+
+## Cost-Based Optimization: Higher Stakes
+
+In OLTP, query planning usually involves choosing the right index and join order for queries touching a few thousand rows. A wrong plan costs maybe 10x in extra work.
+
+In OLAP, query planning is **existential**. The difference between the right and wrong join order on billion-row tables can be the difference between a 2-minute query and a 3-hour query — or an out-of-memory failure.
+
+Analytics engines invest heavily in:
+
+- **Column statistics**: track min, max, distinct count, histogram, and null fraction per column
+- **Table-level statistics**: total row count, total byte size
+- **Partition statistics**: which partitions contain which value ranges (enables partition pruning)
+- **Adaptive query execution**: Spark and others re-optimize mid-query once actual row counts are known from earlier stages
+
+```sql
+-- The optimizer must decide: which table to probe first?
+-- If orders has 10M rows and line_items has 500M rows,
+-- joining orders→products first (if products is tiny) saves a huge shuffle.
+SELECT p.category, SUM(li.amount)
+FROM line_items li
+JOIN orders o ON li.order_id = o.id
+JOIN products p ON li.product_id = p.id
+WHERE o.region = 'APAC'
+  AND o.created_at >= '2024-01-01'
+GROUP BY p.category;
+```
+
+## Different Failure Modes
+
+Analytics queries fail differently from OLTP queries:
+
+| Failure mode | Cause | Symptom |
+|---|---|---|
+| **Query timeout** | Query exceeded max runtime limit | Error after 30 min; partial work discarded |
+| **Memory spill** | Hash table or sort buffer exceeds RAM | Query slows 10–100x as it writes to disk |
+| **Skewed partitions** | One worker gets 80% of the data (e.g., NULL keys) | 99th percentile worker becomes the bottleneck |
+| **Shuffle OOM** | Redistribution step exceeds cluster memory | Job fails; must be redesigned |
+| **Quota exhaustion** | Slot or credit limits hit | Query queued indefinitely or rejected |
+
+Skewed partitions deserve special mention. If you join on a column where many rows share the same value (e.g., `NULL`, or a single viral user ID), one worker gets swamped while others idle. The fix is **salting**: add a random suffix to the join key, replicate the small side, and de-aggregate after.
+
+## Concurrency Model
+
+Analytics engines are typically designed for **low concurrency, high throughput per query** — the inverse of OLTP systems.
+
+| System | Design target |
+|---|---|
+| Postgres | Thousands of concurrent short queries |
+| Snowflake | Tens of concurrent long queries per virtual warehouse |
+| BigQuery | Autoscales slots; concurrency managed by slot allocation |
+| DuckDB | Single-process; one query at a time (excellent for local analysis) |
+
+Running 500 concurrent analytical queries on a fixed cluster typically causes **query queuing** — queries wait for slot availability rather than running immediately. Dedicated compute clusters (virtual warehouses in Snowflake, reserved slots in BigQuery) are sized to match expected concurrency.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · GROUP BY aggregation (MPP fan-out simulation)</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE sales (
+  id INTEGER,
+  region TEXT,
+  product_category TEXT,
+  amount DECIMAL(10,2),
+  sale_date DATE
+);
+INSERT INTO sales VALUES
+  (1, &apos;APAC&apos;, &apos;Electronics&apos;, 1200.00, &apos;2024-01-05&apos;),
+  (2, &apos;EMEA&apos;, &apos;Clothing&apos;, 340.50, &apos;2024-01-06&apos;),
+  (3, &apos;APAC&apos;, &apos;Electronics&apos;, 890.00, &apos;2024-01-07&apos;),
+  (4, &apos;AMER&apos;, &apos;Books&apos;, 55.99, &apos;2024-01-08&apos;),
+  (5, &apos;EMEA&apos;, &apos;Electronics&apos;, 2100.00, &apos;2024-01-09&apos;),
+  (6, &apos;AMER&apos;, &apos;Clothing&apos;, 670.00, &apos;2024-01-10&apos;),
+  (7, &apos;APAC&apos;, &apos;Books&apos;, 120.00, &apos;2024-01-11&apos;),
+  (8, &apos;AMER&apos;, &apos;Electronics&apos;, 3400.00, &apos;2024-01-12&apos;),
+  (9, &apos;EMEA&apos;, &apos;Clothing&apos;, 480.00, &apos;2024-01-13&apos;),
+  (10, &apos;APAC&apos;, &apos;Electronics&apos;, 760.00, &apos;2024-01-14&apos;);">-- In a real MPP system this GROUP BY would fan out:
+-- each worker aggregates its own partition,
+-- then partial sums are merged at the coordinator.
+-- Try modifying the GROUP BY columns.
+SELECT
+  region,
+  product_category,
+  COUNT(*) AS num_sales,
+  SUM(amount) AS total_revenue,
+  AVG(amount) AS avg_sale,
+  MAX(amount) AS largest_sale
+FROM sales
+GROUP BY region, product_category
+ORDER BY total_revenue DESC;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- Analytics engines accept latencies of seconds to minutes — this unlocks architectural choices (compilation, MPP, large shuffles) that are impractical in OLTP.
+- **Shared-nothing MPP** distributes data and compute across independent worker nodes, scaling scan throughput horizontally.
+- **Vectorized execution and query compilation** replace row-at-a-time interpretation, leveraging SIMD and tight loops for CPU-bound work.
+- **Result caching** means popular dashboard queries often return in milliseconds even from a "slow" warehouse.
+- **Cost-based optimization is critical** at billion-row scale: a wrong join order can turn a 2-minute query into a multi-hour job.
+- Common failure modes — skewed partitions, memory spill, shuffle OOM — have no equivalent in OLTP systems and require different debugging instincts.
+- Analytics engines are optimized for **low concurrency, high throughput** — design your cluster size around expected concurrent query count, not raw CPU cores.

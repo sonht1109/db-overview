@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One database can do everything — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VII. Building Understanding</p>
+  <p class="chapter-label">Chapter 29. Common Myths About Databases</p>
+  <h1 class="content-title">One database can do everything</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="287-denormalization-always-improves-performance.html"><span class="dir">← Previous</span><span class="ttl">Denormalization always improves performance</span></a><a class="next" href="289-what-to-believe-instead.html"><span class="dir">Next →</span><span class="ttl">What to believe instead</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Every database vendor's marketing implies their product can handle any workload. PostgreSQL can do JSON documents, time-series, full-text search, and geospatial. MongoDB can handle analytics. DynamoDB claims any scale. In practice, no single database excels at every data access pattern simultaneously — and trying to force one to do everything often means it does everything badly. Understanding which problems genuinely require specialized databases is as important as understanding how each database works.
+
+## The Myth: One Ring to Rule Them All
+
+The appeal of a single database is real: one operational system to monitor, one backup strategy, one team to learn one query language, one billing line. These operational benefits are genuine and should not be dismissed. For many applications — perhaps most — a single well-chosen database is genuinely the right answer.
+
+The myth is the extension of this to "any database can handle any workload at any scale." Different databases optimize for different access patterns, and those optimizations involve fundamental architectural choices that cannot be papered over with plugins.
+
+## Access Pattern Taxonomy
+
+Different data access patterns have genuinely different optimal storage structures:
+
+| Access Pattern | Optimized Storage | Examples |
+|---|---|---|
+| Random key lookups | Hash table / B-tree | Session storage → Redis, DynamoDB |
+| Complex queries / joins | Row-store B-tree | Transactional data → PostgreSQL, MySQL |
+| Time-series append + range | TSM / LSM with time partitioning | Metrics → InfluxDB, TimescaleDB |
+| Full-text search | Inverted index | Search → Elasticsearch, Meilisearch |
+| Graph traversal | Adjacency list + index | Social graphs → Neo4j, Amazon Neptune |
+| Column aggregations | Column-store | Analytics → ClickHouse, BigQuery |
+| Geospatial queries | R-tree / GiST | Location data → PostGIS, MongoDB |
+
+A B-tree row store (PostgreSQL) can simulate all of these. But "can" and "optimally handles" are different claims. Running a time-series workload on a row-store database with timestamp ranges requires careful partitioning and index management. Running it on TimescaleDB (which is built on PostgreSQL, with time-series-specific compression and partitioning) gives you 10–100× better performance and storage efficiency out of the box.
+
+<figure class="diagram">
+<svg viewBox="0 0 660 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Polyglot persistence architecture: different subsystems (transactions, search, cache, analytics) use different databases each optimized for that access pattern, connected through the application layer">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- App layer -->
+  <rect x="230" y="10" width="200" height="50" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="330" y="35" text-anchor="middle" font-size="13" font-weight="600" fill="var(--accent)">Application Layer</text>
+  <text x="330" y="52" text-anchor="middle" font-size="11" fill="var(--muted)">routes queries to the right store</text>
+
+  <!-- Arrows down -->
+  <line x1="280" y1="62" x2="120" y2="118" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="310" y1="62" x2="230" y2="118" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="350" y1="62" x2="350" y2="118" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="380" y1="62" x2="470" y2="118" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="405" y1="62" x2="580" y2="118" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- DB boxes -->
+  <rect x="30" y="120" width="130" height="65" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="95" y="142" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">PostgreSQL</text>
+  <text x="95" y="158" text-anchor="middle" font-size="10" fill="var(--muted)">Transactions</text>
+  <text x="95" y="172" text-anchor="middle" font-size="10" fill="var(--muted)">ACID, joins, constraints</text>
+
+  <rect x="180" y="120" width="110" height="65" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="235" y="142" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">Redis</text>
+  <text x="235" y="158" text-anchor="middle" font-size="10" fill="var(--muted)">Cache &amp; sessions</text>
+  <text x="235" y="172" text-anchor="middle" font-size="10" fill="var(--muted)">Sub-ms key lookups</text>
+
+  <rect x="310" y="120" width="110" height="65" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="365" y="142" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">Elasticsearch</text>
+  <text x="365" y="158" text-anchor="middle" font-size="10" fill="var(--muted)">Full-text search</text>
+  <text x="365" y="172" text-anchor="middle" font-size="10" fill="var(--muted)">Inverted index</text>
+
+  <rect x="435" y="120" width="110" height="65" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="490" y="142" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">ClickHouse</text>
+  <text x="490" y="158" text-anchor="middle" font-size="10" fill="var(--muted)">Analytics / OLAP</text>
+  <text x="490" y="172" text-anchor="middle" font-size="10" fill="var(--muted)">Column-store scans</text>
+
+  <rect x="560" y="120" width="90" height="65" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="605" y="142" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">InfluxDB</text>
+  <text x="605" y="158" text-anchor="middle" font-size="10" fill="var(--muted)">Time-series</text>
+  <text x="605" y="172" text-anchor="middle" font-size="10" fill="var(--muted)">Metrics, IoT</text>
+
+  <!-- Sync arrows -->
+  <line x1="160" y1="190" x2="178" y2="190" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="292" y1="190" x2="308" y2="190" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="422" y1="190" x2="433" y2="190" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Sync label -->
+  <text x="330" y="230" text-anchor="middle" font-size="11" fill="var(--muted)">← change events sync data between stores →</text>
+  <text x="330" y="248" text-anchor="middle" font-size="10" fill="var(--muted)">(CDC, message queues, or dual writes)</text>
+
+  <!-- Legend -->
+  <text x="330" y="290" text-anchor="middle" font-size="12" fill="var(--text)" font-weight="600">Polyglot Persistence</text>
+  <text x="330" y="308" text-anchor="middle" font-size="11" fill="var(--muted)">each database optimized for its specific access pattern</text>
+</svg>
+<figcaption>Polyglot persistence routes each workload to the database best suited for its access pattern. The application layer is responsible for keeping stores in sync via change events or dual writes.</figcaption>
+</figure>
+
+## The Hidden Costs of Polyglot Persistence
+
+If each database is optimized for its workload, why not use five databases for everything? Because polyglot persistence has real operational costs:
+
+- **Operational complexity** — five databases means five monitoring setups, five backup strategies, five upgrade cycles, five sets of expertise to maintain.
+- **Data synchronization** — when PostgreSQL is the source of truth and Elasticsearch holds a search index, any write to PostgreSQL must eventually sync to Elasticsearch. This sync can fail, lag, or drift. Handling sync failures is non-trivial application logic.
+- **Cross-store queries** — a query that joins transactional data with analytics data from two different stores must be assembled in the application layer or an ETL pipeline. There is no cross-store SQL.
+- **Team knowledge** — each specialist database requires someone who understands it deeply. For small teams, this is prohibitive.
+
+The right answer is not "use every database" or "use one database." It is **use the minimum number of stores that genuinely serve your access patterns**, and add specialization only when the benefit outweighs the operational overhead.
+
+## When to Add a Specialist Database
+
+The decision to add a new database to the stack should be triggered by a measured pain point, not anticipation:
+
+| Trigger | Consider |
+|---|---|
+| Full-text search quality is poor with `LIKE '%term%'` | Elasticsearch or Meilisearch |
+| Time-series queries are slow and storage is ballooning | TimescaleDB or InfluxDB |
+| Cache miss rate is causing latency spikes | Redis or Memcached |
+| Graph traversal queries take seconds | Neo4j or Amazon Neptune |
+| Analytics queries block production DB | ClickHouse or read replica |
+
+Before adding a specialist store, check whether an extension to your existing database solves the problem:
+- PostgreSQL + `pg_trgm` extension for fuzzy text search
+- PostgreSQL + `TimescaleDB` extension for time-series
+- PostgreSQL + `PostGIS` extension for geospatial
+
+Extensions often give you 80% of the specialist performance with none of the operational complexity of a separate system.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Column-Store vs Row-Store Access Patterns</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, product TEXT, region TEXT, salesperson TEXT, amount REAL, sale_date TEXT); WITH RECURSIVE gs(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM gs WHERE value &lt; 2000) INSERT INTO sales SELECT value, CASE abs(random()%4) WHEN 0 THEN 'Widget' WHEN 1 THEN 'Gadget' WHEN 2 THEN 'Doohickey' ELSE 'Thingamajig' END, CASE abs(random()%3) WHEN 0 THEN 'North' WHEN 1 THEN 'South' ELSE 'East' END, 'Rep_' || (abs(random()%10)), round(abs(random()%10000)/100.0,2), '2024-0' || (1+abs(random()%9)) || '-01' FROM gs;">-- OLTP pattern: fetch one specific row (fast in row-store)
+SELECT * FROM sales WHERE id = 42;
+
+-- OLAP pattern: aggregate across all rows, only need two columns.
+-- In a real column-store, only those two columns are scanned (not the whole row).
+-- In a row-store like SQLite, all columns are read for every row:
+SELECT region,
+       SUM(amount) AS total,
+       COUNT(*) AS tx_count
+FROM sales
+GROUP BY region
+ORDER BY total DESC;</textarea>
+  </div>
+</div>
+
+> **Note:** The OLAP query above reads every row to compute regional totals. In a column-store (ClickHouse, BigQuery, Redshift), only `region` and `amount` columns are read from disk — often 10–100× less data. In a row-store, all columns are read for every row even though only two are needed. This is the fundamental trade-off that makes column-stores dominate analytics workloads.
+
+## The Pragmatic Starting Point
+
+For most new systems, a pragmatic starting point is:
+
+1. **Start with PostgreSQL** — it covers transactional workloads, has excellent JSON support for semi-structured data, PostGIS for geospatial, and full-text search sufficient for many use cases.
+2. **Add Redis** when session storage or caching latency becomes a measured bottleneck.
+3. **Add a specialist store** only when you have measured that PostgreSQL with the appropriate extension cannot meet the requirement.
+
+This strategy keeps the stack simple at the start while leaving a clear migration path as needs evolve.
+
+## Key Takeaways
+
+- No single database is optimal for all access patterns — the architectural choices that make one pattern fast make others slower.
+- Polyglot persistence (using multiple specialized databases) is a real solution but carries real operational costs: synchronization complexity, multiple expertise requirements, and cross-store query limitations.
+- Prefer extensions (PostGIS, TimescaleDB, pg_trgm) over separate systems when they can solve the problem at 80% of the performance.
+- Start with one database and add specialists only in response to measured bottlenecks, not anticipated ones.
+- The operational cost of a new database is permanent; the performance benefit must clearly exceed it.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

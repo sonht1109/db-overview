@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The key-value model — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part V. Database Families</p>
+  <p class="chapter-label">Chapter 18. Key-Value Databases</p>
+  <h1 class="content-title">The key-value model</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="169-picking-the-right-guarantee.html"><span class="dir">← Previous</span><span class="ttl">Picking the right guarantee</span></a><a class="next" href="172-fast-lookups-and-simple-apis.html"><span class="dir">Next →</span><span class="ttl">Fast lookups and simple APIs</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+At its core, a key-value database is the simplest data model imaginable: a giant, persistent dictionary. You hand it a **key**, it hands back a **value**. That is the entire contract. No schemas to define, no joins to write, no query planner to second-guess. This simplicity is both its superpower and its boundary.
+
+## The Model in One Sentence
+
+Every record is a **key → value** pair stored in a hash-map-like structure. The key is a unique identifier (a string or binary blob). The value is whatever you want — a string, a number, a serialized JSON object, a binary blob, a counter. The database stores it and retrieves it without inspecting its contents.
+
+| Concept | What it is | Example |
+|---|---|---|
+| **Key** | Unique lookup handle — you choose the format | `session:u4291:token` |
+| **Value** | Opaque payload — any bytes you want to store | `{"userId":4291,"expires":1751000000}` |
+| **Namespace / prefix** | A convention (not enforced by all engines) for grouping keys | `cache:` · `session:` · `rate:` |
+
+> **Note:** "Opaque" means the database does not parse or index the value's contents. It stores bytes in, bytes out. If you need to search *inside* values, you must handle that in your application or choose a different model (e.g., a document store).
+
+## Structure and Key Design
+
+Because there is no schema and no query language beyond `GET key` / `SET key value`, **key naming becomes your schema**. Teams adopt conventions like colon-separated namespaces to create logical groupings:
+
+```
+session:user:4291          → {"token":"abc123","created":1750900000}
+rate_limit:user:4291:day   → 47
+product:sku:NB-001         → {"name":"Notebook","price":2.99}
+cache:homepage:v3          → <rendered HTML>
+```
+
+This is a deliberate design choice. The database is blind to the colon; it is pure convention. But a consistent scheme lets you reason about key space, set expiry by prefix in some engines, and avoid collisions across different parts of an application.
+
+<figure class="diagram">
+<svg viewBox="0 0 620 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Key-value store structure showing hash table with keys mapping to values">
+  <!-- Hash table buckets -->
+  <rect x="20" y="20" width="200" height="240" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="120" y="14" text-anchor="middle" font-size="12" fill="var(--text)" font-weight="600">Key Space</text>
+
+  <!-- Bucket rows -->
+  <rect x="30" y="32" width="180" height="34" rx="4" fill="var(--accent)" opacity="0.18" stroke="var(--accent)" stroke-width="1"/>
+  <text x="120" y="54" text-anchor="middle" font-size="12" fill="var(--text)">session:user:4291</text>
+
+  <rect x="30" y="74" width="180" height="34" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="120" y="96" text-anchor="middle" font-size="12" fill="var(--text)">rate:user:4291:day</text>
+
+  <rect x="30" y="116" width="180" height="34" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="120" y="138" text-anchor="middle" font-size="12" fill="var(--text)">product:sku:NB-001</text>
+
+  <rect x="30" y="158" width="180" height="34" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="120" y="180" text-anchor="middle" font-size="12" fill="var(--text)">cache:homepage:v3</text>
+
+  <rect x="30" y="200" width="180" height="34" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="120" y="222" text-anchor="middle" font-size="12" fill="var(--text)">feature:dark_mode</text>
+
+  <!-- Arrows -->
+  <line x1="210" y1="49" x2="280" y2="49" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="210" y1="91" x2="280" y2="91" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="210" y1="133" x2="280" y2="133" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="210" y1="175" x2="280" y2="175" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="210" y1="217" x2="280" y2="217" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="var(--border)"/>
+    </marker>
+  </defs>
+
+  <!-- Value boxes -->
+  <rect x="280" y="30" width="320" height="38" rx="4" fill="var(--accent)" opacity="0.12" stroke="var(--accent)" stroke-width="1"/>
+  <text x="440" y="47" text-anchor="middle" font-size="11" fill="var(--text)">{&quot;token&quot;:&quot;abc123&quot;,&quot;expires&quot;:1751000000}</text>
+  <text x="440" y="61" text-anchor="middle" font-size="10" fill="var(--text)" opacity="0.7">→ JSON blob</text>
+
+  <rect x="280" y="74" width="320" height="34" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="440" y="95" text-anchor="middle" font-size="12" fill="var(--text)">47  → integer counter</text>
+
+  <rect x="280" y="116" width="320" height="34" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="440" y="137" text-anchor="middle" font-size="11" fill="var(--text)">{&quot;name&quot;:&quot;Notebook&quot;,&quot;price&quot;:2.99}  → JSON</text>
+
+  <rect x="280" y="158" width="320" height="34" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="440" y="179" text-anchor="middle" font-size="11" fill="var(--text)">&lt;rendered HTML blob&gt;  → binary</text>
+
+  <rect x="280" y="200" width="320" height="34" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="440" y="221" text-anchor="middle" font-size="12" fill="var(--text)">true  → boolean flag</text>
+
+  <text x="440" y="272" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">Values can be any type — the DB stores bytes without inspecting them</text>
+</svg>
+<figcaption>A key-value store maps unique string keys to opaque values of any type. The highlighted row shows an active session lookup.</figcaption>
+</figure>
+
+## Core Operations
+
+The API is deliberately tiny. Most key-value stores expose only a handful of verbs:
+
+| Operation | Meaning |
+|---|---|
+| `GET key` | Retrieve the value for a key (or null if absent) |
+| `SET key value` | Write or overwrite a key-value pair |
+| `DEL key` | Delete a key |
+| `EXISTS key` | Check whether a key is present |
+| `EXPIRE key seconds` | Schedule automatic deletion after a TTL |
+
+Some engines add richer primitives (atomic counters, lists, sorted sets), but the lookup-by-exact-key model stays at the center. There is no `WHERE price < 5` — you either know the key or you do not.
+
+> **Note:** The `EXPIRE` / TTL (time-to-live) feature is what makes key-value stores ideal for caches and sessions: data evicts itself automatically, so you never accumulate stale records.
+
+## Where the Model Fits (and Where It Does Not)
+
+**Strong fits:**
+
+- **Session storage** — look up `session:<id>` on every request; expire automatically after inactivity.
+- **Caching** — store pre-computed results under a predictable key; invalidate or let them expire.
+- **Rate limiting** — increment an integer counter under `rate:<user>:<window>`; check before serving.
+- **Feature flags** — `feature:<flag_name>` → `true`/`false`, read on every render.
+
+**Poor fits:**
+
+- Queries that filter or search *inside* values (a document store or relational DB handles this better).
+- Relationships between records that you need to traverse (a graph DB or relational FK handles this).
+- Ad-hoc analytics across the full dataset (a column store or data warehouse handles this).
+
+The key-value model is intentionally narrow. It trades expressiveness for **speed** and **operational simplicity** — and in the right problem domain, that trade is an excellent one.
+
+---
+
+SQLite is not a key-value store, but you can simulate the model to make the mechanics concrete. Try looking up, inserting, and deleting pairs in the widget below.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Simulating a key-value store</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE kv_store (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_at INTEGER); INSERT INTO kv_store VALUES ('session:user:4291', '{&quot;token&quot;:&quot;abc123&quot;,&quot;role&quot;:&quot;admin&quot;}', 1751100000); INSERT INTO kv_store VALUES ('rate:user:4291:day', '47', NULL); INSERT INTO kv_store VALUES ('product:sku:NB-001', '{&quot;name&quot;:&quot;Notebook&quot;,&quot;price&quot;:2.99}', NULL); INSERT INTO kv_store VALUES ('feature:dark_mode', 'true', NULL); INSERT INTO kv_store VALUES ('cache:homepage:v3', '&lt;html&gt;...&lt;/html&gt;', 1751000000);">-- GET: look up a specific key
+SELECT value
+FROM kv_store
+WHERE key = 'session:user:4291';
+
+-- Try changing the key above to 'feature:dark_mode' or 'rate:user:4291:day'
+-- Try a SET: INSERT OR REPLACE INTO kv_store VALUES ('new:key', 'hello', NULL);
+-- Try filtering by prefix (simulating a namespace scan):
+-- SELECT key, value FROM kv_store WHERE key LIKE 'rate:%';</textarea>
+  </div>
+</div>
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

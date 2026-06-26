@@ -1,0 +1,158 @@
+JSON — JavaScript Object Notation — started life as a lightweight wire format for sending data between a browser and a server. It turned out to be such a natural way to describe a real-world record that the database world adopted it as a **primary data model**. Understanding JSON as a data model means understanding both *why it resonates* and *what it costs*.
+
+## What JSON Actually Is
+
+JSON has exactly six value types:
+
+| Type | Example |
+|---|---|
+| String | `"Bangkok"` |
+| Number | `42`, `3.14` |
+| Boolean | `true`, `false` |
+| Null | `null` |
+| Array | `["read", "write", "admin"]` |
+| Object | `{"city": "Bangkok", "zip": "10110"}` |
+
+Objects and arrays can nest arbitrarily deep. That single rule — *nesting is allowed* — is what makes JSON expressive enough to represent almost any real-world entity without splitting it across multiple tables.
+
+```json
+{
+  "id": "usr-8821",
+  "name": "Priya Kapoor",
+  "email": "priya@example.com",
+  "address": {
+    "street": "12 Sukhumvit Rd",
+    "city": "Bangkok",
+    "country": "TH"
+  },
+  "roles": ["editor", "reviewer"],
+  "metadata": {
+    "created_at": "2024-01-15",
+    "last_login": "2025-06-20"
+  }
+}
+```
+
+All the information about Priya lives in one **document** — no joins required to load it. This is the core promise of the document model.
+
+## How JSON Differs from the Relational Row
+
+In a relational table every row must conform to the same fixed schema. Adding a new field means an `ALTER TABLE` migration, and absent values turn into `NULL` columns that waste space and complicate logic.
+
+A JSON document has no such contract. Two documents in the same collection can look completely different:
+
+<figure class="diagram">
+<svg viewBox="0 0 640 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Comparison of a relational table (fixed columns) versus a document collection (variable fields per document)">
+  <!-- Left panel: relational table -->
+  <rect x="10" y="10" width="290" height="290" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="155" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Relational Table</text>
+  <!-- Header row -->
+  <rect x="22" y="44" width="266" height="24" rx="3" fill="var(--accent)" fill-opacity="0.2" stroke="var(--border)" stroke-width="1"/>
+  <text x="55"  y="60" font-size="11" fill="var(--text)" font-weight="bold">id</text>
+  <text x="100" y="60" font-size="11" fill="var(--text)" font-weight="bold">name</text>
+  <text x="175" y="60" font-size="11" fill="var(--text)" font-weight="bold">address</text>
+  <text x="245" y="60" font-size="11" fill="var(--text)" font-weight="bold">roles</text>
+  <!-- Row 1 -->
+  <rect x="22" y="70" width="266" height="24" rx="2" fill="var(--surface-2)" stroke="var(--border)" stroke-width="0.8"/>
+  <text x="55"  y="86" font-size="11" fill="var(--text)">001</text>
+  <text x="100" y="86" font-size="11" fill="var(--text)">Priya</text>
+  <text x="175" y="86" font-size="11" fill="var(--text)">Bangkok</text>
+  <text x="245" y="86" font-size="11" fill="var(--text)">NULL</text>
+  <!-- Row 2 -->
+  <rect x="22" y="96" width="266" height="24" rx="2" fill="var(--surface-2)" stroke="var(--border)" stroke-width="0.8"/>
+  <text x="55"  y="112" font-size="11" fill="var(--text)">002</text>
+  <text x="100" y="112" font-size="11" fill="var(--text)">Leo</text>
+  <text x="175" y="112" font-size="11" fill="var(--text)">NULL</text>
+  <text x="245" y="112" font-size="11" fill="var(--text)">editor</text>
+  <!-- NULL annotation -->
+  <text x="155" y="158" text-anchor="middle" font-size="12" fill="var(--text)" fill-opacity="0.7">Every row shares the same columns.</text>
+  <text x="155" y="175" text-anchor="middle" font-size="12" fill="var(--text)" fill-opacity="0.7">Absent values become NULL.</text>
+
+  <!-- Right panel: document collection -->
+  <rect x="340" y="10" width="290" height="290" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="485" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Document Collection</text>
+
+  <!-- Doc 1 box -->
+  <rect x="354" y="46" width="262" height="78" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="366" y="64" font-size="11" fill="var(--accent)" font-weight="bold">Document 1</text>
+  <text x="366" y="80" font-size="11" fill="var(--text)">"id": "001"</text>
+  <text x="366" y="95" font-size="11" fill="var(--text)">"name": "Priya"</text>
+  <text x="366" y="110" font-size="11" fill="var(--text)">"address": { "city": "Bangkok" }</text>
+
+  <!-- Doc 2 box -->
+  <rect x="354" y="140" width="262" height="78" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="366" y="158" font-size="11" fill="var(--accent)" font-weight="bold">Document 2</text>
+  <text x="366" y="174" font-size="11" fill="var(--text)">"id": "002"</text>
+  <text x="366" y="189" font-size="11" fill="var(--text)">"name": "Leo"</text>
+  <text x="366" y="204" font-size="11" fill="var(--text)">"roles": ["editor"]</text>
+
+  <text x="485" y="248" text-anchor="middle" font-size="12" fill="var(--text)" fill-opacity="0.7">Each document carries its own shape.</text>
+  <text x="485" y="265" text-anchor="middle" font-size="12" fill="var(--text)" fill-opacity="0.7">No NULL filler for absent fields.</text>
+</svg>
+<figcaption>Relational rows share a fixed schema; JSON documents carry only the fields they need.</figcaption>
+</figure>
+
+## Nested Objects vs. Joins
+
+The deepest practical difference is how related data is stored. In a relational model, an order and its line items live in separate tables linked by a foreign key — you retrieve them together with a `JOIN`. In the document model, the line items are *embedded* inside the order document:
+
+```json
+{
+  "order_id": "ORD-5512",
+  "customer": "usr-8821",
+  "items": [
+    { "sku": "NB-001", "qty": 2, "unit_price": 2.99 },
+    { "sku": "LP-042", "qty": 1, "unit_price": 999.00 }
+  ],
+  "total": 1004.98
+}
+```
+
+Fetching the full order is one read — no join. This is extremely efficient for **document-centric access patterns**: you almost always want the whole thing, and you rarely need to query deeply into the embedded arrays from the outside.
+
+> **Note:** Embedding has limits. If you embed too much — for example, storing all comments inside a blog post document — the document grows unboundedly and updates become expensive. The general rule: embed data that is *owned* by the parent and always retrieved with it; reference data that has its own identity or is shared across documents.
+
+## The Schema Flexibility Trade-off
+
+Schema flexibility is real and useful — you can add a new field to one document without touching any others. But it shifts the enforcement burden from the database to your application code. Without discipline:
+
+- Documents in the same collection drift into inconsistent shapes.
+- A typo like `"emial"` instead of `"email"` silently stores bad data.
+- Queries that assume a field exists will silently miss documents that lack it.
+
+Most document databases now offer **optional schema validation** (MongoDB's JSON Schema, Firestore's security rules). Many teams adopt these after their first painful inconsistency bug.
+
+<details class="reveal"><summary>Reveal: When should you embed vs. reference a sub-document?</summary><div class="reveal-body">Embed when: (1) the sub-data is owned by the parent and has no independent existence, (2) you always need the sub-data when you load the parent, and (3) the sub-data is bounded in size (e.g., a fixed list of tags, not an ever-growing history). Reference (store only an ID) when: the sub-entity is shared across many parents (e.g., a product referenced by thousands of orders), the sub-data grows unboundedly (e.g., user activity logs), or you need to query the sub-entity independently.</div></details>
+
+## Querying JSON: Paths and Filters
+
+Document databases expose a query language built around **field paths** — dotted notation that drills into nested objects. For example, in MongoDB you would write:
+
+```js
+// Find all orders where the first item's SKU is NB-001
+db.orders.find({ "items.0.sku": "NB-001" })
+
+// Find orders whose total exceeds 500
+db.orders.find({ total: { $gt: 500 } })
+```
+
+Even relational databases have adopted JSON path syntax. SQLite's `json_extract()` and PostgreSQL's `->` / `->>` operators let you query into JSON columns with similar path expressions. Try it yourself below.
+
+Run this query to extract and filter fields stored as JSON text in SQLite:
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Querying JSON fields</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders (order_id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO orders VALUES ('ORD-5512', '{&quot;customer&quot;:&quot;usr-8821&quot;,&quot;total&quot;:1004.98,&quot;items&quot;:[{&quot;sku&quot;:&quot;NB-001&quot;,&quot;qty&quot;:2},{&quot;sku&quot;:&quot;LP-042&quot;,&quot;qty&quot;:1}]}'); INSERT INTO orders VALUES ('ORD-5513', '{&quot;customer&quot;:&quot;usr-0042&quot;,&quot;total&quot;:5.98,&quot;items&quot;:[{&quot;sku&quot;:&quot;NB-001&quot;,&quot;qty&quot;:2}]}'); INSERT INTO orders VALUES ('ORD-5514', '{&quot;customer&quot;:&quot;usr-8821&quot;,&quot;total&quot;:299.00,&quot;items&quot;:[{&quot;sku&quot;:&quot;TB-009&quot;,&quot;qty&quot;:1}]}');">-- Extract nested fields and filter by total > 100
+SELECT
+  order_id,
+  json_extract(doc, '$.customer')       AS customer,
+  json_extract(doc, '$.total')          AS total,
+  json_extract(doc, '$.items[0].sku')   AS first_item_sku
+FROM orders
+WHERE CAST(json_extract(doc, '$.total') AS REAL) > 100
+ORDER BY total DESC;</textarea>
+  </div>
+</div>
+
+Try changing the threshold (`> 100`) or extracting a different path like `$.items[1].sku`. Notice that when an index is out of range, `json_extract` returns `NULL` — the document model's version of a missing column.

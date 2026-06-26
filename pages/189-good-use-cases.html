@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Good use cases — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part V. Database Families</p>
+  <p class="chapter-label">Chapter 19. Document Databases</p>
+  <h1 class="content-title">Good use cases</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="188-strengths-and-weaknesses.html"><span class="dir">← Previous</span><span class="ttl">Strengths and weaknesses</span></a><a class="next" href="191-wide-rows-and-sparse-data.html"><span class="dir">Next →</span><span class="ttl">Wide rows and sparse data</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Document databases are not universally better or worse than relational databases — they are optimized for a specific set of access patterns. This page walks through the use cases where document databases genuinely shine, explains *why* they fit, and calls out the warning signs that suggest a relational database would serve better.
+
+## The Core Criterion: Document-Centric Access
+
+A document database is a strong fit whenever your application:
+1. Almost always **loads an entity in its entirety** (not individual fields from many rows).
+2. Stores entities that **naturally have variable structure** (not all instances look alike).
+3. Rarely needs to **query across entities** via arbitrary cross-entity joins.
+
+When all three hold, the document model eliminates joins, removes the mismatch between application objects and database rows, and enables schema evolution without migrations.
+
+## Use Case 1: Content Management Systems
+
+A CMS stores articles, blog posts, landing pages, FAQs, and product descriptions. Each content type has a different set of fields:
+
+```json
+// Article: has author, tags, body, reading_time
+{ "_id": "article-991", "type": "article", "title": "...", "author": {...}, "tags": ["tech"], "body": "...", "reading_time": 5 }
+
+// FAQ: has question, answer, category
+{ "_id": "faq-042", "type": "faq", "question": "...", "answer": "...", "category": "billing" }
+
+// Landing page: has hero, sections array, cta
+{ "_id": "page-home", "type": "page", "hero": {...}, "sections": [...], "cta": {...} }
+```
+
+Forcing these into a relational schema requires either a wide table with many NULLs, or an entity-attribute-value anti-pattern. A document collection holds all types naturally.
+
+## Use Case 2: User Profiles and Settings
+
+User profiles are read in full on almost every authenticated request and grow organically over time:
+
+```json
+{
+  "_id": "usr-8821",
+  "email": "priya@example.com",
+  "plan": "pro",
+  "preferences": {
+    "theme": "dark",
+    "notifications": { "email": true, "sms": false },
+    "locale": "en-IN"
+  },
+  "integrations": [
+    { "provider": "google", "connected_at": "2024-01-10" }
+  ],
+  "feature_flags": { "beta_dashboard": true }
+}
+```
+
+Every new feature adds a new sub-field under `preferences` or `feature_flags`. With a document store this requires no migration. With a relational table, every new preference column requires an `ALTER TABLE` or a separate preference table with a join.
+
+## Use Case 3: Product Catalogs with Variable Attributes
+
+E-commerce product catalogs are a classic document database use case precisely because products are heterogeneous:
+
+| Product Type | Unique Attributes |
+|---|---|
+| Clothing | `size`, `color`, `material`, `gender` |
+| Electronics | `voltage`, `wattage`, `dimensions`, `warranty_years` |
+| Digital download | `file_format`, `download_size_mb`, `platform` |
+| Perishable food | `ingredients`, `allergens`, `expiry_days`, `refrigeration` |
+
+In a relational database you must choose: one giant table with hundreds of mostly-NULL columns, or a separate table per product type (hard to query together), or EAV (complex to query, no type safety). A document collection stores each product's actual attributes naturally.
+
+## Use Case 4: Event Logs and Activity Feeds
+
+High-volume append-only data where each event is a self-contained record:
+
+```json
+{ "_id": "evt-1001", "type": "user.login", "user_id": "usr-441", "ip": "203.0.113.5", "at": "2025-06-20T08:14:00Z" }
+{ "_id": "evt-1002", "type": "order.placed", "user_id": "usr-441", "order_id": "ORD-9901", "total": 250, "at": "2025-06-20T08:15:30Z" }
+{ "_id": "evt-1003", "type": "email.sent", "template": "order_confirm", "recipient": "aroha@x.com", "at": "2025-06-20T08:15:31Z" }
+```
+
+Events have different shapes. They are written once and rarely updated. They are read by `_id` or by `user_id` + time range. These are excellent conditions for a document store.
+
+## Use Case 5: Real-Time Applications and Session Data
+
+Mobile apps and games often need to load a complete user or game state in one round trip:
+
+```json
+{
+  "_id": "session-9abc",
+  "player_id": "usr-882",
+  "level": 14,
+  "position": { "x": 120, "y": 340 },
+  "inventory": ["sword-bronze", "potion-health", "key-iron"],
+  "stats": { "hp": 87, "mp": 50, "xp": 14200 },
+  "quest_flags": { "castle_unlocked": true, "boss_defeated": false }
+}
+```
+
+The entire game state is one document. Saving progress is one write. Loading the game is one read. This is exactly the document model's sweet spot.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Spectrum diagram showing use cases arranged from left (strong fit for document DB) to right (strong fit for relational DB), with CMS, profiles, catalogs, and event logs on the left and financial transactions, inventory with joins, and reporting on the right">
+  <defs>
+    <marker id="arrfit" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrfit2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- Spectrum bar -->
+  <defs>
+    <linearGradient id="specgrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="var(--muted)" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+  <rect x="30" y="120" width="580" height="30" rx="6" fill="url(#specgrad)" stroke="var(--border)" stroke-width="1"/>
+  <text x="100" y="110" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--accent)">Document DB fits well</text>
+  <text x="530" y="110" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted)">Relational fits better</text>
+
+  <!-- Left use cases -->
+  <text x="50" y="170" font-size="11" fill="var(--text)" font-weight="bold">CMS content</text>
+  <text x="50" y="185" font-size="11" fill="var(--muted)">Variable structure</text>
+  <line x1="95" y1="150" x2="95" y2="118" stroke="var(--accent)" stroke-width="1.5"/>
+
+  <text x="170" y="170" font-size="11" fill="var(--text)" font-weight="bold">User profiles</text>
+  <text x="170" y="185" font-size="11" fill="var(--muted)">Loaded whole</text>
+  <line x1="205" y1="150" x2="205" y2="118" stroke="var(--accent)" stroke-width="1.5"/>
+
+  <text x="295" y="170" font-size="11" fill="var(--text)" font-weight="bold">Event logs</text>
+  <text x="295" y="185" font-size="11" fill="var(--muted)">Append-only</text>
+  <line x1="325" y1="150" x2="325" y2="118" stroke="var(--text)" stroke-width="1.5"/>
+
+  <!-- Right use cases -->
+  <text x="410" y="170" font-size="11" fill="var(--text)" font-weight="bold">Financial txns</text>
+  <text x="410" y="185" font-size="11" fill="var(--muted)">Multi-entity ACID</text>
+  <line x1="455" y1="150" x2="455" y2="118" stroke="var(--muted)" stroke-width="1.5"/>
+
+  <text x="530" y="170" font-size="11" fill="var(--text)" font-weight="bold">Reporting / BI</text>
+  <text x="530" y="185" font-size="11" fill="var(--muted)">Complex aggregations</text>
+  <line x1="572" y1="150" x2="572" y2="118" stroke="var(--muted)" stroke-width="1.5"/>
+
+  <!-- Warning zone -->
+  <rect x="400" y="215" width="220" height="50" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="510" y="236" text-anchor="middle" font-size="12" fill="var(--text)" font-weight="bold">Warning signs</text>
+  <text x="510" y="254" text-anchor="middle" font-size="11" fill="var(--muted)">Many $lookups, multi-doc transactions,</text>
+  <text x="510" y="267" text-anchor="middle" font-size="11" fill="var(--muted)">or complex aggregation needs</text>
+</svg>
+<figcaption>Use cases arranged by fit. The further right you go, the more you are fighting the document model.</figcaption>
+</figure>
+
+## What Signals a Poor Fit
+
+**You are fighting the document model when:**
+
+- You find yourself writing many `$lookup` stages (joining collections). You want a relational database.
+- You need multi-document transactions frequently. You are modeling relational data as documents.
+- Your documents reference dozens of other collections. The data is naturally relational.
+- Your analytics team cannot query the data without exporting it first. The document model is hostile to ad-hoc aggregation.
+- You need schema enforcement for compliance or data quality. A relational database with `CHECK` constraints and `NOT NULL` is more appropriate.
+
+> **The heuristic:** If your entity relationships look like a graph (many cross-entity links, arbitrary depths), or if your analytics team writes complex GROUP BY queries, the relational or graph model is likely a better fit. Document databases are for **document-shaped data with document-shaped access patterns**.
+
+## Interactive Example
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Heterogeneous product catalog (document-style)</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE products (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO products VALUES ('prod-001', '{&quot;type&quot;:&quot;clothing&quot;,&quot;name&quot;:&quot;Trail Shirt&quot;,&quot;price&quot;:45,&quot;attributes&quot;:{&quot;size&quot;:&quot;L&quot;,&quot;color&quot;:&quot;blue&quot;,&quot;material&quot;:&quot;polyester&quot;}}'); INSERT INTO products VALUES ('prod-002', '{&quot;type&quot;:&quot;electronics&quot;,&quot;name&quot;:&quot;Wireless Earbuds&quot;,&quot;price&quot;:120,&quot;attributes&quot;:{&quot;battery_hours&quot;:8,&quot;bluetooth&quot;:&quot;5.2&quot;,&quot;warranty_years&quot;:2}}'); INSERT INTO products VALUES ('prod-003', '{&quot;type&quot;:&quot;digital&quot;,&quot;name&quot;:&quot;Photo Editor Pro&quot;,&quot;price&quot;:60,&quot;attributes&quot;:{&quot;platform&quot;:&quot;macOS&quot;,&quot;download_size_mb&quot;:450}}'); INSERT INTO products VALUES ('prod-004', '{&quot;type&quot;:&quot;clothing&quot;,&quot;name&quot;:&quot;Running Shorts&quot;,&quot;price&quot;:35,&quot;attributes&quot;:{&quot;size&quot;:&quot;M&quot;,&quot;color&quot;:&quot;black&quot;,&quot;material&quot;:&quot;nylon&quot;}}');">-- Browse all products with their type-specific attributes
+SELECT
+  id,
+  json_extract(doc, '$.type')  AS type,
+  json_extract(doc, '$.name')  AS name,
+  json_extract(doc, '$.price') AS price,
+  -- Extract clothing-specific attribute
+  json_extract(doc, '$.attributes.color') AS color,
+  -- Extract electronics-specific attribute
+  json_extract(doc, '$.attributes.warranty_years') AS warranty_years
+FROM products
+ORDER BY json_extract(doc, '$.price') DESC;
+
+-- Filter to just clothing products:
+-- SELECT id, json_extract(doc,'$.name'), json_extract(doc,'$.attributes.size')
+-- FROM products WHERE json_extract(doc,'$.type') = 'clothing';</textarea>
+  </div>
+</div>
+
+Notice that `color` is NULL for electronics and `warranty_years` is NULL for clothing — but there are no wasted columns in the actual storage. Each document carries only its own attributes. A relational table storing all product types would have many NULL columns per row.
+
+## Key Takeaways
+
+- Document databases are the right tool when: your entities are hierarchical, read as a whole, variable in structure, and not frequently joined with other entity types.
+- The best use cases are: CMS content, user profiles, product catalogs with heterogeneous attributes, event logs, and game/session state.
+- Warning signs that you need a different tool: many cross-collection joins, frequent multi-document transactions, complex aggregation pipelines, or regulatory requirements for schema enforcement.
+- "Use a document database because it's flexible" is not a sufficient reason — the flexibility is a trade-off, not a free lunch. Match the model to the access pattern.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

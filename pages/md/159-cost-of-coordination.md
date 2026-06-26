@@ -1,0 +1,144 @@
+Every distributed agreement — whether it's a two-phase commit vote, a Raft log entry, or a quorum read — has a price tag. That price is **coordination overhead**: the extra latency, network messages, and lock-holding time spent getting multiple nodes to agree before anything is considered done. Understanding where that cost comes from, and how it compounds, is essential before you can make sound decisions about when to coordinate at all.
+
+## Where the Overhead Comes From
+
+A single-node transaction commits in roughly one local fsync to the WAL — microseconds to low milliseconds. A distributed transaction layered on top must do all of that *plus*:
+
+1. **Extra network round-trips.** Every phase of an agreement protocol is a fan-out of messages followed by a collection of responses. Network latency inside a data center is ~0.1–1 ms per hop; cross-region is 5–100 ms. Two-phase commit adds at least **two** such round-trips; consensus (e.g., Raft) adds at least **one** per log entry.
+2. **Serialization through a single point.** Whether the coordinator in 2PC or the leader in Raft, one node becomes the bottleneck. Other nodes — and the transactions blocked waiting on them — can't proceed until that node acts.
+3. **Prolonged lock holding.** Participants in 2PC hold row-level locks from the moment they vote YES until they receive the final COMMIT or ROLLBACK. The longer the round-trip, the longer those locks are held, and the more other transactions queue behind them.
+4. **Increased WAL traffic.** Each node writes prepare and commit records to its WAL independently. More fsyncs, more I/O pressure.
+
+The formula is roughly: **commit latency ≈ local work + (RTT × number of phases) + fsync at each node**. Each extra phase or extra hop multiplies the commit time.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Comparison timeline of local commit versus distributed two-phase commit, showing the extra round-trip time and lock-holding duration">
+  <defs>
+    <marker id="arrc" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="640" height="310" fill="var(--surface-2)" rx="10"/>
+
+  <!-- Title -->
+  <text x="320" y="24" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Commit Latency: Local vs. Distributed</text>
+
+  <!-- ── LOCAL COMMIT ── -->
+  <text x="16" y="54" font-size="12" font-weight="bold" fill="var(--text)">Local commit</text>
+
+  <!-- Timeline bar -->
+  <rect x="16" y="62" width="160" height="28" rx="5" fill="var(--accent)" opacity="0.75"/>
+  <text x="96" y="81" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--surface-2)">Execute + fsync</text>
+
+  <!-- done marker -->
+  <rect x="180" y="62" width="50" height="28" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="205" y="81" text-anchor="middle" font-size="11" fill="var(--text)">DONE</text>
+
+  <!-- brace -->
+  <line x1="16" y1="98" x2="229" y2="98" stroke="var(--border)" stroke-width="1"/>
+  <text x="122" y="112" text-anchor="middle" font-size="11" fill="var(--text)">~1–5 ms</text>
+
+  <!-- ── 2PC COMMIT ── -->
+  <text x="16" y="142" font-size="12" font-weight="bold" fill="var(--text)">Distributed commit (2PC, same region)</text>
+
+  <!-- Phase 1: coordinator sends PREPARE -->
+  <rect x="16" y="152" width="90" height="28" rx="5" fill="var(--accent)" opacity="0.55"/>
+  <text x="61" y="170" text-anchor="middle" font-size="11" fill="var(--surface-2)">Execute</text>
+
+  <!-- RTT 1 arrow -->
+  <rect x="110" y="152" width="110" height="28" rx="5" fill="var(--accent)" opacity="0.3"/>
+  <text x="165" y="168" text-anchor="middle" font-size="10" fill="var(--text)">RTT 1</text>
+  <text x="165" y="179" text-anchor="middle" font-size="10" fill="var(--text)">(PREPARE votes)</text>
+
+  <!-- Participants fsync -->
+  <rect x="224" y="152" width="90" height="28" rx="5" fill="var(--accent)" opacity="0.55"/>
+  <text x="269" y="168" text-anchor="middle" font-size="11" fill="var(--surface-2)">Nodes</text>
+  <text x="269" y="179" text-anchor="middle" font-size="11" fill="var(--surface-2)">fsync</text>
+
+  <!-- RTT 2 arrow -->
+  <rect x="318" y="152" width="110" height="28" rx="5" fill="var(--accent)" opacity="0.3"/>
+  <text x="373" y="168" text-anchor="middle" font-size="10" fill="var(--text)">RTT 2</text>
+  <text x="373" y="179" text-anchor="middle" font-size="10" fill="var(--text)">(COMMIT/ACK)</text>
+
+  <!-- done -->
+  <rect x="432" y="152" width="50" height="28" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="457" y="170" text-anchor="middle" font-size="11" fill="var(--text)">DONE</text>
+
+  <!-- locks held span -->
+  <rect x="16" y="188" width="466" height="12" rx="3" fill="var(--accent)" opacity="0.18"/>
+  <text x="249" y="198" text-anchor="middle" font-size="10" fill="var(--accent)">locks held on participants throughout</text>
+
+  <!-- brace total -->
+  <line x1="16" y1="212" x2="481" y2="212" stroke="var(--border)" stroke-width="1"/>
+  <line x1="16" y1="208" x2="16" y2="216" stroke="var(--border)" stroke-width="1"/>
+  <line x1="481" y1="208" x2="481" y2="216" stroke="var(--border)" stroke-width="1"/>
+  <text x="248" y="228" text-anchor="middle" font-size="11" fill="var(--text)">~10–50 ms (same region) · ~200–500 ms (cross-region)</text>
+
+  <!-- ── Legend ── -->
+  <rect x="16" y="252" width="16" height="14" rx="3" fill="var(--accent)" opacity="0.75"/>
+  <text x="38" y="264" font-size="11" fill="var(--text)">Compute / fsync</text>
+  <rect x="160" y="252" width="16" height="14" rx="3" fill="var(--accent)" opacity="0.3"/>
+  <text x="182" y="264" font-size="11" fill="var(--text)">Network round-trip</text>
+  <rect x="340" y="252" width="16" height="14" rx="3" fill="var(--accent)" opacity="0.18"/>
+  <text x="362" y="264" font-size="11" fill="var(--text)">Lock-holding time</text>
+</svg>
+<figcaption>A distributed commit takes at least 2× the network round-trip time on top of local work, and participants hold locks for the entire duration.</figcaption>
+</figure>
+
+## How Coordination Costs Compound
+
+The latency numbers above look manageable in isolation, but at scale they interact in two painful ways.
+
+**Throughput ceiling.** A single Raft leader (or 2PC coordinator) can only process so many requests per second. Even at 1 ms per round-trip, one leader serializing requests handles at most ~1,000 decisions/s through that single pipeline. Real systems combat this with **pipelining** (send the next entry before the previous one is acknowledged) and **batching** (group many writes into one log entry), but the ceiling is real.
+
+**Contention amplification.** Locks held for longer — because of round-trip time — increase the probability that two transactions conflict. A transaction that would have taken 2 ms on a single node now holds locks for 20 ms; the chance of another transaction touching the same row inside that window is 10× higher. This is why cross-region distributed transactions can collapse a system's effective throughput far more than the raw latency suggests.
+
+| Scenario | Typical commit latency | Relative throughput impact |
+|---|---|---|
+| Single-node (same data center) | 1–5 ms | baseline |
+| Distributed, same data center | 5–20 ms | 3–10× lower |
+| Distributed, cross-region (US-EU) | 150–300 ms | 30–100× lower |
+| Distributed, cross-region + retries | 500 ms – 2 s | potentially 100–1000× lower |
+
+> **Note:** These figures assume a typical relational workload with row-level locking. Read-heavy or append-only workloads are far less sensitive to coordination cost because they hold fewer or no locks during network waits.
+
+## Avoiding Coordination: the Real Goal
+
+Most performance advice for distributed databases is really advice for *reducing coordination*:
+
+- **Partition data so transactions stay on one shard.** No cross-shard = no 2PC. This is the core motivation behind careful sharding key design.
+- **Use single-leader reads with bounded staleness** rather than quorum reads. A stale follower read costs one local lookup; a quorum read costs a full round-trip.
+- **Prefer commutative operations** (counters with `+`, set `UNION`) that can be applied in any order without coordination.
+- **Use saga patterns** for long-running business processes: break a multi-step workflow into individually committed local transactions with compensating steps instead of one big distributed transaction.
+
+The widget below lets you explore how the number of involved nodes and the round-trip time interact to determine total commit latency — concretely, by simulating a latency table.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Commit latency model</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE scenarios (label TEXT, nodes INTEGER, rtt_ms INTEGER, phases INTEGER, local_ms INTEGER); INSERT INTO scenarios VALUES ('Local (1 node)', 1, 0, 0, 4), ('Same-DC 2PC (3 nodes)', 3, 1, 2, 4), ('Same-DC Raft (3 nodes)', 3, 1, 1, 4), ('Cross-region 2PC (3 nodes)', 3, 80, 2, 4), ('Cross-region Raft (5 nodes)', 5, 80, 1, 4), ('Global 2PC (5 nodes, US-EU-AP)', 5, 160, 2, 4);">-- Estimated commit latency = local work + (round-trip time × phases)
+-- Adjust rtt_ms or phases to see the effect.
+SELECT
+  label,
+  nodes,
+  rtt_ms,
+  phases,
+  local_ms,
+  (local_ms + rtt_ms * phases) AS estimated_commit_ms,
+  ROUND(CAST(local_ms + rtt_ms * phases AS REAL) / 4.0, 1) AS slowdown_vs_local
+FROM scenarios
+ORDER BY estimated_commit_ms;</textarea>
+  </div>
+</div>
+
+The `slowdown_vs_local` column shows how many times slower each scenario is than a plain local commit. Try editing `rtt_ms` to `150` for a US–West-Coast-to–EU link and see how quickly coordination becomes the dominant cost — often eclipsing all local database work by an order of magnitude.
+
+<details class="reveal"><summary>Reveal: If coordination is so expensive, why not just avoid all distributed transactions?</summary><div class="reveal-body">
+
+You can — and often should — design systems to avoid them. But some invariants genuinely span multiple partitions or services: moving money between accounts on different shards, booking a seat on a flight while decrementing inventory, or ensuring an order and its payment record are created together. When the business rule *requires* atomicity across nodes, you must either coordinate (and pay the cost), relax the isolation guarantee (and handle anomalies in application code), or re-design the data model so the data lives on the same node.
+
+There is no free lunch: every system that skips distributed coordination is implicitly accepting some form of eventual consistency, application-level compensation, or careful data placement. Understanding the cost of coordination is what lets you make that trade-off deliberately rather than by accident.
+
+</div></details>

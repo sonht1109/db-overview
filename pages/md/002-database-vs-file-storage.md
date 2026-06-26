@@ -1,0 +1,72 @@
+If you have ever stored data in a CSV file, a JSON file, or even a plain text file, you have already solved the same problem a database solves — just with different tools. Understanding *why* developers reach for a database instead of a file is one of the most useful things you can know before writing your first `CREATE TABLE`.
+
+## What file storage looks like
+
+Imagine a small app that tracks employee salaries. The simplest approach is a CSV:
+
+```
+id,name,department,salary
+1,Ada,Engineering,95000
+2,Bola,Marketing,72000
+3,Chidi,Engineering,88000
+```
+
+This works fine for a few hundred rows and one user reading the file at a time. To find all Engineering salaries you write a script that opens the file, reads every line, and filters in memory. To update Ada's salary you read the whole file, rebuild it with the new value, and write it all back out.
+
+## Where files fall short
+
+Files are a blunt instrument once you need any of the following:
+
+| Need | File approach | Problem |
+|---|---|---|
+| **Query** a subset of data | Read entire file, filter in code | Slow; all filtering logic lives in your app |
+| **Update** one record | Read, modify, rewrite entire file | Risk of corruption if the process crashes mid-write |
+| **Concurrent access** | Multiple writers race to overwrite | Data loss or file corruption |
+| **Relationships** | Store IDs, join files in code | No guarantee referential integrity is maintained |
+| **Search** on a non-ID field | Scan every row | No way to index; gets slower as the file grows |
+
+These aren't hypothetical problems — they are precisely the bugs that motivated the creation of relational database systems in the 1970s.
+
+## What a database adds
+
+A database management system (DBMS) layers several capabilities on top of raw storage:
+
+**Structured querying.** Instead of writing file-parsing code, you describe *what* you want in SQL and let the DBMS figure out *how* to get it efficiently.
+
+**Atomicity.** When you update Ada's salary, the DBMS guarantees the write either completes fully or not at all — a crash halfway through leaves the data intact, not half-written.
+
+**Concurrent access.** Multiple clients can read and write simultaneously. The DBMS serialises conflicting writes so neither overwrites the other.
+
+**Indexes.** The DBMS can maintain a sorted index on any column so lookups by department or salary are fast without scanning every row.
+
+**Referential integrity.** Foreign keys let the DBMS enforce that an `employee_id` in a `salaries` table actually refers to a real employee — something a CSV can never guarantee.
+
+> **Note:** A DBMS is not magic — it still writes to files on disk. The difference is that those files are managed by a purpose-built engine that understands structure, concurrency, and recovery.
+
+## See it in SQL
+
+The widget below recreates the employees example as a real database table running in your browser. Try changing the `WHERE` clause, or add `ORDER BY salary DESC` — no file parsing needed.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · employees</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary INTEGER);
+INSERT INTO employees VALUES (1,'Ada','Engineering',95000),(2,'Bola','Marketing',72000),(3,'Chidi','Engineering',88000),(4,'Dana','Marketing',81000),(5,'Emeka','Engineering',102000);">SELECT name, salary
+FROM employees
+WHERE department = 'Engineering'
+ORDER BY salary DESC;</textarea>
+  </div>
+</div>
+
+Notice what you *did not* have to write: no file open, no loop, no manual filter, no sort algorithm. The database handles all of that — and it would handle it just as efficiently with a million rows as with five.
+
+## When a file is actually fine
+
+Databases are not always the right answer. A flat file is perfectly appropriate when:
+
+- Data is **written once and read sequentially** (logs, exports, backups).
+- There is **only one writer and one reader** at a time.
+- The dataset is **small enough** that a full scan is instant and structure overhead is unnecessary.
+- You need a **portable snapshot** that any tool can open without a running server.
+
+The decision is not "files are bad, databases are good." It is: *does your access pattern require querying, concurrent writes, integrity guarantees, or scale?* If yes, reach for a database. If no, a file may be simpler and perfectly correct.

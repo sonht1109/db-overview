@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Documents, graphs, and key-value shapes — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part I. Foundations</p>
+  <p class="chapter-label">Chapter 2. How Data Is Organized</p>
+  <h1 class="content-title">Documents, graphs, and key-value shapes</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="017-normalized-and-denormalized-data.html"><span class="dir">← Previous</span><span class="ttl">Normalized and denormalized data</span></a><a class="next" href="019-choosing-the-right-model.html"><span class="dir">Next →</span><span class="ttl">Choosing the right model</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Not every problem fits neatly into rows and columns. Over the decades, engineers hit cases where the relational table model felt like forcing a square peg into a round hole — deeply nested objects, rapidly changing fields, or data that is fundamentally a network of connections. Three alternative shapes emerged to handle these cases: **key-value**, **document**, and **graph**. Understanding their structure helps you recognise when each is the right tool.
+
+## Key-Value: The Simplest Shape
+
+A key-value store is exactly what the name suggests — a giant dictionary. Every piece of data has a unique **key** (a string or binary blob) and an opaque **value** attached to it. The database does not care what the value contains; it stores and retrieves it without inspecting its structure.
+
+| Concept | Analogy | Example key | Example value |
+|---|---|---|---|
+| Key | Dictionary word | `session:user:4291` | `{"token":"abc","expires":1719000000}` |
+| Value | Dictionary definition | `product:sku:NB-001` | `{"name":"Notebook","price":299}` |
+| Namespace / prefix | Book chapter | `cache:homepage` | `<rendered HTML blob>` |
+
+**When it shines:** session storage, caching, rate-limit counters, feature flags — anywhere you look things up by a single exact key and speed matters most. Redis is the canonical example.
+
+**What it cannot do easily:** queries that search *inside* values (e.g., "find all products under $5") require scanning every key, because the database treats values as black boxes.
+
+## Document: Structure Without a Fixed Schema
+
+A document store lets each record — called a **document** — carry its own nested structure, typically as JSON (or BSON, a binary form). Unlike a relational table, two documents in the same collection do not have to share the same fields.
+
+```json
+// Document 1 — a simple product
+{
+  "id": "NB-001",
+  "name": "Notebook",
+  "price": 2.99,
+  "tags": ["stationery", "paper"]
+}
+
+// Document 2 — a product with richer specs
+{
+  "id": "LP-042",
+  "name": "Laptop",
+  "price": 999.00,
+  "specs": {
+    "ram_gb": 16,
+    "storage_gb": 512,
+    "os": "Linux"
+  },
+  "tags": ["electronics", "computers"]
+}
+```
+
+Both documents live in the same `products` collection yet have different fields. This **schema flexibility** is the primary selling point — teams can evolve data shapes without running `ALTER TABLE` migrations. MongoDB and CouchDB are well-known examples.
+
+> **Note:** Schema flexibility is a trade-off, not a free lunch. Without discipline, documents in the same collection drift into inconsistent shapes, making queries and application code harder to reason about. Many teams add application-level validation or optional schema definitions to stay sane.
+
+### When documents beat tables
+
+Documents are a natural fit when:
+- A record has deeply nested, variable-length sub-structures (e.g., an order with line items, each with options).
+- Different record types share a collection but have mostly different fields.
+- You always retrieve the full object at once and rarely need to join across entities.
+
+They are a poor fit when you need ad-hoc queries across many fields, strong relationships between entities, or multi-document transactions with strong consistency.
+
+## Graph: Relationships as First-Class Citizens
+
+In a relational database, relationships live in foreign keys — they are implicit. A **graph database** makes relationships explicit and stores them as first-class objects alongside the data. The model has two primitives:
+
+- **Node** — an entity (a person, a city, a product)
+- **Edge** — a directed, labelled relationship between two nodes (`:FOLLOWS`, `:PURCHASED`, `:LOCATED_IN`)
+
+Both nodes and edges can carry properties (key-value pairs).
+
+```
+(Alice)-[:FOLLOWS]->(Bob)
+(Alice)-[:PURCHASED {on: '2024-03-01'}]->(Notebook)
+(Bob)-[:LIVES_IN]->(Helsinki)
+```
+
+This makes traversals — "find all people Alice follows who have also purchased a Notebook" — efficient and natural. In a relational database the same query requires multiple joins that grow expensive as relationship depth increases. Neo4j is the leading graph database; Amazon Neptune is a managed option.
+
+**Classic use cases:** social networks, recommendation engines, fraud detection, knowledge graphs, and any domain where the *path* between entities matters as much as the entities themselves.
+
+## Choosing the Right Shape
+
+No model is universally superior. The question is always: *what does your data look like, and what queries will you run?*
+
+| Model | Core strength | Reach for it when… |
+|---|---|---|
+| **Key-value** | Blazing-fast single-key lookup | Caching, sessions, counters |
+| **Document** | Flexible nested structures | Variable-schema records, document-centric apps |
+| **Graph** | Deep relationship traversal | Networks, recommendations, lineage queries |
+| **Relational** | Rich queries across structured data | Most business data with clear entities and joins |
+
+Many production systems combine models — a relational database for transactional records, a key-value store for caching, and a graph database for recommendations — each doing what it does best.
+
+<details class="reveal"><summary>Reveal: Why can't a relational database just use JSON columns to get document-store benefits?</summary><div class="reveal-body">Modern relational databases (PostgreSQL, SQLite, MySQL) do support JSON column types, and for many use cases that is enough — you get flexible nesting while keeping the rest of your data relational. The difference is indexing and query ergonomics. A dedicated document store indexes into nested fields natively and exposes a query language built around document shapes. A relational JSON column can be indexed and queried, but it often feels bolted-on. If JSON flexibility is a minority concern in your schema, a relational JSON column is a pragmatic choice. If most of your data is deeply nested and schema-free, a document store is worth considering.</div></details>
+
+Below, explore how SQLite handles a simple JSON-like scenario using its built-in `json_extract()` function — a small taste of how relational databases reach toward document-store territory.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · JSON in SQLite</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE products (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO products VALUES ('NB-001', '{&quot;name&quot;:&quot;Notebook&quot;,&quot;price&quot;:2.99,&quot;tags&quot;:[&quot;stationery&quot;]}'); INSERT INTO products VALUES ('LP-042', '{&quot;name&quot;:&quot;Laptop&quot;,&quot;price&quot;:999.00,&quot;tags&quot;:[&quot;electronics&quot;]}'); INSERT INTO products VALUES ('PN-007', '{&quot;name&quot;:&quot;Pen&quot;,&quot;price&quot;:0.99,&quot;tags&quot;:[&quot;stationery&quot;]}');">SELECT
+  id,
+  json_extract(doc, '$.name')  AS name,
+  json_extract(doc, '$.price') AS price
+FROM products
+WHERE CAST(json_extract(doc, '$.price') AS REAL) < 5.00
+ORDER BY price;</textarea>
+  </div>
+</div>
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

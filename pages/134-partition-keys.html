@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Partition keys — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part IV. Distributed Systems</p>
+  <p class="chapter-label">Chapter 14. From One Machine to Many</p>
+  <h1 class="content-title">Partition keys</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="133-shared-nothing-systems.html"><span class="dir">← Previous</span><span class="ttl">Shared-nothing systems</span></a><a class="next" href="135-cross-node-queries.html"><span class="dir">Next →</span><span class="ttl">Cross-node queries</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+When you split a large table across multiple nodes (sharding), every row has to land *somewhere*. The **partition key** — sometimes called the shard key — is the column (or columns) whose value decides which node a row lives on. Choosing it well is one of the most consequential design decisions in a distributed system, because you can't easily change it later without moving every row.
+
+## How a Partition Key Works
+
+The database (or a routing layer in front of it) takes the partition key value, runs it through a **partitioning function**, and maps the result to a shard. Three strategies are common:
+
+| Strategy | How rows are assigned | Good for | Watch out for |
+|---|---|---|---|
+| **Range** | Consecutive key values go to the same shard (e.g. user_id 1–1 M on shard A) | Range scans, time-series | Hot spots when new data concentrates on one shard |
+| **Hash** | `hash(key) mod N` → shard index | Even spread of random writes | Range queries must scatter to all shards |
+| **List** | Explicit mapping of values to shards (e.g. country → shard) | Geographic locality | Manual maintenance; skewed if one bucket is huge |
+
+The diagram below shows all three strategies applied to the same `orders` table:
+
+<figure class="diagram">
+<svg viewBox="0 0 640 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three partitioning strategies — range, hash, and list — routing rows from an orders table to shards">
+  <defs>
+    <marker id="pk-arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Source table -->
+  <rect x="240" y="10" width="160" height="50" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="320" y="32" text-anchor="middle" font-size="14" fill="var(--text)" font-weight="bold">orders</text>
+  <text x="320" y="50" text-anchor="middle" font-size="12" fill="var(--text)">(order_id, placed_at, region)</text>
+
+  <!-- ── RANGE column ── -->
+  <text x="80" y="95" text-anchor="middle" font-size="12" fill="var(--accent)" font-weight="bold">RANGE on order_id</text>
+  <line x1="260" y1="60" x2="80" y2="105" stroke="var(--border)" stroke-width="1.5" marker-end="url(#pk-arr)"/>
+  <rect x="20" y="110" width="120" height="36" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="80" y="128" text-anchor="middle" font-size="12" fill="var(--text)">Shard A</text>
+  <text x="80" y="142" text-anchor="middle" font-size="11" fill="var(--text)">id 1 – 1 000 000</text>
+  <rect x="20" y="154" width="120" height="36" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="80" y="172" text-anchor="middle" font-size="12" fill="var(--text)">Shard B</text>
+  <text x="80" y="186" text-anchor="middle" font-size="11" fill="var(--text)">id 1 000 001 – 2 M</text>
+
+  <!-- ── HASH column ── -->
+  <text x="320" y="95" text-anchor="middle" font-size="12" fill="var(--accent)" font-weight="bold">HASH on order_id</text>
+  <line x1="320" y1="60" x2="320" y2="105" stroke="var(--border)" stroke-width="1.5" marker-end="url(#pk-arr)"/>
+  <rect x="258" y="110" width="124" height="36" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="320" y="128" text-anchor="middle" font-size="12" fill="var(--text)">Shard 0</text>
+  <text x="320" y="142" text-anchor="middle" font-size="11" fill="var(--text)">hash(id) mod 3 = 0</text>
+  <rect x="258" y="154" width="124" height="36" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="320" y="172" text-anchor="middle" font-size="12" fill="var(--text)">Shard 1</text>
+  <text x="320" y="186" text-anchor="middle" font-size="11" fill="var(--text)">hash(id) mod 3 = 1</text>
+  <rect x="258" y="198" width="124" height="36" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="320" y="216" text-anchor="middle" font-size="12" fill="var(--text)">Shard 2</text>
+  <text x="320" y="230" text-anchor="middle" font-size="11" fill="var(--text)">hash(id) mod 3 = 2</text>
+
+  <!-- ── LIST column ── -->
+  <text x="555" y="95" text-anchor="middle" font-size="12" fill="var(--accent)" font-weight="bold">LIST on region</text>
+  <line x1="380" y1="60" x2="555" y2="105" stroke="var(--border)" stroke-width="1.5" marker-end="url(#pk-arr)"/>
+  <rect x="490" y="110" width="130" height="36" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="555" y="128" text-anchor="middle" font-size="12" fill="var(--text)">Shard EU</text>
+  <text x="555" y="142" text-anchor="middle" font-size="11" fill="var(--text)">'EU', 'GB', 'DE'</text>
+  <rect x="490" y="154" width="130" height="36" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="555" y="172" text-anchor="middle" font-size="12" fill="var(--text)">Shard US</text>
+  <text x="555" y="186" text-anchor="middle" font-size="11" fill="var(--text)">'US', 'CA', 'MX'</text>
+  <rect x="490" y="198" width="130" height="36" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="555" y="216" text-anchor="middle" font-size="12" fill="var(--text)">Shard APAC</text>
+  <text x="555" y="230" text-anchor="middle" font-size="11" fill="var(--text)">'SG', 'JP', 'AU'</text>
+
+  <!-- legend line -->
+  <line x1="20" y1="260" x2="620" y2="260" stroke="var(--border)" stroke-width="1" stroke-dasharray="4 4"/>
+  <text x="320" y="280" text-anchor="middle" font-size="12" fill="var(--text)">Same table — three different routing strategies, three different tradeoffs</text>
+</svg>
+<figcaption>Range, hash, and list partitioning applied to an orders table — each strategy routes rows to shards differently.</figcaption>
+</figure>
+
+## Hot Spots: The Main Enemy
+
+A **hot spot** happens when one shard receives a disproportionate share of traffic. This defeats the whole point of sharding — you've still got one machine doing all the work.
+
+Common causes:
+
+- **Monotonically increasing keys** (like auto-increment IDs or timestamps) with range partitioning: all new inserts land on the last shard.
+- **Skewed data** with list partitioning: 80% of your orders might come from one region.
+- **Famous entities**: a celebrity's account being accessed millions of times per second hits only one shard.
+
+Hash partitioning largely solves the monotonic-key problem because the hash scrambles the distribution. But it creates a new tradeoff: you lose the ability to do efficient range scans.
+
+> **Note:** Some systems (like Apache Cassandra) add a random suffix to hot partition keys — for example, a celebrity user ID becomes `user:42:0`, `user:42:1`, … `user:42:9` — then aggregate across them at read time. This is called **write sharding** or **salting**.
+
+## Queries and the Partition Key
+
+The partition key shapes *every* query in your system:
+
+- **Key-aligned query** (filter on the partition key): the router sends the query to exactly one shard. Fast and cheap.
+- **Scatter-gather query** (filter on a non-partition column): the router broadcasts to *all* shards, waits for each to reply, then merges the results. Cost scales with the number of shards.
+
+This is why picking the partition key to match your most frequent query pattern matters so much. If 90% of your queries look up orders by `user_id`, partitioning on `user_id` makes those fast. If you instead partition on `order_id` and query by `user_id`, every lookup becomes a scatter-gather.
+
+The interactive example below lets you simulate both cases. The setup creates 12 orders across 4 logical shards, partitioned by `user_id % 4`. Try the two queries and notice which shard each row must come from.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Partition key alignment</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, user_id INTEGER, placed_at TEXT, amount REAL, region TEXT); INSERT INTO orders VALUES (1, 101, '2024-01-05', 49.99, 'US'); INSERT INTO orders VALUES (2, 102, '2024-01-06', 19.00, 'EU'); INSERT INTO orders VALUES (3, 103, '2024-01-07', 89.50, 'APAC'); INSERT INTO orders VALUES (4, 104, '2024-01-08', 12.75, 'US'); INSERT INTO orders VALUES (5, 101, '2024-02-01', 34.00, 'US'); INSERT INTO orders VALUES (6, 102, '2024-02-03', 5.50, 'EU'); INSERT INTO orders VALUES (7, 105, '2024-02-10', 200.00, 'EU'); INSERT INTO orders VALUES (8, 106, '2024-02-11', 60.00, 'APAC'); INSERT INTO orders VALUES (9, 101, '2024-03-01', 15.00, 'US'); INSERT INTO orders VALUES (10, 107, '2024-03-04', 77.00, 'US'); INSERT INTO orders VALUES (11, 108, '2024-03-05', 9.99, 'EU'); INSERT INTO orders VALUES (12, 109, '2024-03-06', 130.00, 'APAC');">-- KEY-ALIGNED: filter on the partition key (user_id).
+-- In a real sharded system this hits exactly ONE shard.
+SELECT order_id, placed_at, amount,
+       (user_id % 4) AS shard
+FROM orders
+WHERE user_id = 101;
+
+-- Try: change the WHERE to filter on 'region' instead of user_id.
+-- That column is NOT the partition key, so ALL shards must be scanned.
+-- SELECT order_id, placed_at, amount, (user_id % 4) AS shard
+-- FROM orders WHERE region = 'EU';</textarea>
+  </div>
+</div>
+
+## Partition Keys in Practice
+
+Real distributed databases make the partition key explicit in their data model:
+
+- **Apache Cassandra**: you declare a `PRIMARY KEY ((partition_key), clustering_cols)`. The double-parenthesis part is the partition key; the clustering columns sort data *within* the partition.
+- **DynamoDB**: every table has a mandatory *partition key* (and an optional *sort key*). Queries without the partition key require a full-table scan via a Global Secondary Index.
+- **CockroachDB / Spanner**: use range-based partitioning under the hood, but expose it through SQL `PARTITION BY` clauses on indexes.
+
+The recurring theme: you choose the partition key at schema-design time, and the system optimizes the data placement around it. Change it later and you're re-writing the whole table — which in a distributed system means shuffling gigabytes or terabytes across the network. Get it right up front.
+
+<details class="reveal"><summary>Reveal: Why can't you just index every column and avoid the scatter-gather problem?</summary><div class="reveal-body">You can add secondary indexes, but in a distributed system a secondary index on a non-partition column is itself partitioned — and usually differently from the base table. A query on that column either hits a <strong>global secondary index</strong> (a separate distributed index that must be kept in sync with every write, adding latency and consistency complexity) or it still scatters to all shards. Either way there's a cost. Primary key lookups remain the only truly cheap, single-shard operation.</div></details>
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

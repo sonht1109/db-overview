@@ -1,0 +1,188 @@
+Databases do not just store data — they guard it. **Roles and permissions** are the primary mechanism databases use to decide who can read, write, or administer which objects. A well-designed role hierarchy is invisible when everything works and invaluable when something goes wrong. This page walks through how role-based access control (RBAC) works in SQL databases, how to design a sensible role hierarchy, and how common mistakes create dangerous privilege escalation paths.
+
+## Roles vs. Users
+
+Modern databases separate the concepts of a **role** (a named set of privileges) from a **login** (the credential used to connect). In PostgreSQL, a role with the `LOGIN` attribute is effectively a user; without it, the role is a group that can be granted to other roles.
+
+```sql
+-- A group role (no login) — defines a privilege set
+CREATE ROLE readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly;
+
+-- A login role that inherits from the group
+CREATE ROLE alice LOGIN PASSWORD 'secret' IN ROLE readonly;
+```
+
+Alice can now log in and read all tables in `public`. She inherits the `readonly` group's privileges automatically. When you later grant `readonly` permission to another table, all members get it immediately.
+
+### The INHERIT Attribute
+
+By default, roles inherit the privileges of roles they are members of. You can suppress this with `NOINHERIT` and require explicit `SET ROLE` to activate sensitive privileges — useful for admin roles you don't want accidentally active:
+
+```sql
+CREATE ROLE dba LOGIN NOINHERIT;
+GRANT superuser_ops TO dba;
+
+-- Must actively switch to activate superuser_ops:
+-- SET ROLE superuser_ops;
+```
+
+## Object-Level Privileges
+
+SQL defines a fixed set of privilege types per object class:
+
+| Object | Privilege types |
+|---|---|
+| Table / view | `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, `TRIGGER` |
+| Column | `SELECT`, `INSERT`, `UPDATE` |
+| Schema | `USAGE`, `CREATE` |
+| Function | `EXECUTE` |
+| Sequence | `USAGE`, `SELECT`, `UPDATE` |
+| Database | `CONNECT`, `TEMPORARY`, `CREATE` |
+
+```sql
+-- Fine-grained: read only two columns of a sensitive table
+GRANT SELECT (order_id, status) ON orders TO support_agent;
+
+-- Schema access: must grant USAGE before object-level grants matter
+GRANT USAGE ON SCHEMA finance TO analyst;
+GRANT SELECT ON finance.transactions TO analyst;
+
+-- Revoke a specific privilege
+REVOKE DELETE ON products FROM api_user;
+```
+
+> **Common gotcha:** Granting `SELECT` on a table in a schema the role cannot `USAGE` does nothing — the role can't even see the schema. Always grant schema `USAGE` first.
+
+<figure class="diagram">
+<svg viewBox="0 0 660 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Role hierarchy: superuser at top, dba and app roles below, individual login roles at the bottom inheriting from their group">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Superuser -->
+  <rect x="255" y="10" width="150" height="42" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="330" y="33" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">superuser</text>
+  <text x="330" y="47" text-anchor="middle" font-size="10" fill="var(--muted)">all privileges</text>
+
+  <!-- Mid-level roles -->
+  <rect x="60" y="100" width="140" height="42" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="130" y="123" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">dba</text>
+  <text x="130" y="137" text-anchor="middle" font-size="10" fill="var(--muted)">DDL + GRANT</text>
+
+  <rect x="255" y="100" width="150" height="42" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="330" y="123" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">app_writer</text>
+  <text x="330" y="137" text-anchor="middle" font-size="10" fill="var(--muted)">SELECT / INSERT / UPDATE</text>
+
+  <rect x="460" y="100" width="140" height="42" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="530" y="123" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">reporter</text>
+  <text x="530" y="137" text-anchor="middle" font-size="10" fill="var(--muted)">SELECT only</text>
+
+  <!-- Login roles -->
+  <rect x="20" y="220" width="110" height="42" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="75" y="243" text-anchor="middle" font-size="11" fill="var(--text)">alice (LOGIN)</text>
+  <text x="75" y="257" text-anchor="middle" font-size="10" fill="var(--muted)">in role: dba</text>
+
+  <rect x="155" y="220" width="110" height="42" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="210" y="243" text-anchor="middle" font-size="11" fill="var(--text)">api (LOGIN)</text>
+  <text x="210" y="257" text-anchor="middle" font-size="10" fill="var(--muted)">in role: app_writer</text>
+
+  <rect x="290" y="220" width="130" height="42" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="355" y="243" text-anchor="middle" font-size="11" fill="var(--text)">service (LOGIN)</text>
+  <text x="355" y="257" text-anchor="middle" font-size="10" fill="var(--muted)">in role: app_writer</text>
+
+  <rect x="445" y="220" width="130" height="42" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="510" y="243" text-anchor="middle" font-size="11" fill="var(--text)">analyst (LOGIN)</text>
+  <text x="510" y="257" text-anchor="middle" font-size="10" fill="var(--muted)">in role: reporter</text>
+
+  <!-- Edges: superuser to mid -->
+  <line x1="260" y1="52" x2="175" y2="100" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="330" y1="52" x2="330" y2="100" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="400" y1="52" x2="485" y2="100" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Edges: mid to login -->
+  <line x1="100" y1="142" x2="75" y2="220" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="300" y1="142" x2="220" y2="220" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="360" y1="142" x2="355" y2="220" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="510" y1="142" x2="510" y2="220" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <text x="330" y="305" text-anchor="middle" font-size="11" fill="var(--muted)">Login roles inherit privileges from their group roles</text>
+</svg>
+<figcaption>A typical role hierarchy. Group roles (dba, app_writer, reporter) hold privileges; login roles inherit them. Superuser is never used for application connections.</figcaption>
+</figure>
+
+## Designing a Safe Role Hierarchy
+
+### Principle of Least Privilege
+
+Every role should have only the privileges it actually needs:
+
+1. **Application service accounts** — `SELECT`, `INSERT`, `UPDATE`, `DELETE` on owned tables. No `DROP`, no `TRUNCATE`, no DDL.
+2. **Migration accounts** — DDL grants (`CREATE`, `ALTER`, `DROP`) used only during deployments, then disconnected.
+3. **Read-only analytics** — `SELECT` on the analytics schema; no access to PII tables in other schemas.
+4. **Admin roles** — require explicit `SET ROLE` activation (`NOINHERIT`) so they're never accidentally on.
+
+### Default Privileges
+
+PostgreSQL's `ALTER DEFAULT PRIVILEGES` automatically applies grants to future objects:
+
+```sql
+-- Ensure future tables in 'public' schema are readable by reporter
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT ON TABLES TO reporter;
+```
+
+Without this, every new table requires a manual `GRANT` — which is inevitably forgotten.
+
+## Privilege Escalation Pitfalls
+
+### SECURITY DEFINER Functions
+
+A function marked `SECURITY DEFINER` runs with the privileges of its creator, not the caller. This is powerful and dangerous:
+
+```sql
+-- Dangerous: any caller gains the creator's privileges inside this function
+CREATE FUNCTION admin_delete(t TEXT) RETURNS void
+  LANGUAGE plpgsql SECURITY DEFINER AS $$
+  BEGIN EXECUTE 'DELETE FROM ' || t; END;
+$$;
+```
+
+If `admin_delete` is callable by a low-privilege role, that role can now delete from any table. Always validate inputs inside `SECURITY DEFINER` functions and grant `EXECUTE` to specific roles only.
+
+### PUBLIC Schema and PUBLIC Role
+
+PostgreSQL's built-in `PUBLIC` role includes all users. Historically, `CREATE` on the public schema was granted to `PUBLIC` by default — meaning any user could create tables there. PostgreSQL 15 removed this default. If you're on an older version:
+
+```sql
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+```
+
+## Interactive Example
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Privilege Audit</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, salary REAL, department TEXT); INSERT INTO employees VALUES (1, 'Alice', 95000, 'Engineering'); INSERT INTO employees VALUES (2, 'Bob', 72000, 'Marketing'); INSERT INTO employees VALUES (3, 'Carol', 88000, 'Engineering'); CREATE TABLE role_grants (role_name TEXT, table_name TEXT, privilege TEXT); INSERT INTO role_grants VALUES ('app_writer', 'employees', 'SELECT'); INSERT INTO role_grants VALUES ('app_writer', 'employees', 'INSERT'); INSERT INTO role_grants VALUES ('app_writer', 'employees', 'UPDATE'); INSERT INTO role_grants VALUES ('reporter', 'employees', 'SELECT'); INSERT INTO role_grants VALUES ('hr_admin', 'employees', 'SELECT'); INSERT INTO role_grants VALUES ('hr_admin', 'employees', 'UPDATE');">-- Audit which roles have which privileges (simulated grant table)
+SELECT role_name, privilege
+FROM role_grants
+WHERE table_name = 'employees'
+ORDER BY role_name, privilege;
+
+-- Simulate a reporter query: read-only, no salary column
+-- (In a real DB, column-level GRANT SELECT (id, name, department) achieves this)
+SELECT id, name, department
+FROM employees
+ORDER BY department, name;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- Separate **group roles** (hold privileges) from **login roles** (hold credentials) — it makes auditing and onboarding dramatically simpler.
+- Grant object privileges at the **schema, table, or column** level as needed; never give more than required.
+- Use **`ALTER DEFAULT PRIVILEGES`** to ensure new objects inherit the right grants automatically.
+- Treat `SECURITY DEFINER` functions as privileged code — audit them like sudo scripts.
+- Revoke `CREATE` on the public schema from the `PUBLIC` role in older PostgreSQL versions.

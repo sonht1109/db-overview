@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rebalancing data — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part IV. Distributed Systems</p>
+  <p class="chapter-label">Chapter 14. From One Machine to Many</p>
+  <h1 class="content-title">Rebalancing data</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="135-cross-node-queries.html"><span class="dir">← Previous</span><span class="ttl">Cross-node queries</span></a><a class="next" href="137-hot-partitions.html"><span class="dir">Next →</span><span class="ttl">Hot partitions</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+When you spread data across multiple nodes, the distribution is rarely perfect forever. Nodes are added to handle growth, removed when they fail or are retired, and some partitions naturally attract more traffic than others. **Rebalancing** is the process of moving data between nodes to restore an even distribution — keeping every machine carrying a fair share of the load without taking the cluster offline.
+
+## Why Data Drifts Out of Balance
+
+In Chapter 13 you saw how partitioning splits a dataset into shards assigned to specific nodes. The assignment that was sensible last month may be a problem today for several reasons:
+
+| Trigger | What happens |
+|---|---|
+| **Node added** | The new node sits idle while existing nodes stay overloaded. |
+| **Node removed / failure** | Its partitions must move somewhere or they become unreachable. |
+| **Hot partition** | One key range attracts disproportionate traffic (e.g., a viral user). |
+| **Data growth** | A partition that started small may now dwarf the others. |
+
+The goal of rebalancing is always the same: spread both **data** and **request load** roughly evenly, move as little data across the network as possible, and keep the cluster serving reads and writes throughout the process.
+
+## Strategies for Rebalancing
+
+### Fixed number of partitions
+
+Create far more partitions than nodes from the very beginning — say, 1000 partitions for a 10-node cluster. Each node owns ~100 partitions. When you add an eleventh node, simply move a few whole partitions to it; no data inside a partition is reorganized.
+
+<figure class="diagram">
+<svg viewBox="0 0 620 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Before and after adding a node: partitions shift from existing nodes to the new node">
+  <!-- Before label -->
+  <text x="155" y="20" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Before (3 nodes)</text>
+  <!-- Node A -->
+  <rect x="20" y="35" width="90" height="160" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="65" y="52" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)">Node A</text>
+  <rect x="30" y="60" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="65" y="75" text-anchor="middle" font-size="11" fill="var(--text)">P1</text>
+  <rect x="30" y="88" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="65" y="103" text-anchor="middle" font-size="11" fill="var(--text)">P2</text>
+  <rect x="30" y="116" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="65" y="131" text-anchor="middle" font-size="11" fill="var(--text)">P3</text>
+  <rect x="30" y="144" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.7"/>
+  <text x="65" y="159" text-anchor="middle" font-size="11" fill="var(--text)">P4</text>
+  <!-- Node B -->
+  <rect x="120" y="35" width="90" height="160" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="165" y="52" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)">Node B</text>
+  <rect x="130" y="60" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="165" y="75" text-anchor="middle" font-size="11" fill="var(--text)">P5</text>
+  <rect x="130" y="88" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="165" y="103" text-anchor="middle" font-size="11" fill="var(--text)">P6</text>
+  <rect x="130" y="116" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="165" y="131" text-anchor="middle" font-size="11" fill="var(--text)">P7</text>
+  <rect x="130" y="144" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.7"/>
+  <text x="165" y="159" text-anchor="middle" font-size="11" fill="var(--text)">P8</text>
+  <!-- Node C -->
+  <rect x="220" y="35" width="90" height="160" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="265" y="52" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)">Node C</text>
+  <rect x="230" y="60" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="265" y="75" text-anchor="middle" font-size="11" fill="var(--text)">P9</text>
+  <rect x="230" y="88" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="265" y="103" text-anchor="middle" font-size="11" fill="var(--text)">P10</text>
+  <rect x="230" y="116" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="265" y="131" text-anchor="middle" font-size="11" fill="var(--text)">P11</text>
+  <rect x="230" y="144" width="70" height="22" rx="3" fill="var(--accent)" opacity="0.7"/>
+  <text x="265" y="159" text-anchor="middle" font-size="11" fill="var(--text)">P12</text>
+
+  <!-- Arrow -->
+  <line x1="330" y1="115" x2="370" y2="115" stroke="var(--border)" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="350" y="108" text-anchor="middle" font-size="11" fill="var(--text)">+Node D</text>
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
+    </marker>
+  </defs>
+
+  <!-- After label -->
+  <text x="500" y="20" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">After (4 nodes)</text>
+  <!-- Node A' -->
+  <rect x="380" y="35" width="70" height="130" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="415" y="52" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)">A</text>
+  <rect x="390" y="60" width="50" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="415" y="75" text-anchor="middle" font-size="11" fill="var(--text)">P1</text>
+  <rect x="390" y="88" width="50" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="415" y="103" text-anchor="middle" font-size="11" fill="var(--text)">P2</text>
+  <rect x="390" y="116" width="50" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="415" y="131" text-anchor="middle" font-size="11" fill="var(--text)">P3</text>
+  <!-- Node B' -->
+  <rect x="458" y="35" width="70" height="130" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="493" y="52" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)">B</text>
+  <rect x="468" y="60" width="50" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="493" y="75" text-anchor="middle" font-size="11" fill="var(--text)">P5</text>
+  <rect x="468" y="88" width="50" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="493" y="103" text-anchor="middle" font-size="11" fill="var(--text)">P6</text>
+  <rect x="468" y="116" width="50" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="493" y="131" text-anchor="middle" font-size="11" fill="var(--text)">P7</text>
+  <!-- Node C' -->
+  <rect x="380" y="175" width="70" height="50" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="415" y="192" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)">C</text>
+  <rect x="390" y="198" width="50" height="22" rx="3" fill="var(--accent)" opacity="0.85"/>
+  <text x="415" y="213" text-anchor="middle" font-size="11" fill="var(--text)">P9</text>
+  <!-- Node D (new) -->
+  <rect x="458" y="175" width="70" height="50" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="493" y="192" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--accent)">D new</text>
+  <rect x="468" y="198" width="50" height="22" rx="3" fill="var(--accent)" opacity="0.5"/>
+  <text x="493" y="213" text-anchor="middle" font-size="11" fill="var(--text)">P4,P8…</text>
+</svg>
+<figcaption>Adding a node moves whole partitions (P4, P8, …) to the new node — no partition is split or reorganized internally.</figcaption>
+</figure>
+
+**Trade-off:** you must choose the total number of partitions upfront. Too few and you cannot distribute finely; too many and the overhead of tracking them grows.
+
+### Dynamic partitioning
+
+Used by databases like HBase and RethinkDB. Partitions split automatically when they exceed a size threshold (say, 10 GB) and merge when they shrink. The cluster tracks partition boundaries in real time, so you never have to pre-commit to a partition count.
+
+### Consistent hashing (virtual nodes)
+
+Systems like Cassandra and DynamoDB assign each node multiple positions ("virtual nodes" or **vnodes**) on a hash ring. When a node is added, it takes over a few vnodes from its neighbors. When a node leaves, its vnodes are handed to the remaining nodes. The key insight: only the data belonging to those specific vnodes moves — everything else stays put.
+
+> **Note:** Consistent hashing dramatically reduces the fraction of keys that need to move when the cluster changes size. With a naive modulo hash (`key % N`), changing N from 10 to 11 remaps almost every key. With consistent hashing, only ~1/N of the keys move.
+
+## Automatic vs. Manual Rebalancing
+
+Most production databases offer a choice:
+
+- **Automatic rebalancing** — the cluster decides when and how to move data (e.g., Cassandra's `nodetool repair`, MongoDB's balancer). Convenient, but a rebalance can spike network and disk I/O exactly when the cluster is already under load.
+- **Manual rebalancing** — an operator triggers moves explicitly. This gives you control over timing (schedule it during off-peak hours) at the cost of operational complexity.
+
+Many systems land in the middle: the cluster detects imbalance and *proposes* a rebalancing plan, but a human must approve or schedule it.
+
+## What Moves During a Rebalance
+
+During a rebalance the cluster streams partition data from one node to another. While the transfer is in progress:
+
+1. The **source node** continues serving reads and writes for the partition.
+2. New writes are also forwarded to the **destination node** so it stays current.
+3. Once the transfer is complete, the routing table is updated and the destination node becomes the primary owner.
+
+This "copy then switch" approach keeps the partition online throughout the move — clients never see a gap in availability.
+
+<details class="reveal"><summary>Reveal: Why not just stop writes during a rebalance?</summary><div class="reveal-body">
+
+Stopping writes would guarantee the source and destination end up identical, which sounds clean — but it means downtime. Real clusters can't afford to go offline every time a node is added or removed. Instead, databases track which writes arrived *after* the copy started (via a replication log or version counter) and apply those delta writes to the destination before doing the final cutover. The window where both copies must agree is shrunk to milliseconds.
+
+</div></details>
+
+## Key Takeaways
+
+| Strategy | Partition count | Best for |
+|---|---|---|
+| Fixed partitions | Chosen upfront, never changes | Predictable workloads, simple ops |
+| Dynamic partitioning | Grows/shrinks with data | Datasets with unpredictable size |
+| Consistent hashing / vnodes | Scales with node count | Large clusters, frequent membership changes |
+
+Rebalancing is not a one-time event — it is an ongoing background process in any long-lived distributed database. Understanding it helps you predict when your cluster will be most vulnerable to latency spikes and gives you the tools to schedule that risk intelligently.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

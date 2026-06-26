@@ -1,0 +1,143 @@
+Under the hood, every key-value database is built on a **storage engine** — the component responsible for actually writing bytes to disk and reading them back efficiently. The simple `GET`/`SET` API you use as a developer is just a thin shell around one of a small number of proven physical data structures. Choosing a storage engine involves a real trade-off between write speed, read speed, memory use, and crash safety. This page covers the three engines you will encounter most often.
+
+## Hash Tables: Pure Speed in RAM
+
+The most direct implementation of a key-value store is a **hash table** in memory. A hash function maps each key to a slot in an array; slot collisions are resolved by chaining or open addressing. Lookup, insert, and delete are all O(1) average.
+
+**Redis** uses this approach for its primary data store. Every key lives in a single in-memory hash table (called `dict`), which means reads and writes are measured in microseconds — no disk I/O on the hot path. Persistence is handled separately: Redis writes a snapshot file (RDB) periodically, or appends every write to an append-only file (AOF). If the process crashes between snapshots, you can lose recent writes — an acceptable trade-off for a cache, less so for a primary database.
+
+> **Note:** Memcached also uses an in-memory hash table but offers no persistence at all. It is a pure cache layer; a restart empties the store completely.
+
+**Limitations:** The dataset must fit in RAM. You cannot range-scan (iterate keys from `a` to `z`) efficiently, because hash tables scatter keys unpredictably across buckets. For most key-value workloads this is fine — you always know your exact key.
+
+## B-Trees: Ordered and Durable
+
+A **B-tree** stores keys in sorted order across a balanced tree of fixed-size pages (typically 4 KB or 16 KB), written directly to disk. Every internal node contains key ranges that guide the search; leaf nodes hold the actual key-value pairs. Lookup is O(log n) but with very few disk reads in practice — a three-level tree holds millions of keys while touching only three pages.
+
+**LMDB** (Lightning Memory-Mapped Database) is the canonical key-value engine built on a B-tree variant. It uses copy-on-write semantics: updates never overwrite live pages, they write a new version of the page and atomically flip the root pointer. This makes LMDB ACID-safe with zero write-ahead logging overhead. **BerkeleyDB** and many embedded databases take a similar approach.
+
+B-trees excel at **range queries** — because keys are sorted, iterating all keys from `session:a` to `session:z` is a sequential page scan. They also offer predictable read performance. The downside: random writes are expensive because updating a key often requires reading its page from disk, modifying it, and writing it back — causing many small random I/Os under a heavy write load.
+
+## LSM-Trees: Write-Optimized for High Throughput
+
+The **Log-Structured Merge-tree** (LSM-tree) flips the B-tree trade-off: it sacrifices some read performance to make writes dramatically faster. This makes it the engine of choice for workloads with high write rates (time-series, event logs, metrics).
+
+The core idea has three stages:
+
+1. **MemTable** — incoming writes go into a sorted in-memory buffer (often a red-black tree or skip list). Reads check here first.
+2. **Write-ahead log (WAL)** — every write is also appended to a sequential log on disk for crash recovery.
+3. **SSTables** — when the MemTable fills up, it is flushed to disk as an immutable, sorted file called an SSTable (Sorted String Table). Background compaction periodically merges SSTables to reclaim space and remove stale versions.
+
+**RocksDB** (developed at Meta, forked from LevelDB) is the dominant LSM-tree engine. It powers **TiKV**, **Apache Cassandra** (internally uses a similar model), **Pebble** (CockroachDB's storage layer), and many others. **WiredTiger**, the default storage engine in MongoDB, also uses an LSM-like approach for its write-heavy collections.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LSM-tree write path: writes go to WAL and MemTable, then flush to L0 SSTables, compacted into deeper levels">
+  <defs>
+    <marker id="eng-arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/>
+    </marker>
+    <marker id="eng-arr2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="var(--border)"/>
+    </marker>
+  </defs>
+
+  <!-- Write input -->
+  <rect x="10" y="130" width="80" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="50" y="146" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Write</text>
+  <text x="50" y="162" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.7">SET k=v</text>
+
+  <!-- WAL -->
+  <rect x="120" y="90" width="100" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="170" y="106" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">WAL</text>
+  <text x="170" y="122" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.7">append-only log</text>
+
+  <!-- MemTable -->
+  <rect x="120" y="170" width="100" height="40" rx="6" fill="var(--accent)" opacity="0.2" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="170" y="186" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">MemTable</text>
+  <text x="170" y="202" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.7">sorted, in RAM</text>
+
+  <!-- Arrows: Write -> WAL, Write -> MemTable -->
+  <line x1="90" y1="143" x2="118" y2="113" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#eng-arr)"/>
+  <line x1="90" y1="157" x2="118" y2="187" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#eng-arr)"/>
+
+  <!-- Flush arrow -->
+  <line x1="220" y1="190" x2="278" y2="190" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#eng-arr2)"/>
+  <text x="249" y="183" text-anchor="middle" font-size="10" fill="var(--text)" opacity="0.6">flush</text>
+
+  <!-- L0 SSTables -->
+  <rect x="280" y="160" width="90" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="325" y="180" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">L0</text>
+  <text x="325" y="196" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.7">SSTables</text>
+  <text x="325" y="212" text-anchor="middle" font-size="10" fill="var(--text)" opacity="0.5">newest</text>
+
+  <!-- Compact arrow L0 -> L1 -->
+  <line x1="370" y1="190" x2="398" y2="210" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#eng-arr2)"/>
+  <text x="384" y="200" text-anchor="middle" font-size="10" fill="var(--text)" opacity="0.6">compact</text>
+
+  <!-- L1 -->
+  <rect x="400" y="200" width="90" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="445" y="220" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">L1</text>
+  <text x="445" y="236" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.7">SSTables</text>
+  <text x="445" y="252" text-anchor="middle" font-size="10" fill="var(--text)" opacity="0.5">larger, merged</text>
+
+  <!-- Compact arrow L1 -> L2 -->
+  <line x1="490" y1="230" x2="518" y2="248" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#eng-arr2)"/>
+
+  <!-- L2 -->
+  <rect x="520" y="240" width="100" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="570" y="260" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">L2 …</text>
+  <text x="570" y="276" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.7">SSTables</text>
+  <text x="570" y="292" text-anchor="middle" font-size="10" fill="var(--text)" opacity="0.5">oldest, largest</text>
+
+  <!-- Read path annotation -->
+  <text x="325" y="140" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">Read checks: MemTable → L0 → L1 → L2</text>
+  <line x1="220" y1="140" x2="620" y2="140" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+
+  <!-- Labels -->
+  <text x="50" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">LSM-Tree Write Path</text>
+  <text x="170" y="60" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.5">RAM + disk</text>
+  <text x="450" y="50" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.5">disk (immutable sorted files)</text>
+  <line x1="280" y1="55" x2="630" y2="55" stroke="var(--border)" stroke-width="1"/>
+  <line x1="120" y1="55" x2="240" y2="55" stroke="var(--border)" stroke-width="1"/>
+</svg>
+<figcaption>LSM-tree write path: writes land in the WAL and MemTable; when the MemTable is full it flushes to L0 SSTables on disk; background compaction merges levels.</figcaption>
+</figure>
+
+**Read amplification** is the LSM trade-off: a read might need to check the MemTable, then several L0 files, then L1, and so on until it finds the key (or confirms it is absent). Bloom filters on each SSTable reduce this cost by letting the engine skip files that definitely do not contain the key.
+
+## Choosing Between Them
+
+| Engine | Write speed | Read speed | Range scans | Dataset size | Examples |
+|---|---|---|---|---|---|
+| **Hash table** | Very fast (RAM) | Very fast (RAM) | No | Fits in RAM | Redis, Memcached |
+| **B-tree** | Moderate | Fast, predictable | Yes | Disk-backed | LMDB, BerkeleyDB |
+| **LSM-tree** | Very fast (sequential) | Moderate (bloom filters help) | Yes | Disk-backed, huge | RocksDB, LevelDB |
+
+> **Note:** Most production key-value systems are not single-engine. Redis adds persistence layers on top of its hash table. RocksDB is embedded inside larger systems (TiKV, Pebble) that add distributed replication on top. The engine is one layer in a larger stack.
+
+The interactive widget below lets you observe a key behavior that distinguishes engines: with a B-tree-style sorted store, range scans are cheap; with a hash table, they require a full scan. Simulate both patterns and compare their `EXPLAIN QUERY PLAN` output.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · B-tree range scan vs hash scan</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE btree_store (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO btree_store VALUES ('session:user:1001', 'token_a'); INSERT INTO btree_store VALUES ('session:user:1042', 'token_b'); INSERT INTO btree_store VALUES ('session:user:2001', 'token_c'); INSERT INTO btree_store VALUES ('product:sku:NB-001', 'notebook'); INSERT INTO btree_store VALUES ('product:sku:PN-002', 'pen'); INSERT INTO btree_store VALUES ('product:sku:RU-003', 'ruler'); INSERT INTO btree_store VALUES ('rate:ip:10.0.0.1', '5'); INSERT INTO btree_store VALUES ('rate:ip:10.0.0.2', '12'); CREATE TABLE hash_store (key TEXT, value TEXT NOT NULL); INSERT INTO hash_store VALUES ('session:user:1001', 'token_a'); INSERT INTO hash_store VALUES ('session:user:1042', 'token_b'); INSERT INTO hash_store VALUES ('session:user:2001', 'token_c'); INSERT INTO hash_store VALUES ('product:sku:NB-001', 'notebook'); INSERT INTO hash_store VALUES ('product:sku:PN-002', 'pen'); INSERT INTO hash_store VALUES ('product:sku:RU-003', 'ruler'); INSERT INTO hash_store VALUES ('rate:ip:10.0.0.1', '5'); INSERT INTO hash_store VALUES ('rate:ip:10.0.0.2', '12');">-- B-tree (PRIMARY KEY = sorted index): range scan is efficient
+SELECT key, value
+FROM btree_store
+WHERE key BETWEEN 'product:' AND 'product:~'
+ORDER BY key;
+
+-- Uncomment to compare query plans:
+-- EXPLAIN QUERY PLAN
+-- SELECT key FROM btree_store WHERE key BETWEEN 'session:' AND 'session:~';
+-- EXPLAIN QUERY PLAN
+-- SELECT key FROM hash_store  WHERE key BETWEEN 'session:' AND 'session:~';</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- **Hash tables** store all keys in RAM for O(1) reads; dataset must fit in memory and range scans require a full scan.
+- **B-trees** store sorted keys in fixed-size pages on disk; give O(log n) reads and support range queries with predictable latency.
+- **LSM-trees** funnel all writes through a sequential path (WAL + MemTable → SSTables); maximize write throughput at the cost of read amplification, mitigated by bloom filters.
+- Every engine has a maintenance phase (log compaction, page splits, or SSTable compaction) — understanding it prevents operational surprises.
+- Production systems often layer engines: a fast in-memory hash table as a cache in front of a durable LSM or B-tree store behind.

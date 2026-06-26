@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Latency, throughput, and concurrency — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VI. Engineering Practice</p>
+  <p class="chapter-label">Chapter 23. Designing for Performance</p>
+  <h1 class="content-title">Latency, throughput, and concurrency</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="219-good-use-cases.html"><span class="dir">← Previous</span><span class="ttl">Good use cases</span></a><a class="next" href="222-read-heavy-vs-write-heavy-workloads.html"><span class="dir">Next →</span><span class="ttl">Read-heavy vs write-heavy workloads</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Performance conversations collapse quickly into three intertwined numbers: **latency**, **throughput**, and **concurrency**. Confuse them and you'll optimise the wrong thing — reducing latency when you need more throughput, or raising concurrency when the bottleneck is single-thread speed. Getting precise about each term is the foundation of every performance decision in this chapter.
+
+## Latency: How Long One Request Takes
+
+**Latency** is the elapsed time between a client sending a request and receiving the final byte of the response. It is measured per-request and usually reported as a distribution, not a mean.
+
+The mean hides the tail. A query that averages 5 ms but has a 99th-percentile of 800 ms will feel broken to 1 in 100 users. Database engineers track:
+
+| Percentile | Common shorthand | Why it matters |
+|---|---|---|
+| p50 | median | Typical experience |
+| p95 | — | Most users' worst case |
+| p99 | "nines" | SLA boundary in most contracts |
+| p99.9 | p999 | Worst-case under load |
+
+### Latency Budget
+
+Every user-facing request has a budget — say 200 ms. That budget is split across network hops, application code, and database queries. A single slow query blows the whole budget. That's why even a "fast" 50 ms average query is unacceptable if it sits inside a budget of 100 ms.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Latency budget breakdown showing network, app, and database time stacked in a horizontal bar">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--text)"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="320" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">200 ms Request Latency Budget</text>
+
+  <!-- Bar segments -->
+  <!-- Network in: 20ms = 64px -->
+  <rect x="40" y="50" width="64" height="48" rx="4" fill="var(--muted)" opacity="0.5" stroke="var(--border)" stroke-width="1"/>
+  <text x="72" y="70" text-anchor="middle" font-size="11" fill="var(--text)">Network</text>
+  <text x="72" y="86" text-anchor="middle" font-size="11" fill="var(--muted)">20 ms</text>
+
+  <!-- App code: 30ms = 96px -->
+  <rect x="104" y="50" width="96" height="48" rx="4" fill="var(--muted)" opacity="0.3" stroke="var(--border)" stroke-width="1"/>
+  <text x="152" y="70" text-anchor="middle" font-size="11" fill="var(--text)">App code</text>
+  <text x="152" y="86" text-anchor="middle" font-size="11" fill="var(--muted)">30 ms</text>
+
+  <!-- DB query: 50ms = 160px -->
+  <rect x="200" y="50" width="160" height="48" rx="4" fill="var(--accent)" opacity="0.4" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="280" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">DB query</text>
+  <text x="280" y="86" text-anchor="middle" font-size="11" fill="var(--text)">50 ms</text>
+
+  <!-- N+1 queries: 60ms = 192px -->
+  <rect x="360" y="50" width="192" height="48" rx="4" fill="var(--accent)" opacity="0.2" stroke="var(--border)" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="456" y="70" text-anchor="middle" font-size="11" fill="var(--text)">N+1 queries</text>
+  <text x="456" y="86" text-anchor="middle" font-size="11" fill="var(--muted)">60 ms hidden</text>
+
+  <!-- Network out: 40ms = remainder -->
+  <rect x="552" y="50" width="48" height="48" rx="4" fill="var(--muted)" opacity="0.5" stroke="var(--border)" stroke-width="1"/>
+  <text x="576" y="70" text-anchor="middle" font-size="10" fill="var(--text)">Net</text>
+  <text x="576" y="86" text-anchor="middle" font-size="10" fill="var(--muted)">40 ms</text>
+
+  <!-- Total bar line -->
+  <line x1="40" y1="115" x2="600" y2="115" stroke="var(--border)" stroke-width="1"/>
+  <line x1="40" y1="110" x2="40" y2="120" stroke="var(--border)" stroke-width="1.5"/>
+  <line x1="600" y1="110" x2="600" y2="120" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="320" y="132" text-anchor="middle" font-size="12" fill="var(--text)">Total: 200 ms  — DB + hidden queries = 55 % of budget</text>
+
+  <!-- Annotation -->
+  <text x="456" y="165" text-anchor="middle" font-size="11" fill="var(--muted)">Dashed = hidden latency from repeated queries</text>
+  <text x="456" y="182" text-anchor="middle" font-size="11" fill="var(--muted)">inside a loop (the N+1 problem)</text>
+</svg>
+<figcaption>A 200 ms budget broken down by stage. The database and incidental N+1 queries consume more than half.</figcaption>
+</figure>
+
+## Throughput: How Many Requests Per Second
+
+**Throughput** is the rate of completed work — requests per second, rows read per second, transactions per minute. It is a system-level property, not a per-request one.
+
+Latency and throughput are related but not the same:
+
+- A system can have **low latency and low throughput** — each query is fast but the server handles only one at a time (no concurrency).
+- A system can have **high throughput and high latency** — a batch ETL job processes millions of rows per second but each individual query takes seconds.
+
+The relationship is approximated by **Little's Law**:
+
+```
+Throughput = Concurrency / Latency
+  (requests/second = concurrent requests / seconds per request)
+```
+
+If your database handles 50 concurrent queries and each takes 0.1 s, throughput is 500 req/s. To double throughput you can either halve latency **or** double concurrency — but concurrency has a ceiling set by your hardware.
+
+## Concurrency: How Much Work Happens in Parallel
+
+**Concurrency** is the number of requests in flight simultaneously. The database manages concurrency through:
+
+- **Connection pooling** — reusing a fixed set of connections rather than opening a new one per request.
+- **Thread / worker pools** — each connection typically maps to an OS thread or async task.
+- **Lock management** — concurrent writers must be serialised on the same row; concurrent readers can proceed in parallel under MVCC.
+
+### The Concurrency Ceiling
+
+Every system has a point where adding more concurrency hurts throughput. Past that point, the overhead of context-switching, lock contention, and cache thrashing grows faster than the gain from parallelism. Profiling tools expose this as CPU saturation or lock-wait time climbing steeply.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Latency Distribution</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE query_log (id INTEGER PRIMARY KEY, endpoint TEXT, latency_ms REAL, recorded_at TEXT); INSERT INTO query_log VALUES (1,'GET /users',4.2,'2024-01-01'),(2,'GET /users',3.8,'2024-01-01'),(3,'GET /users',5.1,'2024-01-01'),(4,'GET /users',220.0,'2024-01-01'),(5,'GET /users',4.5,'2024-01-01'),(6,'POST /orders',12.3,'2024-01-01'),(7,'POST /orders',14.0,'2024-01-01'),(8,'POST /orders',800.0,'2024-01-01'),(9,'POST /orders',11.8,'2024-01-01'),(10,'POST /orders',13.2,'2024-01-01');">-- See how the mean hides the tail
+SELECT
+  endpoint,
+  COUNT(*)                                  AS requests,
+  ROUND(AVG(latency_ms), 1)                 AS mean_ms,
+  ROUND(MIN(latency_ms), 1)                 AS min_ms,
+  ROUND(MAX(latency_ms), 1)                 AS max_ms
+FROM query_log
+GROUP BY endpoint;
+
+-- Try also: SELECT * FROM query_log ORDER BY latency_ms DESC LIMIT 3;</textarea>
+  </div>
+</div>
+
+## Putting It Together
+
+| Metric | Unit | Tuning lever |
+|---|---|---|
+| Latency | ms per request | Indexes, query rewrites, caching |
+| Throughput | requests / second | Horizontal scaling, pooling, batching |
+| Concurrency | simultaneous requests | Pool size, async I/O, partitioning |
+
+> **Key takeaway:** Always measure latency as a **distribution** (p95/p99), not a mean. Use Little's Law to reason about throughput vs concurrency trade-offs. A fast-average, slow-tail query is a production incident waiting to happen.
+
+The next pages in this chapter translate these principles into concrete design decisions — choosing indexes, avoiding joins, caching, and batching — each of which shifts one or more of these three numbers in a targeted way.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

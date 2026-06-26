@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time-series and event workloads — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part V. Database Families</p>
+  <p class="chapter-label">Chapter 20. Column-Family Databases</p>
+  <h1 class="content-title">Time-series and event workloads</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="195-compaction.html"><span class="dir">← Previous</span><span class="ttl">Compaction</span></a><a class="next" href="197-modeling-for-query-patterns.html"><span class="dir">Next →</span><span class="ttl">Modeling for query patterns</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Column-family databases were not designed in a vacuum — they were designed to solve a specific category of problems that relational databases handle poorly at scale: **high-volume, time-ordered data attached to a known entity**. IoT sensor readings, application metrics, user activity streams, financial tick data, server logs — these workloads all share the same shape: a flood of writes keyed by an entity identifier plus a timestamp, later queried as a time range for one entity. Column-family databases turn this shape into a first-class data model.
+
+## Why the Workload Matters
+
+Consider a fleet of 100,000 IoT sensors, each reporting temperature every 10 seconds. That is **10,000 writes per second** and **864 million rows per day**. The queries are almost always the same pattern: "give me all readings for sensor X between time A and time B."
+
+In a relational database, you would have:
+
+```sql
+CREATE TABLE sensor_readings (
+  sensor_id  INT,
+  ts         TIMESTAMP,
+  value      FLOAT,
+  PRIMARY KEY (sensor_id, ts)
+);
+```
+
+This works at small scale. Under heavy write load, however, the B-tree index becomes a bottleneck: random writes to a hot index page cause contention and page splits. Queries across millions of rows for one sensor require expensive index traversals that scatter across disk.
+
+A column-family database — Cassandra being the canonical example — stores the data differently at the physical level: **all readings for a single sensor live contiguously on disk**, sorted by timestamp. The entire time-range query for one sensor becomes a single sequential scan of one partition.
+
+## Partition Key + Clustering Key = Time-Series Superpower
+
+The Cassandra data model separates two key concepts:
+
+| Concept | Role | Example |
+|---|---|---|
+| **Partition key** | Determines which node holds the data; groups rows physically together | `sensor_id` |
+| **Clustering key** | Determines the sort order *within* a partition | `ts` (timestamp) |
+
+```sql
+-- Cassandra CQL
+CREATE TABLE sensor_readings (
+  sensor_id  TEXT,
+  ts         TIMESTAMP,
+  value      FLOAT,
+  unit       TEXT,
+  PRIMARY KEY (sensor_id, ts)
+) WITH CLUSTERING ORDER BY (ts DESC);
+```
+
+With this model:
+- All readings for `sensor:42` land in a single partition.
+- Within that partition, rows are sorted by `ts` descending — the newest reading is always first.
+- A query like `WHERE sensor_id = 'sensor:42' AND ts > '2024-01-01'` is served by a **single partition scan** — no cross-node coordination needed.
+
+<figure class="diagram">
+<svg viewBox="0 0 680 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Partition diagram: sensor_id is the partition key grouping all readings for one sensor, with rows sorted by timestamp within the partition">
+  <defs>
+    <marker id="arrts" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrts2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- Partition: sensor:42 -->
+  <rect x="20" y="20" width="300" height="340" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="170" y="46" text-anchor="middle" font-size="13" font-weight="600" fill="var(--accent)">Partition: sensor:42</text>
+  <text x="170" y="64" text-anchor="middle" font-size="11" fill="var(--muted)">partition key = sensor_id</text>
+
+  <!-- Rows sorted by timestamp -->
+  <rect x="36" y="76" width="268" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="52" y="93" font-size="11" fill="var(--text)" font-family="monospace">2024-06-25 10:00:00</text>
+  <text x="52" y="107" font-size="11" fill="var(--text)" font-family="monospace">value = 71.3°C</text>
+
+  <rect x="36" y="120" width="268" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="52" y="137" font-size="11" fill="var(--text)" font-family="monospace">2024-06-25 09:59:50</text>
+  <text x="52" y="151" font-size="11" fill="var(--text)" font-family="monospace">value = 71.1°C</text>
+
+  <rect x="36" y="164" width="268" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="52" y="181" font-size="11" fill="var(--text)" font-family="monospace">2024-06-25 09:59:40</text>
+  <text x="52" y="195" font-size="11" fill="var(--text)" font-family="monospace">value = 70.9°C</text>
+
+  <rect x="36" y="208" width="268" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="52" y="225" font-size="11" fill="var(--text)" font-family="monospace">2024-06-25 09:59:30</text>
+  <text x="52" y="239" font-size="11" fill="var(--text)" font-family="monospace">value = 70.7°C</text>
+
+  <text x="170" y="268" text-anchor="middle" font-size="12" fill="var(--muted)">... (sorted by ts DESC)</text>
+
+  <rect x="36" y="282" width="268" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="52" y="299" font-size="11" fill="var(--muted)" font-family="monospace">2024-01-01 00:00:00</text>
+  <text x="52" y="313" font-size="11" fill="var(--muted)" font-family="monospace">value = 65.0°C</text>
+  <text x="52" y="335" font-size="10" fill="var(--muted)">↑ sorted, sequential on disk</text>
+
+  <!-- Sort arrow -->
+  <line x1="310" y1="80" x2="310" y2="318" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrts2)"/>
+  <text x="326" y="200" font-size="11" fill="var(--muted)" transform="rotate(90, 326, 200)">clustering key: ts DESC</text>
+
+  <!-- Partition: sensor:99 -->
+  <rect x="360" y="20" width="300" height="180" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="510" y="46" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Partition: sensor:99</text>
+  <text x="510" y="64" text-anchor="middle" font-size="11" fill="var(--muted)">different partition → different node</text>
+
+  <rect x="376" y="76" width="268" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="392" y="93" font-size="11" fill="var(--text)" font-family="monospace">2024-06-25 10:00:00</text>
+  <text x="392" y="107" font-size="11" fill="var(--text)" font-family="monospace">value = 23.1°C</text>
+
+  <rect x="376" y="120" width="268" height="38" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="392" y="137" font-size="11" fill="var(--text)" font-family="monospace">2024-06-25 09:59:50</text>
+  <text x="392" y="151" font-size="11" fill="var(--text)" font-family="monospace">value = 23.0°C</text>
+
+  <text x="510" y="180" text-anchor="middle" font-size="11" fill="var(--muted)">... more rows below</text>
+
+  <!-- Range query highlight -->
+  <rect x="360" y="230" width="300" height="130" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="510" y="256" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">Range Query</text>
+  <text x="376" y="276" font-size="11" fill="var(--text)" font-family="monospace">WHERE sensor_id = &apos;sensor:42&apos;</text>
+  <text x="376" y="294" font-size="11" fill="var(--text)" font-family="monospace">  AND ts &gt;= &apos;09:59:30&apos;</text>
+  <text x="376" y="312" font-size="11" fill="var(--text)" font-family="monospace">  AND ts &lt;= &apos;10:00:00&apos;</text>
+  <text x="510" y="346" text-anchor="middle" font-size="11" fill="var(--muted)">→ sequential scan within partition</text>
+</svg>
+<figcaption>Each sensor's readings live in a single partition, sorted by timestamp. A time-range query is a sequential scan — no index lookups needed, no cross-partition coordination.</figcaption>
+</figure>
+
+## TTL: Auto-Expiring Old Events
+
+Column-family databases (and Cassandra specifically) support **per-row or per-column TTL** (Time-To-Live). When a row's TTL expires, the database automatically writes a tombstone and the data is removed on the next compaction.
+
+```sql
+-- Insert with a 30-day TTL
+INSERT INTO sensor_readings (sensor_id, ts, value, unit)
+VALUES ('sensor:42', toTimestamp(now()), 71.3, 'celsius')
+USING TTL 2592000;  -- 30 days in seconds
+```
+
+TTL is invaluable for event data where you only need the last N days of readings. Without TTL, you'd need a background cleanup job that issues millions of `DELETE` statements — which writes an equal number of tombstones, causing the very problem you're trying to solve.
+
+> **Tip:** Use TTL instead of explicit deletes for time-series cleanup. TTL expiry is handled more efficiently during compaction than user-issued tombstones, and it avoids the tombstone accumulation problem.
+
+## The "Wide Row" Pattern
+
+The column-family data model stores all clustering key values for a partition as a **"wide row"** — conceptually, one row in the partition map that fans out into many columns.
+
+This is why the original name was "column-family" — in the physical layout, it is not a row-per-reading but a wide, sparse row per entity, with each timestamp becoming a column key.
+
+```
+sensor:42 → {
+  "2024-06-25 10:00:00": {"value": 71.3, "unit": "celsius"},
+  "2024-06-25 09:59:50": {"value": 71.1, "unit": "celsius"},
+  "2024-06-25 09:59:40": {"value": 70.9, "unit": "celsius"},
+  ...
+}
+```
+
+This layout is physically co-located on disk — all values for `sensor:42` are stored together, enabling the sequential scan that makes range queries fast.
+
+## The Bucket Anti-Pattern and Partition Size Limits
+
+Cassandra has a practical limit: **a single partition should not exceed a few hundred megabytes or tens of millions of rows**. If a partition grows without bound, it becomes a hot spot on one node and reads slow down as the partition can no longer fit in the SSTable block cache.
+
+For time-series data, a naive partition key like `sensor_id` will grow indefinitely. The solution is **time bucketing**: add a time bucket to the partition key.
+
+```sql
+-- Bad: unbounded partition
+PRIMARY KEY (sensor_id, ts)
+
+-- Better: bucket by day (each partition holds one day's readings)
+PRIMARY KEY ((sensor_id, bucket), ts)
+-- bucket = date_trunc('day', ts) → e.g., '2024-06-25'
+```
+
+**Trade-off of bucketing:**
+- Too small a bucket (e.g., per-minute) → many tiny partitions, range queries require scanning many partitions (multi-partition queries are expensive and unordered).
+- Too large a bucket (e.g., per-year) → partitions grow too large, hot spots.
+
+For sensors writing every 10 seconds, a daily bucket gives ~8,640 rows per partition — a comfortable size.
+
+## Comparing Relational vs. Column-Family for Time-Series
+
+| Aspect | Relational DB | Column-Family (Cassandra) |
+|---|---|---|
+| **Write path** | Random B-tree update + index | Sequential LSM append |
+| **10k writes/sec** | Requires careful sharding + tuning | Handled natively |
+| **Range query (one entity)** | Index range scan (random I/O) | Sequential partition scan |
+| **Range query (all entities)** | Full table scan or index | Must query each partition separately |
+| **TTL / auto-expiry** | Requires cron job | Native per-row TTL |
+| **Schema changes** | `ALTER TABLE` — may lock | Add column (natively flexible) |
+| **Aggregations (AVG, SUM)** | Strong, fast with index | Limited — push to app or use materialized views |
+
+The relational model struggles with **writes at IoT scale and range queries that must aggregate across all entities** — for example, "what was the average temperature across all sensors in the last hour?" That cross-partition query in Cassandra requires a full cluster scan; a relational database can answer it with a single indexed aggregate.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Time-Series Range Queries</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE sensor_readings (sensor_id TEXT, ts TEXT, value REAL, unit TEXT); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 10:00:00', 71.3, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:59:50', 71.1, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:59:40', 70.9, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:59:30', 70.7, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:00:00', 68.2, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:99', '2024-06-25 10:00:00', 23.1, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:99', '2024-06-25 09:59:50', 23.0, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:99', '2024-06-25 09:00:00', 22.8, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:10', '2024-06-25 10:00:00', 55.4, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:10', '2024-06-25 09:59:50', 55.2, 'celsius');">-- 1. Time-range query for one sensor (the fast path in a column-family DB)
+SELECT sensor_id, ts, value
+FROM sensor_readings
+WHERE sensor_id = 'sensor:42'
+  AND ts &gt;= '2024-06-25 09:59:00'
+  AND ts &lt;= '2024-06-25 10:00:00'
+ORDER BY ts DESC;
+
+-- 2. Latest reading per sensor (try uncommenting)
+-- SELECT sensor_id, MAX(ts) AS latest_ts, value
+-- FROM sensor_readings
+-- GROUP BY sensor_id;
+
+-- 3. Average temp across all sensors in last minute (expensive cross-partition in real Cassandra)
+-- SELECT sensor_id, AVG(value) AS avg_temp
+-- FROM sensor_readings
+-- WHERE ts &gt;= '2024-06-25 09:59:00'
+-- GROUP BY sensor_id;</textarea>
+  </div>
+</div>
+
+## User Activity and Event Logs
+
+The same model extends naturally to user activity:
+
+```sql
+CREATE TABLE user_events (
+  user_id    TEXT,
+  occurred   TIMESTAMP,
+  event_type TEXT,
+  payload    TEXT,
+  PRIMARY KEY (user_id, occurred)
+) WITH CLUSTERING ORDER BY (occurred DESC)
+  AND default_time_to_live = 7776000;  -- 90 days TTL
+```
+
+Queries like "show me the last 50 events for user U" are trivially fast — one partition, a limit on the scan. "Show me all users who clicked button X in the last hour" is not — that requires querying every user's partition or building a secondary index.
+
+> **Design principle:** Model your data around your queries, not your entities. If your primary access pattern is "all events for user U sorted by time," the partition key is `user_id` and the clustering key is `occurred`. If you also need "all events of type X across all users," you need a separate table (or materialized view) with `event_type` as the partition key.
+
+## Key Takeaways
+
+- Column-family databases excel at **high-volume, time-ordered data** because the partition key groups all data for one entity together, and the clustering key sorts it by time — enabling fast sequential reads.
+- A query for one entity's events over a time range is a **single partition scan** — no cross-node joins, no index lookups.
+- **TTL** makes automatic event expiry a first-class feature: no cleanup jobs, no tombstone storms from mass deletes.
+- The **wide row pattern** co-locates all timestamped events for an entity on disk; this is the source of the "column-family" name.
+- **Bucketing the partition key** (e.g., `(sensor_id, day)`) prevents partitions from growing unboundedly — the key operational safeguard for time-series tables.
+- Column-family databases are weak at **cross-entity aggregations** ("average across all sensors") — for that, pair them with a stream processor (Flink, Spark) or a purpose-built time-series database (InfluxDB, TimescaleDB).
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+Key-value databases trade away almost everything a relational database offers — rich queries, joins, schemas — in exchange for one thing: **blazing-fast access to a single value by its key**. That sounds like a drastic trade-off, but for the right workloads it is exactly the right deal. This page explains how key-value stores work internally, what their APIs look like in practice, and why that simplicity is a feature, not a limitation.
+
+## The Core Idea: A Hash Map at Database Scale
+
+The mental model is a hash map (or dictionary) in memory — the same data structure you use in code every day. Given a key, you get the value. That's it. There is no schema, no schema migration, no foreign key to validate, no planner choosing a join strategy.
+
+Under the hood, most key-value stores use one of two physical structures:
+
+- **Hash table** — O(1) average lookup; used by Redis for its in-memory store. Keys and values live in RAM; persistence is a separate concern (append-only log or periodic snapshot).
+- **B-tree or LSM-tree** — used when the dataset is too large for RAM and durability is the priority. RocksDB (which powers many embedded key-value layers) uses an LSM-tree for high-throughput writes.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Key-value lookup flow: client sends GET key, store hashes key to a slot, returns value directly">
+  <!-- Background panels -->
+  <rect x="10" y="20" width="120" height="220" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="70" y="44" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Client</text>
+
+  <rect x="260" y="20" width="370" height="220" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="445" y="44" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Key-Value Store</text>
+
+  <!-- Hash buckets inside store -->
+  <rect x="280" y="60" width="80" height="30" rx="4" fill="var(--accent)" opacity="0.15" stroke="var(--border)" stroke-width="1"/>
+  <text x="320" y="80" text-anchor="middle" font-size="12" fill="var(--text)">slot 0</text>
+  <rect x="280" y="96" width="80" height="30" rx="4" fill="var(--accent)" opacity="0.35" stroke="var(--border)" stroke-width="1"/>
+  <text x="320" y="116" text-anchor="middle" font-size="12" fill="var(--text)">slot 1 ✓</text>
+  <rect x="280" y="132" width="80" height="30" rx="4" fill="var(--accent)" opacity="0.15" stroke="var(--border)" stroke-width="1"/>
+  <text x="320" y="152" text-anchor="middle" font-size="12" fill="var(--text)">slot 2</text>
+  <rect x="280" y="168" width="80" height="30" rx="4" fill="var(--accent)" opacity="0.15" stroke="var(--border)" stroke-width="1"/>
+  <text x="320" y="188" text-anchor="middle" font-size="12" fill="var(--text)">slot 3</text>
+  <text x="320" y="220" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">hash table</text>
+
+  <!-- Value box -->
+  <rect x="430" y="81" width="170" height="58" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="515" y="103" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">session:user:4291</text>
+  <text x="515" y="122" text-anchor="middle" font-size="11" fill="var(--text)">{"token":"abc123","ttl":3600}</text>
+
+  <!-- Arrow: slot 1 -> value -->
+  <line x1="360" y1="111" x2="428" y2="111" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Client commands -->
+  <text x="70" y="100" text-anchor="middle" font-size="12" fill="var(--text)" font-family="monospace">GET</text>
+  <text x="70" y="118" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.7">session:</text>
+  <text x="70" y="134" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.7">user:4291</text>
+
+  <!-- Arrow: client -> store -->
+  <line x1="132" y1="110" x2="258" y2="110" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr2)"/>
+  <!-- Arrow back: store -> client -->
+  <line x1="258" y1="150" x2="132" y2="150" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr3)"/>
+  <text x="195" y="145" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.7">value</text>
+
+  <!-- Hash label -->
+  <text x="315" y="58" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">hash(key) → slot</text>
+
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
+    </marker>
+    <marker id="arr3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>A GET request is hashed directly to a memory slot — no table scan, no query planner, just one pointer dereference.</figcaption>
+</figure>
+
+## The API: Five Operations and You're Done
+
+The entire key-value API typically fits in five commands. Redis, Memcached, and virtually every embedded key-value library share this shape:
+
+| Operation | What it does | Redis example |
+|---|---|---|
+| `SET key value` | Store or overwrite a value | `SET session:4291 "{...}"` |
+| `GET key` | Retrieve a value (or nil) | `GET session:4291` |
+| `DEL key` | Remove a key entirely | `DEL session:4291` |
+| `EXISTS key` | Check presence without fetching | `EXISTS session:4291` |
+| `EXPIRE key seconds` | Schedule automatic deletion | `EXPIRE session:4291 3600` |
+
+> **Note:** The `EXPIRE` / TTL (time-to-live) feature is one of the most useful primitives in any key-value store. It lets you implement caches, session expiry, and rate-limit windows without a background cleanup job — the store handles deletion automatically.
+
+Redis extends this core with richer value types — lists, sorted sets, hyperloglogs — but even then, every command addresses a single key. You still never write a `WHERE` clause.
+
+### Key Naming Conventions
+
+Because there is no schema to structure your data, teams impose order through **key naming patterns**:
+
+```
+<namespace>:<entity>:<id>[:<field>]
+
+session:user:4291
+cache:homepage:en
+ratelimit:ip:203.0.113.5:2024-06
+leaderboard:game:chess:weekly
+```
+
+The colon is just a convention (Redis calls them "keyspaces"), but it matters in practice: it lets you reason about what's in the store, set TTLs per category, and scan a namespace for debugging.
+
+## When Simple Wins
+
+Key-value stores dominate four workload categories where their simplicity is genuinely optimal:
+
+1. **Session storage** — web sessions are looked up by session ID on every request. A hash map in Redis takes ~100 µs; a relational query scanning an indexed table takes ~1–5 ms. At thousands of requests per second, the difference is material.
+2. **Caching** — rendered HTML fragments, API responses, and computed aggregates are stored under a cache key and expire automatically via TTL.
+3. **Rate limiting** — increment a counter keyed by `ratelimit:<user>:<window>`; if it exceeds the limit, reject the request. The `INCR` and `EXPIRE` commands make this atomic and trivial.
+4. **Feature flags** — store `feature:<flag_name>` as `"on"` or `"off"` (or a JSON config blob) and read it on startup or per-request. Instant rollouts without a database migration.
+
+The common thread: **you always know the full key up front**. The moment you need to ask "give me all sessions for users in Germany" — a query across values — a key-value store forces a full scan and you should reach for a different tool.
+
+Try the widget below to simulate a session-store workflow using SQLite's key-value-like lookup pattern. Notice how the query is always an exact key match — no joins, no filters on value contents.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Key-Value Lookup Pattern</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE kv_store (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_at INTEGER); INSERT INTO kv_store VALUES ('session:user:4291', '{&quot;token&quot;:&quot;abc123&quot;,&quot;role&quot;:&quot;admin&quot;}', 9999999999); INSERT INTO kv_store VALUES ('session:user:8842', '{&quot;token&quot;:&quot;xyz987&quot;,&quot;role&quot;:&quot;viewer&quot;}', 9999999999); INSERT INTO kv_store VALUES ('cache:homepage:en', '&lt;html&gt;...cached...&lt;/html&gt;', 9999999999); INSERT INTO kv_store VALUES ('ratelimit:ip:203.0.113.5', '42', 9999999998); INSERT INTO kv_store VALUES ('feature:dark_mode', 'on', NULL);">-- Exact key lookup (the only fast path in a key-value store)
+SELECT key, value
+FROM kv_store
+WHERE key = 'session:user:4291';
+
+-- Try changing the key above to 'feature:dark_mode' or 'ratelimit:ip:203.0.113.5'
+-- Then try a value-content search below — notice it must scan every row:
+-- SELECT key FROM kv_store WHERE value LIKE '%admin%';</textarea>
+  </div>
+</div>

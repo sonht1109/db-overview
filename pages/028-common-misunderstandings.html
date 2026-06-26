@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Common misunderstandings — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part I. Foundations</p>
+  <p class="chapter-label">Chapter 3. The Relational Model</p>
+  <h1 class="content-title">Common misunderstandings</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="027-integrity-by-design.html"><span class="dir">← Previous</span><span class="ttl">Integrity by design</span></a><a class="next" href="029-where-the-relational-model-shines.html"><span class="dir">Next →</span><span class="ttl">Where the relational model shines</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+The relational model is deceptively simple to describe but surprisingly easy to misuse. A few stubborn myths trip up newcomers — and even experienced developers — leading to slow queries, fragile schemas, and hard-to-fix bugs. This page names them plainly so you can avoid them from the start.
+
+## Misunderstanding 1: "A table is just a spreadsheet"
+
+At first glance, a table and a spreadsheet look identical: rows and columns, values in cells. But the relational model makes a guarantee that spreadsheets do not: **rows in a table are an unordered set**. There is no row 1, row 2, row 3 in any meaningful sense unless you ask for an explicit order.
+
+This trips people up in two common ways:
+
+1. **Assuming `SELECT *` returns rows in insertion order.** It might — but only by accident of the current execution plan. Add an index, vacuum the table, or scale the data and that order can change silently.
+2. **Using a row's physical position to mean something.** Spreadsheet users often rely on "this is the 5th row so it's the 5th entry." In a relation, position carries no meaning.
+
+The fix is simple: if order matters to your result, write `ORDER BY`. That is the *only* reliable contract.
+
+```sql
+-- Wrong: relies on undefined ordering
+SELECT * FROM events;
+
+-- Right: declare the order you need
+SELECT * FROM events ORDER BY occurred_at;
+```
+
+> **Note:** The relational model inherits this from set theory. A mathematical set has no inherent sequence — and neither does a SQL table. `ORDER BY` is not a hint; it is the authoritative way to impose sequence.
+
+## Misunderstanding 2: "NULL means zero (or empty string, or false)"
+
+NULL is one of the most misunderstood concepts in SQL. It does not mean zero, blank, or false. It means **the value is unknown or inapplicable**. That distinction has real consequences because NULL follows a three-valued logic: a comparison with NULL yields neither TRUE nor FALSE — it yields NULL.
+
+| Expression | Result |
+|---|---|
+| `NULL = NULL` | NULL (not TRUE) |
+| `NULL = 0` | NULL (not TRUE) |
+| `NULL <> 'hello'` | NULL (not TRUE) |
+| `1 + NULL` | NULL |
+
+This means `WHERE column = NULL` **never matches any row**, even rows where the column is NULL. The correct test is `IS NULL` or `IS NOT NULL`.
+
+Try it yourself — notice how many rows each version matches:
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · NULL traps</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE signups (id INTEGER PRIMARY KEY, username TEXT, referrer TEXT); INSERT INTO signups VALUES (1, 'alice', 'google'); INSERT INTO signups VALUES (2, 'bob', NULL); INSERT INTO signups VALUES (3, 'carol', NULL); INSERT INTO signups VALUES (4, 'dan', 'twitter');">-- How many rows have no referrer?
+-- Try both versions and compare the counts.
+
+-- Version A (broken): WHERE referrer = NULL
+SELECT COUNT(*) AS broken_count FROM signups WHERE referrer = NULL;
+
+-- Version B (correct): WHERE referrer IS NULL
+SELECT COUNT(*) AS correct_count FROM signups WHERE referrer IS NULL;</textarea>
+  </div>
+</div>
+
+A related trap: `COUNT(column)` counts only non-NULL values, while `COUNT(*)` counts all rows. Both are useful — but only if you know which one you mean.
+
+## Misunderstanding 3: "More tables means slower queries"
+
+New schema designers sometimes denormalize aggressively — stuffing everything into one giant table — because they fear joins are slow. This is backwards.
+
+Joins are not inherently expensive. A well-indexed join between two tables is often *faster* than a full scan of a single bloated table, because:
+
+- The optimizer can use indexes on the join columns to skip most rows.
+- Smaller, focused tables fit more rows per disk page.
+- Redundant data in a denormalized table means more bytes to read.
+
+The real cost drivers are **missing indexes** and **returning more data than needed** — not the join itself.
+
+That said, normalization has real trade-offs. Heavy aggregation workloads (analytics, reporting) sometimes benefit from pre-joined, denormalized structures. The right choice depends on your workload — not a blanket fear of joins.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Join vs. flat table</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders_flat (order_id INTEGER, customer_name TEXT, customer_email TEXT, product_name TEXT, product_price REAL, qty INTEGER); INSERT INTO orders_flat VALUES (1,'Alice','alice@x.com','Widget',9.99,3),(2,'Alice','alice@x.com','Gadget',24.99,1),(3,'Bob','bob@x.com','Widget',9.99,2); CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, email TEXT); CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, price REAL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product_id INTEGER, qty INTEGER); INSERT INTO customers VALUES (1,'Alice','alice@x.com'),(2,'Bob','bob@x.com'); INSERT INTO products VALUES (1,'Widget',9.99),(2,'Gadget',24.99); INSERT INTO orders VALUES (1,1,1,3),(2,1,2,1),(3,2,1,2);">-- Both queries answer: total spend per customer.
+-- The normalized version stores each fact once.
+
+-- Flat (denormalized) approach:
+SELECT customer_name, SUM(product_price * qty) AS total
+FROM orders_flat GROUP BY customer_name;
+
+-- Normalized approach (same answer, no redundant data stored):
+SELECT c.name, SUM(p.price * o.qty) AS total
+FROM orders o
+JOIN customers c ON o.customer_id = c.id
+JOIN products  p ON o.product_id  = p.id
+GROUP BY c.name;</textarea>
+  </div>
+</div>
+
+Notice that `orders_flat` duplicates Alice's name and email on every order row. If Alice changes her email, you must update every row. The normalized schema stores it once — update the `customers` row and every query instantly reflects the change.
+
+## Misunderstanding 4: "The primary key must be an auto-increment integer"
+
+Auto-increment integers (`id SERIAL`, `id INTEGER PRIMARY KEY AUTOINCREMENT`) are convenient defaults, but they are not a requirement of the relational model. A primary key must be **unique and non-NULL** — that is all.
+
+Natural keys — values that already exist in the domain — are perfectly valid:
+
+| Table | Natural key candidate |
+|---|---|
+| countries | ISO country code (`'US'`, `'DE'`) |
+| currency_pairs | `('USD', 'EUR')` composite |
+| employees | Employee number assigned by HR |
+
+Surrogate keys (auto-increment integers) win when no natural key is stable or guaranteed unique. Natural keys win when you want human-readable references and the value truly won't change. Neither is universally correct — the choice is about stability and legibility of the data, not a rule of the model itself.
+
+<details class="reveal"><summary>Reveal: Can a table have no primary key at all?</summary><div class="reveal-body">Technically yes — SQL allows tables without a primary key (they are called <em>heap tables</em> in some engines). But the relational model assumes every relation has a key: without one, you can have duplicate rows, which breaks set semantics and makes updates and deletes ambiguous. In practice, always define a primary key.</div></details>
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

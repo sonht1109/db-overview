@@ -1,0 +1,93 @@
+Every database engine keeps a pool of memory pages — the **buffer pool** — so it can serve reads from RAM instead of disk. When a transaction modifies data, it changes the in-memory copy of a page first. That page is now out of sync with what is on disk. A page in that state is called a **dirty page**. Getting it back to disk is called **flushing**. Understanding this cycle is the key to understanding write performance, crash recovery, and checkpoint mechanics.
+
+## What Makes a Page "Dirty"
+
+Think of the buffer pool as a shared whiteboard. Each slot on the whiteboard holds one page of data (commonly 8 KB or 16 KB). When a query updates a row, the engine:
+
+1. Loads the page from disk into a buffer pool slot (if it isn't already there).
+2. Modifies the in-memory copy.
+3. Marks the slot with a **dirty bit** — a single flag saying "this page differs from what's on disk."
+
+The page stays dirty in RAM, potentially for seconds or minutes, while other transactions can also read and modify it. This is intentional: writing every change immediately to disk would serialize all writes and kill throughput.
+
+```
+Buffer Pool (in RAM)
+┌─────────────────────────────────────────────────────┐
+│  Slot 1  │ page 47  │ dirty=0 │  (matches disk)     │
+│  Slot 2  │ page 12  │ dirty=1 │  ← modified in txn  │
+│  Slot 3  │ page 88  │ dirty=1 │  ← modified in txn  │
+│  Slot 4  │ page 5   │ dirty=0 │  (matches disk)     │
+└─────────────────────────────────────────────────────┘
+           ↕                  ↕ (fsync on flush)
+         Disk                Disk
+```
+
+The WAL (covered in the previous section) is what makes it safe to leave dirty pages in RAM: even if power fails, the log already contains enough information to replay the change. The dirty page is merely a performance optimization — it defers the more expensive random-write I/O.
+
+## When Dirty Pages Get Flushed
+
+Flushing is triggered by several conditions:
+
+| Trigger | Why it happens |
+|---|---|
+| **Checkpoint** | Engine periodically forces all dirty pages to disk to bound recovery time |
+| **Buffer pool pressure** | A slot is needed for a new page; if the evicted slot is dirty, it must be flushed first |
+| **Explicit `CHECKPOINT`** | DBA or replication forces a sync point |
+| **Shutdown** | Clean shutdown flushes everything |
+| **`fsync` at COMMIT** (SQLite default) | Full sync on every commit — safe but slow |
+
+Checkpoints are the dominant path on a busy system. At checkpoint time, the engine scans the buffer pool for all dirty pages and writes them to the data file, then records a checkpoint LSN in the WAL. Any log records before that LSN are now redundant for recovery purposes.
+
+> **Note:** Flushing a dirty page requires an `fsync` call — a system call that tells the OS to push data all the way through its own write cache to physical storage. Without `fsync`, a crash can lose changes even after the OS acknowledged the write. This is why `fsync=off` is a dangerous configuration shortcut.
+
+## The Write Path, Step by Step
+
+Here is the full lifecycle of a dirty page for a simple `UPDATE`:
+
+```
+1. Transaction calls UPDATE
+2. Engine pins the target page in the buffer pool
+3. WAL record written: old value + new value + LSN   ← log first!
+4. In-memory page modified; dirty bit set
+5. Transaction COMMITs → WAL flushed/fsynced to disk
+6. Client receives "OK"
+   ... time passes ...
+7. Checkpoint fires → dirty pages written to data file
+8. Checkpoint LSN written to WAL
+9. Old WAL segments before this LSN can be recycled
+```
+
+Step 3 before step 4 is the write-ahead rule. Steps 5 and 7 are separate `fsync` calls — one to protect durability of the commit, one to advance the checkpoint so recovery is fast.
+
+## Watching the Pattern with SQLite
+
+SQLite's `pragma_page_count` and the `wal_checkpoint` pragma let you observe checkpointing directly. The widget below creates a small table, inserts some rows (dirtying pages), then runs a checkpoint that flushes them. Watch how the WAL frame count resets after the checkpoint.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Dirty pages and checkpointing</span></div>
+  <div class="widget-body">
+    <textarea data-setup="PRAGMA journal_mode=WAL; CREATE TABLE events (id INTEGER PRIMARY KEY, kind TEXT, payload TEXT); INSERT INTO events VALUES (1, 'login',  'user=alice'); INSERT INTO events VALUES (2, 'login',  'user=bob'); INSERT INTO events VALUES (3, 'update', 'user=alice,field=email'); INSERT INTO events VALUES (4, 'logout', 'user=bob'); INSERT INTO events VALUES (5, 'login',  'user=carol');">-- These rows were inserted into the WAL (dirty pages not yet in main db file).
+-- A PASSIVE checkpoint flushes WAL frames that are not being read.
+-- Run this to checkpoint and then inspect what remains.
+
+PRAGMA wal_checkpoint(PASSIVE);
+-- Returns: (busy, log, checkpointed)
+--   log         = total WAL frames written
+--   checkpointed = frames flushed to the main db file
+--   busy        = 0 means no readers blocked the flush
+
+-- After checkpointing, query the data normally:
+SELECT id, kind, payload FROM events ORDER BY id;</textarea>
+  </div>
+</div>
+
+Try adding more `INSERT` statements before the checkpoint pragma and observe how the `log` count grows. Then try `PRAGMA wal_checkpoint(FULL)` — it waits for all readers to finish before flushing, so `checkpointed` equals `log`.
+
+## The Cost of Too Many (or Too Few) Dirty Pages
+
+Holding many dirty pages in RAM is good for write throughput — batching reduces I/O. But there are limits:
+
+- **Too many dirty pages** means a checkpoint takes a long time and recovery after a crash takes longer.
+- **Too few dirty pages** (flushing too eagerly) means more random I/O and lower write throughput.
+
+Production engines expose tuning knobs for this trade-off. PostgreSQL has `checkpoint_completion_target` (spreads flushing over time) and `bgwriter_lru_maxpages` (controls background flush rate). SQLite's `cache_size` pragma controls how many pages the buffer pool holds before eviction pressure forces dirty pages out. Getting these right is a significant part of database performance tuning.

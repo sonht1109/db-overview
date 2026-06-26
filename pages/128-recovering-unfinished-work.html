@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recovering unfinished work — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part III. Storage and Execution</p>
+  <p class="chapter-label">Chapter 13. Recovery</p>
+  <h1 class="content-title">Recovering unfinished work</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="127-crash-safe-commits.html"><span class="dir">← Previous</span><span class="ttl">Crash-safe commits</span></a><a class="next" href="129-why-recovery-shapes-design.html"><span class="dir">Next →</span><span class="ttl">Why recovery shapes design</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+A crash, a power cut, or an application bug can all leave a transaction stranded mid-flight. The database made some changes — maybe it debited an account, deleted a row, or wrote a dozen index entries — but never reached `COMMIT`. Those partial changes have to disappear as if they never happened. That clean erasure is what *recovering unfinished work* means, and it is one of the strongest guarantees a database makes.
+
+## Why Unfinished Work Is Dangerous
+
+Earlier chapters established that a buffer pool can flush dirty pages to disk at any moment — for performance reasons, not because a transaction committed. If the engine crashes while transaction T9 is midway through updating three tables, some of T9's changes may already be sitting in the data files on disk, while others are still only in RAM (and lost forever).
+
+At restart, the database cannot simply ignore those on-disk partial changes. From the heap file's point of view, the data is inconsistent: some columns reflect T9's new values, others still have the old ones. Any query run against that inconsistent state will return wrong answers.
+
+> **Note:** This is distinct from the redo problem (committed work that did not reach disk). Unfinished work is the *opposite* half: uncommitted work that *did* reach disk and must be reversed.
+
+## Walking the Log Backward
+
+The write-ahead log (WAL) is the key. Every change a transaction makes is recorded in the log *before* it touches a data page — and that log record contains both the **before-image** (old value) and the **after-image** (new value). To undo a change, the engine just applies the before-image back to the page.
+
+Undo happens in **reverse LSN order** — the engine walks the transaction's log records from newest to oldest, restoring each page to the state it had before that transaction touched it:
+
+<figure class="diagram">
+<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram showing a transaction's log records being walked backward during undo, with before-images written back to data pages">
+  <!-- Log strip on the left -->
+  <text x="20" y="24" font-size="13" font-weight="600" fill="var(--text)" font-family="sans-serif">WAL (transaction T9)</text>
+
+  <!-- Log records top-to-bottom = LSN order -->
+  <!-- Record 1 -->
+  <rect x="20" y="36" width="260" height="42" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="30" y="53" font-size="12" fill="var(--text)" font-family="sans-serif" font-weight="600">LSN 301 · UPDATE accounts</text>
+  <text x="30" y="69" font-size="11" fill="var(--text)" font-family="sans-serif">before: balance=1000  after: balance=800</text>
+
+  <!-- Record 2 -->
+  <rect x="20" y="88" width="260" height="42" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="30" y="105" font-size="12" fill="var(--text)" font-family="sans-serif" font-weight="600">LSN 308 · INSERT orders row 77</text>
+  <text x="30" y="121" font-size="11" fill="var(--text)" font-family="sans-serif">before: (none)  after: row exists</text>
+
+  <!-- Record 3 -->
+  <rect x="20" y="140" width="260" height="42" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="30" y="157" font-size="12" fill="var(--text)" font-family="sans-serif" font-weight="600">LSN 315 · UPDATE inventory</text>
+  <text x="30" y="173" font-size="11" fill="var(--text)" font-family="sans-serif">before: qty=20  after: qty=19</text>
+
+  <!-- No COMMIT label -->
+  <text x="20" y="206" font-size="12" fill="#e05c5c" font-family="sans-serif" font-weight="600">— CRASH — (no COMMIT record)</text>
+
+  <!-- Backward arrow -->
+  <line x1="150" y1="220" x2="150" y2="248" stroke="#e05c5c" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="80" y="243" font-size="11" fill="var(--text)" font-family="sans-serif">undo walks this direction ↑</text>
+
+  <!-- Undo actions on the right -->
+  <text x="340" y="24" font-size="13" font-weight="600" fill="var(--text)" font-family="sans-serif">Undo actions applied</text>
+
+  <!-- Undo step 3 (first to execute: newest LSN) -->
+  <rect x="340" y="36" width="280" height="42" rx="5" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="350" y="53" font-size="12" fill="var(--text)" font-family="sans-serif" font-weight="600">① write qty=20 back to inventory</text>
+  <text x="350" y="69" font-size="11" fill="var(--text)" font-family="sans-serif">reverses LSN 315 (newest first)</text>
+
+  <!-- Undo step 2 -->
+  <rect x="340" y="88" width="280" height="42" rx="5" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="350" y="105" font-size="12" fill="var(--text)" font-family="sans-serif" font-weight="600">② delete orders row 77</text>
+  <text x="350" y="121" font-size="11" fill="var(--text)" font-family="sans-serif">reverses LSN 308</text>
+
+  <!-- Undo step 1 -->
+  <rect x="340" y="140" width="280" height="42" rx="5" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="350" y="157" font-size="12" fill="var(--text)" font-family="sans-serif" font-weight="600">③ write balance=1000 back to accounts</text>
+  <text x="350" y="173" font-size="11" fill="var(--text)" font-family="sans-serif">reverses LSN 301 (oldest last)</text>
+
+  <!-- Done marker -->
+  <text x="350" y="206" font-size="12" fill="var(--accent)" font-family="sans-serif" font-weight="600">T9 fully erased — atomicity preserved</text>
+</svg>
+<figcaption>Undo walks T9's log records newest-to-oldest, writing each before-image back to the data page. The result is as if T9 never ran.</figcaption>
+</figure>
+
+Each undo step is itself written to the WAL as a **Compensation Log Record (CLR)**. The CLR says: "the undo of LSN X has been applied." If the engine crashes again *during* the undo phase, it does not re-undo steps that CLRs already mark as done. This makes undo survivable under multiple crashes.
+
+## Savepoints: Partial Rollback Within a Session
+
+Crash recovery is not the only way unfinished work gets cleaned up. A running session can deliberately back out to a named **savepoint** — a marker set earlier in the transaction. Everything after the savepoint is rolled back; work before it stays intact.
+
+```sql
+BEGIN;
+
+UPDATE accounts SET balance = balance - 200 WHERE id = 42;  -- step 1
+SAVEPOINT after_debit;
+
+INSERT INTO transfers (from_id, to_id, amount) VALUES (42, 99, 200);  -- step 2
+
+-- Something went wrong — roll back only to the savepoint:
+ROLLBACK TO SAVEPOINT after_debit;
+
+-- Step 1 is still in effect. We can try step 2 differently:
+INSERT INTO transfers (from_id, to_id, amount, note) VALUES (42, 99, 200, 'retry');
+
+COMMIT;
+```
+
+The engine uses the same log-walking mechanism internally: it undoes all log records for this transaction that follow the savepoint's LSN, writing CLRs along the way. From the engine's perspective, a savepoint rollback is just a partial undo.
+
+## How Long Does Undo Take?
+
+The undo cost is proportional to how much work the transaction did before it was interrupted, not to how large the database is. A transaction that updated 1 million rows takes a long time to undo; one that updated 3 rows is nearly instant.
+
+| Transaction size | Typical undo time | Notes |
+|---|---|---|
+| A few rows | Milliseconds | Barely noticeable at restart |
+| Thousands of rows | Seconds to tens of seconds | May surprise users after a crash |
+| Bulk loads / long batches | Minutes | This is why large ETL jobs are risky without checkpoints |
+
+> **Note:** Some databases let you monitor undo progress. In PostgreSQL, `pg_stat_activity` shows transactions in state `idle in transaction (aborted)` and the `pg_locks` view can show blocking. Long undo operations are a real operational concern, not just theory.
+
+## Explore It with a Simulated Log
+
+The widget below models the undo decision for a crashed transaction. It uses a table of log records; the query identifies which records need to be undone (no matching COMMIT) and lists them newest-to-oldest — the exact traversal order the engine would use.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Simulating undo order</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE wal_log (lsn INTEGER PRIMARY KEY, txn_id INTEGER, op TEXT, page TEXT, before_val TEXT, after_val TEXT); INSERT INTO wal_log VALUES (301, 9, 'BEGIN', NULL, NULL, NULL); INSERT INTO wal_log VALUES (308, 9, 'UPDATE', 'accounts:42', '1000', '800'); INSERT INTO wal_log VALUES (315, 9, 'INSERT', 'orders:77', NULL, 'row 77'); INSERT INTO wal_log VALUES (322, 9, 'UPDATE', 'inventory:5', '20', '19'); INSERT INTO wal_log VALUES (400, 7, 'BEGIN', NULL, NULL, NULL); INSERT INTO wal_log VALUES (405, 7, 'UPDATE', 'accounts:10', '500', '450'); INSERT INTO wal_log VALUES (410, 7, 'COMMIT', NULL, NULL, NULL);">-- Which transactions need undo, and in what order should changes be reversed?
+SELECT
+  w.txn_id,
+  w.lsn,
+  w.op,
+  w.page,
+  w.before_val AS restore_to,
+  w.after_val  AS current_val
+FROM wal_log w
+WHERE w.op NOT IN ('BEGIN', 'COMMIT')
+  AND w.txn_id NOT IN (
+      SELECT txn_id FROM wal_log WHERE op = 'COMMIT'
+  )
+ORDER BY w.lsn DESC;  -- newest first = correct undo order</textarea>
+  </div>
+</div>
+
+Try adding `INSERT INTO wal_log VALUES (330, 9, 'COMMIT', NULL, NULL, NULL);` at the top of the setup area, then re-run — transaction 9 disappears from the undo list because it is now committed.
+
+## Key Takeaways
+
+- **Uncommitted changes that reached disk** are the target of the undo phase. They are not automatically safe just because the data file was written.
+- **The WAL's before-images** make undo possible: every log record stores the value to restore.
+- **Undo runs newest-to-oldest** within each transaction, so that dependent changes are reversed in the right sequence.
+- **CLRs** protect undo from being interrupted: if the engine crashes mid-undo, it knows exactly where to resume.
+- **Savepoints** use the same undo machinery, allowing partial rollbacks inside a still-running transaction.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

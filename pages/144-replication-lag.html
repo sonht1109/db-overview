@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replication lag — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part IV. Distributed Systems</p>
+  <p class="chapter-label">Chapter 15. Replication</p>
+  <h1 class="content-title">Replication lag</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="143-read-replicas.html"><span class="dir">← Previous</span><span class="ttl">Read replicas</span></a><a class="next" href="145-failover-and-promotion.html"><span class="dir">Next →</span><span class="ttl">Failover and promotion</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+In an ideal world, every replica would mirror the primary's data the moment a write is committed. In practice there is always a delay — **replication lag** — the gap in time between when a write lands on the primary and when it becomes visible on a replica. Understanding lag is essential because your application may read from replicas for performance reasons, and stale reads can silently break correctness guarantees.
+
+## Why Lag Exists
+
+Replication is an asynchronous pipeline. After the primary writes and flushes a change to its own log (e.g., the WAL in PostgreSQL or the binlog in MySQL), it ships that log entry to each replica. The replica must then receive, write, and *apply* the change before it becomes queryable. Every step in that pipeline adds time:
+
+| Pipeline stage | Typical source of delay |
+|---|---|
+| Primary → network | Bandwidth saturation, TCP overhead, cross-region latency |
+| Network → replica disk | Write I/O on the replica host |
+| Apply (replay) | Replica CPU replaying writes serially (single-threaded replay is common) |
+| Long transactions | The replica cannot advance past an open transaction on the primary |
+
+Under low load, lag may be milliseconds. Under heavy write bursts — bulk imports, large transactions, schema changes — it can balloon to seconds or minutes.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing replication lag between primary commit and replica visibility">
+  <!-- Timeline axis -->
+  <line x1="40" y1="160" x2="600" y2="160" stroke="var(--border)" stroke-width="2"/>
+  <text x="40" y="178" font-size="12" fill="var(--text)" text-anchor="middle">t=0</text>
+  <text x="220" y="178" font-size="12" fill="var(--text)" text-anchor="middle">t=50ms</text>
+  <text x="440" y="178" font-size="12" fill="var(--text)" text-anchor="middle">t=150ms</text>
+  <text x="600" y="178" font-size="12" fill="var(--text)" text-anchor="middle">now</text>
+
+  <!-- Primary row -->
+  <text x="20" y="50" font-size="13" fill="var(--text)" text-anchor="middle" transform="rotate(-90,20,50)">Primary</text>
+  <rect x="40" y="30" width="20" height="28" rx="4" fill="var(--accent)" opacity="0.9"/>
+  <text x="50" y="49" font-size="11" fill="var(--surface-2)" text-anchor="middle">W</text>
+  <line x1="50" y1="58" x2="50" y2="160" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="60" y="48" font-size="12" fill="var(--text)">Commit visible on primary</text>
+
+  <!-- Replica row -->
+  <text x="20" y="110" font-size="13" fill="var(--text)" text-anchor="middle" transform="rotate(-90,20,110)">Replica</text>
+  <!-- lag arrow -->
+  <line x1="50" y1="110" x2="440" y2="110" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr)"/>
+  <rect x="440" y="92" width="20" height="28" rx="4" fill="var(--accent)" opacity="0.6"/>
+  <text x="450" y="111" font-size="11" fill="var(--surface-2)" text-anchor="middle">W</text>
+  <line x1="450" y1="120" x2="450" y2="160" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="460" y="108" font-size="12" fill="var(--text)">Replica catches up (lag ≈ 100 ms)</text>
+
+  <!-- Lag brace -->
+  <line x1="50" y1="140" x2="440" y2="140" stroke="var(--accent)" stroke-width="2"/>
+  <line x1="50" y1="134" x2="50" y2="146" stroke="var(--accent)" stroke-width="2"/>
+  <line x1="440" y1="134" x2="440" y2="146" stroke="var(--accent)" stroke-width="2"/>
+  <text x="245" y="135" font-size="12" fill="var(--accent)" text-anchor="middle">replication lag</text>
+
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>A write committed at t=0 on the primary is not visible on the replica until ~t=150ms, creating a replication lag window.</figcaption>
+</figure>
+
+## Consequences: Anomalies You Will See
+
+Lag is not just a performance footnote — it changes what reads return.
+
+**Stale reads** — A user writes a row, then immediately queries a replica that hasn't applied the write yet. The row appears missing. This is the most common complaint in read-replica architectures.
+
+**Read-your-own-writes violation** — Your application writes to the primary but reads from a lagged replica. The user who just submitted a form sees the old data when they're redirected to the confirmation page.
+
+**Monotonic reads violation** — A user refreshes twice. The first request hits Replica A (up to date), the second hits Replica B (further behind). The data appears to go *backwards*.
+
+> **Note:** These anomalies are the reason databases define *consistency levels* — a formal vocabulary for trading off freshness against performance (more in the next chapter on consistency models).
+
+## Measuring Lag
+
+Most databases expose lag metrics directly:
+
+```sql
+-- PostgreSQL: check replica lag from the primary
+SELECT
+    client_addr,
+    state,
+    write_lag,
+    flush_lag,
+    replay_lag
+FROM pg_stat_replication;
+```
+
+```sql
+-- MySQL / MariaDB: check lag on the replica itself
+SHOW REPLICA STATUS\G
+-- Look at: Seconds_Behind_Source
+```
+
+Monitoring tools like Prometheus + `pg_exporter` or Datadog can alert when lag exceeds a threshold (e.g., > 30 seconds).
+
+## Mitigating Lag
+
+There is no single fix — the right approach depends on your workload:
+
+| Strategy | How it helps | Trade-off |
+|---|---|---|
+| **Synchronous replication** | Zero lag — primary waits for replica ACK | Writes are slower; replica failure blocks primary |
+| **Read from primary** for critical reads | Always fresh | Loses the scale-out benefit of replicas |
+| **Sticky sessions / read-after-write routing** | Route a user's reads to primary just after they write | Adds routing complexity |
+| **Parallel replay** | Replicas apply changes on multiple threads | Reduces CPU bottleneck; not all engines support it fully |
+| **Smaller transactions** | Shorter apply time per event | Requires application redesign |
+
+> **Note:** PostgreSQL's *synchronous_commit = remote_apply* setting guarantees a replica has applied (not just received) a WAL record before the primary acknowledges the commit. This eliminates lag for those writes at the cost of higher commit latency.
+
+---
+
+The following widget simulates the kind of data discrepancy a lagged replica can create. The `events` table represents the primary state; `replica_snapshot` represents what a replica with lag might have seen at a slightly earlier point in time. Try querying both to see the difference.
+
+<div class="widget" data-widget="sql"
+  data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT, ts TEXT); INSERT INTO events VALUES (1, 42, 'signup', '2024-06-01 09:00:00'), (2, 42, 'verify_email', '2024-06-01 09:01:10'), (3, 99, 'signup', '2024-06-01 09:05:00'), (4, 42, 'first_login', '2024-06-01 09:10:00'); CREATE TABLE replica_snapshot (id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT, ts TEXT); INSERT INTO replica_snapshot VALUES (1, 42, 'signup', '2024-06-01 09:00:00'), (2, 42, 'verify_email', '2024-06-01 09:01:10'), (3, 99, 'signup', '2024-06-01 09:05:00');">
+-- The primary has 4 rows for user 42; the lagged replica only has 3.
+-- Try this: how does user 42's state look on each?
+
+-- Primary (fully up to date):
+SELECT 'primary' AS source, id, action, ts FROM events WHERE user_id = 42
+UNION ALL
+-- Replica (lagged — missing the most recent row):
+SELECT 'replica' AS source, id, action, ts FROM replica_snapshot WHERE user_id = 42
+ORDER BY source, id;
+</div>
+
+Notice that a read-your-own-writes check on the replica would miss `first_login` entirely — user 42 appears not to have logged in yet, even though the primary already recorded it.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

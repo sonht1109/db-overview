@@ -1,0 +1,130 @@
+When two replicas accept concurrent writes to the same piece of data, you eventually have to reconcile them. Most strategies either pick a winner (last-write-wins) or abort one of the writes (pessimistic locking). **Conflict-free approaches** take a third path: they design the data structure so that concurrent writes can *always* be merged automatically — no coordination needed, no lost updates, no aborts.
+
+The central idea is called a **CRDT** — a Conflict-free Replicated Data Type.
+
+## What Makes a Data Type "Conflict-Free"?
+
+A CRDT is a data type with two properties:
+
+1. **All states can be merged.** Given any two states that replicas have diverged into, there is a well-defined *merge* (or *join*) operation that produces a single valid result.
+2. **Merge is commutative, associative, and idempotent.** It does not matter in what order replicas exchange their states, or whether the same update is received twice — the final result is always the same.
+
+If those properties hold, replicas can accept writes locally (no coordination, no waiting for a quorum) and gossip their state to each other in the background. Convergence is *guaranteed* by the math, not by a protocol.
+
+> **Note:** CRDTs come in two flavors. **State-based CRDTs** (CvRDTs) ship their entire state to peers, who merge it with their own. **Operation-based CRDTs** (CmRDTs) ship only the operations; the network must deliver each operation at least once. State-based are simpler to reason about; operation-based produce smaller messages.
+
+## Common CRDT Types
+
+Each CRDT trades off expressiveness for simplicity. Here are the most widely used ones:
+
+| CRDT | What it models | Merge rule |
+|---|---|---|
+| **G-Counter** | Monotonically increasing counter | Per-node max, then sum |
+| **PN-Counter** | Counter that can increment and decrement | Two G-Counters (P − N) |
+| **G-Set** | Grow-only set | Union |
+| **2P-Set** | Set with removals (element can be re-added once removed) | Union of add-set and remove-set |
+| **LWW-Register** | Single value with last-write-wins | Keep entry with highest timestamp |
+| **OR-Set** | Set with add/remove (element *can* be re-added) | Tag each add with a unique token; remove by token |
+| **RGA / Logoot** | Ordered sequence (collaborative text) | Assign unique position IDs to each character |
+
+### The G-Counter in Detail
+
+A G-Counter is the simplest useful CRDT. Each node keeps its own slot in a vector and only ever increments its own slot. The global count is the sum of all slots.
+
+```
+Node A vector: [5, 0, 2]   (A=5, B=0, C=2)  → total = 7
+Node B vector: [4, 3, 2]   (A=4, B=3, C=2)  → total = 9
+
+Merge (element-wise max):  [5, 3, 2]         → total = 10
+```
+
+No matter what order A and B exchange messages, the merged vector — and therefore the global count — is always the same. An ordinary integer counter would silently lose increments under concurrent updates; the G-Counter cannot.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="G-Counter merge: Node A and Node B have diverged, then merge to produce a consistent result">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
+    </marker>
+    <marker id="acc" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Node A box -->
+  <rect x="40" y="40" width="180" height="90" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="130" y="62" font-size="14" font-weight="bold" text-anchor="middle" fill="var(--text)">Node A</text>
+  <text x="130" y="84" font-size="13" text-anchor="middle" fill="var(--text)">[A=5, B=0, C=2]</text>
+  <text x="130" y="104" font-size="12" text-anchor="middle" fill="var(--text)" opacity="0.7">total = 7</text>
+  <text x="130" y="120" font-size="11" text-anchor="middle" fill="var(--accent)">+3 local increments</text>
+
+  <!-- Node B box -->
+  <rect x="420" y="40" width="180" height="90" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="510" y="62" font-size="14" font-weight="bold" text-anchor="middle" fill="var(--text)">Node B</text>
+  <text x="510" y="84" font-size="13" text-anchor="middle" fill="var(--text)">[A=4, B=3, C=2]</text>
+  <text x="510" y="104" font-size="12" text-anchor="middle" fill="var(--text)" opacity="0.7">total = 9</text>
+  <text x="510" y="120" font-size="11" text-anchor="middle" fill="var(--accent)">+3 local increments</text>
+
+  <!-- Merge box -->
+  <rect x="220" y="200" width="200" height="90" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="320" y="224" font-size="14" font-weight="bold" text-anchor="middle" fill="var(--accent)">Merged State</text>
+  <text x="320" y="248" font-size="13" text-anchor="middle" fill="var(--text)">[A=5, B=3, C=2]</text>
+  <text x="320" y="268" font-size="12" text-anchor="middle" fill="var(--text)" opacity="0.7">max per slot</text>
+  <text x="320" y="284" font-size="13" font-weight="bold" text-anchor="middle" fill="var(--accent)">total = 10</text>
+
+  <!-- Arrow A -> Merge -->
+  <line x1="160" y1="132" x2="278" y2="196" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- Arrow B -> Merge -->
+  <line x1="480" y1="132" x2="362" y2="196" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Partition label -->
+  <text x="320" y="170" font-size="12" text-anchor="middle" fill="var(--text)" opacity="0.6">gossip / sync</text>
+  <line x1="222" y1="85" x2="418" y2="85" stroke="var(--border)" stroke-width="1" stroke-dasharray="5,4" opacity="0.5"/>
+  <text x="320" y="76" font-size="11" text-anchor="middle" fill="var(--text)" opacity="0.55">network partition (writes diverged)</text>
+</svg>
+<figcaption>G-Counter merge: each node increments only its own slot; merging takes the element-wise maximum, so no increments are ever lost.</figcaption>
+</figure>
+
+## Where CRDTs Are Used in Practice
+
+CRDTs are not just academic. Several production systems rely on them:
+
+- **Redis** (via RedisJSON and Redis Streams) uses CRDT-like structures in its active-active geo-replication mode.
+- **Riak** (Basho) pioneered operational CRDT support — counters, sets, maps, registers — as first-class database types.
+- **Apache Cassandra** uses LWW registers for most values, and offers a counter column type backed by a PN-Counter.
+- **Figma / Google Docs / Notion** use sequence CRDTs (like RGA or LSEQ) to let multiple users edit the same document simultaneously without conflicts.
+
+## Limitations to Keep in Mind
+
+CRDTs are a powerful tool, but they are not a universal answer:
+
+- **Not every operation can be made conflict-free.** A bank balance that must never go negative cannot be modeled as a PN-Counter without coordination — you need a protocol to prevent overdrafts.
+- **Tombstones accumulate.** In G-Set and 2P-Set variants, deleted elements leave behind markers ("tombstones") that must be garbage-collected over time.
+- **Semantic conflicts still happen.** A CRDT for a shopping cart will correctly merge two concurrent "add item" operations, but if both users concurrently applied a coupon that is only valid once, the merge produces two applied coupons — which is semantically wrong even if structurally valid.
+
+The key question: *"Is the merge semantics of this data type the same as the business semantics?"* When the answer is yes, CRDTs give you coordination-free availability with guaranteed convergence. When it is no, you still need transactions or application-level conflict resolution.
+
+Try the widget below to see how a simple CRDT-like merge works in SQL — simulating two nodes that each recorded increments independently, then sync.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · G-Counter merge simulation</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE node_a_counter(node TEXT PRIMARY KEY, val INTEGER); CREATE TABLE node_b_counter(node TEXT PRIMARY KEY, val INTEGER); INSERT INTO node_a_counter VALUES ('A', 5), ('B', 0), ('C', 2); INSERT INTO node_b_counter VALUES ('A', 4), ('B', 3), ('C', 2); CREATE VIEW merged_counter AS SELECT node_a_counter.node, MAX(node_a_counter.val, node_b_counter.val) AS merged_val FROM node_a_counter JOIN node_b_counter USING (node);">-- After a network partition, Node A and Node B diverged.
+-- This query merges them using the G-Counter rule: element-wise MAX.
+-- Try changing the values in node_a_counter or node_b_counter above
+-- and re-run to see how the merge always picks the highest count per node.
+
+SELECT
+  node,
+  merged_val,
+  SUM(merged_val) OVER () AS global_total
+FROM merged_counter
+ORDER BY node;</textarea>
+  </div>
+</div>
+
+<details class="reveal"><summary>Reveal: Can a PN-Counter go negative?</summary><div class="reveal-body">
+
+Yes — a PN-Counter is simply two G-Counters: one tracking all increments (P) and one tracking all decrements (N). The observed value is P − N. Because each component only grows, the merge is conflict-free. But nothing prevents the result from being negative; if that represents an invalid business state (like a bank balance), you must add coordination (e.g., a reservation protocol) on top of the CRDT to enforce the constraint.
+
+</div></details>

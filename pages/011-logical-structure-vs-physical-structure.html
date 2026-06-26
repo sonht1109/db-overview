@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logical structure vs physical structure — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part I. Foundations</p>
+  <p class="chapter-label">Chapter 2. How Data Is Organized</p>
+  <h1 class="content-title">Logical structure vs physical structure</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="009-a-first-mental-model.html"><span class="dir">← Previous</span><span class="ttl">A first mental model</span></a><a class="next" href="012-tables-and-relations.html"><span class="dir">Next →</span><span class="ttl">Tables and relations</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+When you write a query, you think in terms of tables, rows, and columns. The database engine, meanwhile, is thinking about bytes, pages, and disk seeks. These two worlds — what the data *means* and how it is *stored* — are deliberately kept separate. Understanding that separation is one of the most clarifying ideas in all of database engineering.
+
+## The Logical Structure: What You See
+
+The **logical structure** is the data model as the user perceives it. It answers the question: *what does the data look like and how does it relate?*
+
+In a relational database, the logical structure is defined by your **schema** — the tables, columns, data types, primary keys, and foreign-key relationships you declare. When you write `SELECT name, email FROM users WHERE active = 1`, you are reasoning entirely at the logical level. You do not care whether `users` lives in one file or ten, or whether the rows are stored in alphabetical order or at random.
+
+| Layer | Vocabulary | Who cares? |
+|-------|-----------|------------|
+| Logical | Tables, rows, columns, keys, views, joins | Application developers, data analysts |
+| Physical | Pages, blocks, B-trees, heap files, indexes, WAL | Database engine, DBAs tuning performance |
+
+This split is sometimes called **data independence**: changing *how* data is stored should not break the SQL that reads it.
+
+## The Physical Structure: What Actually Happens on Disk
+
+The **physical structure** is how the database engine materializes your logical tables into bytes. Every major relational engine uses a similar set of primitives:
+
+- **Pages (or blocks):** Storage is divided into fixed-size chunks — typically 4 KB to 16 KB. Reading or writing always happens at the page boundary, even if you only need one row.
+- **Heap files:** The simplest physical layout — rows are written to pages in insertion order, with no guarantee about their sequence.
+- **B-tree indexes:** A sorted tree structure built *alongside* a heap. Lookups by an indexed column skip most pages and jump straight to the right leaf. This is physical machinery; it is invisible to a `SELECT` statement.
+- **Write-ahead log (WAL):** Before changing a page, the engine records the change in a sequential log file. This is how crash recovery works — again, entirely hidden from SQL.
+
+> **Note:** SQLite, which powers the interactive examples in this guide, stores an entire database in a single file divided into 4 KB pages. Every table and index lives somewhere in that file. You never see pages when you write SQL, but they explain why an `INSERT` can be slow on a nearly full page.
+
+## Seeing the Separation in Action
+
+The clearest demonstration is an **index**. An index is a purely physical artifact — it does not change what rows the database contains, only how fast it can find them. From a logical standpoint, the table before and after `CREATE INDEX` is identical. From a physical standpoint, a new B-tree structure now exists on disk.
+
+Try the widget below. The setup creates an `orders` table and seeds it with data. The query uses a `WHERE` clause that would benefit from an index.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Logical query, physical index</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 42, 120.00, 'shipped'); INSERT INTO orders VALUES (2, 17, 45.50, 'pending'); INSERT INTO orders VALUES (3, 42, 200.00, 'pending'); INSERT INTO orders VALUES (4, 99, 15.00, 'shipped'); INSERT INTO orders VALUES (5, 17, 310.00, 'shipped'); CREATE INDEX idx_customer ON orders (customer_id);">-- This query is the same whether or not the index exists.
+-- The index only changes HOW the engine finds the rows, not WHAT it returns.
+SELECT id, amount, status
+FROM orders
+WHERE customer_id = 42;</textarea>
+  </div>
+</div>
+
+Try dropping the index (`DROP INDEX idx_customer`) and re-running the `SELECT`. The result is identical — the logical answer does not change. Only the physical path the engine takes is different. You can also run `EXPLAIN QUERY PLAN SELECT id, amount, status FROM orders WHERE customer_id = 42;` to see SQLite describe the physical access strategy it chose.
+
+## Why the Distinction Matters
+
+Keeping logical and physical concerns separate pays off in three concrete ways:
+
+1. **Portability.** The same SQL works on SQLite, PostgreSQL, and MySQL even though each engine uses a very different physical layout under the hood. Your application code does not change when you switch engines.
+
+2. **Tuning without breakage.** A DBA can add an index, change a storage engine, or move a table to faster disks without touching a single line of application SQL. The logical interface stays stable.
+
+3. **Reasoning clearly about bugs.** When a query returns the wrong rows, the problem is almost always logical (wrong join, wrong filter). When a query returns correct rows but runs slowly, the problem is almost always physical (missing index, table scan on millions of rows). Knowing which layer to inspect saves hours of debugging.
+
+The rest of Part I focuses on the logical level — schemas, relationships, and queries. Later chapters on indexing and storage engines will pull back the curtain on the physical side. For now, the key takeaway is simple: your SQL describes *what* you want, and the database engine decides *how* to get it.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

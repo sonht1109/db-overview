@@ -1,0 +1,137 @@
+When a single database server can no longer keep up — because there's too much traffic, too much data, or you can't afford it going down — you spread the work across multiple machines. Two fundamental techniques make this possible: **replication** (copying the same data to more than one node) and **sharding** (splitting different data across different nodes). They solve different problems and are often used together.
+
+## Replication: Copies for Resilience and Read Scale
+
+Replication means keeping identical (or near-identical) copies of your data on multiple servers. The most common setup is **leader–follower** (also called primary–replica or master–slave):
+
+- **Leader** accepts all writes.
+- **Followers** receive a stream of changes from the leader and apply them, keeping their own copy up to date.
+- **Reads** can be served by any follower, spreading the load.
+
+<figure class="diagram">
+<svg viewBox="0 0 620 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Leader-follower replication: writes go to the leader, which streams changes to two followers; reads can come from any node">
+  <!-- Leader box -->
+  <rect x="220" y="20" width="180" height="60" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="310" y="46" text-anchor="middle" font-size="14" fill="var(--text)" font-weight="bold">Leader (Primary)</text>
+  <text x="310" y="66" text-anchor="middle" font-size="12" fill="var(--text)">Accepts all writes</text>
+
+  <!-- Replication arrows -->
+  <line x1="220" y1="110" x2="110" y2="160" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="400" y1="110" x2="510" y2="160" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="145" y="140" text-anchor="middle" font-size="11" fill="var(--text)">replication</text>
+  <text x="475" y="140" text-anchor="middle" font-size="11" fill="var(--text)">replication</text>
+
+  <!-- Follower 1 -->
+  <rect x="30" y="160" width="160" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="110" y="186" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="bold">Follower 1</text>
+  <text x="110" y="206" text-anchor="middle" font-size="11" fill="var(--text)">Reads OK</text>
+
+  <!-- Follower 2 -->
+  <rect x="430" y="160" width="160" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="510" y="186" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="bold">Follower 2</text>
+  <text x="510" y="206" text-anchor="middle" font-size="11" fill="var(--text)">Reads OK</text>
+
+  <!-- Write client arrow -->
+  <line x1="310" y1="0" x2="310" y2="18" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="310" y="10" text-anchor="middle" font-size="11" fill="var(--text)">WRITE</text>
+
+  <!-- Read client arrows -->
+  <line x1="110" y1="240" x2="110" y2="258" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="110" y="258" text-anchor="middle" font-size="11" fill="var(--text)">READ</text>
+  <line x1="510" y1="240" x2="510" y2="258" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="510" y="258" text-anchor="middle" font-size="11" fill="var(--text)">READ</text>
+
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="4" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>Leader–follower replication: all writes go to the leader, which streams changes to followers; reads can be served by any node.</figcaption>
+</figure>
+
+### Synchronous vs. Asynchronous Replication
+
+This distinction is critical:
+
+| Mode | How it works | Tradeoff |
+|---|---|---|
+| **Synchronous** | Leader waits for follower to confirm before ack'ing the write | Durable — follower is always up to date; but write latency increases |
+| **Asynchronous** | Leader ack's the write immediately; follower catches up later | Faster writes; follower may lag behind (replication lag) |
+
+**Replication lag** means a follower might serve slightly stale data. If a user writes a record and immediately reads it from a follower, they might not see their own write. This is a form of **eventual consistency** — followers will catch up, but there's no guarantee of when.
+
+> **Note:** Most production setups use asynchronous replication for performance but keep at least one synchronous follower for durability. PostgreSQL calls these "synchronous standby" replicas.
+
+### Failover
+
+If the leader crashes, a follower can be promoted to leader. This is called **failover**. Automated failover is convenient but tricky: a misconfigured system can elect two leaders simultaneously ("split-brain"), causing data divergence. Reliable failover requires careful coordination — tools like Patroni (Postgres) and Orchestrator (MySQL) handle this.
+
+---
+
+## Sharding: Splitting Data for Write Scale
+
+Replication gives you more read capacity and redundancy, but every node still holds the entire dataset. When data grows too large for one machine, or write throughput exceeds what one leader can handle, you need **sharding** (also called **horizontal partitioning**).
+
+Sharding divides rows across nodes by a **shard key**. For example, a `users` table sharded by `user_id` might place users 1–1 000 000 on shard A, users 1 000 001–2 000 000 on shard B, and so on.
+
+```sql
+-- Conceptual view: each shard holds a slice of the full table
+-- Shard A
+SELECT * FROM users WHERE user_id BETWEEN 1 AND 1000000;
+
+-- Shard B
+SELECT * FROM users WHERE user_id BETWEEN 1000001 AND 2000000;
+```
+
+A **router** (sometimes called a proxy or query coordinator) sits in front of the shards, inspects the shard key in each query, and forwards it to the right node.
+
+### Choosing a Shard Key
+
+The shard key determines how evenly work is distributed:
+
+| Strategy | Idea | Watch out for |
+|---|---|---|
+| **Range** | Consecutive key values go to the same shard | Hot spots if recent data is read heavily (e.g., time-series by date) |
+| **Hash** | Hash of the key determines the shard | Even spread; range queries must hit all shards |
+| **Directory** | A lookup table maps keys to shards | Flexible; the lookup table itself can become a bottleneck |
+
+**Hot spots** are the main danger: if one shard receives most of the traffic (because a celebrity's posts are all on shard 3, for instance), the system is no better than before.
+
+### What Sharding Complicates
+
+- **Cross-shard joins**: If two related rows live on different shards, the database can't do an ordinary join — the application or router must fetch from both and combine results.
+- **Cross-shard transactions**: Maintaining ACID guarantees across shards requires distributed protocols like 2-phase commit (2PC), which adds latency and failure modes.
+- **Re-sharding**: As data grows, you may need to split shards. Moving data between nodes without downtime is operationally complex.
+
+> **Note:** These complexities are why sharding is usually a last resort. Vertical scaling (a bigger single machine), read replicas, and caching can defer the need for sharding considerably.
+
+---
+
+## Replication + Sharding Together
+
+Real systems often combine both: each shard has its own leader and one or more followers. This provides both horizontal data scale (sharding) and read scale plus redundancy (replication) simultaneously.
+
+<details class="reveal"><summary>Reveal: If you shard by user_id and a query filters only by email, which shards must the router consult?</summary><div class="reveal-body">All of them. Because the router doesn't know which shard holds a given email address, it must broadcast the query to every shard and merge the results. This is called a <strong>scatter-gather</strong> query and is much more expensive than a single-shard lookup. It's a key reason why choosing the right shard key — one that matches your most common query patterns — matters so much.</div></details>
+
+The interactive example below lets you simulate a simple sharding scheme: a hash on `user_id mod 3` decides which logical shard each row belongs to.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Simulating sharding with hash mod</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE users (user_id INTEGER PRIMARY KEY, name TEXT, email TEXT); INSERT INTO users VALUES (1, 'Alice', 'alice@example.com'); INSERT INTO users VALUES (2, 'Bob', 'bob@example.com'); INSERT INTO users VALUES (3, 'Carol', 'carol@example.com'); INSERT INTO users VALUES (4, 'Dave', 'dave@example.com'); INSERT INTO users VALUES (5, 'Eve', 'eve@example.com'); INSERT INTO users VALUES (6, 'Frank', 'frank@example.com'); INSERT INTO users VALUES (7, 'Grace', 'grace@example.com'); INSERT INTO users VALUES (8, 'Hank', 'hank@example.com'); INSERT INTO users VALUES (9, 'Ivy', 'ivy@example.com');">-- Show which logical shard each user lands on (hash mod 3)
+-- Shard 0, 1, or 2 based on user_id
+SELECT
+  user_id,
+  name,
+  (user_id % 3) AS shard_number
+FROM users
+ORDER BY shard_number, user_id;
+
+-- Try: change % 3 to % 4 to simulate adding a fourth shard
+-- Notice rows redistribute — that's why re-sharding is expensive!</textarea>
+  </div>
+</div>

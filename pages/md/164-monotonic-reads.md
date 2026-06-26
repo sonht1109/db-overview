@@ -1,0 +1,112 @@
+Imagine you load your social-media feed, see a post from a friend, then refresh the page — and the post is gone. You didn't delete it. Nobody else did. The server just happened to route your second request to a replica that hadn't caught up yet. This eerie "time-travel" effect is exactly what **monotonic reads** prevents.
+
+## What "Monotonic" Means
+
+In mathematics, a monotonic sequence only moves in one direction — it never goes backwards. Applied to reads in a distributed database, the guarantee is:
+
+> **Monotonic reads:** If a client reads a value at version *V*, all subsequent reads by that same client will see version *V* or a later one — never an older one.
+
+Without this guarantee a single user can observe the database "rolling back" between requests, even though nothing was actually rolled back. The data was simply served from different replicas at different points in their replication lag.
+
+## Why This Happens: Replication Lag
+
+Most distributed databases replicate data from a primary node to one or more replicas. Reads can be served by any replica to spread the load. But replicas are not always perfectly in sync — there is a replication lag measured in milliseconds to seconds.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing a client reading from two replicas at different lag points, causing a monotonic-reads violation">
+  <!-- Primary -->
+  <rect x="20" y="20" width="120" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="80" y="43" text-anchor="middle" font-size="13" fill="var(--text)">Primary</text>
+
+  <!-- Write arrow to primary -->
+  <line x1="20" y1="38" x2="0" y2="38" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="-2" y="33" text-anchor="end" font-size="12" fill="var(--accent)">write v2</text>
+
+  <!-- Replica A (caught up) -->
+  <rect x="20" y="100" width="120" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="80" y="123" text-anchor="middle" font-size="13" fill="var(--text)">Replica A</text>
+  <text x="80" y="137" text-anchor="middle" font-size="11" fill="var(--accent)">has v2</text>
+
+  <!-- Replica B (lagging) -->
+  <rect x="20" y="180" width="120" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="80" y="203" text-anchor="middle" font-size="13" fill="var(--text)">Replica B</text>
+  <text x="80" y="217" text-anchor="middle" font-size="11" fill="var(--text)">still on v1</text>
+
+  <!-- Replication arrows -->
+  <line x1="80" y1="56" x2="80" y2="98" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrd)"/>
+  <line x1="80" y1="56" x2="80" y2="178" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrd)"/>
+
+  <!-- Client -->
+  <rect x="420" y="100" width="100" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="470" y="123" text-anchor="middle" font-size="13" fill="var(--text)">Client</text>
+
+  <!-- Read 1: client -> Replica A -->
+  <line x1="420" y1="112" x2="144" y2="112" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#arr)"/>
+  <text x="282" y="107" text-anchor="middle" font-size="12" fill="var(--accent)">read 1 → gets v2</text>
+
+  <!-- Read 2: client -> Replica B -->
+  <line x1="420" y1="128" x2="144" y2="200" stroke="var(--text)" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#arrd)"/>
+  <text x="310" y="185" text-anchor="middle" font-size="12" fill="var(--text)">read 2 → gets v1 ✗</text>
+
+  <!-- X mark -->
+  <text x="590" y="200" font-size="22" fill="var(--text)" text-anchor="middle">✗</text>
+  <text x="590" y="220" font-size="11" fill="var(--text)" text-anchor="middle">violation!</text>
+
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrd" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>A client reads v2 from Replica A, then reads v1 from a lagging Replica B — a monotonic-reads violation.</figcaption>
+</figure>
+
+The client did nothing wrong. The load balancer simply sent the second request to a slower replica.
+
+## How Databases Enforce Monotonic Reads
+
+There are two common approaches:
+
+| Approach | Mechanism | Trade-off |
+|---|---|---|
+| **Sticky sessions** | Route all reads from a given client to the same replica | Simple; replica failure disrupts the session |
+| **Read-version tracking** | Client tracks the last seen log position; only reads from replicas that have reached that position | More resilient; adds coordination overhead |
+| **Read-your-writes sessions** | Guarantee a superset: you always see your own writes AND past reads | Stronger, but further limits replica selection |
+
+### Sticky Sessions in Practice
+
+The simplest fix is to pin each client to one replica for the duration of a session — often by hashing the user ID or session token. If that replica is unavailable, the system either fails over gracefully or briefly serves a potentially stale read.
+
+Many databases expose this as a session-level setting. In PostgreSQL you can send reads to a specific server; in MongoDB you use **session consistency** with a `causalConsistency: true` option; in DynamoDB strongly consistent reads always go to the primary, avoiding the issue entirely.
+
+### Read-Version (LSN) Tracking
+
+More sophisticated systems pass the client's **log sequence number (LSN)** — the position in the replication log of the last change they saw — along with every request. A replica checks whether it has applied at least that LSN before serving the read. If it hasn't caught up yet, it either waits or hands the request to a more advanced replica.
+
+> **Note:** This is the mechanism behind **causal consistency** in systems like MongoDB and CockroachDB. The session automatically carries a "read timestamp" so the cluster can always route to a node that is sufficiently up to date.
+
+## Seeing It in a Simulated Form
+
+The following widget lets you explore what monotonic reads protect. The `replica_log` table simulates two replicas at different applied positions. The query finds which replica a client can safely read from given their last-seen version.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Replica selection by LSN</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE replica_log (replica_id TEXT, lsn INTEGER, data TEXT); INSERT INTO replica_log VALUES ('replica_a', 1, 'row inserted'); INSERT INTO replica_log VALUES ('replica_a', 2, 'row updated to v2'); INSERT INTO replica_log VALUES ('replica_a', 3, 'row deleted'); INSERT INTO replica_log VALUES ('replica_b', 1, 'row inserted'); INSERT INTO replica_log VALUES ('replica_b', 2, 'row updated to v2');">/* Client last saw LSN 2. Which replicas are safe to read from? */
+SELECT replica_id, MAX(lsn) AS max_applied_lsn
+FROM replica_log
+GROUP BY replica_id
+HAVING MAX(lsn) >= 2   -- client's last-seen LSN
+ORDER BY replica_id;</textarea>
+  </div>
+</div>
+
+Try changing the `>= 2` threshold to `>= 3` — now only `replica_a` qualifies, because `replica_b` hasn't applied LSN 3 yet. This is exactly how LSN-based routing enforces monotonic reads.
+
+## The Takeaway
+
+Monotonic reads is a **session-level consistency guarantee** that prevents a client from observing the past after they have already seen the present. It does not require global coordination or linearizability — it only promises that *for one client*, time moves forward. That makes it a practical and widely implemented guarantee even in eventually-consistent systems.

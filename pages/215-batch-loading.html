@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Batch loading — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part V. Database Families</p>
+  <p class="chapter-label">Chapter 22. Analytical Databases and Warehouses</p>
+  <h1 class="content-title">Batch loading</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="214-star-schemas-and-fact-tables.html"><span class="dir">← Previous</span><span class="ttl">Star schemas and fact tables</span></a><a class="next" href="216-materialized-views.html"><span class="dir">Next →</span><span class="ttl">Materialized views</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+Row-by-row INSERT statements are the natural way to write data in application code — one record arrives, one record goes in. For analytical databases that need to absorb millions or billions of rows on a schedule, that approach collapses under its own weight. **Batch loading** — ingesting large volumes of data in a single coordinated operation — is the dominant pattern for feeding data warehouses, and understanding why it is so much faster reveals a lot about how databases work internally.
+
+## Why Not Just INSERT?
+
+A standard INSERT statement triggers a chain of work for every single row:
+
+1. Parse and plan the SQL statement
+2. Acquire row-level locks
+3. Write a log record (WAL entry) for the new row
+4. Locate a page with free space in the heap
+5. Write the row into that page
+6. Update all affected indexes
+7. Commit (fsync the log)
+
+Repeat this ten million times and the overhead dwarfs the actual data transfer. Parsing alone can consume more CPU than the data write.
+
+**Bulk load bypasses most of this.** A COPY command or bulk loader reads a prepared file, sorts it to match index order, writes data pages directly, and builds indexes in one pass at the end — skipping per-row logging and lock acquisition entirely.
+
+| Method | Rows/second (typical) | Notes |
+|---|---|---|
+| `INSERT` (single row) | ~1 000 | Full transaction overhead per row |
+| `INSERT` (multi-row VALUES) | ~50 000 | Amortizes parse cost |
+| `COPY` / bulk load | ~500 000–5 000 000 | Bypasses row-by-row logging |
+| Parallel bulk load | 5 000 000+ | Multiple files loaded concurrently |
+
+Numbers vary wildly by hardware and table complexity, but the order-of-magnitude difference is consistent.
+
+## ETL vs ELT
+
+Two dominant patterns exist for getting data from source systems into a warehouse:
+
+**ETL — Extract, Transform, Load**
+
+Data is extracted from source systems, transformed in a separate processing layer (cleaning, joining, reshaping), and then loaded into the warehouse in its final form. The transformation happens *outside* the warehouse.
+
+**ELT — Extract, Load, Transform**
+
+Raw data is loaded into the warehouse first (into staging tables), and the transformation runs *inside* the warehouse using SQL. Modern columnar warehouses are so fast at SQL that this is often cheaper than building a separate processing cluster.
+
+> **Trend:** ELT has grown in popularity with cloud warehouses (BigQuery, Snowflake, Redshift) because warehouse compute is elastic and cheap, while maintaining a separate Spark or Flink cluster adds operational complexity.
+
+## The ETL Pipeline
+
+<figure class="diagram">
+<svg viewBox="0 0 580 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ETL pipeline: source systems feed into Extract, then Transform, then Load, then Warehouse">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+  <!-- Source -->
+  <rect x="10" y="45" width="90" height="70" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="55" y="76" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)">Sources</text>
+  <text x="55" y="93" text-anchor="middle" font-size="10" fill="var(--muted)">OLTP DBs</text>
+  <text x="55" y="107" text-anchor="middle" font-size="10" fill="var(--muted)">APIs · Files</text>
+  <!-- Arrow -->
+  <line x1="100" y1="80" x2="130" y2="80" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- Extract -->
+  <rect x="130" y="45" width="90" height="70" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="175" y="76" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)">Extract</text>
+  <text x="175" y="93" text-anchor="middle" font-size="10" fill="var(--muted)">CDC / full dump</text>
+  <text x="175" y="107" text-anchor="middle" font-size="10" fill="var(--muted)">to staging area</text>
+  <!-- Arrow -->
+  <line x1="220" y1="80" x2="250" y2="80" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- Transform -->
+  <rect x="250" y="45" width="100" height="70" rx="6" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="300" y="76" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--accent)">Transform</text>
+  <text x="300" y="93" text-anchor="middle" font-size="10" fill="var(--text)">Clean · Join</text>
+  <text x="300" y="107" text-anchor="middle" font-size="10" fill="var(--text)">Aggregate · Cast</text>
+  <!-- Arrow -->
+  <line x1="350" y1="80" x2="380" y2="80" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- Load -->
+  <rect x="380" y="45" width="90" height="70" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="425" y="76" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)">Load</text>
+  <text x="425" y="93" text-anchor="middle" font-size="10" fill="var(--muted)">COPY / bulk API</text>
+  <text x="425" y="107" text-anchor="middle" font-size="10" fill="var(--muted)">parallel files</text>
+  <!-- Arrow -->
+  <line x1="470" y1="80" x2="500" y2="80" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- Warehouse -->
+  <rect x="500" y="45" width="70" height="70" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="535" y="76" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)">Warehouse</text>
+  <text x="535" y="93" text-anchor="middle" font-size="10" fill="var(--muted)">Star schema</text>
+  <text x="535" y="107" text-anchor="middle" font-size="10" fill="var(--muted)">ready to query</text>
+</svg>
+<figcaption>Classic ETL pipeline: data flows from source systems through extract, transform, and bulk-load stages before landing in the warehouse.</figcaption>
+</figure>
+
+## COPY and Bulk Load APIs
+
+Most databases ship a dedicated bulk-load mechanism:
+
+| Database | Command / API |
+|---|---|
+| PostgreSQL | `COPY table FROM '/path/file.csv' CSV` |
+| MySQL | `LOAD DATA INFILE '/path/file.csv'` |
+| BigQuery | `bq load --source_format=CSV ...` |
+| Snowflake | `COPY INTO table FROM @stage/file.csv` |
+| Redshift | `COPY table FROM 's3://bucket/prefix' IAM_ROLE '...'` |
+
+These commands share a common design: they **read a prepared file** (CSV, Parquet, ORC, JSON), validate or cast data types, and write directly to data pages — often in parallel across multiple CPU cores or nodes.
+
+### Staging Tables
+
+A common pattern is the **staging table** — a temporary table that mirrors the target schema (or the raw source format) and receives the bulk load before transformation:
+
+```sql
+-- Step 1: bulk load raw data into staging
+COPY raw_sales_staging
+FROM 's3://pipeline/2024-06-25/sales.csv'
+IAM_ROLE 'arn:aws:iam::123456789:role/redshift-s3-role'
+FORMAT CSV IGNOREHEADER 1;
+
+-- Step 2: transform and upsert into production table
+INSERT INTO fact_sales (date_key, product_key, store_key, sale_amount, quantity)
+SELECT
+  d.date_key,
+  p.product_key,
+  s.store_key,
+  stg.amount,
+  stg.qty
+FROM raw_sales_staging stg
+JOIN dim_date    d ON stg.sale_date = d.full_date
+JOIN dim_product p ON stg.sku       = p.sku
+JOIN dim_store   s ON stg.store_id  = s.store_id;
+
+-- Step 3: truncate staging for next run
+TRUNCATE raw_sales_staging;
+```
+
+Staging tables also serve as a safety net: if the transformation fails, the raw data is still there and can be reprocessed.
+
+## Why Bulk Load Is Faster: The Mechanics
+
+### 1. No Per-Row Write-Ahead Logging
+
+Standard INSERTs write a WAL record for every row before touching the data page. Bulk loaders bypass this — they write the data pages first, then optionally write a single summary log entry for the entire operation. On crash recovery, the entire load is either rolled back or redone as one unit.
+
+### 2. Sorted File Ingestion
+
+When data arrives pre-sorted by the clustering key (for columnar stores) or the B-tree key (for indexes), the loader can write pages sequentially without random seeks. This is why preparing sorted Parquet files before loading into Redshift or BigQuery dramatically improves performance.
+
+### 3. Deferred Index Building
+
+Indexes are disabled (or accumulate changes in a buffer) during the load, then built in one pass at the end. Building a B-tree index from scratch on sorted data is an O(n) scan; updating it row by row during insert is O(n log n) with heavy random I/O.
+
+### 4. Compression-Aware Writes
+
+Columnar warehouses encode each column using the best compression algorithm (RLE, dictionary, delta) for that column's value distribution. Bulk loaders analyze the full column batch and choose the optimal encoding; per-row inserts cannot do this because they see one value at a time.
+
+## Micro-batching and Streaming Ingestion
+
+Pure batch loading means data is available only after each batch completes — potentially hours of lag. Several hybrid approaches reduce latency:
+
+- **Micro-batching:** Run the pipeline every 5–15 minutes instead of nightly. Still uses bulk load mechanics, just more frequently.
+- **Streaming insert APIs:** Snowflake, BigQuery, and Redshift all offer streaming insert APIs that accept individual rows or small payloads with sub-second latency, but at lower throughput and higher cost than bulk load.
+- **Change Data Capture (CDC):** Tail the source database's transaction log (binlog, WAL) and stream only changed rows into a message queue (Kafka), then batch-load from the queue into the warehouse.
+
+> Most production pipelines combine approaches: CDC for low-latency data feeds, nightly bulk loads for historical backfill, and micro-batching for middle-tier latency requirements.
+
+## Data Freshness Trade-off
+
+Batch loading is fundamentally a **freshness vs. throughput** trade-off:
+
+| Strategy | Freshness | Throughput | Complexity |
+|---|---|---|---|
+| Nightly batch | Hours old | Very high | Low |
+| Hourly micro-batch | ~1 hour old | High | Medium |
+| Streaming insert | Seconds old | Medium | High |
+| Real-time CDC | Near real-time | Medium | Very high |
+
+For most business intelligence use cases — dashboards refreshed daily, weekly reports — an hourly or nightly batch is entirely adequate and far simpler to operate.
+
+## Interactive Example: Bulk Insert and Transformation
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Staging table and transformation pipeline</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE raw_sales_staging (sale_date DATE, sku VARCHAR(20), store_id VARCHAR(10), amount DECIMAL(10,2), qty INT);
+CREATE TABLE dim_product (product_key INT PRIMARY KEY, sku VARCHAR(20), product_name VARCHAR(100), category VARCHAR(50));
+CREATE TABLE dim_store (store_key INT PRIMARY KEY, store_id VARCHAR(10), store_name VARCHAR(100), region VARCHAR(50));
+CREATE TABLE fact_sales (sale_id INT PRIMARY KEY, product_key INT, store_key INT, sale_amount DECIMAL(10,2), quantity INT, sale_date DATE);
+INSERT INTO dim_product VALUES (1,&apos;ELEC-001&apos;,&apos;Laptop Pro&apos;,&apos;Electronics&apos;),(2,&apos;FURN-001&apos;,&apos;Desk Chair&apos;,&apos;Furniture&apos;),(3,&apos;ELEC-002&apos;,&apos;USB Hub&apos;,&apos;Electronics&apos;);
+INSERT INTO dim_store VALUES (10,&apos;S-NYC&apos;,&apos;Downtown NYC&apos;,&apos;East&apos;),(20,&apos;S-LAX&apos;,&apos;Westside LA&apos;,&apos;West&apos;);
+-- Simulate bulk load into staging (multi-row VALUES)
+INSERT INTO raw_sales_staging VALUES
+  (&apos;2024-06-01&apos;,&apos;ELEC-001&apos;,&apos;S-NYC&apos;,1299.99,1),
+  (&apos;2024-06-01&apos;,&apos;FURN-001&apos;,&apos;S-LAX&apos;,349.00,2),
+  (&apos;2024-06-02&apos;,&apos;ELEC-002&apos;,&apos;S-NYC&apos;,45.00,3),
+  (&apos;2024-06-02&apos;,&apos;ELEC-001&apos;,&apos;S-LAX&apos;,1299.99,1),
+  (&apos;2024-06-03&apos;,&apos;FURN-001&apos;,&apos;S-NYC&apos;,349.00,1);">-- Step 1: Check staging data
+SELECT * FROM raw_sales_staging;
+
+-- Step 2: Transform and load into fact table
+INSERT INTO fact_sales (sale_id, product_key, store_key, sale_amount, quantity, sale_date)
+SELECT
+  ROW_NUMBER() OVER (ORDER BY stg.sale_date) AS sale_id,
+  p.product_key,
+  s.store_key,
+  stg.amount,
+  stg.qty,
+  stg.sale_date
+FROM raw_sales_staging stg
+JOIN dim_product p ON stg.sku      = p.sku
+JOIN dim_store   s ON stg.store_id = s.store_id;
+
+-- Step 3: Verify the loaded fact table
+SELECT p.category, SUM(f.sale_amount) AS revenue
+FROM fact_sales f
+JOIN dim_product p ON f.product_key = p.product_key
+GROUP BY p.category
+ORDER BY revenue DESC;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- **Batch loading** is orders of magnitude faster than row-by-row INSERT because it bypasses per-row logging, defers index building, and writes sorted pages directly.
+- **ETL** transforms data outside the warehouse; **ELT** loads raw data first and transforms inside the warehouse using SQL — ELT is increasingly preferred with cloud warehouses.
+- The **COPY command** (or equivalent bulk load API) is the right tool for loading large datasets; it is not just syntactic sugar over INSERT.
+- **Staging tables** receive the raw bulk load, then a SQL transformation pipeline moves clean data into the final schema.
+- **Data freshness** is always a trade-off: nightly batches are simple and fast to operate; real-time streaming is complex and expensive.
+- **Micro-batching and CDC** offer middle-ground strategies when hourly-or-better latency matters.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+Calling Python functions is fine for a prototype, but the moment you want to store queries in config files, accept user input, or expose a network interface, you need a text format for queries. That text format is SQL — or in our case a tiny subset of it. Adding a parser turns our toy engine from a library into something that feels like a real database: you type a string, it runs a query.
+
+## What a Parser Does
+
+A parser takes a stream of characters and produces a **structured representation** of the query — an abstract syntax tree (AST) or, for simple grammars, a flat dict. Our subset of SQL has only two statement types:
+
+```
+SELECT <columns> FROM <table> [WHERE <col> <op> <value>]
+INSERT INTO <table> (<cols>) VALUES (<vals>)
+```
+
+We do not need a full grammar. A **recursive descent parser** — a handful of functions that call each other to match grammar rules — is sufficient and keeps the code readable.
+
+## Tokenization
+
+The first step is breaking the raw string into tokens:
+
+```python
+import re
+from typing import Iterator
+
+TOKEN_RE = re.compile(
+    r"'[^']*'"          # quoted string literal
+    r"|\d+\.?\d*"       # number (int or float)
+    r"|[A-Za-z_]\w*"    # identifier or keyword
+    r"|[><!=]=?"        # comparison operators
+    r"|[(),;*]"         # punctuation
+)
+
+def tokenize(sql: str) -> list[str]:
+    return TOKEN_RE.findall(sql.upper())
+```
+
+For `SELECT name, age FROM employees WHERE salary > 80000` this produces:
+
+```
+['SELECT', 'NAME', ',', 'AGE', 'FROM', 'EMPLOYEES',
+ 'WHERE', 'SALARY', '>', '80000']
+```
+
+> **Note:** We uppercase everything at tokenize time, making keywords case-insensitive the same way real SQL engines do (`select`, `SELECT`, and `Select` are all valid).
+
+## The Parser
+
+```python
+class Parser:
+    def __init__(self, tokens: list[str]):
+        self.tokens = tokens
+        self.pos    = 0
+
+    def peek(self) -> str | None:
+        return self.tokens[self.pos] if self.pos < len(self.tokens) else None
+
+    def consume(self, expected: str | None = None) -> str:
+        tok = self.tokens[self.pos]
+        if expected and tok != expected:
+            raise SyntaxError(f"Expected {expected!r}, got {tok!r}")
+        self.pos += 1
+        return tok
+
+    def parse_select(self) -> dict:
+        self.consume("SELECT")
+        columns = self._parse_column_list()
+        self.consume("FROM")
+        table = self.consume()
+        where = None
+        if self.peek() == "WHERE":
+            self.consume("WHERE")
+            col = self.consume()
+            op  = self.consume()   # >, <, =, >=, <=, !=
+            val = self._parse_value()
+            where = {"col": col, "op": op, "val": val}
+        return {"type": "SELECT", "columns": columns,
+                "table": table, "where": where}
+
+    def _parse_column_list(self) -> list[str]:
+        cols = ["*"] if self.peek() == "*" else []
+        if not cols:
+            cols.append(self.consume())
+            while self.peek() == ",":
+                self.consume(",")
+                cols.append(self.consume())
+        else:
+            self.consume()  # eat the *
+        return cols
+
+    def _parse_value(self):
+        tok = self.consume()
+        if tok.startswith("'"):
+            return tok[1:-1]    # strip quotes
+        try:
+            return int(tok)
+        except ValueError:
+            return float(tok)
+
+def parse(sql: str) -> dict:
+    tokens = tokenize(sql)
+    p = Parser(tokens)
+    keyword = tokens[0]
+    if keyword == "SELECT":
+        return p.parse_select()
+    raise NotImplementedError(f"Unknown statement: {keyword}")
+```
+
+Running `parse("SELECT name, age FROM employees WHERE salary > 80000")` returns:
+
+```python
+{
+  "type":    "SELECT",
+  "columns": ["NAME", "AGE"],
+  "table":   "EMPLOYEES",
+  "where":   {"col": "SALARY", "op": ">", "val": 80000},
+}
+```
+
+<figure class="diagram">
+<svg viewBox="0 0 660 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SQL text flows through tokenizer then parser to produce an AST dict">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- SQL text box -->
+  <rect x="10" y="60" width="160" height="50" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="90" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">SQL string</text>
+  <text x="90" y="97" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="monospace">SELECT name FROM …</text>
+
+  <!-- Arrow to tokenizer -->
+  <line x1="172" y1="85" x2="208" y2="85" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Tokenizer box -->
+  <rect x="210" y="60" width="130" height="50" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="275" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">Tokenizer</text>
+  <text x="275" y="97" text-anchor="middle" font-size="10" fill="var(--muted)">[SELECT, NAME, …]</text>
+
+  <!-- Arrow to parser -->
+  <line x1="342" y1="85" x2="378" y2="85" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Parser box -->
+  <rect x="380" y="60" width="130" height="50" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="445" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">Parser</text>
+  <text x="445" y="97" text-anchor="middle" font-size="10" fill="var(--muted)">recursive descent</text>
+
+  <!-- Arrow to AST -->
+  <line x1="512" y1="85" x2="548" y2="85" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- AST box -->
+  <rect x="550" y="40" width="100" height="100" rx="6" fill="var(--accent)" opacity="0.12" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="600" y="60" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">AST</text>
+  <text x="600" y="77" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">type: SELECT</text>
+  <text x="600" y="91" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">cols: [NAME]</text>
+  <text x="600" y="105" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">table: EMP</text>
+  <text x="600" y="119" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">where: …</text>
+
+  <text x="330" y="155" text-anchor="middle" font-size="11" fill="var(--muted)">Each stage consumes characters / tokens left-to-right</text>
+  <text x="330" y="172" text-anchor="middle" font-size="11" fill="var(--muted)">and hands structured data to the next stage</text>
+</svg>
+<figcaption>Three-stage pipeline: raw SQL text → token list → AST dict. The executor (next page) takes the AST and runs it.</figcaption>
+</figure>
+
+## Connecting the Parser to the Engine
+
+With the AST in hand, an executor can run it:
+
+```python
+def execute(ast: dict, tables: dict, indexes: dict) -> list[dict]:
+    if ast["type"] != "SELECT":
+        raise NotImplementedError
+    table = tables[ast["table"]]
+    where = ast["where"]
+    ops   = {">": lambda a,b: a>b, "<": lambda a,b: a<b,
+             "=": lambda a,b: a==b, ">=": lambda a,b: a>=b,
+             "<=": lambda a,b: a<=b, "!=": lambda a,b: a!=b}
+
+    def pred(row):
+        if not where:
+            return True
+        return ops[where["op"]](row[where["col"].lower()], where["val"])
+
+    rows = scan(table, pred)  # or use index if available
+
+    if ast["columns"] == ["*"]:
+        return list(rows)
+    return [{c.lower(): r[c.lower()] for c in ast["columns"]} for r in rows]
+```
+
+Now the entire pipeline is:
+
+```python
+result = execute(parse("SELECT name FROM employees WHERE salary > 80000"), tables, indexes)
+```
+
+## Error Handling
+
+A real parser emits helpful error messages: "Expected FROM, got WHERE at position 3". Our toy raises `SyntaxError` with a brief message. The principle is the same: position tracking and a descriptive error make the difference between a usable and an unusable tool.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Parsing Queries</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice',30,70000),(2,'Bob',25,55000),(3,'Carol',34,92000),(4,'Dave',28,61000),(5,'Eve',40,110000);">-- Each of these is what our parser produces as an AST, then executes:
+
+-- SELECT name, age FROM employees WHERE salary > 80000
+SELECT name, age FROM employees WHERE salary &gt; 80000;
+
+-- SELECT * FROM employees WHERE name = 'Alice'
+-- SELECT * FROM employees WHERE age &lt; 30;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- A parser converts a **string** into a **structured AST** that downstream code can execute without string manipulation.
+- **Tokenization** (splitting into words/symbols) is a clean first pass; the **parser** then applies grammar rules.
+- Recursive descent parsers are easy to write and read — each grammar rule becomes one function.
+- The AST is the contract between the parser and the execution engine; adding new SQL features means extending the AST and the executor, not changing the parser's architecture.
+- Next we add a **planner** that looks at the AST and decides the cheapest way to run it — using an index when one is available.

@@ -1,0 +1,177 @@
+SQL injection is among the oldest and most consistently exploited vulnerabilities in software. It has persisted for decades not because it is subtle or hard to understand, but because the fix requires consistent discipline, and a single lapse anywhere in a large codebase is enough to expose the entire database. This page explains exactly how injection works at the query-parsing level, why parameterized queries prevent it, and the additional defenses that reduce impact even when injection occurs.
+
+## How SQL Injection Works
+
+SQL injection exploits the fact that SQL query text and user-supplied data are mixed together in a single string. When the database receives the string, it cannot distinguish intended SQL syntax from injected syntax — it parses and executes everything.
+
+Consider a login check:
+
+```python
+# VULNERABLE: string concatenation
+username = request.form['username']
+query = "SELECT id FROM users WHERE username = '" + username + "'"
+db.execute(query)
+```
+
+A legitimate user submits `alice`. The query becomes:
+
+```sql
+SELECT id FROM users WHERE username = 'alice'
+```
+
+An attacker submits `' OR '1'='1`. The query becomes:
+
+```sql
+SELECT id FROM users WHERE username = '' OR '1'='1'
+```
+
+The `OR '1'='1'` is always true, so the query returns every row in the `users` table. Authentication is bypassed completely.
+
+A more destructive payload: `'; DROP TABLE users; --`
+
+```sql
+SELECT id FROM users WHERE username = ''; DROP TABLE users; --'
+```
+
+The first statement returns nothing; the second drops the entire table; `--` comments out the trailing quote.
+
+## Parameterized Queries: The Only Real Fix
+
+The correct defense is to never construct queries by string concatenation. Instead, send the query template and the parameters separately — the database driver handles escaping at the protocol level before the SQL parser ever sees the input.
+
+```python
+# SAFE: parameterized query (Python / psycopg2)
+cursor.execute(
+    "SELECT id FROM users WHERE username = %s",
+    (username,)
+)
+```
+
+```javascript
+// SAFE: parameterized query (Node.js / pg)
+const result = await client.query(
+  'SELECT id FROM users WHERE username = $1',
+  [username]
+);
+```
+
+```java
+// SAFE: PreparedStatement (Java / JDBC)
+PreparedStatement stmt = conn.prepareStatement(
+    "SELECT id FROM users WHERE username = ?");
+stmt.setString(1, username);
+```
+
+With parameterized queries, the attacker's `' OR '1'='1` is treated as the literal string value to match against `username`, not as SQL syntax. It simply fails to find a matching row.
+
+> **ORMs are not automatically safe.** Most ORM methods are parameterized by default, but all provide escape hatches for raw SQL. Any use of raw SQL in an ORM must be audited and parameterized. `User.where("username = '#{params[:username]}'"` in Rails is just as vulnerable as string concatenation in plain SQL.
+
+<figure class="diagram">
+<svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Comparison of vulnerable string concatenation vs safe parameterized query: left side shows attacker payload merged into SQL text; right side shows payload treated as data, never parsed as SQL">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrred" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#c0392b"/>
+    </marker>
+  </defs>
+
+  <!-- Vulnerable side -->
+  <rect x="10" y="10" width="310" height="270" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="165" y="35" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Vulnerable (Concatenation)</text>
+
+  <rect x="30" y="50" width="130" height="40" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="95" y="67" text-anchor="middle" font-size="10" fill="var(--text)">SQL template string</text>
+  <text x="95" y="82" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">WHERE user = '...'</text>
+
+  <rect x="30" y="110" width="130" height="40" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="95" y="127" text-anchor="middle" font-size="10" fill="var(--text)">Attacker input</text>
+  <text x="95" y="142" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">' OR '1'='1</text>
+
+  <line x1="165" y1="90" x2="165" y2="108" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="165" y1="108" x2="95" y2="108" stroke="var(--border)" stroke-width="1"/>
+
+  <rect x="30" y="175" width="260" height="50" rx="5" fill="var(--surface-2)" stroke="#c0392b" stroke-width="2"/>
+  <text x="160" y="196" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text)">Merged SQL sent to parser</text>
+  <text x="160" y="213" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">WHERE user = '' OR '1'='1'</text>
+
+  <line x1="160" y1="152" x2="160" y2="173" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arrred)"/>
+  <text x="160" y="250" text-anchor="middle" font-size="10" fill="var(--muted)">Parser executes attacker logic</text>
+
+  <!-- Safe side -->
+  <rect x="360" y="10" width="310" height="270" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="515" y="35" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Safe (Parameterized)</text>
+
+  <rect x="380" y="50" width="130" height="40" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="445" y="67" text-anchor="middle" font-size="10" fill="var(--text)">SQL template</text>
+  <text x="445" y="82" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">WHERE user = $1</text>
+
+  <rect x="380" y="110" width="130" height="40" rx="5" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="445" y="127" text-anchor="middle" font-size="10" fill="var(--text)">Attacker input</text>
+  <text x="445" y="142" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">' OR '1'='1</text>
+
+  <rect x="380" y="175" width="260" height="50" rx="5" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1"/>
+  <text x="510" y="196" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text)">Sent separately to driver</text>
+  <text x="510" y="213" text-anchor="middle" font-size="9" fill="var(--accent)">Template + [&apos; OR &apos;1&apos;=&apos;1] as data</text>
+
+  <line x1="515" y1="90" x2="515" y2="108" stroke="var(--border)" stroke-width="1.5"/>
+  <line x1="445" y1="152" x2="445" y2="173" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <text x="510" y="250" text-anchor="middle" font-size="10" fill="var(--accent)">Input treated as string literal only</text>
+</svg>
+<figcaption>String concatenation merges attacker-controlled content into the SQL AST. Parameterized queries send template and data separately — the parser never sees user input as SQL syntax.</figcaption>
+</figure>
+
+## Dynamic SQL: When You Must Construct Queries
+
+Sometimes query structure itself must be dynamic — sorting by a user-chosen column, filtering by a runtime-chosen operator. Parameterized queries handle values but not identifiers (column names, table names, operators). The safe approach for identifiers is **allowlisting**:
+
+```python
+# SAFE: allowlist of permitted column names
+ALLOWED_SORT_COLUMNS = {'id', 'created_at', 'amount', 'status'}
+sort_col = request.args.get('sort', 'id')
+if sort_col not in ALLOWED_SORT_COLUMNS:
+    sort_col = 'id'
+query = f"SELECT * FROM orders ORDER BY {sort_col}"
+# sort_col is now guaranteed to be a safe identifier
+```
+
+Never use user input directly as an identifier. There is no escaping mechanism that safely handles all edge cases across all databases.
+
+## Defense in Depth
+
+Parameterized queries stop injection at the source. Additional layers reduce the blast radius if injection somehow occurs:
+
+1. **Least privilege** — the application database role has only `SELECT`, `INSERT`, `UPDATE`, `DELETE`; no `DROP`, no `EXECUTE` on dangerous functions. Even a successful injection cannot drop tables or read arbitrary files.
+2. **Web Application Firewall (WAF)** — signature-based SQL injection detection at the HTTP layer. Not a substitute for parameterized queries, but catches opportunistic scanners.
+3. **Error message suppression** — never return raw database error messages to users. They reveal table names, column names, and query structure. Log errors server-side; return a generic error to the client.
+4. **Stored procedures** — centralizing data access in stored procedures limits the SQL surface area exposed to the application. If the application can only call `CALL get_user_by_id(?)`  and not construct arbitrary queries, injection is structurally limited.
+
+## Interactive Example
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Injection vs. Safe Query</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, role TEXT, password_hash TEXT); INSERT INTO users VALUES (1, 'alice', 'admin', 'abc123hash'); INSERT INTO users VALUES (2, 'bob', 'viewer', 'xyz456hash'); INSERT INTO users VALUES (3, 'carol', 'editor', 'def789hash');">-- SAFE: parameterized equivalent -- the WHERE matches literally
+-- The user supplies 'alice' and nothing else matches
+SELECT id, username, role
+FROM users
+WHERE username = 'alice';
+
+-- What injection would do if you built the query by concatenation:
+-- Input: ' OR '1'='1
+-- Result: all rows returned, auth bypassed
+-- Try: SELECT id, username, role FROM users WHERE username = '' OR '1'='1';
+
+-- Safe query returns only the intended row:</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- SQL injection is **structural**: it works by merging user input into SQL syntax. String escaping is fragile; parameterized queries are the only reliable fix.
+- **Parameterize everything** — values, filters, LIMIT values, pagination offsets. The only things you cannot parameterize are SQL identifiers (column and table names); those require an allowlist.
+- **ORMs are not magic**: any raw SQL path in an ORM must be parameterized explicitly.
+- Use **least privilege** so that a successful injection has limited impact — an attacker who can only run `SELECT` cannot drop your schema.
+- Suppress database error messages in production; they provide attackers with the structural information needed to refine their payload.

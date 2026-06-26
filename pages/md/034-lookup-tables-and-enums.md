@@ -1,0 +1,95 @@
+When a column can only hold one of a fixed set of values — status, category, priority, colour — you have two main tools: a **lookup table** (also called a reference table or code table) and an **enum type**. Both constrain what goes in the column, but they trade flexibility against simplicity in different ways. Choosing the right one is a recurring design decision you'll face on almost every schema.
+
+## The Problem They Both Solve
+
+Suppose you're storing orders. Each order has a status: `pending`, `shipped`, `delivered`, or `cancelled`. If you store that as a plain `VARCHAR`, nothing stops a developer from inserting `'Shippped'` or `'in transit'`. Queries that filter by status become fragile because you can't be sure which spellings exist in production.
+
+You want the database itself to reject invalid values — not your application code, which can be bypassed or can crash.
+
+## Lookup Tables
+
+A lookup table is an ordinary table whose only job is to hold the valid values for a domain. Other tables reference it with a foreign key.
+
+```sql
+CREATE TABLE order_status (
+  code TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  sort_order INTEGER NOT NULL
+);
+
+INSERT INTO order_status VALUES
+  ('pending',   'Pending',   1),
+  ('shipped',   'Shipped',   2),
+  ('delivered', 'Delivered', 3),
+  ('cancelled', 'Cancelled', 4);
+
+CREATE TABLE orders (
+  id          INTEGER PRIMARY KEY,
+  customer    TEXT NOT NULL,
+  status_code TEXT NOT NULL REFERENCES order_status(code)
+);
+```
+
+The foreign key constraint makes it impossible to insert an order with `status_code = 'Shippped'` — the database refuses it. Better still, the lookup table can carry extra columns: a display label, a sort order, a description, an "is terminal state" flag, or whatever your application needs. Adding a new status is a single `INSERT`; no schema migration required.
+
+> **Note:** Lookup tables work in every database engine — SQLite, PostgreSQL, MySQL, SQL Server — because they use nothing more exotic than a foreign key. That portability is a real advantage.
+
+Try it below. The `INSERT` into `orders` with a bad status will fail; fix the status code to see a successful insert, then query the join.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Lookup tables</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE order_status (code TEXT PRIMARY KEY, label TEXT NOT NULL, sort_order INTEGER NOT NULL); INSERT INTO order_status VALUES ('pending','Pending',1),('shipped','Shipped',2),('delivered','Delivered',3),('cancelled','Cancelled',4); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT NOT NULL, status_code TEXT NOT NULL REFERENCES order_status(code)); INSERT INTO orders VALUES (1,'Alice','shipped'),(2,'Bob','pending'),(3,'Carol','delivered');">-- Try changing 'pending' to 'Shippped' to see the FK reject it.
+-- Then restore a valid status and run the join below.
+SELECT o.id, o.customer, s.label AS status
+FROM orders o
+JOIN order_status s ON s.code = o.status_code
+ORDER BY s.sort_order, o.id;</textarea>
+  </div>
+</div>
+
+## Enums
+
+Some databases offer a native **enum type** that bakes the allowed values directly into the column definition:
+
+```sql
+-- PostgreSQL syntax (not available in SQLite)
+CREATE TYPE order_status AS ENUM ('pending', 'shipped', 'delivered', 'cancelled');
+
+CREATE TABLE orders (
+  id       SERIAL PRIMARY KEY,
+  customer TEXT NOT NULL,
+  status   order_status NOT NULL
+);
+```
+
+SQLite has no native enum, but you can approximate it with a `CHECK` constraint:
+
+```sql
+CREATE TABLE orders (
+  id       INTEGER PRIMARY KEY,
+  customer TEXT NOT NULL,
+  status   TEXT NOT NULL CHECK (status IN ('pending','shipped','delivered','cancelled'))
+);
+```
+
+Enums are compact and self-documenting — the schema itself tells you every valid value. They're a good fit when the set of values is small and genuinely stable (think: compass directions, coin sides, boolean-like states).
+
+### Lookup Table vs. Enum — A Quick Comparison
+
+| Concern | Lookup table | Enum / CHECK |
+|---|---|---|
+| Adding a new value | `INSERT` — no migration | `ALTER TYPE` or schema change |
+| Extra metadata per value | Easy (add columns) | Not possible |
+| Portability | Any SQL database | Varies by engine |
+| Schema self-documents values | No (query the table) | Yes |
+| Storage overhead | Small extra table | Minimal |
+
+The rule of thumb most teams use: if the list will grow or needs metadata, use a lookup table. If the values are truly fixed and you want them visible in the schema, use an enum or CHECK constraint.
+
+## Practical Tips
+
+- **Always enforce at the database layer.** Application-level validation alone is not enough; migrations, bulk loads, and direct SQL access bypass it.
+- **Name lookup tables clearly.** Suffixes like `_type`, `_status`, or `_category` signal their role: `payment_method`, `ticket_priority`.
+- **Seed lookup tables in your migrations.** Treat the rows as schema, not data — they should be part of your version-controlled migration scripts.
+- **Avoid numeric codes without a label column.** `status = 3` is opaque; `status_code = 'delivered'` is readable in every query result and log line.

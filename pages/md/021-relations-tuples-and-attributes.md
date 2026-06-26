@@ -1,0 +1,68 @@
+The relational model gives databases a precise mathematical foundation. Instead of talking loosely about "tables" and "rows," it defines exactly what structure data must have and what operations are valid on it. Those definitions all start with three words: **relation**, **tuple**, and **attribute**.
+
+## What Is a Relation?
+
+A **relation** is the formal name for what most people call a table. The word comes from set theory — a relation is a *set of tuples*, where every tuple shares the same structure.
+
+Two properties follow directly from that definition:
+
+1. **No duplicate tuples.** Because a relation is a set, every row must be unique.
+2. **No ordering.** Sets have no inherent order, so rows have no "first" or "last" position. Any ordering you see in a query result is imposed by the query itself, not stored in the relation.
+
+These aren't just theoretical niceties. They're the reason the relational model can guarantee consistent, predictable results: you're always reasoning about a *set*, not a list.
+
+## Tuples and Attributes
+
+Each row in a relation is called a **tuple**. A tuple is a fixed-length, ordered collection of values — one value per **attribute**.
+
+An **attribute** is a named column with a declared **domain** (the set of allowed values). The domain can be as broad as "any text string" or as narrow as "an integer between 1 and 100." Every value in a tuple must belong to its attribute's domain.
+
+Put together:
+
+| Term | Everyday word | What it means precisely |
+|------|--------------|--------------------------|
+| Relation | Table | A set of tuples with a common structure |
+| Tuple | Row | One element of a relation; a fixed set of named values |
+| Attribute | Column | A named component of a tuple with a declared domain |
+| Domain | Data type + constraints | The complete set of valid values for an attribute |
+
+### A Concrete Example
+
+Consider a relation called `employee`:
+
+| employee_id | name       | department | salary  |
+|-------------|------------|------------|---------|
+| 1           | Ada        | Engineering| 95000   |
+| 2           | Brian      | Marketing  | 72000   |
+| 3           | Carmen     | Engineering| 105000  |
+
+This relation has **4 attributes** (`employee_id`, `name`, `department`, `salary`) and **3 tuples**. The domain of `salary` might be "positive integers"; the domain of `department` might be restricted to a known list of department names. Any attempt to insert a tuple with a value outside those domains is rejected.
+
+> **Note:** In formal relational theory, an attribute's position inside a tuple does not matter — what matters is the attribute *name*. This means you should never rely on column order in production SQL; always name your columns explicitly.
+
+## Exploring Relations with SQL
+
+SQL is the language that lets you work with relations. `CREATE TABLE` defines the relation's name, attributes, and domains; `INSERT` adds tuples; `SELECT` retrieves them.
+
+Try running the query below. It retrieves all tuples from a small `employee` relation. Then try modifying the `WHERE` clause to filter by department or salary.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Relations &amp; Tuples</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE employee (employee_id INTEGER PRIMARY KEY, name TEXT NOT NULL, department TEXT NOT NULL, salary INTEGER NOT NULL); INSERT INTO employee VALUES (1, 'Ada', 'Engineering', 95000); INSERT INTO employee VALUES (2, 'Brian', 'Marketing', 72000); INSERT INTO employee VALUES (3, 'Carmen', 'Engineering', 105000); INSERT INTO employee VALUES (4, 'David', 'Marketing', 68000);">SELECT * FROM employee
+WHERE department = 'Engineering';</textarea>
+  </div>
+</div>
+
+Notice that the result is itself a relation — a new set of tuples derived from the original. This is a core idea: relational operations always take relations as input and produce relations as output, so you can chain them together.
+
+## Relation Schema vs. Relation Instance
+
+One last distinction worth locking in: the **schema** of a relation is its *structure* — the name, the list of attributes, and their domains. The **instance** (or *extension*) is the actual set of tuples in the relation at a specific moment in time.
+
+- **Schema** (stable): `employee(employee_id: INT, name: TEXT, department: TEXT, salary: INT)`
+- **Instance** (changes with inserts/updates/deletes): the four rows above
+
+The schema rarely changes; the instance changes every time data is modified. When database engineers talk about "designing a schema," they're deciding which relations to define and what attributes each one should have — the structure that will hold the data, independent of any particular data values.
+
+<details class="reveal"><summary>Reveal: Can two tuples in a relation have the same values for every attribute?</summary><div class="reveal-body">No. A relation is formally a <em>set</em>, and sets do not allow duplicate elements. If two proposed tuples are identical across every attribute, they are the same tuple and only one is stored. In practice, SQL databases enforce this through a <strong>primary key</strong> — a constraint that guarantees at least one attribute (or combination of attributes) is unique per tuple. Without a primary key, some SQL engines will allow duplicate rows, which means the table is technically not a true relation in the formal sense.</div></details>

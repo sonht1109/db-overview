@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why relations are powerful — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part I. Foundations</p>
+  <p class="chapter-label">Chapter 3. The Relational Model</p>
+  <h1 class="content-title">Why relations are powerful</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="024-projection-selection-and-join.html"><span class="dir">← Previous</span><span class="ttl">Projection, selection, and join</span></a><a class="next" href="026-data-independence.html"><span class="dir">Next →</span><span class="ttl">Data independence</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+The relational model has dominated databases for over fifty years — not by accident, but because it solves a genuinely hard problem: how do you store data in a way that lets you ask questions you didn't anticipate at design time? The answer is a single elegant idea — the *relation* — and a small set of mathematical operations that compose cleanly on top of it.
+
+## Data lives in one place, questions can come from anywhere
+
+Before the relational model, databases were navigational: to get from one record to another, you followed pre-built pointers hard-coded at design time. If the pointer for your question didn't exist, you were out of luck — or you rebuilt the database.
+
+Relations break that dependency. Each table is self-describing: every row has the same columns, every column has a declared type, and rows carry no pointer to other tables. Relationships between tables are expressed at *query time* using shared values (keys), not at storage time using pointers. This means:
+
+- You can add new queries without restructuring the data.
+- You can combine tables in ways the original designer never imagined.
+- The engine — not the application — figures out how to navigate to the answer.
+
+> **Note:** This property is sometimes called *data independence* — the logical structure of your data is decoupled from how it is physically stored and navigated.
+
+## Keys and joins unlock unlimited combinations
+
+The mechanism that makes this work is the **join**. When two tables share a column (a foreign key referencing a primary key), you can combine rows from both tables where those values match. From three simple tables you can produce dozens of different result sets — without duplicating a single byte of data.
+
+Try it below. The schema stores orders and customers separately. The query joins them at query time:
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Relations & Joins</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, country TEXT); CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, price REAL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product_id INTEGER, qty INTEGER); INSERT INTO customers VALUES (1,'Alice','US'),(2,'Bob','UK'),(3,'Carol','US'); INSERT INTO products VALUES (1,'Widget',9.99),(2,'Gadget',24.99),(3,'Doohickey',4.50); INSERT INTO orders VALUES (1,1,1,3),(2,1,3,10),(3,2,2,1),(4,3,1,2),(5,3,2,4);">SELECT
+  c.name        AS customer,
+  p.name        AS product,
+  o.qty         AS quantity,
+  o.qty * p.price AS total_cost
+FROM orders o
+JOIN customers c ON o.customer_id = c.id
+JOIN products  p ON o.product_id  = p.id
+ORDER BY total_cost DESC;</textarea>
+  </div>
+</div>
+
+Notice that each table stores only its own facts. The join assembles a tailored view at query time. Try adding `WHERE c.country = 'US'` to filter by country, or swapping `ORDER BY total_cost DESC` for `ORDER BY customer`.
+
+## Relations compose — that's the real superpower
+
+Individual joins are useful, but the deeper power is *composability*. Because every query result is itself a table (a relation), you can layer filters, aggregations, and joins on top of other queries. SQL's `WITH` clause (Common Table Expressions) makes this explicit:
+
+```sql
+WITH us_orders AS (
+  SELECT o.id, o.qty, o.product_id, c.name AS customer
+  FROM orders o
+  JOIN customers c ON o.customer_id = c.id
+  WHERE c.country = 'US'
+)
+SELECT customer, SUM(qty) AS total_items
+FROM us_orders
+GROUP BY customer;
+```
+
+`us_orders` is a temporary relation — the outer query treats it exactly like a real table. You can keep stacking these layers without touching the underlying data at all.
+
+This is what mathematicians call *closure*: relational operations (select, project, join, aggregate) take relations as input and return relations as output. The system never needs a special exit ramp to handle intermediate results — it's the same concept all the way down.
+
+## One model, many workloads
+
+Because the relational model is built on math rather than a specific access pattern, the same schema can answer:
+
+| Query style | Example |
+|---|---|
+| Lookup by key | `SELECT * FROM customers WHERE id = 3` |
+| Filter by value | `SELECT * FROM orders WHERE qty > 5` |
+| Aggregate | `SELECT country, COUNT(*) FROM customers GROUP BY country` |
+| Multi-table join | The example above |
+| Subquery / CTE | Nested logic without new tables |
+
+A navigational or document model may outperform a relational one for a *specific* pre-defined access path — but it loses the moment you ask a question outside that path. Relations trade a small amount of raw speed on the happy path for near-unlimited flexibility everywhere else. For most applications, that trade is an obvious win.
+
+> **Note:** Modern relational engines (SQLite, PostgreSQL, MySQL) use sophisticated query planners that choose physical access strategies — indexes, hash joins, scans — automatically. You write the *what*; the engine figures out the *how*.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

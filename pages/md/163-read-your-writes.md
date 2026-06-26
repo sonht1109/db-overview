@@ -1,0 +1,139 @@
+When you post a comment on a social network and then immediately scroll back to see it — only to find it missing — you have experienced a violation of **read-your-writes** consistency. The write succeeded, the page refreshed, yet your own data is invisible to you. This is one of the most disorienting bugs users encounter in distributed systems, and it arises directly from replication lag.
+
+## What the Guarantee Means
+
+**Read-your-writes** (sometimes called *read-your-own-writes*) is a session-level consistency guarantee: after a user successfully writes a value, any subsequent read by *that same user* must reflect that write.
+
+Notice what the guarantee does *not* say:
+
+- It says nothing about what *other* users see. Alice's write might still be invisible to Bob for a while — that is normal eventual consistency.
+- It does not require the write to appear instantly on every node. The system just has to route the user's own reads to a place that is already up to date.
+
+This places read-your-writes firmly in the middle of the consistency spectrum — stronger than basic eventual consistency, but weaker than linearizability, which would require everyone to see the write immediately.
+
+## Why This Breaks in Practice
+
+In a typical leader–follower setup, writes go to the leader and are then asynchronously replicated to read replicas. If your application routes reads to replicas for load balancing, a user can write to the leader and then immediately read from a replica that hasn't caught up yet.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing a write reaching the leader but the replica lagging behind, causing a stale read">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
+    </marker>
+    <marker id="arr-accent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arr-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#e05252"/>
+    </marker>
+  </defs>
+
+  <!-- Time axis label -->
+  <text x="60" y="22" font-size="12" fill="var(--text)" opacity="0.6">time →</text>
+  <line x1="60" y1="28" x2="590" y2="28" stroke="var(--border)" stroke-width="1" marker-end="url(#arr)"/>
+
+  <!-- Actor labels -->
+  <text x="30" y="75" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">Client</text>
+  <text x="30" y="155" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">Leader</text>
+  <text x="30" y="235" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">Replica</text>
+
+  <!-- Actor swim-lanes -->
+  <line x1="60" y1="68" x2="590" y2="68" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="60" y1="148" x2="590" y2="148" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="60" y1="228" x2="590" y2="228" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Step 1: Client writes to Leader -->
+  <line x1="120" y1="68" x2="120" y2="148" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr-accent)"/>
+  <rect x="65" y="50" width="110" height="24" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.2"/>
+  <text x="120" y="66" font-size="11" text-anchor="middle" fill="var(--text)">① WRITE "my comment"</text>
+
+  <!-- Leader ack -->
+  <line x1="120" y1="148" x2="120" y2="68" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-accent)"/>
+  <rect x="128" y="100" width="60" height="20" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="158" y="114" font-size="11" text-anchor="middle" fill="var(--text)">ACK ✓</text>
+
+  <!-- Replication lag arrow (Leader -> Replica, delayed) -->
+  <line x1="120" y1="148" x2="340" y2="228" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arr)"/>
+  <text x="230" y="198" font-size="11" fill="var(--text)" opacity="0.65" text-anchor="middle">async replication lag</text>
+
+  <!-- Step 2: Client reads (too early) from Replica -->
+  <line x1="200" y1="68" x2="200" y2="228" stroke="#e05252" stroke-width="2" marker-end="url(#arr-red)"/>
+  <rect x="145" y="50" width="110" height="24" rx="4" fill="var(--surface-2)" stroke="#e05252" stroke-width="1.2"/>
+  <text x="200" y="66" font-size="11" text-anchor="middle" fill="var(--text)">② READ (replica)</text>
+
+  <!-- Replica returns stale data -->
+  <line x1="200" y1="228" x2="200" y2="68" stroke="#e05252" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-red)"/>
+  <rect x="208" y="150" width="100" height="20" rx="3" fill="var(--surface-2)" stroke="#e05252" stroke-width="1"/>
+  <text x="258" y="164" font-size="11" text-anchor="middle" fill="#e05252">← stale (comment missing!)</text>
+
+  <!-- Replica catches up -->
+  <circle cx="340" cy="228" r="5" fill="var(--accent)" opacity="0.85"/>
+  <text x="340" y="250" font-size="11" text-anchor="middle" fill="var(--text)" opacity="0.7">replica catches up</text>
+
+  <!-- Step 3: Later read is fine -->
+  <line x1="450" y1="68" x2="450" y2="228" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-accent)"/>
+  <rect x="395" y="50" width="110" height="24" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.2"/>
+  <text x="450" y="66" font-size="11" text-anchor="middle" fill="var(--text)">③ READ (later) ✓</text>
+  <line x1="450" y1="228" x2="450" y2="68" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-accent)"/>
+  <text x="530" y="170" font-size="11" fill="var(--accent)" text-anchor="middle">← fresh now</text>
+</svg>
+<figcaption>A client writes to the leader, then reads from a lagging replica too soon — the write is invisible until the replica catches up.</figcaption>
+</figure>
+
+## How Systems Implement It
+
+There is no single universal solution; the right technique depends on your architecture.
+
+| Technique | How it works | Trade-off |
+|---|---|---|
+| **Sticky reads** | Route each user's reads to the same replica (or always to the leader) | Reduces replica load-balancing benefit |
+| **Read from leader after write** | After any write, direct that user's next reads to the leader for a short window | Leader becomes a bottleneck if many users write frequently |
+| **Timestamp / version fencing** | The write returns a logical timestamp; reads include it and replicas wait until they have caught up to that timestamp before serving the result | Adds coordination overhead; replica must block or retry |
+| **Client-side caching** | The client records what it wrote and merges it into subsequent reads locally | Works well for simple cases; complex for multi-device sessions |
+
+> **Note:** Multi-device sessions are harder. If you post from your phone and then open a laptop, the laptop's session has no knowledge of the phone's write. Timestamp fencing or a server-side session token is required to extend the guarantee across devices.
+
+## Seeing the Problem in Data
+
+The widget below simulates a small replica that lags behind a leader. The `replication_offset` column mimics which writes each replica has applied. Try querying from the perspective of a client who just wrote at offset 5 — which replicas would show their data?
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Read-your-writes simulation</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE nodes (node_id TEXT, role TEXT, applied_offset INTEGER); INSERT INTO nodes VALUES ('leader', 'leader', 10), ('replica-A', 'follower', 10), ('replica-B', 'follower', 4), ('replica-C', 'follower', 7); CREATE TABLE user_writes (username TEXT, write_offset INTEGER, content TEXT); INSERT INTO user_writes VALUES ('alice', 5, 'my comment'), ('alice', 9, 'my edited comment'), ('bob', 3, 'bobs post');">-- Alice just wrote at offset 5. Which nodes will show her comment?
+-- A node can serve alice's read only if its applied_offset >= alice's write_offset.
+SELECT
+  n.node_id,
+  n.role,
+  n.applied_offset,
+  w.content,
+  CASE WHEN n.applied_offset >= w.write_offset
+       THEN 'visible ✓'
+       ELSE 'MISSING ✗'
+  END AS read_result
+FROM nodes n
+CROSS JOIN user_writes w
+WHERE w.username = 'alice' AND w.content = 'my comment'
+ORDER BY n.node_id;</textarea>
+  </div>
+</div>
+
+Now try changing `w.content = 'my comment'` to `'my edited comment'` (written at offset 9) and re-run. Notice that even `replica-A`, which was fine before, may fall behind now.
+
+## Read-your-writes vs. Other Guarantees
+
+It helps to know where read-your-writes sits relative to guarantees covered in this chapter:
+
+- **Eventual consistency** — no session promises at all; your writes may be invisible to you for an arbitrary time.
+- **Read-your-writes** — *you* always see *your* writes; no promise about others' writes or about global ordering.
+- **Monotonic reads** — once you see a value, you will never see an older one (prevents time going "backwards" within a session).
+- **Linearizability** — every operation appears to take effect instantaneously at some point in real time; every reader, not just the writer, sees writes immediately.
+
+Most production systems offer read-your-writes by default (or as a tunable option) because the user-facing impact of violating it is severe. Linearizability is reserved for cases where the cost — a round-trip to the leader for every read — is worth paying.
+
+<details class="reveal"><summary>Reveal: Why can't we just always read from the leader?</summary><div class="reveal-body">
+
+Reading from the leader trivially satisfies read-your-writes (and even linearizability for single-object reads), but it defeats the main reason you added replicas in the first place: offloading read traffic. In read-heavy workloads — reporting dashboards, social feeds, product catalogs — the majority of load is reads. If all reads return to the leader, replicas sit mostly idle and the leader becomes the bottleneck. A targeted policy (route to leader *only* after a write, then fall back to replicas) captures most of the benefit with minimal correctness compromise.
+
+</div></details>

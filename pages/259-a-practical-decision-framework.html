@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A practical decision framework — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>
+  <button id="toggle" class="toggle-btn">View markdown</button>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part VI. Engineering Practice</p>
+  <p class="chapter-label">Chapter 26. Choosing a Database</p>
+  <h1 class="content-title">A practical decision framework</h1>
+  <div id="rendered" class="content"></div>
+  <div id="raw"><pre></pre></div>
+  <nav class="pagenav"><a class="prev" href="258-when-to-switch-systems.html"><span class="dir">← Previous</span><span class="ttl">When to switch systems</span></a><a class="next" href="261-a-toy-table-format.html"><span class="dir">Next →</span><span class="ttl">A toy table format</span></a></nav>
+</main>
+<script id="page-md" type="text/markdown">
+The previous pages in this chapter examined individual dimensions of the database selection problem: workload analysis, key questions, the build-vs-buy trade-off, managed vs self-hosted, team and cost considerations, lock-in, and when to switch. This final page assembles those dimensions into a single, actionable framework you can apply to a real decision — not a theoretical one, but the concrete choice in front of your team right now.
+
+## The Framework in Four Steps
+
+### Step 1: Write Down Your Workload
+
+Before evaluating any database, write a one-page description of your workload. It should answer:
+
+- What are the five most-frequent reads and writes?
+- What are the peak volumes (requests/second) for each?
+- What is the p99 latency target for user-facing queries?
+- What is the dataset size today and in 12 months?
+- What consistency guarantee does the business require?
+- What is the schema evolution pace (stable vs weekly changes)?
+
+If you cannot answer these questions, you are not ready to choose a database. The time spent gathering these numbers is the highest-leverage investment in the decision process.
+
+### Step 2: Filter by Access Pattern
+
+Access pattern is the single most powerful filter. Map your dominant query type to the category that handles it natively:
+
+<figure class="diagram">
+<svg viewBox="0 0 660 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Decision tree mapping access patterns to database categories">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+  <!-- Root -->
+  <rect x="240" y="10" width="180" height="36" rx="8" fill="var(--accent)" opacity="0.2" stroke="var(--accent)" stroke-width="2"/>
+  <text x="330" y="33" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Dominant access pattern?</text>
+
+  <!-- Branch: Exact key -->
+  <line x1="240" y1="28" x2="100" y2="90" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="150" y="72" font-size="10" fill="var(--muted)">exact key</text>
+  <rect x="20" y="92" width="150" height="34" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="95" y="114" text-anchor="middle" font-size="11" fill="var(--accent)">Key-value store</text>
+
+  <!-- Branch: Range/ordered -->
+  <line x1="280" y1="46" x2="200" y2="100" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="215" y="82" font-size="10" fill="var(--muted)">range scan</text>
+  <rect x="140" y="102" width="150" height="34" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="215" y="124" text-anchor="middle" font-size="11" fill="var(--accent)">Wide-column / B-tree</text>
+
+  <!-- Branch: Flexible queries -->
+  <line x1="330" y1="46" x2="330" y2="100" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="336" y="80" font-size="10" fill="var(--muted)">ad-hoc SQL</text>
+  <rect x="255" y="102" width="150" height="34" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="330" y="124" text-anchor="middle" font-size="11" fill="var(--accent)">Relational (OLTP)</text>
+
+  <!-- Branch: Graph -->
+  <line x1="380" y1="46" x2="460" y2="100" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="440" y="80" font-size="10" fill="var(--muted)">graph traversal</text>
+  <rect x="375" y="102" width="140" height="34" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="445" y="124" text-anchor="middle" font-size="11" fill="var(--accent)">Graph database</text>
+
+  <!-- Branch: Analytics -->
+  <line x1="420" y1="28" x2="570" y2="90" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="520" y="72" font-size="10" fill="var(--muted)">large aggregates</text>
+  <rect x="490" y="92" width="150" height="34" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="565" y="114" text-anchor="middle" font-size="11" fill="var(--accent)">Columnar / warehouse</text>
+
+  <!-- Secondary filter: consistency -->
+  <text x="330" y="175" text-anchor="middle" font-size="12" fill="var(--muted)">↓  then filter by: consistency · scale · team ops capacity</text>
+  <!-- Recommendation box -->
+  <rect x="160" y="195" width="340" height="100" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="330" y="220" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Candidate list (2–3 systems)</text>
+  <text x="330" y="244" text-anchor="middle" font-size="11" fill="var(--muted)">Score on: ops complexity · team expertise</text>
+  <text x="330" y="262" text-anchor="middle" font-size="11" fill="var(--muted)">lock-in · total cost of ownership</text>
+  <text x="330" y="282" text-anchor="middle" font-size="11" fill="var(--accent)">→ POC with real data shapes</text>
+</svg>
+<figcaption>Filter by access pattern first; that alone eliminates most options. Then score the remaining candidates on operational and cost dimensions.</figcaption>
+</figure>
+
+### Step 3: Score the Shortlist
+
+After step 2 you should have two or three candidate systems. Score each on these dimensions (1–5 scale, weighted by importance to your situation):
+
+| Dimension | Weight (example) | Why it matters |
+|---|---|---|
+| Access pattern fit | 5 | Structural — cannot be worked around |
+| Consistency guarantee | 4 | Business requirement — non-negotiable |
+| Write throughput | 3 | Only relevant if writes dominate |
+| Team operational expertise | 4 | Determines incident recovery quality |
+| Total cost of ownership | 3 | Infrastructure + engineering + risk |
+| Schema evolution ease | 2 | Product velocity impact |
+| Lock-in risk | 2 | Long-term strategic exposure |
+
+Multiply each score by its weight, sum the columns, and compare. This is not a mechanical algorithm — it is a forcing function for making trade-offs explicit and visible to the whole team, not just the person who found the interesting new database.
+
+### Step 4: Run a Time-Bounded Proof of Concept
+
+Before committing, validate the top candidate with your actual data shapes and query patterns. A POC that takes more than two weeks is probably too large; two weeks is enough to validate:
+
+- Can the system ingest data at your peak write volume?
+- Can it serve your critical queries within the latency budget?
+- Does the failure and recovery behaviour match your expectations?
+- Is the team able to set up monitoring and understand what they see?
+
+A failed POC is a success — it saved you from a six-month migration commitment to the wrong system.
+
+## Applying the Framework: Three Scenarios
+
+**Scenario A: Early-stage startup, three engineers, building a SaaS product.**
+Workload: standard CRUD, evolving schema, <1K users. Team expertise: web application background, limited DBA experience.
+**Decision:** PostgreSQL on a managed service (Supabase, RDS, Render). Standard SQL, managed operations, easy to hire around, scales to millions of rows before tuning is needed.
+
+**Scenario B: E-commerce platform, 50 engineers, 10M daily active users.**
+Workload: product catalog (search-heavy), order processing (strong consistency, transactional), session management (high-volume point lookups), analytics (large aggregates, daily reports).
+**Decision:** PostgreSQL for orders and users; Redis for sessions; Elasticsearch for catalog search; Redshift or BigQuery for analytics. Each system chosen for one access pattern; PostgreSQL is the system of record.
+
+**Scenario C: IoT platform, 8 engineers, 100K devices sending sensor data every 10 seconds.**
+Workload: 1M writes/second, queries are always time-range aggregates (average, max, percentile), data retention 90 days.
+**Decision:** TimescaleDB or InfluxDB, self-hosted on commodity hardware. The write volume and query pattern are squarely time-series; a relational database would require aggressive partitioning and would still underperform on compression and rollup queries.
+
+## The Default Rule
+
+When in doubt — when the workload is not yet well-understood, the team is small, or the product is still finding its shape — the right answer is almost always:
+
+> **PostgreSQL, managed, single instance.**
+
+It handles OLTP transactions, has excellent JSON support for semi-structured data, supports full-text search at moderate scale, can serve analytical queries on reasonable dataset sizes, and is operationally simple on a managed platform. The cases where it is genuinely the wrong choice will announce themselves clearly: either through structural performance ceilings or through query requirements it cannot express. At that point, you will have real data about your real workload and can make a precise, justified switch.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Decision Framework Scoring</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE candidates (db_name TEXT, access_fit INTEGER, consistency INTEGER, write_throughput INTEGER, team_expertise INTEGER, tco_score INTEGER, schema_ease INTEGER, lock_in_score INTEGER); CREATE TABLE weights (dimension TEXT, weight INTEGER); INSERT INTO weights VALUES ('access_fit',5); INSERT INTO weights VALUES ('consistency',4); INSERT INTO weights VALUES ('write_throughput',3); INSERT INTO weights VALUES ('team_expertise',4); INSERT INTO weights VALUES ('tco_score',3); INSERT INTO weights VALUES ('schema_ease',2); INSERT INTO weights VALUES ('lock_in_score',2); INSERT INTO candidates VALUES ('PostgreSQL (managed)',4,5,3,5,4,3,4); INSERT INTO candidates VALUES ('MongoDB Atlas',3,3,3,3,3,5,2); INSERT INTO candidates VALUES ('DynamoDB',4,4,5,2,3,2,1); INSERT INTO candidates VALUES ('Cassandra (self-hosted)',5,3,5,2,2,2,3);">-- Weighted score for each candidate
+SELECT
+  db_name,
+  (access_fit * 5 + consistency * 4 + write_throughput * 3
+   + team_expertise * 4 + tco_score * 3 + schema_ease * 2
+   + lock_in_score * 2) AS weighted_total,
+  access_fit,
+  team_expertise,
+  tco_score
+FROM candidates
+ORDER BY weighted_total DESC;
+
+-- Edit the scores above to match your team's actual assessment</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- The framework has four steps: document the workload, filter by access pattern, score the shortlist on weighted criteria, and validate the winner with a time-bounded POC.
+- Access pattern is the single most powerful filter — it alone eliminates most candidates.
+- Make trade-offs explicit with a weighted scoring table so the whole team sees the reasoning, not just the conclusion.
+- The default is PostgreSQL on a managed service: reach for something else only when a specific, measured need makes it necessary.
+
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>

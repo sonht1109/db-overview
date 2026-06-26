@@ -1,0 +1,144 @@
+Every performance decision is a trade-off. There is no configuration, architecture, or tuning choice that makes everything faster simultaneously. Understanding the space of trade-offs — which axes exist, what moves on each axis, and what you sacrifice when you pull a lever — is what separates engineers who can reason about performance from those who can only cargo-cult solutions.
+
+## The Fundamental Axes
+
+Database performance trade-offs cluster around a small set of opposing forces:
+
+<figure class="diagram">
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Trade-off axes diagram: six labeled axes showing opposing forces in database performance">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrl" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto">
+      <path d="M8,0 L8,6 L0,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Axis 1: Read speed vs Write speed -->
+  <line x1="40" y1="60" x2="300" y2="60" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
+  <text x="40" y="50" font-size="11" fill="var(--text)" font-weight="600">Read speed</text>
+  <text x="220" y="50" text-anchor="end" font-size="11" fill="var(--muted)">Write speed</text>
+  <text x="170" y="78" text-anchor="middle" font-size="10" fill="var(--muted)">more indexes → faster reads, slower writes</text>
+
+  <!-- Axis 2: Consistency vs Availability -->
+  <line x1="340" y1="60" x2="620" y2="60" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
+  <text x="340" y="50" font-size="11" fill="var(--text)" font-weight="600">Consistency</text>
+  <text x="540" y="50" text-anchor="end" font-size="11" fill="var(--muted)">Availability</text>
+  <text x="480" y="78" text-anchor="middle" font-size="10" fill="var(--muted)">CAP theorem: cannot maximise both</text>
+
+  <!-- Axis 3: Latency vs Throughput -->
+  <line x1="40" y1="145" x2="300" y2="145" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
+  <text x="40" y="135" font-size="11" fill="var(--text)" font-weight="600">Low latency</text>
+  <text x="220" y="135" text-anchor="end" font-size="11" fill="var(--muted)">High throughput</text>
+  <text x="170" y="163" text-anchor="middle" font-size="10" fill="var(--muted)">batching increases throughput, adds latency</text>
+
+  <!-- Axis 4: Storage cost vs Query speed -->
+  <line x1="340" y1="145" x2="620" y2="145" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
+  <text x="340" y="135" font-size="11" fill="var(--text)" font-weight="600">Query speed</text>
+  <text x="540" y="135" text-anchor="end" font-size="11" fill="var(--muted)">Storage cost</text>
+  <text x="480" y="163" text-anchor="middle" font-size="10" fill="var(--muted)">more indexes / caches = more bytes stored</text>
+
+  <!-- Axis 5: Freshness vs Cost -->
+  <line x1="40" y1="230" x2="300" y2="230" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
+  <text x="40" y="220" font-size="11" fill="var(--text)" font-weight="600">Data freshness</text>
+  <text x="220" y="220" text-anchor="end" font-size="11" fill="var(--muted)">Infrastructure cost</text>
+  <text x="170" y="248" text-anchor="middle" font-size="10" fill="var(--muted)">real-time replication is expensive</text>
+
+  <!-- Axis 6: Simplicity vs Flexibility -->
+  <line x1="340" y1="230" x2="620" y2="230" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
+  <text x="340" y="220" font-size="11" fill="var(--text)" font-weight="600">Simplicity</text>
+  <text x="540" y="220" text-anchor="end" font-size="11" fill="var(--muted)">Flexibility</text>
+  <text x="480" y="248" text-anchor="middle" font-size="10" fill="var(--muted)">denorm is fast but rigid</text>
+</svg>
+<figcaption>Six axes of performance trade-off. Every tuning decision moves you toward one end of at least one axis.</figcaption>
+</figure>
+
+## Trade-off Catalogue
+
+### Normalization vs Denormalization
+
+| | Normalized | Denormalized |
+|---|---|---|
+| Write complexity | Low — update one place | High — update N copies |
+| Read speed | Slower — join required | Faster — single table |
+| Storage | Smaller | Larger |
+| Correctness risk | Low | High (copies can drift) |
+
+**When to denormalize:** High-frequency reads, stable data (names, prices), or when a join crosses a network boundary (microservices, sharded DB).
+
+### More Indexes vs Fewer Indexes
+
+More indexes make reads faster and writes slower. Every index is an additional write on every INSERT, UPDATE to that column, or DELETE. The break-even point depends on the read/write ratio:
+
+```
+Break-even: index is worth adding when
+  (reads_saved × read_time_saved) > (writes × write_time_added)
+```
+
+For a table with 1,000 reads/s and 10 writes/s: a single index that saves 5 ms per read saves 5,000 ms/s total. If each write costs an additional 0.5 ms per index, adding the index costs 5 ms/s — a 1,000× win. At 1,000 writes/s, the same math produces a 10× win. Still worth it. At 10,000 writes/s and 1,000 reads/s, the index costs 5,000 ms/s to maintain and saves 5,000 ms/s — break even. Add more indexes only if read savings dominate.
+
+### Synchronous vs Asynchronous Replication
+
+| | Synchronous | Asynchronous |
+|---|---|---|
+| Durability | Full — replica confirmed before commit returns | Risk of data loss on primary failure |
+| Write latency | Higher — waits for replica acknowledgement | Lower — write returns before replica |
+| Availability | Lower — replica slowness blocks writes | Higher — replica lag doesn't block |
+
+PostgreSQL's `synchronous_commit = on` guarantees durability; `synchronous_commit = off` or `local` trades durability for lower write latency.
+
+### MVCC vs Locking
+
+| | MVCC | Strict locking |
+|---|---|---|
+| Readers block writers? | No — reads see a snapshot | Yes — read locks block writes |
+| Writers block readers? | No | Yes |
+| Storage overhead | Higher — old versions retained | Lower |
+| Best for | Mixed read/write OLTP | Simple single-writer workloads |
+
+PostgreSQL and MySQL InnoDB use MVCC. SQLite uses a simpler writer-lock model.
+
+### Vertical vs Horizontal Scaling
+
+| | Vertical (bigger machine) | Horizontal (more machines) |
+|---|---|---|
+| Simplicity | High — no code change | Low — sharding/routing complexity |
+| Cost efficiency | Diminishing returns at high end | Linear with load |
+| Failure blast radius | High — single point of failure | Low — partial failure only |
+| Consistency | Trivial | Hard — distributed transactions |
+
+Start vertical. Add horizontal complexity only when the vertical ceiling is hit or the cost is prohibitive.
+
+## Interactive Example: Trade-off Decision
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Index Trade-off Analysis</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE workload_analysis (scenario TEXT PRIMARY KEY, reads_per_sec INTEGER, writes_per_sec INTEGER, read_time_saved_ms REAL, write_overhead_ms REAL); INSERT INTO workload_analysis VALUES ('e-commerce product page',5000,50,8.0,0.4),('IoT sensor ingest',200,8000,2.0,0.3),('Financial ledger',1000,1000,5.0,0.5),('Analytics dashboard',100,10,50.0,0.5);">-- Estimate whether adding an index is worth it
+SELECT
+  scenario,
+  reads_per_sec,
+  writes_per_sec,
+  ROUND(reads_per_sec * read_time_saved_ms, 0)      AS read_benefit_ms_per_sec,
+  ROUND(writes_per_sec * write_overhead_ms, 0)       AS write_cost_ms_per_sec,
+  CASE
+    WHEN reads_per_sec * read_time_saved_ms
+       > writes_per_sec * write_overhead_ms
+    THEN 'Add index'
+    ELSE 'Skip index'
+  END                                                AS recommendation
+FROM workload_analysis
+ORDER BY reads_per_sec DESC;</textarea>
+  </div>
+</div>
+
+## The Meta Trade-off: Complexity vs Performance
+
+Every performance optimization adds complexity. A cache means two systems to keep in sync. Denormalization means update logic in multiple places. Sharding means cross-shard query routing. Async replication means eventual consistency handling in the application.
+
+Complexity is a cost that compounds over time — it slows future development, increases bug surface, and makes incidents harder to diagnose. A 10 % performance gain that doubles operational complexity is usually the wrong trade.
+
+The rule: **prefer the simplest solution that meets your SLA.** Only cross the complexity threshold when profiling proves you cannot meet the SLA any other way.
+
+> **Key takeaways:** Every performance lever moves at least one axis in an unfavorable direction. Document your trade-offs explicitly — future engineers need to understand why a choice was made, not just what was chosen. Complexity is a cost. Meet your SLA with the simplest system that can do it; add complexity only when measurement proves it is necessary.

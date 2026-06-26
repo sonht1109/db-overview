@@ -1,0 +1,107 @@
+Many applications start with a single database that handles everything: user records, product catalog, orders, session state, analytics events. That's the right starting point — one system is dramatically simpler to operate, monitor, back up, and reason about. But as products grow, different parts of the system develop genuinely different needs, and the question of whether to introduce a second (or third) database becomes unavoidable. Getting this decision right — neither splitting too early nor holding on too long — is one of the most consequential architectural choices a team makes.
+
+## The Case for One Database
+
+A single database is not a compromise. For most applications at most stages of their life, it is the correct answer:
+
+- **Transactions span naturally.** Moving money between accounts, placing an order while decrementing inventory, updating a user profile and their associated records — all of these require atomicity across multiple entities. With one database, a single `BEGIN`/`COMMIT` block handles it. With multiple databases, you need distributed transactions or compensating logic, both of which are significantly harder to implement and test.
+- **No data synchronisation.** Every time you write data to two stores, you introduce the risk of them diverging. Network partitions, failed writes, and clock skew all create windows where the stores disagree.
+- **One place to query.** Debugging a production issue when data lives in one place is already non-trivial. When the user record is in PostgreSQL, the activity feed is in Cassandra, and the session is in Redis, a single user complaint requires correlating three different query interfaces.
+- **Simpler operations.** One database means one backup strategy, one monitoring setup, one team who knows how to handle failure, one upgrade path.
+
+<figure class="diagram">
+<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Single database vs polyglot persistence: trade-offs visualized">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+  <!-- Left: single DB -->
+  <rect x="20" y="30" width="270" height="210" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="155" y="55" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Single Database</text>
+  <rect x="80" y="70" width="150" height="40" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="155" y="95" text-anchor="middle" font-size="12" fill="var(--accent)">PostgreSQL</text>
+  <text x="155" y="128" text-anchor="middle" font-size="11" fill="var(--muted)">users · orders · products</text>
+  <text x="155" y="146" text-anchor="middle" font-size="11" fill="var(--muted)">sessions · events · catalog</text>
+  <text x="155" y="175" text-anchor="middle" font-size="12" fill="var(--text)">✓ ACID across all data</text>
+  <text x="155" y="195" text-anchor="middle" font-size="12" fill="var(--text)">✓ One query language</text>
+  <text x="155" y="215" text-anchor="middle" font-size="12" fill="var(--text)">✓ Simple ops</text>
+
+  <!-- Right: polyglot -->
+  <rect x="350" y="30" width="270" height="210" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="485" y="55" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Polyglot Persistence</text>
+  <rect x="360" y="65" width="110" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="415" y="85" text-anchor="middle" font-size="11" fill="var(--text)">PostgreSQL</text>
+  <rect x="500" y="65" width="110" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="555" y="85" text-anchor="middle" font-size="11" fill="var(--text)">Redis</text>
+  <rect x="360" y="110" width="110" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="415" y="130" text-anchor="middle" font-size="11" fill="var(--text)">Elasticsearch</text>
+  <rect x="500" y="110" width="110" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="555" y="130" text-anchor="middle" font-size="11" fill="var(--text)">Cassandra</text>
+  <text x="485" y="168" text-anchor="middle" font-size="12" fill="var(--muted)">✓ Each DB optimal for task</text>
+  <text x="485" y="188" text-anchor="middle" font-size="12" fill="var(--muted)">✗ No cross-DB transactions</text>
+  <text x="485" y="208" text-anchor="middle" font-size="12" fill="var(--muted)">✗ Sync complexity</text>
+</svg>
+<figcaption>A single database handles everything simply; polyglot persistence optimises each workload at the cost of cross-store consistency and operational complexity.</figcaption>
+</figure>
+
+## When One Database Is No Longer Enough
+
+The signal to introduce a second database is a **specific, measurable bottleneck** that the primary database cannot address without unreasonable cost. Common triggers:
+
+| Bottleneck | Typical specialisation | Rationale |
+|---|---|---|
+| Session lookup latency (>5 ms) | Add Redis | In-memory key-value at sub-millisecond latency |
+| Full-text search quality | Add Elasticsearch | Inverted index, relevance ranking |
+| Write throughput for events/metrics | Add TimescaleDB or InfluxDB | Optimised time-series compression and rollups |
+| Analytical query time (hours on OLTP) | Add a columnar warehouse | Scans optimised for aggregation, not row access |
+| Graph traversal depth | Add Neo4j | Native graph index, no recursive CTE hacks |
+
+Notice the pattern: each trigger is a concrete problem in production, not a theoretical preference.
+
+> **Anti-pattern:** Introducing a second database because you read that Netflix uses it, or because the engineering team finds the new technology interesting. Both are strong signals to resist.
+
+## The Synchronisation Tax
+
+Every specialised store that shadows your primary database requires a synchronisation mechanism:
+
+1. **Change Data Capture (CDC):** Stream database change events (via tools like Debezium) into the secondary store. Eventually consistent — the secondary lags by seconds to minutes.
+2. **Dual writes:** The application writes to both stores in the same code path. Fast, but any write failure creates divergence. Requires careful error handling.
+3. **Read-through / write-through cache:** The application always reads through the cache; a cache miss fetches from the primary and populates the cache. Simpler, but only works for cache-shaped use cases.
+
+Each approach has failure modes. The key insight is that the synchronisation mechanism is itself a piece of infrastructure that must be monitored, tested for failure, and maintained.
+
+## Practical Guidance
+
+**Start with one.** Even if you anticipate needing search or caching eventually, add them when you have the problem, not before. A premature polyglot architecture pays the operational complexity cost immediately and delays the performance benefit to some future date that may never arrive.
+
+**Add the second store for a specific, isolated use case.** The session cache, the search index, the analytics warehouse — each should have a clear boundary. The primary database remains the system of record; the specialised store is a derived view of that data optimised for one access pattern.
+
+**Plan the failure mode.** What happens if Redis goes down? Does your application fall back to the relational session table (slower but correct), or does it stop working entirely? The answer should be "graceful degradation to the primary."
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Simulating Dual-Store Session Fallback</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE sessions_primary (session_id TEXT PRIMARY KEY, user_id INTEGER, data TEXT, created_at INTEGER); CREATE TABLE sessions_cache_status (session_id TEXT PRIMARY KEY, cached INTEGER DEFAULT 1); INSERT INTO sessions_primary VALUES ('sess:abc123', 42, '{&quot;role&quot;:&quot;admin&quot;}', 1700000000); INSERT INTO sessions_primary VALUES ('sess:xyz789', 17, '{&quot;role&quot;:&quot;viewer&quot;}', 1700000100); INSERT INTO sessions_cache_status VALUES ('sess:abc123', 1); -- xyz789 is NOT in cache (simulating cache miss)">-- Simulate cache-aside lookup: return from cache if available, else fall back to primary
+SELECT
+  sp.session_id,
+  sp.user_id,
+  sp.data,
+  CASE WHEN sc.cached = 1 THEN 'cache hit' ELSE 'cache miss - read from primary' END AS source
+FROM sessions_primary sp
+LEFT JOIN sessions_cache_status sc ON sc.session_id = sp.session_id
+WHERE sp.session_id IN ('sess:abc123','sess:xyz789');
+
+-- In a real system, a cache miss would also trigger a write back to Redis.</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- One database is simpler to operate and enables cross-entity transactions; it is the right default.
+- Add a second store only when a specific, measured bottleneck in production justifies the synchronisation complexity.
+- Every specialised store requires a sync mechanism — CDC, dual writes, or cache-aside — each with its own failure modes.
+- The primary database remains the system of record; specialised stores are derived, eventually-consistent views.

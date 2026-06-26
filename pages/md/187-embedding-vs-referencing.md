@@ -1,0 +1,200 @@
+The single most consequential design decision in a document database is whether to **embed** related data inside a parent document or **reference** it via an ID and store it in a separate collection. Get it right and queries are fast, data is cohesive, and writes are simple. Get it wrong and you face unbounded document growth, expensive multi-collection lookups, or stale denormalized copies.
+
+## Two Strategies Side by Side
+
+**Embedding** (also called denormalization): the related data lives inside the parent document.
+
+```json
+{
+  "_id": "order-9901",
+  "customer_name": "Aroha Ngata",
+  "customer_email": "aroha@example.com",
+  "items": [
+    { "sku": "SHOE-9B", "name": "Trail Shoe", "qty": 1, "unit_price": 120 },
+    { "sku": "SOCK-3P", "name": "Sport Sock", "qty": 3, "unit_price": 8.50 }
+  ]
+}
+```
+
+**Referencing** (also called normalization): the related data lives in a separate collection, linked by ID.
+
+```json
+// orders collection
+{
+  "_id": "order-9901",
+  "customer_id": "cust-441",
+  "item_ids": ["item-221", "item-222"]
+}
+
+// customers collection
+{ "_id": "cust-441", "name": "Aroha Ngata", "email": "aroha@example.com" }
+
+// order_items collection
+{ "_id": "item-221", "order_id": "order-9901", "sku": "SHOE-9B", "qty": 1, "unit_price": 120 }
+```
+
+<figure class="diagram">
+<svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Side-by-side diagram: embedded model (left) shows a single order document containing all data; referenced model (right) shows order, customer, and items as separate boxes connected by arrows">
+  <defs>
+    <marker id="arre" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- Left: embedded -->
+  <rect x="10" y="10" width="290" height="310" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="155" y="34" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Embedding</text>
+  <text x="155" y="52" text-anchor="middle" font-size="11" fill="var(--muted)">(one document, one read)</text>
+
+  <rect x="24" y="62" width="262" height="240" rx="5" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="36" y="82" font-size="11" fill="var(--accent)" font-weight="bold">order-9901</text>
+  <text x="36" y="100" font-size="11" fill="var(--text)" font-family="monospace">customer_name: "Aroha"</text>
+  <text x="36" y="118" font-size="11" fill="var(--text)" font-family="monospace">items: [</text>
+  <text x="50" y="136" font-size="11" fill="var(--text)" font-family="monospace">{ sku:"SHOE-9B", qty:1 },</text>
+  <text x="50" y="154" font-size="11" fill="var(--text)" font-family="monospace">{ sku:"SOCK-3P", qty:3 }</text>
+  <text x="36" y="172" font-size="11" fill="var(--text)" font-family="monospace">]</text>
+
+  <rect x="36" y="210" width="238" height="40" rx="4" fill="var(--accent)" fill-opacity="0.15" stroke="var(--accent)" stroke-width="1"/>
+  <text x="155" y="228" text-anchor="middle" font-size="12" fill="var(--text)">1 read → complete order</text>
+  <text x="155" y="245" text-anchor="middle" font-size="11" fill="var(--muted)">No second query needed</text>
+
+  <text x="155" y="285" text-anchor="middle" font-size="11" fill="var(--muted)">But: duplicates customer name across</text>
+  <text x="155" y="300" text-anchor="middle" font-size="11" fill="var(--muted)">every order. Name change = bulk update.</text>
+
+  <!-- Right: referenced -->
+  <rect x="340" y="10" width="290" height="310" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="485" y="34" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Referencing</text>
+  <text x="485" y="52" text-anchor="middle" font-size="11" fill="var(--muted)">(normalized, multiple reads)</text>
+
+  <!-- order box -->
+  <rect x="380" y="64" width="210" height="60" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="485" y="82" text-anchor="middle" font-size="11" fill="var(--text)" font-weight="bold">order-9901</text>
+  <text x="485" y="100" text-anchor="middle" font-size="11" fill="var(--text)" font-family="monospace">customer_id: "cust-441"</text>
+  <text x="485" y="116" text-anchor="middle" font-size="11" fill="var(--text)" font-family="monospace">item_ids: [...]</text>
+
+  <!-- customer box -->
+  <rect x="354" y="168" width="120" height="55" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.2"/>
+  <text x="414" y="185" text-anchor="middle" font-size="11" fill="var(--accent)" font-weight="bold">cust-441</text>
+  <text x="414" y="202" text-anchor="middle" font-size="10" fill="var(--text)" font-family="monospace">name: "Aroha"</text>
+  <text x="414" y="216" text-anchor="middle" font-size="10" fill="var(--text)" font-family="monospace">email: "..."</text>
+  <line x1="430" y1="124" x2="414" y2="168" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arre)"/>
+
+  <!-- items box -->
+  <rect x="490" y="168" width="130" height="55" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <text x="555" y="185" text-anchor="middle" font-size="11" fill="var(--text)" font-weight="bold">order_items</text>
+  <text x="555" y="202" text-anchor="middle" font-size="10" fill="var(--text)" font-family="monospace">item-221: SHOE-9B</text>
+  <text x="555" y="216" text-anchor="middle" font-size="10" fill="var(--text)" font-family="monospace">item-222: SOCK-3P</text>
+  <line x1="540" y1="124" x2="555" y2="168" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arre)"/>
+
+  <text x="485" y="258" text-anchor="middle" font-size="11" fill="var(--muted)">2–3 reads for complete order.</text>
+  <text x="485" y="274" text-anchor="middle" font-size="11" fill="var(--muted)">But: one customer record, always</text>
+  <text x="485" y="290" text-anchor="middle" font-size="11" fill="var(--muted)">consistent. Update name once.</text>
+</svg>
+<figcaption>Embedding is faster to read; referencing avoids duplication and keeps updates simple.</figcaption>
+</figure>
+
+## Decision Framework
+
+The right choice depends on five questions:
+
+### 1. How often is the related data accessed with the parent?
+- **Always together** → embed. Eliminates the second read.
+- **Sometimes separately** → reference. The child has its own access pattern.
+
+### 2. Does the related data change frequently?
+- **Rarely changes** → embed. A product name embedded in 10,000 orders is fine if the name changes once a year.
+- **Changes often** → reference. A price that changes daily would require updating every order containing it.
+
+### 3. Is the relationship one-to-one, one-to-few, or one-to-many?
+- **One-to-one or one-to-few** → embed. A user's address (1–3 items) fits cleanly inside the user document.
+- **One-to-many (unbounded)** → reference. An order with thousands of comments should not embed all comments.
+
+### 4. Is the related data shared across multiple parents?
+- **Shared** → reference. A `Product` referenced by many `OrderItem`s exists once; embedding would duplicate it everywhere.
+- **Owned exclusively** → embed. An `Address` owned by one `User` is a good candidate for embedding.
+
+### 5. What are the document size limits?
+MongoDB enforces a 16 MB BSON limit per document. Embedding large, growing arrays can hit this. Reference instead.
+
+## The Decision Matrix
+
+| Condition | Embed | Reference |
+|---|---|---|
+| Always read together | ✓ | |
+| Related data is bounded (< ~20 items) | ✓ | |
+| Related data rarely changes | ✓ | |
+| Exclusively owned by parent | ✓ | |
+| Data is shared across many parents | | ✓ |
+| Related data changes independently and often | | ✓ |
+| Array could grow unboundedly | | ✓ |
+| Child needs to be queried on its own | | ✓ |
+
+## Hybrid Patterns
+
+In practice, the best design is often a mix:
+
+**Partial embed (summary only):** Store a summary inside the parent and the full record elsewhere.
+
+```json
+// Order embeds a lightweight customer summary
+{
+  "_id": "order-9901",
+  "customer": {
+    "id": "cust-441",
+    "name": "Aroha Ngata"
+  },
+  // ...
+}
+// Full customer data lives in the customers collection
+```
+
+**Extended reference pattern:** Embed the fields you need for display; reference the full entity for editing.
+
+This avoids joins for the common read path while keeping a single source of truth for writes.
+
+## Referencing in a Document Database: No Joins
+
+A critical difference from relational databases: **document databases have no built-in JOIN**. MongoDB's `$lookup` stage in aggregation pipelines approximates a join, but it is an application-level operation — not a deeply optimized relational join.
+
+```js
+db.orders.aggregate([
+  { $match: { status: "shipped" } },
+  { $lookup: {
+      from: "customers",
+      localField: "customer_id",
+      foreignField: "_id",
+      as: "customer"
+  }}
+])
+```
+
+This works, but it is slower than a relational join because document databases are not designed to optimize cross-collection lookups. If you find yourself writing many `$lookup` stages, the relational model may be a better fit.
+
+## Interactive Example
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Embedding vs referencing tradeoff</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders_embedded (id TEXT PRIMARY KEY, doc TEXT); INSERT INTO orders_embedded VALUES ('ORD-001', '{&quot;customer_name&quot;:&quot;Aroha&quot;,&quot;customer_email&quot;:&quot;aroha@x.com&quot;,&quot;total&quot;:250}'); INSERT INTO orders_embedded VALUES ('ORD-002', '{&quot;customer_name&quot;:&quot;Aroha&quot;,&quot;customer_email&quot;:&quot;aroha@x.com&quot;,&quot;total&quot;:99}'); CREATE TABLE customers (id TEXT PRIMARY KEY, name TEXT, email TEXT); CREATE TABLE orders_ref (id TEXT PRIMARY KEY, customer_id TEXT, total REAL); INSERT INTO customers VALUES ('cust-441', 'Aroha Ngata', 'aroha@x.com'); INSERT INTO orders_ref VALUES ('ORD-001', 'cust-441', 250); INSERT INTO orders_ref VALUES ('ORD-002', 'cust-441', 99);">-- EMBEDDED: update customer name requires touching every order
+UPDATE orders_embedded
+SET doc = json_set(doc, '$.customer_name', 'Aroha N.')
+WHERE json_extract(doc, '$.customer_name') = 'Aroha';
+
+-- REFERENCED: update customer name in one place
+UPDATE customers SET name = 'Aroha N.' WHERE id = 'cust-441';
+
+-- Compare: embedded shows updated name inline; referenced requires join
+SELECT 'embedded' AS model, id, json_extract(doc,'$.customer_name') AS name FROM orders_embedded
+UNION ALL
+SELECT 'referenced', o.id, c.name FROM orders_ref o JOIN customers c ON o.customer_id = c.id;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- **Embed** data that is owned by the parent, always loaded with it, bounded in size, and rarely changes independently.
+- **Reference** data that is shared, unbounded, frequently updated, or queried on its own.
+- Embedding speeds up reads (one document = one query) at the cost of duplication and update complexity.
+- Referencing avoids duplication but requires multiple reads or an application-level join (`$lookup`).
+- Hybrid patterns (embed a summary, reference the full record) often give the best of both worlds.
+- Document databases are not optimized for joins — if your data model needs many cross-collection lookups, re-examine whether a relational database is a better fit.

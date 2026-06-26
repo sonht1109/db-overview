@@ -1,0 +1,153 @@
+Theory is clean; production is messy. The concurrency anomalies from the previous chapter — dirty reads, lost updates, phantoms — sound abstract until you see exactly where in real application code they appear. This page walks through three scenarios that developers encounter repeatedly in the wild, showing the broken pattern and what actually goes wrong.
+
+## Scenario 1: The Double-Spend (Check-Then-Act Race)
+
+A classic mistake is to **check a condition in one query and act on it in a second query**, without holding any lock between them. Another transaction can slip in between.
+
+Consider a wallet system. The application code reads the balance, decides whether the user can afford a purchase, then deducts the amount:
+
+```sql
+-- Step 1 (application reads balance)
+SELECT balance FROM wallets WHERE user_id = 9;   -- returns 50
+
+-- ... application checks: 50 >= 30? Yes. Proceed ...
+
+-- Step 2 (application deducts)
+UPDATE wallets SET balance = balance - 30 WHERE user_id = 9;
+```
+
+If two purchase requests arrive simultaneously for the same user — both for \$30 against a \$50 balance — both sessions can execute Step 1 before either executes Step 2. Both see \$50, both decide to proceed, and both subtract \$30, leaving the balance at **\$20 instead of \$20... wait: \$50 − \$30 − \$30 = −\$10**. The wallet goes negative.
+
+The fix is to move the check **into the write statement itself** and use a transaction with appropriate isolation:
+
+```sql
+BEGIN;
+UPDATE wallets
+SET    balance = balance - 30
+WHERE  user_id = 9
+  AND  balance >= 30;        -- guard is atomic with the write
+
+-- Check rows affected; if 0, the guard failed — rollback
+COMMIT;
+```
+
+Because the check and the deduction happen in a single atomic operation, no other transaction can read a stale balance and slip past the guard.
+
+<figure class="diagram">
+<svg viewBox="0 0 620 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing two sessions racing on a wallet balance check, both reading 50 before either writes, resulting in a negative balance">
+  <!-- time axis -->
+  <line x1="40" y1="30" x2="40" y2="240" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="44" y="18" fill="var(--text)" font-size="12" font-family="sans-serif">Time →</text>
+
+  <!-- Session A lane -->
+  <rect x="80" y="10" width="220" height="20" rx="3" fill="var(--accent)" opacity="0.15"/>
+  <text x="190" y="24" fill="var(--accent)" font-size="12" font-family="sans-serif" text-anchor="middle" font-weight="bold">Session A (purchase $30)</text>
+
+  <!-- Session B lane -->
+  <rect x="340" y="10" width="230" height="20" rx="3" fill="var(--surface-2)"/>
+  <text x="455" y="24" fill="var(--text)" font-size="12" font-family="sans-serif" text-anchor="middle" font-weight="bold">Session B (purchase $30)</text>
+
+  <!-- tick marks on time axis -->
+  <line x1="36" y1="60"  x2="44" y2="60"  stroke="var(--border)" stroke-width="1"/>
+  <line x1="36" y1="100" x2="44" y2="100" stroke="var(--border)" stroke-width="1"/>
+  <line x1="36" y1="140" x2="44" y2="140" stroke="var(--border)" stroke-width="1"/>
+  <line x1="36" y1="180" x2="44" y2="180" stroke="var(--border)" stroke-width="1"/>
+  <line x1="36" y1="220" x2="44" y2="220" stroke="var(--border)" stroke-width="1"/>
+
+  <!-- Session A events -->
+  <rect x="80" y="48" width="180" height="24" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="170" y="64" fill="var(--text)" font-size="12" font-family="sans-serif" text-anchor="middle">SELECT balance → 50 ✓</text>
+
+  <rect x="80" y="168" width="180" height="24" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="170" y="184" fill="var(--text)" font-size="12" font-family="sans-serif" text-anchor="middle">UPDATE balance = 50−30 = 20</text>
+
+  <rect x="80" y="208" width="180" height="24" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="170" y="224" fill="var(--text)" font-size="12" font-family="sans-serif" text-anchor="middle">COMMIT</text>
+
+  <!-- Session B events -->
+  <rect x="340" y="88" width="200" height="24" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="440" y="104" fill="var(--text)" font-size="12" font-family="sans-serif" text-anchor="middle">SELECT balance → 50 ✓  ← stale!</text>
+
+  <rect x="340" y="128" width="200" height="24" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="440" y="144" fill="var(--text)" font-size="12" font-family="sans-serif" text-anchor="middle">UPDATE balance = 50−30 = 20</text>
+
+  <rect x="340" y="208" width="200" height="24" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="440" y="224" fill="var(--text)" font-size="12" font-family="sans-serif" text-anchor="middle">COMMIT → balance = −10 !</text>
+
+  <!-- danger callout -->
+  <rect x="270" y="198" width="50" height="44" rx="4" fill="var(--accent)" opacity="0.18"/>
+  <text x="295" y="216" fill="var(--accent)" font-size="18" font-family="sans-serif" text-anchor="middle" font-weight="bold">!</text>
+  <text x="295" y="234" fill="var(--accent)" font-size="10" font-family="sans-serif" text-anchor="middle">race</text>
+</svg>
+<figcaption>Both sessions read balance = 50 before either writes, so both authorize the purchase — the wallet goes negative.</figcaption>
+</figure>
+
+## Scenario 2: The Invisible Inventory Oversell
+
+E-commerce systems hit this constantly. The application checks `stock > 0`, then inserts an order row, in two separate statements outside any transaction:
+
+```sql
+-- (No BEGIN)
+SELECT stock FROM products WHERE id = 77;  -- returns 1
+
+-- application: stock > 0, so insert the order
+INSERT INTO orders (product_id, qty, user_id) VALUES (77, 1, 301);
+
+UPDATE products SET stock = stock - 1 WHERE id = 77;
+-- (No COMMIT — autocommit fires after each statement)
+```
+
+With 200 users hitting "Buy Now" simultaneously, dozens of sessions can each see `stock = 1` before any of them decrements it. The result: one physical item, dozens of confirmed orders, angry customers, and a support nightmare.
+
+> **Note:** Wrapping all three statements in a single transaction and verifying the `UPDATE` affected exactly one row (i.e., stock was not already 0) is the minimum fix. On high-traffic systems you also want `SELECT ... FOR UPDATE` (in PostgreSQL/MySQL) or optimistic locking to queue writers properly. SQLite serializes all writers automatically, which sidesteps this in single-node setups.
+
+## Scenario 3: Constraint Bypass via Missing Transaction
+
+Suppose you have a rule: every `employee` row must reference a valid `department`, and every `department` must have at least one employee. Enforcing this requires a brief moment where the constraint is technically violated — during a transfer between departments.
+
+```sql
+-- Moving the last employee out of dept 10 into dept 20.
+-- Without a transaction this is dangerous:
+UPDATE employees SET dept_id = 20 WHERE id = 55;
+-- RIGHT HERE: dept 10 now has zero employees (constraint violated!)
+-- If the process crashes here, data is corrupt.
+UPDATE departments SET head_count = head_count - 1 WHERE id = 10;
+UPDATE departments SET head_count = head_count + 1 WHERE id = 20;
+```
+
+Inside a transaction, the database defers constraint checks until `COMMIT`, so the transient violation is never visible to other sessions and is rolled back automatically if anything fails:
+
+```sql
+BEGIN;
+UPDATE employees    SET dept_id    = 20           WHERE id = 55;
+UPDATE departments  SET head_count = head_count - 1 WHERE id = 10;
+UPDATE departments  SET head_count = head_count + 1 WHERE id = 20;
+COMMIT;  -- constraints verified here; all-or-nothing
+```
+
+## Try It: The Lost Inventory Update
+
+The widget below demonstrates the oversell pattern. The initial stock is 1. Two "sessions" both read stock, both see it as available, and both decrement — ending at −1. Experiment by rewriting the update to use `WHERE stock > 0` as a guard and observe what changes.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Inventory oversell</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, stock INTEGER); INSERT INTO products VALUES (77, 'Limited-Edition Hat', 1);">-- Two buyers race. Both read stock = 1 and both proceed.
+-- Session A updates first:
+UPDATE products SET stock = stock - 1 WHERE id = 77;
+
+-- Session B updates next (used stale read, no guard):
+UPDATE products SET stock = stock - 1 WHERE id = 77;
+
+-- Final state — stock is negative!
+SELECT id, name, stock,
+       CASE WHEN stock < 0 THEN 'OVERSOLD' ELSE 'ok' END AS status
+FROM products;</textarea>
+  </div>
+</div>
+
+Now try adding `AND stock > 0` to both `UPDATE` statements. The second update will silently affect 0 rows — indicating the sale should be rejected — and the stock will stop at 0 instead of going negative. In a real application you would check `changes()` (SQLite) or `ROW_COUNT()` (MySQL) after the update and roll back if no rows were modified.
+
+---
+
+The thread connecting all three scenarios is the same: **the window between a read and its dependent write is where races and partial failures hide**. Transactions close that window by making the entire sequence atomic and isolated. The examples here are simplified, but the bugs they represent have caused real financial losses, oversold concerts, and corrupted payroll records in production systems.

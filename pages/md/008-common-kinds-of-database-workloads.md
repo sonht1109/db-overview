@@ -1,0 +1,81 @@
+Every database stores data, but not every database is asked to do the same *kind* of work. A system that handles thousands of customer checkouts per second has completely different needs from one that crunches a year's worth of sales data overnight. Recognizing these workload patterns early is one of the most useful instincts you can build — it shapes every design decision that follows.
+
+## OLTP: Online Transaction Processing
+
+OLTP is what most people picture when they imagine a running application: a web store, a banking app, a ride-share platform. The defining characteristics are:
+
+- **Short, targeted operations** — read or write a small number of rows at a time.
+- **High concurrency** — many users hitting the database simultaneously.
+- **Strong correctness guarantees** — a payment must either complete fully or not at all.
+
+A typical OLTP query looks like this:
+
+```sql
+-- Fetch a single customer's recent orders
+SELECT order_id, total, placed_at
+FROM orders
+WHERE customer_id = 42
+ORDER BY placed_at DESC
+LIMIT 10;
+```
+
+Indexes are critical here. Without one on `customer_id`, the database would scan every row in the table just to find this one customer's orders.
+
+Try it yourself — the widget below has a small orders table with and without an index so you can explore the shape of OLTP queries:
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · OLTP queries</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (1,'Alice'),(2,'Bob'),(3,'Carol'); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL, placed_at TEXT); INSERT INTO orders VALUES (101,1,49.99,'2024-03-01'),(102,1,12.50,'2024-03-15'),(103,2,200.00,'2024-03-10'),(104,3,5.00,'2024-03-20'),(105,1,88.00,'2024-04-01'); CREATE INDEX idx_orders_customer ON orders(customer_id);">SELECT o.order_id, o.total, o.placed_at
+FROM orders o
+WHERE o.customer_id = 1
+ORDER BY o.placed_at DESC;</textarea>
+  </div>
+</div>
+
+> **Note:** OLTP databases are usually normalized — data is split into many related tables (customers, orders, products) to avoid duplication and make writes fast and consistent.
+
+## OLAP: Online Analytical Processing
+
+OLAP is the opposite end of the spectrum. Instead of serving one user's request quickly, it answers big analytical questions: "What were total sales by region last quarter?" or "Which product category has the highest return rate?"
+
+Key characteristics:
+
+| | OLTP | OLAP |
+|---|---|---|
+| Rows touched per query | Few (1 – thousands) | Many (millions – billions) |
+| Query frequency | Very high | Lower |
+| Query type | Lookup / insert / update | Aggregation / scan |
+| Who runs it | Application code | Analysts, BI tools |
+| Schema style | Normalized | Often denormalized or columnar |
+
+A typical OLAP query:
+
+```sql
+-- Total revenue per product category for Q1 2024
+SELECT category, SUM(revenue) AS total_revenue
+FROM sales_fact
+WHERE sale_date BETWEEN '2024-01-01' AND '2024-03-31'
+GROUP BY category
+ORDER BY total_revenue DESC;
+```
+
+This query might touch millions of rows. OLAP systems are optimized for this with techniques like columnar storage (reading only the columns the query needs) and pre-aggregated summaries.
+
+## HTAP and Hybrid Workloads
+
+A growing category sits in the middle: **HTAP (Hybrid Transactional/Analytical Processing)**. Businesses increasingly want real-time analytics *on the same data* that their OLTP system is writing — without the delay of copying data to a separate warehouse.
+
+Examples of HTAP-leaning databases include TiDB and SingleStore. Even PostgreSQL can handle moderate analytical queries with the right indexes and query planner hints.
+
+<details class="reveal"><summary>Reveal: Why can't you just run analytics on your OLTP database?</summary><div class="reveal-body">You <em>can</em>, but it causes problems. Long-running analytical scans hold locks or consume I/O, slowing down concurrent short transactions that real users are waiting on. OLAP workloads also benefit from different physical layouts (columnar vs. row storage) that are fundamentally incompatible with how OLTP databases store rows. Separating the two systems — or using a purpose-built HTAP engine — keeps each workload from degrading the other.</div></details>
+
+## Other Workload Patterns
+
+Beyond OLTP and OLAP, a few other patterns appear often enough to name:
+
+- **Search workloads** — full-text search, fuzzy matching, ranked results. Standard SQL databases handle this poorly; systems like Elasticsearch or PostgreSQL's `tsvector` columns are better suited.
+- **Time-series workloads** — sensor readings, metrics, financial ticks. Data arrives in strict time order and is almost never updated. Databases like TimescaleDB or InfluxDB compress and query this kind of data far more efficiently than a general-purpose system.
+- **Graph workloads** — social networks, recommendation engines, fraud detection where relationships between entities matter more than individual records. SQL joins can model graphs, but graph databases (Neo4j, Amazon Neptune) store and traverse edges natively.
+
+Knowing which workload category your system falls into is the first step toward choosing the right database engine — and the right schema, indexes, and hardware to go with it.

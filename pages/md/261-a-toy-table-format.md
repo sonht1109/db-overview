@@ -1,0 +1,163 @@
+Before you can store data you need to decide how to lay it out on disk. Real databases spend enormous effort on this — page formats, null bitmaps, variable-length encodings. Our tiny engine starts with the simplest thing that could possibly work: a flat binary file where every row occupies a fixed number of bytes. That constraint is limiting, but it makes every other operation — scan, seek, index — easy to reason about from first principles.
+
+## Choosing a Fixed-Row Layout
+
+Imagine we want to store a table of employees:
+
+| Field | Type | Bytes |
+|-------|------|-------|
+| `id` | 32-bit unsigned int | 4 |
+| `name` | fixed-length ASCII | 32 |
+| `age` | 8-bit unsigned int | 1 |
+| `salary` | 32-bit unsigned int | 4 |
+
+Total row size: **41 bytes**. Every row, whether it stores "Alice" or "Maximilian Schwarzenberger", takes exactly 41 bytes. Short names are padded with null bytes; long names are truncated.
+
+This is the same idea used in C structs and early COBOL records. It wastes some space, but it buys a crucial property: **row N always starts at byte offset `N × 41`**. You can seek to any row in O(1) without parsing the whole file.
+
+```python
+import struct
+
+# Layout: id (4B, uint32), name (32B, bytes), age (1B, uint8), salary (4B, uint32)
+ROW_FORMAT = struct.Struct(">I32sBi")  # big-endian: uint32, 32s, uint8, int32
+ROW_SIZE    = ROW_FORMAT.size          # 41
+
+def encode_row(id: int, name: str, age: int, salary: int) -> bytes:
+    name_bytes = name.encode("ascii")[:32].ljust(32, b"\x00")
+    return ROW_FORMAT.pack(id, name_bytes, age, salary)
+
+def decode_row(raw: bytes) -> dict:
+    id_, name_b, age, salary = ROW_FORMAT.unpack(raw)
+    return {
+        "id":     id_,
+        "name":   name_b.rstrip(b"\x00").decode("ascii"),
+        "age":    age,
+        "salary": salary,
+    }
+```
+
+<figure class="diagram">
+<svg viewBox="0 0 660 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fixed-width row file layout: each row occupies exactly 41 bytes at a predictable offset">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- File strip -->
+  <rect x="20" y="60" width="620" height="50" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+
+  <!-- Row 0 -->
+  <rect x="20" y="60" width="140" height="50" rx="0" fill="var(--accent)" opacity="0.18" stroke="var(--border)" stroke-width="1"/>
+  <text x="90" y="81" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Row 0</text>
+  <text x="90" y="97" text-anchor="middle" font-size="10" fill="var(--muted)">offset 0</text>
+
+  <!-- Row 1 -->
+  <rect x="160" y="60" width="140" height="50" rx="0" fill="var(--accent)" opacity="0.10" stroke="var(--border)" stroke-width="1"/>
+  <text x="230" y="81" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Row 1</text>
+  <text x="230" y="97" text-anchor="middle" font-size="10" fill="var(--muted)">offset 41</text>
+
+  <!-- Row 2 -->
+  <rect x="300" y="60" width="140" height="50" rx="0" fill="var(--accent)" opacity="0.18" stroke="var(--border)" stroke-width="1"/>
+  <text x="370" y="81" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Row 2</text>
+  <text x="370" y="97" text-anchor="middle" font-size="10" fill="var(--muted)">offset 82</text>
+
+  <!-- Row N -->
+  <rect x="440" y="60" width="200" height="50" rx="0" fill="var(--surface-2)" stroke="var(--border)" stroke-dasharray="6,3" stroke-width="1.5"/>
+  <text x="540" y="81" text-anchor="middle" font-size="12" fill="var(--muted)">Row N … offset N×41</text>
+
+  <!-- Byte breakdown for Row 0 -->
+  <text x="20" y="145" font-size="11" fill="var(--text)" font-weight="600">Row 0 bytes:</text>
+  <rect x="20" y="155" width="30" height="22" fill="var(--accent)" opacity="0.3" stroke="var(--border)" stroke-width="1"/>
+  <text x="35" y="170" text-anchor="middle" font-size="10" fill="var(--text)">id</text>
+  <text x="35" y="183" text-anchor="middle" font-size="9" fill="var(--muted)">4B</text>
+
+  <rect x="52" y="155" width="120" height="22" fill="var(--accent)" opacity="0.15" stroke="var(--border)" stroke-width="1"/>
+  <text x="112" y="170" text-anchor="middle" font-size="10" fill="var(--text)">name (padded)</text>
+  <text x="112" y="183" text-anchor="middle" font-size="9" fill="var(--muted)">32B</text>
+
+  <rect x="174" y="155" width="20" height="22" fill="var(--accent)" opacity="0.3" stroke="var(--border)" stroke-width="1"/>
+  <text x="184" y="170" text-anchor="middle" font-size="10" fill="var(--text)">age</text>
+  <text x="184" y="183" text-anchor="middle" font-size="9" fill="var(--muted)">1B</text>
+
+  <rect x="196" y="155" width="30" height="22" fill="var(--accent)" opacity="0.3" stroke="var(--border)" stroke-width="1"/>
+  <text x="211" y="170" text-anchor="middle" font-size="10" fill="var(--text)">sal</text>
+  <text x="211" y="183" text-anchor="middle" font-size="9" fill="var(--muted)">4B</text>
+
+  <text x="240" y="170" font-size="11" fill="var(--muted)">= 41 bytes total</text>
+
+  <!-- Title -->
+  <text x="330" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">Fixed-Row File Layout</text>
+</svg>
+<figcaption>Every row is exactly 41 bytes. Row N lives at file offset N × 41 — seekable without parsing.</figcaption>
+</figure>
+
+## The Table File Class
+
+Our engine wraps the flat file in a thin Python class:
+
+```python
+class TableFile:
+    def __init__(self, path: str):
+        self.path   = path
+        self.fh     = open(path, "a+b")   # append + read/write binary
+
+    def num_rows(self) -> int:
+        self.fh.seek(0, 2)                # seek to end
+        return self.fh.tell() // ROW_SIZE
+
+    def write_row(self, row: dict) -> int:
+        """Append a row; return its row number."""
+        self.fh.seek(0, 2)
+        row_num = self.fh.tell() // ROW_SIZE
+        self.fh.write(encode_row(**row))
+        return row_num
+
+    def read_row(self, row_num: int) -> dict:
+        """Read row by number (O(1) seek)."""
+        self.fh.seek(row_num * ROW_SIZE)
+        raw = self.fh.read(ROW_SIZE)
+        if len(raw) < ROW_SIZE:
+            raise IndexError(f"No row {row_num}")
+        return decode_row(raw)
+```
+
+> **Note:** We open the file in `"a+b"` mode so that new writes always go to the end (append) while reads can seek freely. This is a rough analogue of how a real write-ahead log or heap file works — inserts are sequential, reads are random.
+
+## Fixed vs. Variable-Length Rows
+
+The fixed-width approach has one glaring weakness: you cannot store strings of arbitrary length. Real databases solve this by:
+
+1. **Inline variable-length fields** with a preceding length byte (e.g., PostgreSQL's `varlena`).
+2. **Overflow pages** — short values inline, long values stored in separate "TOAST" pages.
+3. **Separate `varchar` segment** — the fixed portion of the row stores a pointer (offset + length) to a variable-length segment file.
+
+For our toy engine, fixed widths are fine. The goal is to see the whole system, not to optimize any single layer. Once you understand what a row is, you can make it variable-length later.
+
+## Simulating the Format in SQL
+
+The table below mirrors our binary layout exactly, but in SQLite so you can query it in the browser. Notice that `id` is the row number — in our flat file, that is literally its byte address divided by 41.
+
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Toy Table Format</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE employees (row_num INTEGER PRIMARY KEY, id INTEGER NOT NULL, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (0,1,'Alice',30,70000),(1,2,'Bob',25,55000),(2,3,'Carol',34,92000),(3,4,'Dave',28,61000),(4,5,'Eve',40,110000);">-- row_num * 41 = byte offset in the flat file
+-- This is exactly what read_row(n) does
+
+SELECT row_num,
+       row_num * 41 AS byte_offset,
+       id, name, age, salary
+FROM employees
+ORDER BY row_num;
+
+-- Try fetching a specific row by number (O(1) in the real file):
+-- SELECT * FROM employees WHERE row_num = 3;</textarea>
+  </div>
+</div>
+
+## Key Takeaways
+
+- A **fixed-row binary file** is the simplest possible table storage: each row is a C-struct-like blob at a predictable offset.
+- The invariant `offset = row_num × ROW_SIZE` gives you O(1) random access to any row — the foundation for both full scans and indexed lookups.
+- Real databases add variable-length fields, null bitmaps, page headers, and checksums on top of this core idea, but the conceptual skeleton is the same.
+- Next page we add the two operations that make this a real (if tiny) database: **insert** and **scan**.
