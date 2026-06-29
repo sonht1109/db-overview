@@ -115,7 +115,8 @@
           var db = new SQL.Database();
           if (setup) db.run(setup);
           try {
-            var res = db.exec(ta.value);
+            var query = ta.value.replace(/<[^>]*>/g, '');
+            var res = db.exec(query);
             renderResult(out, res);
           } catch (e) {
             out.innerHTML = '<div class="err">' + esc(e.message) + "</div>";
