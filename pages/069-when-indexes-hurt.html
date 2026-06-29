@@ -47,10 +47,9 @@ Try it below. The `events` table has a `type` column with only two values. Notic
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Low-selectivity index</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, type TEXT, payload TEXT); INSERT INTO events WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x < 900) SELECT x, 'common', 'data-' || x FROM cnt; INSERT INTO events WITH RECURSIVE cnt(x) AS (SELECT 901 UNION ALL SELECT x+1 FROM cnt WHERE x < 1000) SELECT x, 'rare', 'data-' || x FROM cnt; CREATE INDEX idx_type ON events(type);">-- 900 rows are 'common', only 100 are 'rare'
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, type TEXT, payload TEXT); INSERT INTO events WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x < 900) SELECT x, 'common', 'data-' || x FROM cnt; INSERT INTO events WITH RECURSIVE cnt(x) AS (SELECT 901 UNION ALL SELECT x+1 FROM cnt WHERE x < 1000) SELECT x, 'rare', 'data-' || x FROM cnt; CREATE INDEX idx_type ON events(type);" rows="20">-- 900 rows are 'common', only 100 are 'rare'
 -- Compare the plans for each value:
 EXPLAIN QUERY PLAN SELECT * FROM events WHERE type = 'common';
-
 -- Now try the rare value — does the planner behave differently?
 -- EXPLAIN QUERY PLAN SELECT * FROM events WHERE type = 'rare';</textarea>
   </div>

@@ -106,9 +106,10 @@ There is no single fix — the right approach depends on your workload:
 
 The following widget simulates the kind of data discrepancy a lagged replica can create. The `events` table represents the primary state; `replica_snapshot` represents what a replica with lag might have seen at a slightly earlier point in time. Try querying both to see the difference.
 
-<div class="widget" data-widget="sql"
-  data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT, ts TEXT); INSERT INTO events VALUES (1, 42, 'signup', '2024-06-01 09:00:00'), (2, 42, 'verify_email', '2024-06-01 09:01:10'), (3, 99, 'signup', '2024-06-01 09:05:00'), (4, 42, 'first_login', '2024-06-01 09:10:00'); CREATE TABLE replica_snapshot (id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT, ts TEXT); INSERT INTO replica_snapshot VALUES (1, 42, 'signup', '2024-06-01 09:00:00'), (2, 42, 'verify_email', '2024-06-01 09:01:10'), (3, 99, 'signup', '2024-06-01 09:05:00');">
--- The primary has 4 rows for user 42; the lagged replica only has 3.
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Replica lag simulation</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT, ts TEXT); INSERT INTO events VALUES (1, 42, 'signup', '2024-06-01 09:00:00'), (2, 42, 'verify_email', '2024-06-01 09:01:10'), (3, 99, 'signup', '2024-06-01 09:05:00'), (4, 42, 'first_login', '2024-06-01 09:10:00'); CREATE TABLE replica_snapshot (id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT, ts TEXT); INSERT INTO replica_snapshot VALUES (1, 42, 'signup', '2024-06-01 09:00:00'), (2, 42, 'verify_email', '2024-06-01 09:01:10'), (3, 99, 'signup', '2024-06-01 09:05:00');">-- The primary has 4 rows for user 42; the lagged replica only has 3.
 -- Try this: how does user 42's state look on each?
 
 -- Primary (fully up to date):
@@ -116,7 +117,8 @@ SELECT 'primary' AS source, id, action, ts FROM events WHERE user_id = 42
 UNION ALL
 -- Replica (lagged — missing the most recent row):
 SELECT 'replica' AS source, id, action, ts FROM replica_snapshot WHERE user_id = 42
-ORDER BY source, id;
+ORDER BY source, id;</textarea>
+  </div>
 </div>
 
 Notice that a read-your-own-writes check on the replica would miss `first_login` entirely — user 42 appears not to have logged in yet, even though the primary already recorded it.

@@ -167,7 +167,7 @@ The widget below simulates querying a table that mimics PostgreSQL's `pg_prepare
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · In-doubt transaction monitor</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE prepared_xacts (gid TEXT, prepared_at TEXT, owner TEXT, database TEXT, age_seconds INTEGER); INSERT INTO prepared_xacts VALUES ('txn-42', '2024-06-25 03:11:00', 'app_user', 'payments', 14400), ('txn-43', '2024-06-25 07:55:00', 'app_user', 'payments', 3), ('txn-99', '2024-06-24 22:00:00', 'etl_user', 'warehouse', 36000);">-- Find in-doubt (prepared but not committed) transactions
+    <textarea data-setup="CREATE TABLE prepared_xacts (gid TEXT, prepared_at TEXT, owner TEXT, database TEXT, age_seconds INTEGER); INSERT INTO prepared_xacts VALUES ('txn-42', '2024-06-25 03:11:00', 'app_user', 'payments', 14400), ('txn-43', '2024-06-25 07:55:00', 'app_user', 'payments', 3), ('txn-99', '2024-06-24 22:00:00', 'etl_user', 'warehouse', 36000);" rows="20">-- Find in-doubt (prepared but not committed) transactions
 -- older than 60 seconds -- these likely need operator intervention.
 SELECT
   gid,

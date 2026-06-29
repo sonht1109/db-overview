@@ -68,11 +68,10 @@ The widget below sets up a small `orders` table and lets you inspect the query p
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Query plans and indexes</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, amount REAL); INSERT INTO orders VALUES (1,10,'completed',99.5),(2,42,'pending',14.0),(3,42,'completed',200.0),(4,7,'pending',55.0),(5,42,'completed',30.0),(6,10,'pending',80.0),(7,3,'completed',120.0),(8,42,'pending',9.99),(9,5,'completed',300.0),(10,42,'completed',45.0); CREATE INDEX idx_customer ON orders(customer_id);">-- EXPLAIN QUERY PLAN shows how SQLite will execute a query.
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, amount REAL); INSERT INTO orders VALUES (1,10,'completed',99.5),(2,42,'pending',14.0),(3,42,'completed',200.0),(4,7,'pending',55.0),(5,42,'completed',30.0),(6,10,'pending',80.0),(7,3,'completed',120.0),(8,42,'pending',9.99),(9,5,'completed',300.0),(10,42,'completed',45.0); CREATE INDEX idx_customer ON orders(customer_id);" rows="20">-- EXPLAIN QUERY PLAN shows how SQLite will execute a query.
 -- This query can use the index on customer_id:
 EXPLAIN QUERY PLAN
 SELECT * FROM orders WHERE customer_id = 42;
-
 -- Change customer_id to status (no index) and re-run to compare:
 -- EXPLAIN QUERY PLAN
 -- SELECT * FROM orders WHERE status = 'pending';</textarea>

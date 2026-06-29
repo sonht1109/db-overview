@@ -79,7 +79,7 @@ The widget below simulates what a checkpoint must track: which buffer-pool pages
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Checkpoint state simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE buffer_pool (page_id INTEGER PRIMARY KEY, table_name TEXT, last_lsn INTEGER, status TEXT); INSERT INTO buffer_pool VALUES (101, 'orders', 4310, 'dirty'); INSERT INTO buffer_pool VALUES (102, 'orders', 4285, 'clean'); INSERT INTO buffer_pool VALUES (103, 'customers', 4400, 'dirty'); INSERT INTO buffer_pool VALUES (104, 'customers', 4100, 'clean'); INSERT INTO buffer_pool VALUES (105, 'products', 4390, 'dirty'); INSERT INTO buffer_pool VALUES (106, 'products', 4050, 'clean'); CREATE TABLE checkpoint_log (ckpt_id INTEGER PRIMARY KEY, begin_lsn INTEGER, end_lsn INTEGER, pages_flushed INTEGER, started_at TEXT); INSERT INTO checkpoint_log VALUES (1, 3000, 3980, 8, '2024-01-15 10:00:00'); INSERT INTO checkpoint_log VALUES (2, 3980, 4280, 11, '2024-01-15 10:05:00');">-- Which pages must be flushed in the next checkpoint?
+    <textarea data-setup="CREATE TABLE buffer_pool (page_id INTEGER PRIMARY KEY, table_name TEXT, last_lsn INTEGER, status TEXT); INSERT INTO buffer_pool VALUES (101, 'orders', 4310, 'dirty'); INSERT INTO buffer_pool VALUES (102, 'orders', 4285, 'clean'); INSERT INTO buffer_pool VALUES (103, 'customers', 4400, 'dirty'); INSERT INTO buffer_pool VALUES (104, 'customers', 4100, 'clean'); INSERT INTO buffer_pool VALUES (105, 'products', 4390, 'dirty'); INSERT INTO buffer_pool VALUES (106, 'products', 4050, 'clean'); CREATE TABLE checkpoint_log (ckpt_id INTEGER PRIMARY KEY, begin_lsn INTEGER, end_lsn INTEGER, pages_flushed INTEGER, started_at TEXT); INSERT INTO checkpoint_log VALUES (1, 3000, 3980, 8, '2024-01-15 10:00:00'); INSERT INTO checkpoint_log VALUES (2, 3980, 4280, 11, '2024-01-15 10:05:00');" rows="20">-- Which pages must be flushed in the next checkpoint?
 SELECT
   page_id,
   table_name,
@@ -88,7 +88,6 @@ SELECT
 FROM buffer_pool
 WHERE status = 'dirty'
 ORDER BY last_lsn;
-
 -- Try: change 'dirty' to 'clean' to see already-flushed pages.
 -- Try: SELECT COUNT(*), status FROM buffer_pool GROUP BY status;
 -- Try: SELECT * FROM checkpoint_log ORDER BY ckpt_id;</textarea>

@@ -136,11 +136,10 @@ Try the widget below to simulate a session-store workflow using SQLite's key-val
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Key-Value Lookup Pattern</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv_store (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_at INTEGER); INSERT INTO kv_store VALUES ('session:user:4291', '{&quot;token&quot;:&quot;abc123&quot;,&quot;role&quot;:&quot;admin&quot;}', 9999999999); INSERT INTO kv_store VALUES ('session:user:8842', '{&quot;token&quot;:&quot;xyz987&quot;,&quot;role&quot;:&quot;viewer&quot;}', 9999999999); INSERT INTO kv_store VALUES ('cache:homepage:en', '&lt;html&gt;...cached...&lt;/html&gt;', 9999999999); INSERT INTO kv_store VALUES ('ratelimit:ip:203.0.113.5', '42', 9999999998); INSERT INTO kv_store VALUES ('feature:dark_mode', 'on', NULL);">-- Exact key lookup (the only fast path in a key-value store)
+    <textarea data-setup="CREATE TABLE kv_store (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_at INTEGER); INSERT INTO kv_store VALUES ('session:user:4291', '{&quot;token&quot;:&quot;abc123&quot;,&quot;role&quot;:&quot;admin&quot;}', 9999999999); INSERT INTO kv_store VALUES ('session:user:8842', '{&quot;token&quot;:&quot;xyz987&quot;,&quot;role&quot;:&quot;viewer&quot;}', 9999999999); INSERT INTO kv_store VALUES ('cache:homepage:en', '&lt;html&gt;...cached...&lt;/html&gt;', 9999999999); INSERT INTO kv_store VALUES ('ratelimit:ip:203.0.113.5', '42', 9999999998); INSERT INTO kv_store VALUES ('feature:dark_mode', 'on', NULL);" rows="20">-- Exact key lookup (the only fast path in a key-value store)
 SELECT key, value
 FROM kv_store
 WHERE key = 'session:user:4291';
-
 -- Try changing the key above to 'feature:dark_mode' or 'ratelimit:ip:203.0.113.5'
 -- Then try a value-content search below — notice it must scan every row:
 -- SELECT key FROM kv_store WHERE value LIKE '%admin%';</textarea>

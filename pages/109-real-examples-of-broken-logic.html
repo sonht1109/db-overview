@@ -155,13 +155,11 @@ The widget below demonstrates the oversell pattern. The initial stock is 1. Two 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Inventory oversell</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, stock INTEGER); INSERT INTO products VALUES (77, 'Limited-Edition Hat', 1);">-- Two buyers race. Both read stock = 1 and both proceed.
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, stock INTEGER); INSERT INTO products VALUES (77, 'Limited-Edition Hat', 1);" rows="20">-- Two buyers race. Both read stock = 1 and both proceed.
 -- Session A updates first:
 UPDATE products SET stock = stock - 1 WHERE id = 77;
-
 -- Session B updates next (used stale read, no guard):
 UPDATE products SET stock = stock - 1 WHERE id = 77;
-
 -- Final state — stock is negative!
 SELECT id, name, stock,
        CASE WHEN stock < 0 THEN 'OVERSOLD' ELSE 'ok' END AS status

@@ -254,14 +254,13 @@ The widget below shows SQL implementing a cluster-finding query: finding all mem
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Finding Clusters via Joins</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE persons (id INTEGER PRIMARY KEY, name TEXT NOT NULL, role TEXT); INSERT INTO persons VALUES (1,'Alice','Engineer'),(2,'Bob','Engineer'),(3,'Carol','Designer'),(4,'Dave','PM'),(5,'Eve','Engineer'),(6,'Frank','Designer'),(7,'Grace','PM'); CREATE TABLE works_with (person_a INTEGER, person_b INTEGER, project TEXT NOT NULL); INSERT INTO works_with VALUES (1,2,'Apollo'),(2,3,'Apollo'),(3,4,'Apollo'),(4,5,'Hermes'),(5,6,'Hermes'),(1,3,'Apollo'),(6,7,'Hermes');">-- Find everyone within 2 hops of Alice (id=1) via WORKS_WITH
+    <textarea data-setup="CREATE TABLE persons (id INTEGER PRIMARY KEY, name TEXT NOT NULL, role TEXT); INSERT INTO persons VALUES (1,'Alice','Engineer'),(2,'Bob','Engineer'),(3,'Carol','Designer'),(4,'Dave','PM'),(5,'Eve','Engineer'),(6,'Frank','Designer'),(7,'Grace','PM'); CREATE TABLE works_with (person_a INTEGER, person_b INTEGER, project TEXT NOT NULL); INSERT INTO works_with VALUES (1,2,'Apollo'),(2,3,'Apollo'),(3,4,'Apollo'),(4,5,'Hermes'),(5,6,'Hermes'),(1,3,'Apollo'),(6,7,'Hermes');" rows="20">-- Find everyone within 2 hops of Alice (id=1) via WORKS_WITH
 -- Hop 1: direct collaborators of Alice
 SELECT DISTINCT p2.name AS collaborator, 1 AS hops
 FROM works_with ww
 JOIN persons p2 ON (ww.person_a = p2.id OR ww.person_b = p2.id) AND p2.id != 1
 WHERE ww.person_a = 1 OR ww.person_b = 1
 ORDER BY collaborator;
-
 -- Uncomment for 2-hop cluster (friends-of-friends):
 -- WITH hop1 AS (
 --   SELECT CASE WHEN ww.person_a = 1 THEN ww.person_b ELSE ww.person_a END AS nbr

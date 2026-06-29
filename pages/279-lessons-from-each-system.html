@@ -155,11 +155,10 @@ INSERT INTO systems VALUES
   ('Time-series','Append-only, retention','Composite PK on ts; rollups','TimescaleDB/InfluxDB'),
   ('Search index','Relevance ranking','Inverted index; BM25 scoring','Elasticsearch/Typesense'),
   ('Multi-tenant SaaS','Row-level isolation','tenant_id leading every index','PostgreSQL with RLS');
-">-- Cross-reference: systems with their key lessons
+" rows="20">-- Cross-reference: systems with their key lessons
 SELECT name, workload, key_lesson
 FROM systems
 ORDER BY name;
-
 -- Try: filter by tool family
 -- SELECT name, recommended_tool FROM systems
 -- WHERE recommended_tool LIKE '%PostgreSQL%';</textarea>

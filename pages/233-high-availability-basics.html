@@ -134,7 +134,7 @@ Beyond HA, replicas also serve **read scale-out**: route SELECT-heavy analytics 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Replica Lag &amp; Health</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replication_status (replica_name TEXT, host TEXT, state TEXT, lag_bytes INTEGER, lag_seconds REAL, sync_state TEXT, last_seen TEXT); INSERT INTO replication_status VALUES ('replica-1','10.0.1.11','streaming',0,0.0,'sync','2024-06-24 15:00:01'); INSERT INTO replication_status VALUES ('replica-2','10.0.1.12','streaming',204800,1.2,'async','2024-06-24 15:00:00'); INSERT INTO replication_status VALUES ('replica-3','10.0.1.13','streaming',5242880,31.5,'async','2024-06-24 14:59:45');">-- Identify replicas that are lagging beyond 10 seconds (alert threshold)
+    <textarea data-setup="CREATE TABLE replication_status (replica_name TEXT, host TEXT, state TEXT, lag_bytes INTEGER, lag_seconds REAL, sync_state TEXT, last_seen TEXT); INSERT INTO replication_status VALUES ('replica-1','10.0.1.11','streaming',0,0.0,'sync','2024-06-24 15:00:01'); INSERT INTO replication_status VALUES ('replica-2','10.0.1.12','streaming',204800,1.2,'async','2024-06-24 15:00:00'); INSERT INTO replication_status VALUES ('replica-3','10.0.1.13','streaming',5242880,31.5,'async','2024-06-24 14:59:45');" rows="20">-- Identify replicas that are lagging beyond 10 seconds (alert threshold)
 SELECT replica_name, host, sync_state,
        lag_bytes / 1048576.0 AS lag_mb,
        lag_seconds,

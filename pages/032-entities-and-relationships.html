@@ -87,7 +87,7 @@ CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT NOT NULL, year INTEGER);
 CREATE TABLE book_authors (author_id INTEGER, book_id INTEGER, role TEXT DEFAULT 'writer', PRIMARY KEY (author_id, book_id));
 INSERT INTO authors VALUES (1, 'Gabriel García Márquez'), (2, 'Isabel Allende'), (3, 'Mario Vargas Llosa');
 INSERT INTO books VALUES (1, 'One Hundred Years of Solitude', 1967), (2, 'Love in the Time of Cholera', 1985), (3, 'The House of the Spirits', 1982), (4, 'The City and the Dogs', 1963);
-INSERT INTO book_authors VALUES (1, 1, 'writer'), (1, 2, 'writer'), (2, 3, 'writer'), (3, 4, 'writer');">-- List each book with its author and their role in the relationship
+INSERT INTO book_authors VALUES (1, 1, 'writer'), (1, 2, 'writer'), (2, 3, 'writer'), (3, 4, 'writer');" rows="20">-- List each book with its author and their role in the relationship
 SELECT
     b.title,
     b.year,

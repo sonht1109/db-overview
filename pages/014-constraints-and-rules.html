@@ -78,20 +78,15 @@ The best way to understand constraints is to violate them and watch the engine p
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Constraints in action</span></div>
   <div class="widget-body">
-    <textarea data-setup="PRAGMA foreign_keys = ON; CREATE TABLE customers (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), amount REAL NOT NULL CHECK (amount > 0), status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'shipped', 'cancelled'))); INSERT INTO customers VALUES (1, 'alice@example.com'); INSERT INTO customers VALUES (2, 'bob@example.com'); INSERT INTO orders VALUES (1, 1, 49.99, 'pending'); INSERT INTO orders VALUES (2, 2, 12.50, 'shipped');">-- Succeeds: valid data
+    <textarea data-setup="PRAGMA foreign_keys = ON; CREATE TABLE customers (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), amount REAL NOT NULL CHECK (amount  rows="20"> 0), status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'shipped', 'cancelled'))); INSERT INTO customers VALUES (1, 'alice@example.com'); INSERT INTO customers VALUES (2, 'bob@example.com'); INSERT INTO orders VALUES (1, 1, 49.99, 'pending'); INSERT INTO orders VALUES (2, 2, 12.50, 'shipped');">-- Succeeds: valid data
 SELECT * FROM orders;
-
 -- Try these one at a time to see each constraint fire:
-
 -- Violates CHECK (amount must be > 0):
 -- INSERT INTO orders VALUES (3, 1, -5.00, 'pending');
-
 -- Violates FOREIGN KEY (no customer with id = 99):
 -- INSERT INTO orders VALUES (4, 99, 20.00, 'pending');
-
 -- Violates CHECK (status must be a known value):
 -- INSERT INTO orders VALUES (5, 1, 30.00, 'lost');
-
 -- Violates UNIQUE on email:
 -- INSERT INTO customers VALUES (3, 'alice@example.com');</textarea>
   </div>

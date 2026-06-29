@@ -55,20 +55,15 @@ Try the widget below. It creates an `orders` table with several constraints, the
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Constraints in action</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, price REAL NOT NULL CHECK(price > 0)); CREATE TABLE orders (id INTEGER PRIMARY KEY, product_id INTEGER NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL CHECK(quantity > 0), status TEXT NOT NULL DEFAULT 'pending'); INSERT INTO products VALUES (1, 'Widget', 9.99); INSERT INTO products VALUES (2, 'Gadget', 24.99);">-- Try each statement one at a time. Which ones succeed?
-
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, price REAL NOT NULL CHECK(price  rows="20"> 0)); CREATE TABLE orders (id INTEGER PRIMARY KEY, product_id INTEGER NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL CHECK(quantity > 0), status TEXT NOT NULL DEFAULT 'pending'); INSERT INTO products VALUES (1, 'Widget', 9.99); INSERT INTO products VALUES (2, 'Gadget', 24.99);">-- Try each statement one at a time. Which ones succeed?
 -- 1. Valid order:
 INSERT INTO orders VALUES (1, 1, 3, 'pending');
-
 -- 2. Zero quantity (violates CHECK):
 -- INSERT INTO orders VALUES (2, 1, 0, 'pending');
-
 -- 3. Unknown product (violates FOREIGN KEY):
 -- INSERT INTO orders VALUES (3, 99, 2, 'pending');
-
 -- 4. Duplicate product name (violates UNIQUE):
 -- INSERT INTO products VALUES (3, 'Widget', 5.00);
-
 SELECT o.id, p.name AS product, o.quantity, o.status
 FROM orders o JOIN products p ON p.id = o.product_id;</textarea>
   </div>
@@ -85,14 +80,12 @@ The correct approach is to perform both writes inside a single transaction. If e
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Maintaining a balance invariant</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, name TEXT NOT NULL, balance REAL NOT NULL CHECK(balance >= 0)); INSERT INTO accounts VALUES (1, 'Alice', 500.00); INSERT INTO accounts VALUES (2, 'Bob', 300.00);">-- Transfer $150 from Alice to Bob atomically.
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, name TEXT NOT NULL, balance REAL NOT NULL CHECK(balance  rows="20">= 0)); INSERT INTO accounts VALUES (1, 'Alice', 500.00); INSERT INTO accounts VALUES (2, 'Bob', 300.00);">-- Transfer $150 from Alice to Bob atomically.
 -- Both updates succeed or neither does.
-
 BEGIN;
   UPDATE accounts SET balance = balance - 150 WHERE id = 1;
   UPDATE accounts SET balance = balance + 150 WHERE id = 2;
 COMMIT;
-
 -- Verify: total balance should still be 800.
 SELECT name, balance FROM accounts;
 SELECT SUM(balance) AS total FROM accounts;  -- must stay 800</textarea>

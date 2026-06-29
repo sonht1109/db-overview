@@ -210,9 +210,8 @@ INSERT INTO raw_sales_staging VALUES
   (&apos;2024-06-01&apos;,&apos;FURN-001&apos;,&apos;S-LAX&apos;,349.00,2),
   (&apos;2024-06-02&apos;,&apos;ELEC-002&apos;,&apos;S-NYC&apos;,45.00,3),
   (&apos;2024-06-02&apos;,&apos;ELEC-001&apos;,&apos;S-LAX&apos;,1299.99,1),
-  (&apos;2024-06-03&apos;,&apos;FURN-001&apos;,&apos;S-NYC&apos;,349.00,1);">-- Step 1: Check staging data
+  (&apos;2024-06-03&apos;,&apos;FURN-001&apos;,&apos;S-NYC&apos;,349.00,1);" rows="20">-- Step 1: Check staging data
 SELECT * FROM raw_sales_staging;
-
 -- Step 2: Transform and load into fact table
 INSERT INTO fact_sales (sale_id, product_key, store_key, sale_amount, quantity, sale_date)
 SELECT
@@ -225,7 +224,6 @@ SELECT
 FROM raw_sales_staging stg
 JOIN dim_product p ON stg.sku      = p.sku
 JOIN dim_store   s ON stg.store_id = s.store_id;
-
 -- Step 3: Verify the loaded fact table
 SELECT p.category, SUM(f.sale_amount) AS revenue
 FROM fact_sales f

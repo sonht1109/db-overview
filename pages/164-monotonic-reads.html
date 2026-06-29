@@ -119,7 +119,7 @@ The following widget lets you explore what monotonic reads protect. The `replica
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Replica selection by LSN</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replica_log (replica_id TEXT, lsn INTEGER, data TEXT); INSERT INTO replica_log VALUES ('replica_a', 1, 'row inserted'); INSERT INTO replica_log VALUES ('replica_a', 2, 'row updated to v2'); INSERT INTO replica_log VALUES ('replica_a', 3, 'row deleted'); INSERT INTO replica_log VALUES ('replica_b', 1, 'row inserted'); INSERT INTO replica_log VALUES ('replica_b', 2, 'row updated to v2');">/* Client last saw LSN 2. Which replicas are safe to read from? */
+    <textarea data-setup="CREATE TABLE replica_log (replica_id TEXT, lsn INTEGER, data TEXT); INSERT INTO replica_log VALUES ('replica_a', 1, 'row inserted'); INSERT INTO replica_log VALUES ('replica_a', 2, 'row updated to v2'); INSERT INTO replica_log VALUES ('replica_a', 3, 'row deleted'); INSERT INTO replica_log VALUES ('replica_b', 1, 'row inserted'); INSERT INTO replica_log VALUES ('replica_b', 2, 'row updated to v2');" rows="20">/* Client last saw LSN 2. Which replicas are safe to read from? */
 SELECT replica_id, MAX(lsn) AS max_applied_lsn
 FROM replica_log
 GROUP BY replica_id

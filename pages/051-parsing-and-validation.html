@@ -120,7 +120,7 @@ The widget below has a working query against a small `employees` table. Try deli
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Parse and validation errors</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 'Engineering', 95000), (2, 'Bob', 'Marketing', 62000), (3, 'Carol', 'Engineering', 110000), (4, 'Dan', 'HR', 58000), (5, 'Eve', 'Engineering', 87000);">SELECT name, department, salary
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 'Engineering', 95000), (2, 'Bob', 'Marketing', 62000), (3, 'Carol', 'Engineering', 110000), (4, 'Dan', 'HR', 58000), (5, 'Eve', 'Engineering', 87000);" rows="20">SELECT name, department, salary
 FROM employees
 WHERE salary > 80000
 ORDER BY salary DESC;</textarea>

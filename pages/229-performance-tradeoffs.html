@@ -138,7 +138,7 @@ Start vertical. Add horizontal complexity only when the vertical ceiling is hit 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index Trade-off Analysis</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE workload_analysis (scenario TEXT PRIMARY KEY, reads_per_sec INTEGER, writes_per_sec INTEGER, read_time_saved_ms REAL, write_overhead_ms REAL); INSERT INTO workload_analysis VALUES ('e-commerce product page',5000,50,8.0,0.4),('IoT sensor ingest',200,8000,2.0,0.3),('Financial ledger',1000,1000,5.0,0.5),('Analytics dashboard',100,10,50.0,0.5);">-- Estimate whether adding an index is worth it
+    <textarea data-setup="CREATE TABLE workload_analysis (scenario TEXT PRIMARY KEY, reads_per_sec INTEGER, writes_per_sec INTEGER, read_time_saved_ms REAL, write_overhead_ms REAL); INSERT INTO workload_analysis VALUES ('e-commerce product page',5000,50,8.0,0.4),('IoT sensor ingest',200,8000,2.0,0.3),('Financial ledger',1000,1000,5.0,0.5),('Analytics dashboard',100,10,50.0,0.5);" rows="20">-- Estimate whether adding an index is worth it
 SELECT
   scenario,
   reads_per_sec,

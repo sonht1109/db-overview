@@ -75,10 +75,9 @@ The widget below creates a small `orders` table and lets you compare query plans
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index vs. Full Scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_email TEXT, amount REAL, status TEXT); INSERT INTO orders VALUES (1,'alice@example.com',120.0,'shipped'),(2,'bob@example.com',45.0,'pending'),(3,'alice@example.com',300.0,'shipped'),(4,'carol@example.com',88.0,'shipped'),(5,'bob@example.com',210.0,'pending'),(6,'alice@example.com',55.0,'shipped'),(7,'dan@example.com',400.0,'shipped'),(8,'carol@example.com',30.0,'pending');">-- Step 1: see the plan WITHOUT an index (expect SCAN)
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_email TEXT, amount REAL, status TEXT); INSERT INTO orders VALUES (1,'alice@example.com',120.0,'shipped'),(2,'bob@example.com',45.0,'pending'),(3,'alice@example.com',300.0,'shipped'),(4,'carol@example.com',88.0,'shipped'),(5,'bob@example.com',210.0,'pending'),(6,'alice@example.com',55.0,'shipped'),(7,'dan@example.com',400.0,'shipped'),(8,'carol@example.com',30.0,'pending');" rows="20">-- Step 1: see the plan WITHOUT an index (expect SCAN)
 EXPLAIN QUERY PLAN
 SELECT * FROM orders WHERE customer_email = 'alice@example.com';
-
 -- Step 2: create an index, then re-run the EXPLAIN above
 -- CREATE INDEX idx_orders_email ON orders(customer_email);</textarea>
   </div>

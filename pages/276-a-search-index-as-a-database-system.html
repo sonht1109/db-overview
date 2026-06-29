@@ -187,14 +187,13 @@ INSERT INTO documents VALUES (2,'Budget Audio Guide','Finding cheap affordable h
 INSERT INTO documents VALUES (3,'Remote Work Setup','Our top picks for microphones cameras and accessories for working from home.','/guides/remote-work','productivity',1700200000);
 INSERT INTO documents VALUES (4,'Wireless Earbuds 2024','The best wireless bluetooth earbuds for running and gym workouts.','/reviews/earbuds-2024','electronics',1700300000);
 INSERT INTO doc_search(rowid, title, body) SELECT id, title, body FROM documents;
-">-- Full-text search: rank by BM25 relevance
+" rows="20">-- Full-text search: rank by BM25 relevance
 SELECT d.id, d.title, d.category,
        ROUND(bm25(doc_search), 4) AS bm25_score
 FROM doc_search
 JOIN documents d ON d.id = doc_search.rowid
 WHERE doc_search MATCH 'bluetooth wireless'
 ORDER BY bm25_score;
-
 -- Try: filter by category too
 -- SELECT d.title, d.category, ROUND(bm25(doc_search),4) AS score
 -- FROM doc_search

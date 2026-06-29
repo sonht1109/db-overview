@@ -113,17 +113,15 @@ The NoSQL trade-off (eventual consistency, BASE semantics) solves a real problem
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · ACID in Action — Multi-Row Consistency</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance REAL NOT NULL CHECK(balance &gt;= 0)); INSERT INTO accounts VALUES (1, 'Alice', 1000.00); INSERT INTO accounts VALUES (2, 'Bob', 500.00);">-- ACID guarantees both rows change together or not at all.
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance REAL NOT NULL CHECK(balance &gt;= 0)); INSERT INTO accounts VALUES (1, 'Alice', 1000.00); INSERT INTO accounts VALUES (2, 'Bob', 500.00);" rows="20">-- ACID guarantees both rows change together or not at all.
 -- The CHECK(balance >= 0) constraint enforces consistency.
 BEGIN;
   UPDATE accounts SET balance = balance - 200 WHERE id = 1;
   UPDATE accounts SET balance = balance + 200 WHERE id = 2;
 COMMIT;
-
 -- Verify the invariant: total must equal 1500
 SELECT owner, balance FROM accounts;
 SELECT SUM(balance) AS total_must_be_1500 FROM accounts;
-
 -- Try to violate it (will fail due to CHECK constraint):
 -- UPDATE accounts SET balance = balance - 2000 WHERE id = 1;</textarea>
   </div>

@@ -207,19 +207,17 @@ The relational model struggles with **writes at IoT scale and range queries that
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Time-Series Range Queries</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sensor_readings (sensor_id TEXT, ts TEXT, value REAL, unit TEXT); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 10:00:00', 71.3, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:59:50', 71.1, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:59:40', 70.9, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:59:30', 70.7, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:00:00', 68.2, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:99', '2024-06-25 10:00:00', 23.1, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:99', '2024-06-25 09:59:50', 23.0, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:99', '2024-06-25 09:00:00', 22.8, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:10', '2024-06-25 10:00:00', 55.4, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:10', '2024-06-25 09:59:50', 55.2, 'celsius');">-- 1. Time-range query for one sensor (the fast path in a column-family DB)
+    <textarea data-setup="CREATE TABLE sensor_readings (sensor_id TEXT, ts TEXT, value REAL, unit TEXT); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 10:00:00', 71.3, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:59:50', 71.1, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:59:40', 70.9, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:59:30', 70.7, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:42', '2024-06-25 09:00:00', 68.2, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:99', '2024-06-25 10:00:00', 23.1, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:99', '2024-06-25 09:59:50', 23.0, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:99', '2024-06-25 09:00:00', 22.8, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:10', '2024-06-25 10:00:00', 55.4, 'celsius'); INSERT INTO sensor_readings VALUES ('sensor:10', '2024-06-25 09:59:50', 55.2, 'celsius');" rows="20">-- 1. Time-range query for one sensor (the fast path in a column-family DB)
 SELECT sensor_id, ts, value
 FROM sensor_readings
 WHERE sensor_id = 'sensor:42'
   AND ts &gt;= '2024-06-25 09:59:00'
   AND ts &lt;= '2024-06-25 10:00:00'
 ORDER BY ts DESC;
-
 -- 2. Latest reading per sensor (try uncommenting)
 -- SELECT sensor_id, MAX(ts) AS latest_ts, value
 -- FROM sensor_readings
 -- GROUP BY sensor_id;
-
 -- 3. Average temp across all sensors in last minute (expensive cross-partition in real Cassandra)
 -- SELECT sensor_id, AVG(value) AS avg_temp
 -- FROM sensor_readings

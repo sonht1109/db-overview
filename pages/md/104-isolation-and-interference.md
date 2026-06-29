@@ -60,4 +60,17 @@ UPDATE accounts SET balance = 1000 + 300 WHERE id = 1;
 SELECT owner, balance,
        1500 AS expected_balance,
        balance - 1500 AS discrepancy
-FROM accounts;
+FROM accounts;</textarea>
+  </div>
+</div>
+
+Run the setup, then execute the `UPDATE` statements one at a time followed by the final `SELECT`. The discrepancy column reveals the lost $200 — Alice deposited first, but Bob's concurrent update overwrote her result. This is exactly the kind of corruption that isolation levels prevent.
+
+## Key Takeaways
+
+- **Lost updates** happen when two transactions read the same value, modify it, and write back without coordination — one write silently overwrites the other.
+- The SQL standard defines four isolation levels: **Read Uncommitted**, **Read Committed**, **Repeatable Read**, and **Serializable** — each trades off correctness for concurrency.
+- **Read Committed** is the default in most engines; it prevents dirty reads but still allows lost updates and non-repeatable reads.
+- **Repeatable Read** (and Snapshot Isolation) prevents lost updates by giving each transaction a consistent snapshot of the database.
+- **Serializable** provides the strongest guarantee — transactions behave as if they ran one at a time — at the highest performance cost.
+- Choosing an isolation level is always a tradeoff: stricter = fewer anomalies but less concurrency.

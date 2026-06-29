@@ -97,15 +97,13 @@ The example below shows a classic bank transfer. On a single node, both the debi
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Local transaction atomicity</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id TEXT PRIMARY KEY, balance INTEGER NOT NULL); INSERT INTO accounts VALUES ('alice', 1000); INSERT INTO accounts VALUES ('bob', 500);">-- Transfer $200 from Alice to Bob atomically.
+    <textarea data-setup="CREATE TABLE accounts (id TEXT PRIMARY KEY, balance INTEGER NOT NULL); INSERT INTO accounts VALUES ('alice', 1000); INSERT INTO accounts VALUES ('bob', 500);" rows="20">-- Transfer $200 from Alice to Bob atomically.
 -- On a single node, both updates commit together
 -- or neither does. Try changing COMMIT to ROLLBACK.
-
 BEGIN;
   UPDATE accounts SET balance = balance - 200 WHERE id = 'alice';
   UPDATE accounts SET balance = balance + 200 WHERE id = 'bob';
 COMMIT;
-
 -- Check balances: should always sum to 1500
 SELECT id, balance, SUM(balance) OVER () AS total FROM accounts;</textarea>
   </div>

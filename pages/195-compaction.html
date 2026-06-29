@@ -220,7 +220,7 @@ Tuning levers:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating SSTable Merge and Tombstone Removal</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sst_before (source TEXT, seq INTEGER, key TEXT, value TEXT); INSERT INTO sst_before VALUES ('SST-1', 1, 'a', 'Alice v1'); INSERT INTO sst_before VALUES ('SST-1', 2, 'c', 'Carol v1'); INSERT INTO sst_before VALUES ('SST-1', 3, 'e', 'Eve v1'); INSERT INTO sst_before VALUES ('SST-2', 5, 'a', 'Alice v2'); INSERT INTO sst_before VALUES ('SST-2', 6, 'b', 'TOMBSTONE'); INSERT INTO sst_before VALUES ('SST-2', 7, 'c', 'Carol v2'); INSERT INTO sst_before VALUES ('SST-3', 8, 'e', 'TOMBSTONE'); INSERT INTO sst_before VALUES ('SST-3', 9, 'd', 'Diana'); INSERT INTO sst_before VALUES ('SST-3', 10, 'f', 'Fatima');">-- Step 1: Find the winning version for each key (highest seq wins)
+    <textarea data-setup="CREATE TABLE sst_before (source TEXT, seq INTEGER, key TEXT, value TEXT); INSERT INTO sst_before VALUES ('SST-1', 1, 'a', 'Alice v1'); INSERT INTO sst_before VALUES ('SST-1', 2, 'c', 'Carol v1'); INSERT INTO sst_before VALUES ('SST-1', 3, 'e', 'Eve v1'); INSERT INTO sst_before VALUES ('SST-2', 5, 'a', 'Alice v2'); INSERT INTO sst_before VALUES ('SST-2', 6, 'b', 'TOMBSTONE'); INSERT INTO sst_before VALUES ('SST-2', 7, 'c', 'Carol v2'); INSERT INTO sst_before VALUES ('SST-3', 8, 'e', 'TOMBSTONE'); INSERT INTO sst_before VALUES ('SST-3', 9, 'd', 'Diana'); INSERT INTO sst_before VALUES ('SST-3', 10, 'f', 'Fatima');" rows="20">-- Step 1: Find the winning version for each key (highest seq wins)
 WITH ranked AS (
   SELECT key, value, seq,
     ROW_NUMBER() OVER (PARTITION BY key ORDER BY seq DESC) AS rn
@@ -232,7 +232,6 @@ FROM ranked
 WHERE rn = 1
   AND value != 'TOMBSTONE'
 ORDER BY key;
-
 -- Notice: b and e disappear (tombstoned), older versions of a and c are gone.</textarea>
   </div>
 </div>

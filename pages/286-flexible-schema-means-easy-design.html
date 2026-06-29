@@ -144,16 +144,14 @@ The pattern in each case: **the variability is the feature**. If variability is 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Heterogeneous Attributes Done Right</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, price REAL NOT NULL, category TEXT NOT NULL); CREATE TABLE product_attributes (product_id INTEGER REFERENCES products(id), attr_key TEXT NOT NULL, attr_value TEXT NOT NULL, PRIMARY KEY (product_id, attr_key)); INSERT INTO products VALUES (1,'Widget A',9.99,'tools'),(2,'Smart TV 55&quot;',799.99,'electronics'),(3,'Cotton T-Shirt',19.99,'clothing'); INSERT INTO product_attributes VALUES (1,'material','steel'),(1,'weight_kg','0.8'),(2,'resolution','4K'),(2,'refresh_hz','120'),(2,'panel_type','OLED'),(3,'sizes','S,M,L,XL'),(3,'fabric','100% cotton');">-- Clean core query — no shape branching:
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, price REAL NOT NULL, category TEXT NOT NULL); CREATE TABLE product_attributes (product_id INTEGER REFERENCES products(id), attr_key TEXT NOT NULL, attr_value TEXT NOT NULL, PRIMARY KEY (product_id, attr_key)); INSERT INTO products VALUES (1,'Widget A',9.99,'tools'),(2,'Smart TV 55&quot;',799.99,'electronics'),(3,'Cotton T-Shirt',19.99,'clothing'); INSERT INTO product_attributes VALUES (1,'material','steel'),(1,'weight_kg','0.8'),(2,'resolution','4K'),(2,'refresh_hz','120'),(2,'panel_type','OLED'),(3,'sizes','S,M,L,XL'),(3,'fabric','100% cotton');" rows="20">-- Clean core query — no shape branching:
 SELECT p.name, p.price, p.category
 FROM products p
 ORDER BY p.price;
-
 -- Pivot heterogeneous attrs for one product:
 SELECT attr_key, attr_value
 FROM product_attributes
 WHERE product_id = 2;
-
 -- Find all electronics with 4K resolution:
 SELECT p.name, p.price
 FROM products p

@@ -62,7 +62,7 @@ Try the widget below. It seeds a small `employees` table and runs a subquery to 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Subqueries</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT, location TEXT); INSERT INTO departments VALUES (1, 'Engineering', 'Berlin'), (2, 'Sales', 'Paris'), (3, 'HR', 'Berlin'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 90000), (2, 'Bob', 1, 75000), (3, 'Carol', 2, 68000), (4, 'Dave', 2, 82000), (5, 'Eve', 3, 71000), (6, 'Frank', 3, 65000);">SELECT name, salary
+    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT, location TEXT); INSERT INTO departments VALUES (1, 'Engineering', 'Berlin'), (2, 'Sales', 'Paris'), (3, 'HR', 'Berlin'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 90000), (2, 'Bob', 1, 75000), (3, 'Carol', 2, 68000), (4, 'Dave', 2, 82000), (5, 'Eve', 3, 71000), (6, 'Frank', 3, 65000);" rows="20">SELECT name, salary
 FROM employees
 WHERE salary > (SELECT AVG(salary) FROM employees)
 ORDER BY salary DESC;</textarea>
@@ -131,7 +131,7 @@ Try rewriting the subquery from the first widget as a CTE in the box below:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · CTEs</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT, location TEXT); INSERT INTO departments VALUES (1, 'Engineering', 'Berlin'), (2, 'Sales', 'Paris'), (3, 'HR', 'Berlin'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 90000), (2, 'Bob', 1, 75000), (3, 'Carol', 2, 68000), (4, 'Dave', 2, 82000), (5, 'Eve', 3, 71000), (6, 'Frank', 3, 65000);">WITH avg_salary AS (
+    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT, location TEXT); INSERT INTO departments VALUES (1, 'Engineering', 'Berlin'), (2, 'Sales', 'Paris'), (3, 'HR', 'Berlin'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 90000), (2, 'Bob', 1, 75000), (3, 'Carol', 2, 68000), (4, 'Dave', 2, 82000), (5, 'Eve', 3, 71000), (6, 'Frank', 3, 65000);" rows="20">WITH avg_salary AS (
   SELECT AVG(salary) AS mean FROM employees
 ),
 berlin_depts AS (

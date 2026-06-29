@@ -216,16 +216,14 @@ The column-family approach makes reads blindingly fast and perfectly predictable
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Two Tables for Two Access Patterns</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE users_by_id (user_id TEXT PRIMARY KEY, email TEXT, full_name TEXT, country TEXT); CREATE TABLE users_by_email (email TEXT PRIMARY KEY, user_id TEXT, full_name TEXT, country TEXT); INSERT INTO users_by_id VALUES ('u-001', 'alice@example.com', 'Alice Chen', 'US'); INSERT INTO users_by_id VALUES ('u-002', 'bob@example.com', 'Bob Smith', 'DE'); INSERT INTO users_by_id VALUES ('u-003', 'carol@example.com', 'Carol Wu', 'US'); INSERT INTO users_by_email VALUES ('alice@example.com', 'u-001', 'Alice Chen', 'US'); INSERT INTO users_by_email VALUES ('bob@example.com', 'u-002', 'Bob Smith', 'DE'); INSERT INTO users_by_email VALUES ('carol@example.com', 'u-003', 'Carol Wu', 'US');">-- Access pattern 1: look up by user_id (partition key hit)
+    <textarea data-setup="CREATE TABLE users_by_id (user_id TEXT PRIMARY KEY, email TEXT, full_name TEXT, country TEXT); CREATE TABLE users_by_email (email TEXT PRIMARY KEY, user_id TEXT, full_name TEXT, country TEXT); INSERT INTO users_by_id VALUES ('u-001', 'alice@example.com', 'Alice Chen', 'US'); INSERT INTO users_by_id VALUES ('u-002', 'bob@example.com', 'Bob Smith', 'DE'); INSERT INTO users_by_id VALUES ('u-003', 'carol@example.com', 'Carol Wu', 'US'); INSERT INTO users_by_email VALUES ('alice@example.com', 'u-001', 'Alice Chen', 'US'); INSERT INTO users_by_email VALUES ('bob@example.com', 'u-002', 'Bob Smith', 'DE'); INSERT INTO users_by_email VALUES ('carol@example.com', 'u-003', 'Carol Wu', 'US');" rows="20">-- Access pattern 1: look up by user_id (partition key hit)
 SELECT user_id, email, full_name, country
 FROM users_by_id
 WHERE user_id = 'u-001';
-
 -- Access pattern 2: look up by email (partition key hit on second table)
 -- SELECT user_id, email, full_name
 -- FROM users_by_email
 -- WHERE email = 'bob@example.com';
-
 -- What Cassandra prevents without ALLOW FILTERING:
 -- SELECT * FROM users_by_id WHERE country = 'US';
 -- (would require scanning every partition — dangerous in production)</textarea>

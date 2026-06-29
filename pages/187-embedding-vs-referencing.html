@@ -198,14 +198,12 @@ This works, but it is slower than a relational join because document databases a
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Embedding vs referencing tradeoff</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders_embedded (id TEXT PRIMARY KEY, doc TEXT); INSERT INTO orders_embedded VALUES ('ORD-001', '{&quot;customer_name&quot;:&quot;Aroha&quot;,&quot;customer_email&quot;:&quot;aroha@x.com&quot;,&quot;total&quot;:250}'); INSERT INTO orders_embedded VALUES ('ORD-002', '{&quot;customer_name&quot;:&quot;Aroha&quot;,&quot;customer_email&quot;:&quot;aroha@x.com&quot;,&quot;total&quot;:99}'); CREATE TABLE customers (id TEXT PRIMARY KEY, name TEXT, email TEXT); CREATE TABLE orders_ref (id TEXT PRIMARY KEY, customer_id TEXT, total REAL); INSERT INTO customers VALUES ('cust-441', 'Aroha Ngata', 'aroha@x.com'); INSERT INTO orders_ref VALUES ('ORD-001', 'cust-441', 250); INSERT INTO orders_ref VALUES ('ORD-002', 'cust-441', 99);">-- EMBEDDED: update customer name requires touching every order
+    <textarea data-setup="CREATE TABLE orders_embedded (id TEXT PRIMARY KEY, doc TEXT); INSERT INTO orders_embedded VALUES ('ORD-001', '{&quot;customer_name&quot;:&quot;Aroha&quot;,&quot;customer_email&quot;:&quot;aroha@x.com&quot;,&quot;total&quot;:250}'); INSERT INTO orders_embedded VALUES ('ORD-002', '{&quot;customer_name&quot;:&quot;Aroha&quot;,&quot;customer_email&quot;:&quot;aroha@x.com&quot;,&quot;total&quot;:99}'); CREATE TABLE customers (id TEXT PRIMARY KEY, name TEXT, email TEXT); CREATE TABLE orders_ref (id TEXT PRIMARY KEY, customer_id TEXT, total REAL); INSERT INTO customers VALUES ('cust-441', 'Aroha Ngata', 'aroha@x.com'); INSERT INTO orders_ref VALUES ('ORD-001', 'cust-441', 250); INSERT INTO orders_ref VALUES ('ORD-002', 'cust-441', 99);" rows="20">-- EMBEDDED: update customer name requires touching every order
 UPDATE orders_embedded
 SET doc = json_set(doc, '$.customer_name', 'Aroha N.')
 WHERE json_extract(doc, '$.customer_name') = 'Aroha';
-
 -- REFERENCED: update customer name in one place
 UPDATE customers SET name = 'Aroha N.' WHERE id = 'cust-441';
-
 -- Compare: embedded shows updated name inline; referenced requires join
 SELECT 'embedded' AS model, id, json_extract(doc,'$.customer_name') AS name FROM orders_embedded
 UNION ALL

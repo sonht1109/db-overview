@@ -199,7 +199,7 @@ INSERT INTO metric_sources VALUES (1,'web-1','host'),(2,'web-2','host'),(3,'db-1
 INSERT INTO metric_names VALUES (1,'cpu_pct'),(2,'mem_bytes'),(3,'req_latency_ms');
 INSERT INTO metrics VALUES (1700000000,1,1,42.1),(1700000001,1,1,43.5),(1700000002,1,1,41.8),(1700000060,1,1,55.0),(1700000061,1,1,57.2),(1700000000,2,1,30.1),(1700000060,2,1,31.5),(1700000000,1,2,1073741824),(1700000060,1,2,1174405120),(1700000000,3,3,5.2),(1700000001,3,3,6.1),(1700000002,3,3,4.9);
 INSERT INTO metrics_1m VALUES (1700000000,1,1,42.47,41.8,43.5,3),(1700000060,1,1,56.1,55.0,57.2,2),(1700000000,2,1,30.1,30.1,30.1,1),(1700000060,2,1,31.5,31.5,31.5,1);
-">-- 1-minute CPU averages for web-1 (from rollup table)
+" rows="20">-- 1-minute CPU averages for web-1 (from rollup table)
 SELECT datetime(ts, 'unixepoch') AS minute,
        ROUND(avg_val, 2) AS avg_cpu,
        ROUND(min_val, 2) AS min_cpu,
@@ -207,7 +207,6 @@ SELECT datetime(ts, 'unixepoch') AS minute,
 FROM metrics_1m
 WHERE source_id = 1 AND metric_id = 1
 ORDER BY ts;
-
 -- Try: raw data for a 3-second window
 -- SELECT ts, value FROM metrics
 -- WHERE source_id = 1 AND metric_id = 1

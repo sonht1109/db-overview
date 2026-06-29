@@ -227,7 +227,7 @@ INSERT INTO orders_v2 VALUES (4, &apos;Dave&apos;, 310.75, &apos;completed&apos;
 
 -- Simulate a &quot;version 3&quot; snapshot
 CREATE TABLE orders_v3 AS SELECT * FROM orders_v2;
-DELETE FROM orders_v3 WHERE id = 3;">-- Time travel: compare revenue across &quot;versions&quot;
+DELETE FROM orders_v3 WHERE id = 3;" rows="20">-- Time travel: compare revenue across &quot;versions&quot;
 -- This simulates what lakehouse time travel gives you
 WITH v1_revenue AS (
   SELECT &apos;Version 1 (baseline)&apos; AS snapshot,

@@ -84,7 +84,7 @@ SQLite exposes some of its page-level internals through `PRAGMA` commands. Run t
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Page allocation</span></div>
   <div class="widget-body">
-    <textarea data-setup="PRAGMA page_size = 4096; CREATE TABLE products ( id INTEGER PRIMARY KEY, name TEXT NOT NULL, description TEXT, price REAL NOT NULL ); INSERT INTO products VALUES (1, 'Widget A', 'A sturdy widget for everyday use', 9.99); INSERT INTO products VALUES (2, 'Gadget B', 'A compact gadget with many features', 24.99); INSERT INTO products VALUES (3, 'Doohickey C', 'The classic doohickey, now improved', 4.99); INSERT INTO products VALUES (4, 'Thingamajig D', 'Precision-engineered thingamajig', 49.99); INSERT INTO products VALUES (5, 'Contraption E', 'Industrial-strength contraption', 99.99);">-- Check how many pages SQLite has allocated for this database.
+    <textarea data-setup="PRAGMA page_size = 4096; CREATE TABLE products ( id INTEGER PRIMARY KEY, name TEXT NOT NULL, description TEXT, price REAL NOT NULL ); INSERT INTO products VALUES (1, 'Widget A', 'A sturdy widget for everyday use', 9.99); INSERT INTO products VALUES (2, 'Gadget B', 'A compact gadget with many features', 24.99); INSERT INTO products VALUES (3, 'Doohickey C', 'The classic doohickey, now improved', 4.99); INSERT INTO products VALUES (4, 'Thingamajig D', 'Precision-engineered thingamajig', 49.99); INSERT INTO products VALUES (5, 'Contraption E', 'Industrial-strength contraption', 99.99);" rows="20">-- Check how many pages SQLite has allocated for this database.
 -- Try adding more INSERT statements above and re-running to see page_count grow.
 SELECT page_count,
        page_size,

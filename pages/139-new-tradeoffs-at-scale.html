@@ -127,7 +127,7 @@ Try the query below to explore how quorum math works across different replicatio
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Quorum calculator</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE configs (label TEXT, N INTEGER, W INTEGER, R INTEGER); INSERT INTO configs VALUES ('Weak (AP)', 3, 1, 1); INSERT INTO configs VALUES ('Quorum (balanced)', 3, 2, 2); INSERT INTO configs VALUES ('Strong (CP)', 3, 3, 2); INSERT INTO configs VALUES ('High-write (5 replicas)', 5, 3, 3); INSERT INTO configs VALUES ('Read-heavy (5 replicas)', 5, 2, 4);">-- For each config, compute whether it guarantees consistency (W+R > N)
+    <textarea data-setup="CREATE TABLE configs (label TEXT, N INTEGER, W INTEGER, R INTEGER); INSERT INTO configs VALUES ('Weak (AP)', 3, 1, 1); INSERT INTO configs VALUES ('Quorum (balanced)', 3, 2, 2); INSERT INTO configs VALUES ('Strong (CP)', 3, 3, 2); INSERT INTO configs VALUES ('High-write (5 replicas)', 5, 3, 3); INSERT INTO configs VALUES ('Read-heavy (5 replicas)', 5, 2, 4);" rows="20">-- For each config, compute whether it guarantees consistency (W+R > N)
 -- and how many node failures it can tolerate for writes and reads.
 SELECT
   label,

@@ -92,7 +92,7 @@ The widget below has a small `orders` table with customers, products, and amount
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · GROUP BY and aggregates</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Priya', 'Keyboard', 79.99), (2, 'Leon', 'Monitor', 329.00), (3, 'Priya', 'Mouse', 29.99), (4, 'Amara', 'Keyboard', 79.99), (5, 'Leon', 'Keyboard', 79.99), (6, 'Amara', 'Monitor', 329.00), (7, 'Priya', 'Monitor', 329.00), (8, 'Amara', 'Mouse', 29.99);">-- Revenue and order count per customer
+    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Priya', 'Keyboard', 79.99), (2, 'Leon', 'Monitor', 329.00), (3, 'Priya', 'Mouse', 29.99), (4, 'Amara', 'Keyboard', 79.99), (5, 'Leon', 'Keyboard', 79.99), (6, 'Amara', 'Monitor', 329.00), (7, 'Priya', 'Monitor', 329.00), (8, 'Amara', 'Mouse', 29.99);" rows="20">-- Revenue and order count per customer
 SELECT customer,
        COUNT(*)        AS order_count,
        SUM(amount)     AS total_spent,
@@ -108,7 +108,7 @@ Now try filtering with `HAVING`. The widget below starts with the same dataset �
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · HAVING clause</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Priya', 'Keyboard', 79.99), (2, 'Leon', 'Monitor', 329.00), (3, 'Priya', 'Mouse', 29.99), (4, 'Amara', 'Keyboard', 79.99), (5, 'Leon', 'Keyboard', 79.99), (6, 'Amara', 'Monitor', 329.00), (7, 'Priya', 'Monitor', 329.00), (8, 'Amara', 'Mouse', 29.99);">-- Which products had total revenue above $200?
+    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Priya', 'Keyboard', 79.99), (2, 'Leon', 'Monitor', 329.00), (3, 'Priya', 'Mouse', 29.99), (4, 'Amara', 'Keyboard', 79.99), (5, 'Leon', 'Keyboard', 79.99), (6, 'Amara', 'Monitor', 329.00), (7, 'Priya', 'Monitor', 329.00), (8, 'Amara', 'Mouse', 29.99);" rows="20">-- Which products had total revenue above $200?
 SELECT product,
        SUM(amount) AS revenue
 FROM orders

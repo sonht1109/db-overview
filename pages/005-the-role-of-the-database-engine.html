@@ -67,7 +67,7 @@ The widget below creates a small `orders` table and seeds it with a few rows. Th
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Query lifecycle</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, placed_at TEXT NOT NULL); INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Carol'); INSERT INTO orders VALUES (1, 1, 49.99, '2024-06-01'), (2, 1, 120.00, '2024-06-10'), (3, 2, 9.99, '2024-06-11'), (4, 3, 250.00, '2024-06-12'), (5, 1, 75.50, '2024-06-15');">-- See the engine's execution plan for this query:
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, placed_at TEXT NOT NULL); INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Carol'); INSERT INTO orders VALUES (1, 1, 49.99, '2024-06-01'), (2, 1, 120.00, '2024-06-10'), (3, 2, 9.99, '2024-06-11'), (4, 3, 250.00, '2024-06-12'), (5, 1, 75.50, '2024-06-15');" rows="20">-- See the engine's execution plan for this query:
 EXPLAIN QUERY PLAN
 SELECT c.name, SUM(o.amount) AS total
 FROM orders o
@@ -83,7 +83,7 @@ Now create an index and re-run the plan to watch the engine switch strategies:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index effect</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, placed_at TEXT NOT NULL); INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Carol'); INSERT INTO orders VALUES (1, 1, 49.99, '2024-06-01'), (2, 1, 120.00, '2024-06-10'), (3, 2, 9.99, '2024-06-11'), (4, 3, 250.00, '2024-06-12'), (5, 1, 75.50, '2024-06-15'); CREATE INDEX idx_orders_placed_at ON orders(placed_at);">-- Now the engine has an index on placed_at.
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, placed_at TEXT NOT NULL); INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Carol'); INSERT INTO orders VALUES (1, 1, 49.99, '2024-06-01'), (2, 1, 120.00, '2024-06-10'), (3, 2, 9.99, '2024-06-11'), (4, 3, 250.00, '2024-06-12'), (5, 1, 75.50, '2024-06-15'); CREATE INDEX idx_orders_placed_at ON orders(placed_at);" rows="20">-- Now the engine has an index on placed_at.
 -- Run EXPLAIN QUERY PLAN again and compare:
 EXPLAIN QUERY PLAN
 SELECT c.name, SUM(o.amount) AS total

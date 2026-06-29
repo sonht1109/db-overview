@@ -145,7 +145,7 @@ The interactive example below lets you simulate a simple sharding scheme: a hash
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating sharding with hash mod</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE users (user_id INTEGER PRIMARY KEY, name TEXT, email TEXT); INSERT INTO users VALUES (1, 'Alice', 'alice@example.com'); INSERT INTO users VALUES (2, 'Bob', 'bob@example.com'); INSERT INTO users VALUES (3, 'Carol', 'carol@example.com'); INSERT INTO users VALUES (4, 'Dave', 'dave@example.com'); INSERT INTO users VALUES (5, 'Eve', 'eve@example.com'); INSERT INTO users VALUES (6, 'Frank', 'frank@example.com'); INSERT INTO users VALUES (7, 'Grace', 'grace@example.com'); INSERT INTO users VALUES (8, 'Hank', 'hank@example.com'); INSERT INTO users VALUES (9, 'Ivy', 'ivy@example.com');">-- Show which logical shard each user lands on (hash mod 3)
+    <textarea data-setup="CREATE TABLE users (user_id INTEGER PRIMARY KEY, name TEXT, email TEXT); INSERT INTO users VALUES (1, 'Alice', 'alice@example.com'); INSERT INTO users VALUES (2, 'Bob', 'bob@example.com'); INSERT INTO users VALUES (3, 'Carol', 'carol@example.com'); INSERT INTO users VALUES (4, 'Dave', 'dave@example.com'); INSERT INTO users VALUES (5, 'Eve', 'eve@example.com'); INSERT INTO users VALUES (6, 'Frank', 'frank@example.com'); INSERT INTO users VALUES (7, 'Grace', 'grace@example.com'); INSERT INTO users VALUES (8, 'Hank', 'hank@example.com'); INSERT INTO users VALUES (9, 'Ivy', 'ivy@example.com');" rows="20">-- Show which logical shard each user lands on (hash mod 3)
 -- Shard 0, 1, or 2 based on user_id
 SELECT
   user_id,
@@ -153,7 +153,6 @@ SELECT
   (user_id % 3) AS shard_number
 FROM users
 ORDER BY shard_number, user_id;
-
 -- Try: change % 3 to % 4 to simulate adding a fourth shard
 -- Notice rows redistribute — that's why re-sharding is expensive!</textarea>
   </div>

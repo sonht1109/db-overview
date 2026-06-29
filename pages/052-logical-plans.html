@@ -85,13 +85,12 @@ Try the widget below. The query joins two tables and applies a filter. Notice ho
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Logical plan equivalence</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE department (id INTEGER PRIMARY KEY, name TEXT NOT NULL); INSERT INTO department VALUES (1, 'Engineering'); INSERT INTO department VALUES (2, 'Marketing'); INSERT INTO department VALUES (3, 'Finance'); CREATE TABLE employee (id INTEGER PRIMARY KEY, name TEXT NOT NULL, dept_id INTEGER, salary INTEGER); INSERT INTO employee VALUES (1, 'Ada', 1, 95000); INSERT INTO employee VALUES (2, 'Brian', 2, 72000); INSERT INTO employee VALUES (3, 'Carmen', 1, 105000); INSERT INTO employee VALUES (4, 'David', 2, 65000); INSERT INTO employee VALUES (5, 'Elena', 3, 88000); INSERT INTO employee VALUES (6, 'Felix', 1, 75000);">-- Form A: filter after the join (what you wrote)
+    <textarea data-setup="CREATE TABLE department (id INTEGER PRIMARY KEY, name TEXT NOT NULL); INSERT INTO department VALUES (1, 'Engineering'); INSERT INTO department VALUES (2, 'Marketing'); INSERT INTO department VALUES (3, 'Finance'); CREATE TABLE employee (id INTEGER PRIMARY KEY, name TEXT NOT NULL, dept_id INTEGER, salary INTEGER); INSERT INTO employee VALUES (1, 'Ada', 1, 95000); INSERT INTO employee VALUES (2, 'Brian', 2, 72000); INSERT INTO employee VALUES (3, 'Carmen', 1, 105000); INSERT INTO employee VALUES (4, 'David', 2, 65000); INSERT INTO employee VALUES (5, 'Elena', 3, 88000); INSERT INTO employee VALUES (6, 'Felix', 1, 75000);" rows="20">-- Form A: filter after the join (what you wrote)
 SELECT e.name, d.name AS dept, e.salary
 FROM employee e
 JOIN department d ON e.dept_id = d.id
 WHERE e.salary > 80000
 ORDER BY e.salary DESC;
-
 -- Try Form B: push the filter into a subquery -- same logical result
 -- SELECT e.name, d.name AS dept, e.salary
 -- FROM (SELECT * FROM employee WHERE salary > 80000) e

@@ -205,13 +205,12 @@ This means queries for "latest events for a user" read from the start of the par
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Partitioning and Clustering Simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE messages (conversation_id TEXT, sent_at INTEGER, sender TEXT, body TEXT); INSERT INTO messages VALUES ('conv-AAA', 1, 'Alice', 'Hello!'); INSERT INTO messages VALUES ('conv-AAA', 2, 'Bob', 'Hey there'); INSERT INTO messages VALUES ('conv-AAA', 15, 'Alice', 'See you later'); INSERT INTO messages VALUES ('conv-AAA', 70, 'Bob', 'Back online'); INSERT INTO messages VALUES ('conv-BBB', 3, 'Carol', 'Meeting at 3?'); INSERT INTO messages VALUES ('conv-BBB', 5, 'Dave', 'Sure!'); INSERT INTO messages VALUES ('conv-CCC', 1, 'Eve', 'Test message');">-- Fast: partition key supplied, clustering key range scan
+    <textarea data-setup="CREATE TABLE messages (conversation_id TEXT, sent_at INTEGER, sender TEXT, body TEXT); INSERT INTO messages VALUES ('conv-AAA', 1, 'Alice', 'Hello!'); INSERT INTO messages VALUES ('conv-AAA', 2, 'Bob', 'Hey there'); INSERT INTO messages VALUES ('conv-AAA', 15, 'Alice', 'See you later'); INSERT INTO messages VALUES ('conv-AAA', 70, 'Bob', 'Back online'); INSERT INTO messages VALUES ('conv-BBB', 3, 'Carol', 'Meeting at 3?'); INSERT INTO messages VALUES ('conv-BBB', 5, 'Dave', 'Sure!'); INSERT INTO messages VALUES ('conv-CCC', 1, 'Eve', 'Test message');" rows="20">-- Fast: partition key supplied, clustering key range scan
 -- (simulates a single-partition read)
 SELECT * FROM messages
 WHERE conversation_id = 'conv-AAA'
   AND sent_at BETWEEN 1 AND 20
 ORDER BY sent_at ASC;
-
 -- Uncomment to see a "scatter-gather" (no partition key):
 -- SELECT * FROM messages WHERE sender = 'Alice';</textarea>
   </div>

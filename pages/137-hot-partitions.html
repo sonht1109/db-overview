@@ -143,7 +143,7 @@ The widget below lets you explore key skew in a small dataset. Notice how `user_
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating hot partitions</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, user_id INTEGER, event_type TEXT, created_at TEXT); INSERT INTO events VALUES (1,  999, 'view', '2024-06-01 00:01'); INSERT INTO events VALUES (2,  999, 'view', '2024-06-01 00:02'); INSERT INTO events VALUES (3,  999, 'like', '2024-06-01 00:03'); INSERT INTO events VALUES (4,  999, 'share','2024-06-01 00:04'); INSERT INTO events VALUES (5,  999, 'view', '2024-06-01 00:05'); INSERT INTO events VALUES (6,  999, 'view', '2024-06-01 00:06'); INSERT INTO events VALUES (7,    1, 'view', '2024-06-01 00:07'); INSERT INTO events VALUES (8,    2, 'view', '2024-06-01 00:08'); INSERT INTO events VALUES (9,    3, 'view', '2024-06-01 00:09'); INSERT INTO events VALUES (10,   4, 'view', '2024-06-01 00:10'); INSERT INTO events VALUES (11,   5, 'view', '2024-06-01 00:11'); INSERT INTO events VALUES (12, 999, 'view', '2024-06-01 00:12');">-- Which logical shard does each event land on (hash by user_id mod 4)?
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, user_id INTEGER, event_type TEXT, created_at TEXT); INSERT INTO events VALUES (1,  999, 'view', '2024-06-01 00:01'); INSERT INTO events VALUES (2,  999, 'view', '2024-06-01 00:02'); INSERT INTO events VALUES (3,  999, 'like', '2024-06-01 00:03'); INSERT INTO events VALUES (4,  999, 'share','2024-06-01 00:04'); INSERT INTO events VALUES (5,  999, 'view', '2024-06-01 00:05'); INSERT INTO events VALUES (6,  999, 'view', '2024-06-01 00:06'); INSERT INTO events VALUES (7,    1, 'view', '2024-06-01 00:07'); INSERT INTO events VALUES (8,    2, 'view', '2024-06-01 00:08'); INSERT INTO events VALUES (9,    3, 'view', '2024-06-01 00:09'); INSERT INTO events VALUES (10,   4, 'view', '2024-06-01 00:10'); INSERT INTO events VALUES (11,   5, 'view', '2024-06-01 00:11'); INSERT INTO events VALUES (12, 999, 'view', '2024-06-01 00:12');" rows="20">-- Which logical shard does each event land on (hash by user_id mod 4)?
 -- Notice user_id 999 dominates one shard.
 SELECT
   user_id,
@@ -152,7 +152,6 @@ SELECT
   COUNT(*) OVER (PARTITION BY user_id % 4) AS events_on_shard
 FROM events
 ORDER BY shard_id, user_id;
-
 -- Try: change % 4 to a different number of shards.
 -- Does adding more shards help when one user_id generates most traffic?</textarea>
   </div>

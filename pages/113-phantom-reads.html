@@ -136,13 +136,11 @@ The widget below simulates what phantom reads look like in a single-session cont
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Phantom Reads Demo</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE bookings (id INTEGER PRIMARY KEY, flight_id INTEGER NOT NULL, passenger_id INTEGER NOT NULL, status TEXT NOT NULL); INSERT INTO bookings VALUES (1,42,101,'confirmed'); INSERT INTO bookings VALUES (2,42,102,'confirmed'); INSERT INTO bookings VALUES (3,42,103,'confirmed'); INSERT INTO bookings VALUES (4,42,104,'cancelled'); INSERT INTO bookings VALUES (5,99,201,'confirmed');">-- Step 1: check how many confirmed seats are booked on flight 42
+    <textarea data-setup="CREATE TABLE bookings (id INTEGER PRIMARY KEY, flight_id INTEGER NOT NULL, passenger_id INTEGER NOT NULL, status TEXT NOT NULL); INSERT INTO bookings VALUES (1,42,101,'confirmed'); INSERT INTO bookings VALUES (2,42,102,'confirmed'); INSERT INTO bookings VALUES (3,42,103,'confirmed'); INSERT INTO bookings VALUES (4,42,104,'cancelled'); INSERT INTO bookings VALUES (5,99,201,'confirmed');" rows="20">-- Step 1: check how many confirmed seats are booked on flight 42
 SELECT COUNT(*) AS confirmed_count FROM bookings
 WHERE flight_id = 42 AND status = 'confirmed';
-
 -- Imagine another transaction runs here and inserts a new confirmed booking:
 -- INSERT INTO bookings VALUES (6, 42, 999, 'confirmed');
-
 -- Step 2: uncomment the INSERT above (remove the leading --),
 -- then re-run the whole block to see the count jump.
 -- That extra row is the 'phantom'.</textarea>

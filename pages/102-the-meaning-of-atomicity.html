@@ -66,18 +66,14 @@ The interactive example below lets you see atomicity in action. A `ROLLBACK` aft
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Atomicity with ROLLBACK</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (name TEXT PRIMARY KEY, balance INTEGER NOT NULL); INSERT INTO accounts VALUES ('Alice', 1000); INSERT INTO accounts VALUES ('Bob', 500);">-- Start the transaction
+    <textarea data-setup="CREATE TABLE accounts (name TEXT PRIMARY KEY, balance INTEGER NOT NULL); INSERT INTO accounts VALUES ('Alice', 1000); INSERT INTO accounts VALUES ('Bob', 500);" rows="20">-- Start the transaction
 BEGIN;
-
 -- Debit Alice
 UPDATE accounts SET balance = balance - 200 WHERE name = 'Alice';
-
 -- Credit Bob
 UPDATE accounts SET balance = balance + 200 WHERE name = 'Bob';
-
 -- Something goes wrong — roll back everything
 ROLLBACK;
-
 -- Both balances should be unchanged
 SELECT name, balance FROM accounts ORDER BY name;</textarea>
   </div>

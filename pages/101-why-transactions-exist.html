@@ -71,18 +71,14 @@ Try the widget below. It sets up the two tables, runs the transaction, and lets 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Atomic ticket sale</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, name TEXT NOT NULL, seats_remaining INTEGER NOT NULL CHECK(seats_remaining >= 0)); CREATE TABLE bookings (id INTEGER PRIMARY KEY AUTOINCREMENT, event_id INTEGER NOT NULL REFERENCES events(id), user_id INTEGER NOT NULL, booked_at TEXT NOT NULL); INSERT INTO events VALUES (42, 'Opening Night', 1);">-- One seat left. Sell it atomically.
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, name TEXT NOT NULL, seats_remaining INTEGER NOT NULL CHECK(seats_remaining  rows="20">= 0)); CREATE TABLE bookings (id INTEGER PRIMARY KEY AUTOINCREMENT, event_id INTEGER NOT NULL REFERENCES events(id), user_id INTEGER NOT NULL, booked_at TEXT NOT NULL); INSERT INTO events VALUES (42, 'Opening Night', 1);">-- One seat left. Sell it atomically.
 BEGIN;
-
 UPDATE events
 SET    seats_remaining = seats_remaining - 1
 WHERE  id = 42 AND seats_remaining > 0;
-
 INSERT INTO bookings (event_id, user_id, booked_at)
 VALUES (42, 7, '2024-06-01 14:00:00');
-
 COMMIT;
-
 -- Check the results of both tables:
 SELECT 'events'   AS tbl, id, name, seats_remaining AS seats FROM events
 UNION ALL

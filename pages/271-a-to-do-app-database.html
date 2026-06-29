@@ -204,13 +204,12 @@ INSERT INTO lists VALUES (1,1,'Work',1700000100),(2,1,'Personal',1700000200);
 INSERT INTO tasks VALUES (1,1,'Write report',1700100000,0,1.0,1700000300),(2,1,'Review PR',1700090000,0,2.0,1700000400),(3,1,'Old task',1699000000,1,3.0,1700000500),(4,2,'Buy groceries',1700200000,0,1.0,1700000600),(5,2,'Call mom',NULL,0,2.0,1700000700);
 INSERT INTO tags VALUES (1,'urgent'),(2,'waiting'),(3,'personal');
 INSERT INTO task_tags VALUES (1,1),(2,2),(4,3),(5,3);
-">-- Incomplete tasks in the Work list, ordered by due date
+" rows="20">-- Incomplete tasks in the Work list, ordered by due date
 SELECT t.id, t.title, t.due_at, t.position
 FROM tasks t
 WHERE t.list_id = 1
   AND t.completed = 0
 ORDER BY t.due_at ASC;
-
 -- Try: tasks tagged &apos;urgent&apos;
 -- SELECT t.title FROM tasks t
 -- JOIN task_tags tt ON tt.task_id = t.id

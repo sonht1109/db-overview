@@ -160,13 +160,12 @@ Try the interactive example below to see how consistency levels map to concrete 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Consistency level simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replica_log (replica TEXT, key TEXT, value INTEGER, written_at INTEGER); INSERT INTO replica_log VALUES ('node_a', 'balance', 500, 1); INSERT INTO replica_log VALUES ('node_b', 'balance', 500, 1); INSERT INTO replica_log VALUES ('node_c', 'balance', 500, 1); INSERT INTO replica_log VALUES ('node_a', 'balance', 750, 2); INSERT INTO replica_log VALUES ('node_b', 'balance', 750, 2); /* node_c did NOT yet receive the latest write (simulating async lag) */;">-- Which nodes have the latest value of 'balance'?
+    <textarea data-setup="CREATE TABLE replica_log (replica TEXT, key TEXT, value INTEGER, written_at INTEGER); INSERT INTO replica_log VALUES ('node_a', 'balance', 500, 1); INSERT INTO replica_log VALUES ('node_b', 'balance', 500, 1); INSERT INTO replica_log VALUES ('node_c', 'balance', 500, 1); INSERT INTO replica_log VALUES ('node_a', 'balance', 750, 2); INSERT INTO replica_log VALUES ('node_b', 'balance', 750, 2); /* node_c did NOT yet receive the latest write (simulating async lag) */;" rows="20">-- Which nodes have the latest value of 'balance'?
 -- With a QUORUM read (any 2 of 3 nodes), do we see the new write?
 SELECT replica, value, written_at
 FROM replica_log
 WHERE key = 'balance'
 ORDER BY replica;
-
 -- Uncomment to simulate a quorum read: pick the max value from any 2 nodes
 -- SELECT MAX(value) AS quorum_read_result
 -- FROM (

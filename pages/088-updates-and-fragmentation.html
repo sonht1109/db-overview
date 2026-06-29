@@ -78,13 +78,12 @@ You can see fragmentation effects live. The example below simulates repeated ins
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Fragmentation simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, price REAL); INSERT INTO products VALUES (1, 'Widget A', 9.99); INSERT INTO products VALUES (2, 'Widget B', 14.99); INSERT INTO products VALUES (3, 'Widget C', 4.99); INSERT INTO products VALUES (4, 'Gadget X', 49.99); INSERT INTO products VALUES (5, 'Gadget Y', 59.99); CREATE TABLE audit_log (event TEXT, row_id INTEGER, ts INTEGER); INSERT INTO audit_log VALUES ('insert', 1, 1), ('insert', 2, 2), ('insert', 3, 3), ('insert', 4, 4), ('insert', 5, 5); DELETE FROM products WHERE id IN (2, 4); INSERT INTO audit_log VALUES ('delete', 2, 6), ('delete', 4, 7); UPDATE products SET price = price * 1.10 WHERE id = 3; INSERT INTO audit_log VALUES ('update', 3, 8);">-- After inserts, deletes, and an update:
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, price REAL); INSERT INTO products VALUES (1, 'Widget A', 9.99); INSERT INTO products VALUES (2, 'Widget B', 14.99); INSERT INTO products VALUES (3, 'Widget C', 4.99); INSERT INTO products VALUES (4, 'Gadget X', 49.99); INSERT INTO products VALUES (5, 'Gadget Y', 59.99); CREATE TABLE audit_log (event TEXT, row_id INTEGER, ts INTEGER); INSERT INTO audit_log VALUES ('insert', 1, 1), ('insert', 2, 2), ('insert', 3, 3), ('insert', 4, 4), ('insert', 5, 5); DELETE FROM products WHERE id IN (2, 4); INSERT INTO audit_log VALUES ('delete', 2, 6), ('delete', 4, 7); UPDATE products SET price = price * 1.10 WHERE id = 3; INSERT INTO audit_log VALUES ('update', 3, 8);" rows="20">-- After inserts, deletes, and an update:
 -- How many rows are live vs. how many events did we record?
 SELECT
   (SELECT COUNT(*) FROM products)            AS live_rows,
   (SELECT COUNT(*) FROM audit_log)           AS total_events,
   (SELECT COUNT(*) FROM audit_log WHERE event = 'delete') AS rows_deleted;
-
 -- Try: INSERT INTO products VALUES (6, 'New Item', 7.50);
 -- then re-run to see live_rows increase.</textarea>
   </div>

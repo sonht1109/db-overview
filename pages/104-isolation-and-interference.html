@@ -65,25 +65,34 @@ The widget below simulates a classic **lost update** scenario. Two "sessions" bo
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Lost update simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000);">-- Simulating two concurrent sessions that both read then write.
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000);" rows="20">-- Simulating two concurrent sessions that both read then write.
 -- In a real DB these would overlap; here we run them sequentially
 -- to show the problem.
-
 -- Session A reads balance: sees 1000
 -- Session B reads balance: sees 1000  (before A has written)
-
 -- Session A: deposit 200  => writes 1000 + 200 = 1200
 UPDATE accounts SET balance = 1000 + 200 WHERE id = 1;
-
 -- Session B: deposit 300  => writes 1000 + 300 = 1300
 -- (B used the OLD value it read, so A's deposit is lost)
 UPDATE accounts SET balance = 1000 + 300 WHERE id = 1;
-
 -- Final balance: 1300 — but it should be 1500!
 SELECT owner, balance,
        1500 AS expected_balance,
        balance - 1500 AS discrepancy
-FROM accounts;
+FROM accounts;</textarea>
+  </div>
+</div>
+
+Run the setup, then execute the `UPDATE` statements one at a time followed by the final `SELECT`. The discrepancy column reveals the lost $200 — Alice deposited first, but Bob's concurrent update overwrote her result. This is exactly the kind of corruption that isolation levels prevent.
+
+## Key Takeaways
+
+- **Lost updates** happen when two transactions read the same value, modify it, and write back without coordination — one write silently overwrites the other.
+- The SQL standard defines four isolation levels: **Read Uncommitted**, **Read Committed**, **Repeatable Read**, and **Serializable** — each trades off correctness for concurrency.
+- **Read Committed** is the default in most engines; it prevents dirty reads but still allows lost updates and non-repeatable reads.
+- **Repeatable Read** (and Snapshot Isolation) prevents lost updates by giving each transaction a consistent snapshot of the database.
+- **Serializable** provides the strongest guarantee — transactions behave as if they ran one at a time — at the highest performance cost.
+- Choosing an isolation level is always a tradeoff: stricter = fewer anomalies but less concurrency.
 </script>
 <script src="assets/app.js"></script>
 </body>

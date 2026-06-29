@@ -226,10 +226,9 @@ CREATE TABLE article_tags (article_id INTEGER, tag_id INTEGER, PRIMARY KEY(artic
 INSERT INTO articles VALUES (1,'SQL Basics'),(2,'Indexing'),(3,'Python Tips');
 INSERT INTO tags VALUES (1,'database'),(2,'tutorial'),(3,'beginner'),(4,'performance'),(5,'python');
 INSERT INTO article_tags VALUES (1,1),(1,2),(1,3),(2,1),(2,4),(3,5),(3,2);
-">-- BAD: tag search with LIKE (full scan, fragile)
+" rows="20">-- BAD: tag search with LIKE (full scan, fragile)
 SELECT id, title, tags FROM articles_bad
 WHERE tags LIKE '%tutorial%';
-
 -- GOOD: same query with junction table (indexed)
 -- SELECT a.title FROM articles a
 -- JOIN article_tags at ON at.article_id = a.id

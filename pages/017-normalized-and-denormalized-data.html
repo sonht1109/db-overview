@@ -73,7 +73,7 @@ Try the widget below. Run the default query, then modify Alice's email and see t
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Normalized design</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT NOT NULL, price REAL NOT NULL); INSERT INTO customers VALUES (1, 'Alice Wong', 'alice@example.com'); INSERT INTO customers VALUES (2, 'Bob Patel', 'bob@example.com'); INSERT INTO orders VALUES (1, 1, 'Headphones', 79.99); INSERT INTO orders VALUES (2, 1, 'USB Cable', 9.99); INSERT INTO orders VALUES (3, 2, 'Keyboard', 49.99);">-- See all orders with customer details via a join
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT NOT NULL, price REAL NOT NULL); INSERT INTO customers VALUES (1, 'Alice Wong', 'alice@example.com'); INSERT INTO customers VALUES (2, 'Bob Patel', 'bob@example.com'); INSERT INTO orders VALUES (1, 1, 'Headphones', 79.99); INSERT INTO orders VALUES (2, 1, 'USB Cable', 9.99); INSERT INTO orders VALUES (3, 2, 'Keyboard', 49.99);" rows="20">-- See all orders with customer details via a join
 SELECT o.id AS order_id, c.name, c.email, o.product, o.price
 FROM orders o
 JOIN customers c ON c.id = o.customer_id;</textarea>
@@ -104,7 +104,7 @@ The widget below lets you compare query complexity. Notice how the flat table ne
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Denormalized flat table</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders_flat (order_id INTEGER PRIMARY KEY, customer_name TEXT, customer_email TEXT, product TEXT, price REAL); INSERT INTO orders_flat VALUES (1, 'Alice Wong', 'alice@example.com', 'Headphones', 79.99); INSERT INTO orders_flat VALUES (2, 'Alice Wong', 'alice@example.com', 'USB Cable', 9.99); INSERT INTO orders_flat VALUES (3, 'Bob Patel', 'bob@example.com', 'Keyboard', 49.99);">-- No JOIN needed — name is right on the row
+    <textarea data-setup="CREATE TABLE orders_flat (order_id INTEGER PRIMARY KEY, customer_name TEXT, customer_email TEXT, product TEXT, price REAL); INSERT INTO orders_flat VALUES (1, 'Alice Wong', 'alice@example.com', 'Headphones', 79.99); INSERT INTO orders_flat VALUES (2, 'Alice Wong', 'alice@example.com', 'USB Cable', 9.99); INSERT INTO orders_flat VALUES (3, 'Bob Patel', 'bob@example.com', 'Keyboard', 49.99);" rows="20">-- No JOIN needed — name is right on the row
 SELECT customer_name, SUM(price) AS total_spent
 FROM orders_flat
 GROUP BY customer_name;</textarea>

@@ -123,16 +123,13 @@ The widget below makes the wall concrete. Notice what happens when you try to se
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Where the key-value model breaks down</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO kv VALUES ('session:user:1', '{&quot;role&quot;:&quot;admin&quot;,&quot;country&quot;:&quot;DE&quot;,&quot;hits&quot;:12}'); INSERT INTO kv VALUES ('session:user:2', '{&quot;role&quot;:&quot;viewer&quot;,&quot;country&quot;:&quot;US&quot;,&quot;hits&quot;:4}'); INSERT INTO kv VALUES ('session:user:3', '{&quot;role&quot;:&quot;admin&quot;,&quot;country&quot;:&quot;DE&quot;,&quot;hits&quot;:99}'); INSERT INTO kv VALUES ('session:user:4', '{&quot;role&quot;:&quot;viewer&quot;,&quot;country&quot;:&quot;FR&quot;,&quot;hits&quot;:7}'); INSERT INTO kv VALUES ('cache:page:home', 'rendered html...'); INSERT INTO kv VALUES ('cache:page:about', 'rendered html...'); INSERT INTO kv VALUES ('feature:dark_mode', 'on');">-- Fast: exact key lookup (uses the PRIMARY KEY index)
+    <textarea data-setup="CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO kv VALUES ('session:user:1', '{&quot;role&quot;:&quot;admin&quot;,&quot;country&quot;:&quot;DE&quot;,&quot;hits&quot;:12}'); INSERT INTO kv VALUES ('session:user:2', '{&quot;role&quot;:&quot;viewer&quot;,&quot;country&quot;:&quot;US&quot;,&quot;hits&quot;:4}'); INSERT INTO kv VALUES ('session:user:3', '{&quot;role&quot;:&quot;admin&quot;,&quot;country&quot;:&quot;DE&quot;,&quot;hits&quot;:99}'); INSERT INTO kv VALUES ('session:user:4', '{&quot;role&quot;:&quot;viewer&quot;,&quot;country&quot;:&quot;FR&quot;,&quot;hits&quot;:7}'); INSERT INTO kv VALUES ('cache:page:home', 'rendered html...'); INSERT INTO kv VALUES ('cache:page:about', 'rendered html...'); INSERT INTO kv VALUES ('feature:dark_mode', 'on');" rows="20">-- Fast: exact key lookup (uses the PRIMARY KEY index)
 SELECT key, value FROM kv WHERE key = 'session:user:3';
-
 -- Slow: searching INSIDE values forces a full table scan.
 -- The store has no idea what is inside the JSON blob.
 -- Try: SELECT key FROM kv WHERE value LIKE '%admin%';
-
 -- Slow: prefix scan across all sessions
 -- Try: SELECT key, value FROM kv WHERE key LIKE 'session:%';
-
 -- Cannot do: SUM(hits) across sessions without parsing every value
 -- Try: SELECT COUNT(*) FROM kv WHERE key LIKE 'session:%' AND value LIKE '%"hits"%';</textarea>
   </div>

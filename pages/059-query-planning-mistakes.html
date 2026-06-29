@@ -109,7 +109,7 @@ The widget below creates a small `orders` table with and without an index. Run `
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index vs. Full Scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, created_at TEXT); INSERT INTO orders VALUES (1, 42, 99.99, '2024-03-01'), (2, 17, 149.00, '2024-06-15'), (3, 42, 29.50, '2024-09-10'), (4, 99, 500.00, '2023-12-31'), (5, 17, 75.00, '2024-01-05'); CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);">EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, created_at TEXT); INSERT INTO orders VALUES (1, 42, 99.99, '2024-03-01'), (2, 17, 149.00, '2024-06-15'), (3, 42, 29.50, '2024-09-10'), (4, 99, 500.00, '2023-12-31'), (5, 17, 75.00, '2024-01-05'); CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);" rows="20">EXPLAIN QUERY PLAN
 SELECT * FROM orders WHERE customer_id = 42;</textarea>
   </div>
 </div>

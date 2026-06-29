@@ -149,7 +149,7 @@ The widget below shows how you might query a WAL archive metadata table to ident
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · WAL Archive Segment Lookup</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE wal_segments (segment_name TEXT PRIMARY KEY, start_lsn TEXT, end_lsn TEXT, archived_at TEXT, size_mb INTEGER); INSERT INTO wal_segments VALUES ('000000010000000000000001','0/1000000','0/2000000','2024-06-24 02:00:05',16); INSERT INTO wal_segments VALUES ('000000010000000000000002','0/2000000','0/3000000','2024-06-24 06:15:02',16); INSERT INTO wal_segments VALUES ('000000010000000000000003','0/3000000','0/4000000','2024-06-24 10:30:18',16); INSERT INTO wal_segments VALUES ('000000010000000000000004','0/4000000','0/4B20000','2024-06-24 14:40:55',11); CREATE TABLE base_backups (id INTEGER PRIMARY KEY, taken_at TEXT, end_lsn TEXT, size_mb INTEGER); INSERT INTO base_backups VALUES (1,'2024-06-24 02:00:00','0/1000000',84000);">-- Find the base backup and WAL segments needed to restore to 14:31:59
+    <textarea data-setup="CREATE TABLE wal_segments (segment_name TEXT PRIMARY KEY, start_lsn TEXT, end_lsn TEXT, archived_at TEXT, size_mb INTEGER); INSERT INTO wal_segments VALUES ('000000010000000000000001','0/1000000','0/2000000','2024-06-24 02:00:05',16); INSERT INTO wal_segments VALUES ('000000010000000000000002','0/2000000','0/3000000','2024-06-24 06:15:02',16); INSERT INTO wal_segments VALUES ('000000010000000000000003','0/3000000','0/4000000','2024-06-24 10:30:18',16); INSERT INTO wal_segments VALUES ('000000010000000000000004','0/4000000','0/4B20000','2024-06-24 14:40:55',11); CREATE TABLE base_backups (id INTEGER PRIMARY KEY, taken_at TEXT, end_lsn TEXT, size_mb INTEGER); INSERT INTO base_backups VALUES (1,'2024-06-24 02:00:00','0/1000000',84000);" rows="20">-- Find the base backup and WAL segments needed to restore to 14:31:59
 -- Base backup: everything taken before or at the target time
 SELECT * FROM (
 SELECT 'base backup' AS component, taken_at AS at, size_mb
@@ -157,9 +157,7 @@ FROM base_backups
 WHERE taken_at &lt;= '2024-06-24 14:31:59'
 ORDER BY taken_at DESC LIMIT 1
 )
-
 UNION ALL
-
 -- WAL segments: all archived after the base backup's end LSN
 SELECT 'WAL ' || segment_name, archived_at, size_mb
 FROM wal_segments

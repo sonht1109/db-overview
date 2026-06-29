@@ -81,14 +81,12 @@ The query below seeds a small `products` table and looks up a row. Try running `
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Heap scan vs. index lookup</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, sku TEXT NOT NULL, name TEXT, price REAL); INSERT INTO products VALUES (1, 'A100', 'Wireless Mouse', 29.99); INSERT INTO products VALUES (2, 'B200', 'USB Hub', 19.99); INSERT INTO products VALUES (3, 'C300', 'Mechanical Keyboard', 89.99); INSERT INTO products VALUES (4, 'D400', 'Monitor Stand', 49.99); INSERT INTO products VALUES (5, 'E500', 'Webcam', 74.99);">-- Lookup by primary key: SQLite walks the rowid B-tree directly.
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, sku TEXT NOT NULL, name TEXT, price REAL); INSERT INTO products VALUES (1, 'A100', 'Wireless Mouse', 29.99); INSERT INTO products VALUES (2, 'B200', 'USB Hub', 19.99); INSERT INTO products VALUES (3, 'C300', 'Mechanical Keyboard', 89.99); INSERT INTO products VALUES (4, 'D400', 'Monitor Stand', 49.99); INSERT INTO products VALUES (5, 'E500', 'Webcam', 74.99);" rows="20">-- Lookup by primary key: SQLite walks the rowid B-tree directly.
 EXPLAIN QUERY PLAN
 SELECT name, price FROM products WHERE id = 3;
-
 -- Now try a lookup by sku (no index yet):
 -- EXPLAIN QUERY PLAN
 -- SELECT name, price FROM products WHERE sku = 'C300';
-
 -- Then create an index and repeat:
 -- CREATE INDEX idx_sku ON products (sku);
 -- EXPLAIN QUERY PLAN

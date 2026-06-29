@@ -97,17 +97,15 @@ You cannot watch splits happen directly, but you can see their footprint. The wi
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index page growth</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, amount REAL); CREATE INDEX idx_amount ON orders(amount); WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 500) INSERT INTO orders SELECT n, CAST((n * 17 % 1000) AS REAL) / 10.0 FROM r;">-- How many pages does the index occupy?
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, amount REAL); CREATE INDEX idx_amount ON orders(amount); WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 500) INSERT INTO orders SELECT n, CAST((n * 17 % 1000) AS REAL) / 10.0 FROM r;" rows="20">-- How many pages does the index occupy?
 -- rootpage is where SQLite's B-tree for this index starts.
 SELECT name, rootpage
 FROM sqlite_master
 WHERE type = 'index' AND tbl_name = 'orders';
-
 -- Check overall page stats:
 SELECT page_count, page_size,
        page_count * page_size AS total_bytes
 FROM pragma_page_count(), pragma_page_size();
-
 -- Try: INSERT INTO orders SELECT 501 + value, value * 0.5
 --      FROM (WITH RECURSIVE r(value) AS
 --            (SELECT 1 UNION ALL SELECT value+1 FROM r WHERE value < 500)

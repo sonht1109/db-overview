@@ -231,13 +231,12 @@ Most production deployments set a **memtable size limit** (e.g., 128 MB in Cassa
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Reading Across LSM Levels</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE lsm_levels (level TEXT, seq INTEGER, key TEXT, value TEXT); INSERT INTO lsm_levels VALUES ('memtable', 9, 'sensor:42', '71.3'); INSERT INTO lsm_levels VALUES ('L0_sst1', 7, 'sensor:42', '70.1'); INSERT INTO lsm_levels VALUES ('L0_sst1', 6, 'sensor:99', '55.0'); INSERT INTO lsm_levels VALUES ('L1_sstA', 4, 'sensor:42', '68.9'); INSERT INTO lsm_levels VALUES ('L1_sstA', 3, 'sensor:10', '22.4'); INSERT INTO lsm_levels VALUES ('L2_sstX', 1, 'sensor:42', '65.0'); INSERT INTO lsm_levels VALUES ('L2_sstX', 2, 'sensor:10', '21.8');">-- Simulate an LSM read: find the most recent version of a key across all levels.
+    <textarea data-setup="CREATE TABLE lsm_levels (level TEXT, seq INTEGER, key TEXT, value TEXT); INSERT INTO lsm_levels VALUES ('memtable', 9, 'sensor:42', '71.3'); INSERT INTO lsm_levels VALUES ('L0_sst1', 7, 'sensor:42', '70.1'); INSERT INTO lsm_levels VALUES ('L0_sst1', 6, 'sensor:99', '55.0'); INSERT INTO lsm_levels VALUES ('L1_sstA', 4, 'sensor:42', '68.9'); INSERT INTO lsm_levels VALUES ('L1_sstA', 3, 'sensor:10', '22.4'); INSERT INTO lsm_levels VALUES ('L2_sstX', 1, 'sensor:42', '65.0'); INSERT INTO lsm_levels VALUES ('L2_sstX', 2, 'sensor:10', '21.8');" rows="20">-- Simulate an LSM read: find the most recent version of a key across all levels.
 -- The highest sequence number wins (latest write).
 SELECT level, seq, key, value
 FROM lsm_levels
 WHERE key = 'sensor:42'
 ORDER BY seq DESC;
-
 -- Only the first row is the current value.
 -- Try key = 'sensor:10' or 'sensor:99' to see other patterns.</textarea>
   </div>

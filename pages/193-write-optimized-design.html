@@ -202,12 +202,11 @@ For these patterns, the write-optimized design is not a compromise — it is the
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Append-Only Write Pattern</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (device_id TEXT, recorded_at INTEGER, value REAL, version INTEGER); INSERT INTO events VALUES ('sensor-1', 100, 22.5, 1); INSERT INTO events VALUES ('sensor-1', 200, 23.1, 2); INSERT INTO events VALUES ('sensor-1', 200, 23.4, 3); INSERT INTO events VALUES ('sensor-1', 300, 22.9, 4); INSERT INTO events VALUES ('sensor-2', 100, 65.0, 1); INSERT INTO events VALUES ('sensor-2', 150, 66.2, 2); CREATE TABLE inplace_updates (device_id TEXT PRIMARY KEY, recorded_at INTEGER, value REAL); INSERT OR REPLACE INTO inplace_updates VALUES ('sensor-1', 300, 22.9); INSERT OR REPLACE INTO inplace_updates VALUES ('sensor-2', 150, 66.2);">-- Append-only model: all versions exist, newest wins
+    <textarea data-setup="CREATE TABLE events (device_id TEXT, recorded_at INTEGER, value REAL, version INTEGER); INSERT INTO events VALUES ('sensor-1', 100, 22.5, 1); INSERT INTO events VALUES ('sensor-1', 200, 23.1, 2); INSERT INTO events VALUES ('sensor-1', 200, 23.4, 3); INSERT INTO events VALUES ('sensor-1', 300, 22.9, 4); INSERT INTO events VALUES ('sensor-2', 100, 65.0, 1); INSERT INTO events VALUES ('sensor-2', 150, 66.2, 2); CREATE TABLE inplace_updates (device_id TEXT PRIMARY KEY, recorded_at INTEGER, value REAL); INSERT OR REPLACE INTO inplace_updates VALUES ('sensor-1', 300, 22.9); INSERT OR REPLACE INTO inplace_updates VALUES ('sensor-2', 150, 66.2);" rows="20">-- Append-only model: all versions exist, newest wins
 -- (simulates what Cassandra stores before compaction)
 SELECT device_id, recorded_at, value, version
 FROM events
 ORDER BY device_id, recorded_at, version;
-
 -- After compaction: only keep max version per (device, timestamp)
 -- SELECT device_id, recorded_at, value
 -- FROM events e1
@@ -216,7 +215,6 @@ ORDER BY device_id, recorded_at, version;
 --   WHERE e2.device_id = e1.device_id AND e2.recorded_at = e1.recorded_at
 -- )
 -- ORDER BY device_id, recorded_at;
-
 -- Compare: in-place update table (only latest value stored)
 -- SELECT * FROM inplace_updates;</textarea>
   </div>

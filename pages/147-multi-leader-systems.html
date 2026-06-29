@@ -142,7 +142,7 @@ Try the interactive example below to explore how a conflict table might look and
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Write conflict log</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE write_conflicts (conflict_id INTEGER PRIMARY KEY, record_type TEXT, record_id INTEGER, leader_a_value TEXT, leader_b_value TEXT, leader_a_ts INTEGER, leader_b_ts INTEGER, resolved INTEGER DEFAULT 0); INSERT INTO write_conflicts VALUES (1, 'page_title', 42, 'Introduction', 'Overview', 1719300100, 1719300102, 0), (2, 'user_email', 7, 'alice@x.com', 'alice@y.com', 1719300050, 1719300055, 1), (3, 'product_price', 99, '29.99', '27.99', 1719300200, 1719300198, 0), (4, 'page_title', 17, 'Home', 'Welcome', 1719300010, 1719300009, 1);">-- Show all unresolved conflicts.
+    <textarea data-setup="CREATE TABLE write_conflicts (conflict_id INTEGER PRIMARY KEY, record_type TEXT, record_id INTEGER, leader_a_value TEXT, leader_b_value TEXT, leader_a_ts INTEGER, leader_b_ts INTEGER, resolved INTEGER DEFAULT 0); INSERT INTO write_conflicts VALUES (1, 'page_title', 42, 'Introduction', 'Overview', 1719300100, 1719300102, 0), (2, 'user_email', 7, 'alice@x.com', 'alice@y.com', 1719300050, 1719300055, 1), (3, 'product_price', 99, '29.99', '27.99', 1719300200, 1719300198, 0), (4, 'page_title', 17, 'Home', 'Welcome', 1719300010, 1719300009, 1);" rows="20">-- Show all unresolved conflicts.
 -- For each, show which leader's value would win under Last-Write-Wins.
 SELECT
   conflict_id,

@@ -178,14 +178,12 @@ The downside: encrypted columns cannot be efficiently indexed or used in WHERE c
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulated Column Encryption</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE patients (id INTEGER PRIMARY KEY, name TEXT, ssn_masked TEXT, department TEXT); INSERT INTO patients VALUES (1, 'Alice M.', 'XXX-XX-6789', 'Cardiology'); INSERT INTO patients VALUES (2, 'Bob T.', 'XXX-XX-4321', 'Neurology'); INSERT INTO patients VALUES (3, 'Carol P.', 'XXX-XX-9900', 'Cardiology'); CREATE TABLE access_log (user_name TEXT, record_id INTEGER, accessed_at TEXT); INSERT INTO access_log VALUES ('dr_jones', 1, '2024-06-01 10:00'); INSERT INTO access_log VALUES ('dr_jones', 3, '2024-06-01 10:05');">-- Column-level masking: the raw SSN is never stored in plaintext.
+    <textarea data-setup="CREATE TABLE patients (id INTEGER PRIMARY KEY, name TEXT, ssn_masked TEXT, department TEXT); INSERT INTO patients VALUES (1, 'Alice M.', 'XXX-XX-6789', 'Cardiology'); INSERT INTO patients VALUES (2, 'Bob T.', 'XXX-XX-4321', 'Neurology'); INSERT INTO patients VALUES (3, 'Carol P.', 'XXX-XX-9900', 'Cardiology'); CREATE TABLE access_log (user_name TEXT, record_id INTEGER, accessed_at TEXT); INSERT INTO access_log VALUES ('dr_jones', 1, '2024-06-01 10:00'); INSERT INTO access_log VALUES ('dr_jones', 3, '2024-06-01 10:05');" rows="20">-- Column-level masking: the raw SSN is never stored in plaintext.
 -- Only authorized queries (with the decryption key) retrieve the full value.
 -- Here we simulate masking by storing pre-masked values.
-
 SELECT id, name, ssn_masked, department
 FROM patients
 ORDER BY id;
-
 -- Who accessed patient records recently?
 SELECT a.user_name, p.name, a.accessed_at
 FROM access_log a

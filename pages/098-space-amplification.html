@@ -91,7 +91,7 @@ INSERT INTO events VALUES
   (16, 'click',   16.7), (17, 'scroll',  17.8), (18, 'hover',   18.9),
   (19, 'click',   19.0), (20, 'scroll',  20.1);
 -- Delete half the rows, simulating churn
-DELETE FROM events WHERE id % 2 = 0;">-- Page usage before VACUUM:
+DELETE FROM events WHERE id % 2 = 0;" rows="20">-- Page usage before VACUUM:
 -- page_count  = total pages allocated in the file
 -- freelist_count = pages flagged as free but not yet returned to OS
 -- space_amplification is approximately page_count / (page_count - freelist_count)
@@ -102,7 +102,6 @@ SELECT
   ROUND(1.0 * page_count
         / MAX(page_count - freelist_count, 1), 3) AS space_amplification
 FROM pragma_page_count(), pragma_freelist_count();
-
 -- After running the above, try:
 --   VACUUM;
 -- then re-run this SELECT to see freelist_count drop to 0.

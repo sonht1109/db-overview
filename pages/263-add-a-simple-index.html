@@ -169,12 +169,10 @@ Every index you add makes reads faster and writes slower. Our `insert_with_index
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index vs. Full Scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice',30,70000),(2,'Bob',25,55000),(3,'Carol',34,92000),(4,'Dave',28,61000),(5,'Eve',40,110000); CREATE INDEX idx_name ON employees(name); CREATE INDEX idx_salary ON employees(salary);">-- Equality lookup: SQLite uses idx_name (O(1) hash-like seek)
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice',30,70000),(2,'Bob',25,55000),(3,'Carol',34,92000),(4,'Dave',28,61000),(5,'Eve',40,110000); CREATE INDEX idx_name ON employees(name); CREATE INDEX idx_salary ON employees(salary);" rows="20">-- Equality lookup: SQLite uses idx_name (O(1) hash-like seek)
 SELECT * FROM employees WHERE name = 'Carol';
-
 -- Range query: SQLite uses idx_salary (B-tree range scan)
 -- SELECT * FROM employees WHERE salary BETWEEN 60000 AND 95000;
-
 -- Show the query plan (uses index or not):
 -- EXPLAIN QUERY PLAN SELECT * FROM employees WHERE salary &gt; 80000;</textarea>
   </div>

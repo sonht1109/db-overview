@@ -220,14 +220,13 @@ INSERT INTO conversations VALUES (1,'direct',NULL,1700001000),(2,'group','Projec
 INSERT INTO conversation_members VALUES (1,1,'member',1700001000),(1,2,'member',1700001000),(2,1,'admin',1700002000),(2,2,'member',1700002000),(2,3,'member',1700002000);
 INSERT INTO messages VALUES (1,1,1,'Hey Bob!','text',1,1700010000),(2,1,2,'Hi Alice!','text',2,1700010060),(3,1,1,'See you at the meeting.','text',3,1700010120),(4,2,1,'Kick-off at 3pm','text',1,1700020000),(5,2,3,'Got it!','text',2,1700020060),(6,2,2,'On my way','text',3,1700020120);
 INSERT INTO message_receipts VALUES (1,2,'read',1700010060),(2,1,'read',1700010120),(3,2,'delivered',1700010125),(4,2,'read',1700020060),(4,3,'read',1700020060),(5,1,'read',1700020070),(6,1,'delivered',1700020125);
-">-- Latest 5 messages in the group chat (cursor-based)
+" rows="20">-- Latest 5 messages in the group chat (cursor-based)
 SELECT m.server_seq, u.display_name AS sender, m.body, m.sent_at
 FROM messages m
 JOIN users u ON u.id = m.sender_id
 WHERE m.conversation_id = 2
 ORDER BY m.server_seq DESC
 LIMIT 5;
-
 -- Try: unread messages for Alice in conversation 1
 -- SELECT COUNT(*) AS unread FROM messages m
 -- LEFT JOIN message_receipts mr ON mr.message_id = m.id AND mr.user_id = 1

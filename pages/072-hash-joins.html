@@ -80,7 +80,7 @@ The widget below sets up two tables — `products` and `order_lines` — and run
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Hash join scenario</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (product_id INTEGER, name TEXT, category TEXT); INSERT INTO products VALUES (1, 'Notebook', 'Stationery'), (2, 'Pen', 'Stationery'), (3, 'Desk Lamp', 'Electronics'), (4, 'USB Hub', 'Electronics'), (5, 'Eraser', 'Stationery'); CREATE TABLE order_lines (line_id INTEGER, product_id INTEGER, qty INTEGER, unit_price REAL); INSERT INTO order_lines VALUES (101, 3, 2, 29.99), (102, 1, 5, 4.49), (103, 4, 1, 19.99), (104, 2, 10, 0.99), (105, 3, 1, 29.99), (106, 5, 3, 0.49);">-- A classic equi-join — the equality on product_id is what a
+    <textarea data-setup="CREATE TABLE products (product_id INTEGER, name TEXT, category TEXT); INSERT INTO products VALUES (1, 'Notebook', 'Stationery'), (2, 'Pen', 'Stationery'), (3, 'Desk Lamp', 'Electronics'), (4, 'USB Hub', 'Electronics'), (5, 'Eraser', 'Stationery'); CREATE TABLE order_lines (line_id INTEGER, product_id INTEGER, qty INTEGER, unit_price REAL); INSERT INTO order_lines VALUES (101, 3, 2, 29.99), (102, 1, 5, 4.49), (103, 4, 1, 19.99), (104, 2, 10, 0.99), (105, 3, 1, 29.99), (106, 5, 3, 0.49);" rows="20">-- A classic equi-join — the equality on product_id is what a
 -- hash join keys on. Try changing the WHERE clause to filter
 -- by category and observe which rows appear.
 SELECT p.name, p.category, ol.qty, ol.unit_price,
@@ -96,7 +96,7 @@ Now try aggregating — hash joins feed naturally into `GROUP BY` since both ope
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Join then aggregate</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (product_id INTEGER, name TEXT, category TEXT); INSERT INTO products VALUES (1, 'Notebook', 'Stationery'), (2, 'Pen', 'Stationery'), (3, 'Desk Lamp', 'Electronics'), (4, 'USB Hub', 'Electronics'), (5, 'Eraser', 'Stationery'); CREATE TABLE order_lines (line_id INTEGER, product_id INTEGER, qty INTEGER, unit_price REAL); INSERT INTO order_lines VALUES (101, 3, 2, 29.99), (102, 1, 5, 4.49), (103, 4, 1, 19.99), (104, 2, 10, 0.99), (105, 3, 1, 29.99), (106, 5, 3, 0.49);">-- Revenue by category, joined then grouped
+    <textarea data-setup="CREATE TABLE products (product_id INTEGER, name TEXT, category TEXT); INSERT INTO products VALUES (1, 'Notebook', 'Stationery'), (2, 'Pen', 'Stationery'), (3, 'Desk Lamp', 'Electronics'), (4, 'USB Hub', 'Electronics'), (5, 'Eraser', 'Stationery'); CREATE TABLE order_lines (line_id INTEGER, product_id INTEGER, qty INTEGER, unit_price REAL); INSERT INTO order_lines VALUES (101, 3, 2, 29.99), (102, 1, 5, 4.49), (103, 4, 1, 19.99), (104, 2, 10, 0.99), (105, 3, 1, 29.99), (106, 5, 3, 0.49);" rows="20">-- Revenue by category, joined then grouped
 SELECT p.category,
        COUNT(*) AS num_lines,
        SUM(ol.qty * ol.unit_price) AS total_revenue

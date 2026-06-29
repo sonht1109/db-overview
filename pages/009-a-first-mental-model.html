@@ -74,7 +74,7 @@ The widget below sets up a tiny `orders` table. Run the default query, then try 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Orders table</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, amount REAL, country TEXT); INSERT INTO orders VALUES (1, 'Alice', 120.00, 'US'); INSERT INTO orders VALUES (2, 'Bob', 45.50, 'UK'); INSERT INTO orders VALUES (3, 'Carol', 310.75, 'US'); INSERT INTO orders VALUES (4, 'Dave', 89.99, 'CA'); INSERT INTO orders VALUES (5, 'Eve', 200.00, 'US');">-- Ask for high-value US orders.
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, amount REAL, country TEXT); INSERT INTO orders VALUES (1, 'Alice', 120.00, 'US'); INSERT INTO orders VALUES (2, 'Bob', 45.50, 'UK'); INSERT INTO orders VALUES (3, 'Carol', 310.75, 'US'); INSERT INTO orders VALUES (4, 'Dave', 89.99, 'CA'); INSERT INTO orders VALUES (5, 'Eve', 200.00, 'US');" rows="20">-- Ask for high-value US orders.
 -- The engine decides how to find them.
 SELECT customer, amount
 FROM orders

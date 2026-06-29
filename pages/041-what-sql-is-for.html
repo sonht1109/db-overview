@@ -70,7 +70,7 @@ Try it yourself. The widget below seeds a small `products` table. Run the defaul
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Products table</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, price_cents INTEGER NOT NULL); INSERT INTO products VALUES (1, 'Notebook', 'stationery', 299); INSERT INTO products VALUES (2, 'Pen', 'stationery', 99); INSERT INTO products VALUES (3, 'Desk Lamp', 'electronics', 2999); INSERT INTO products VALUES (4, 'USB Hub', 'electronics', 1499); INSERT INTO products VALUES (5, 'Sticky Notes', 'stationery', 149);">SELECT id, name, price_cents / 100.0 AS price
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, price_cents INTEGER NOT NULL); INSERT INTO products VALUES (1, 'Notebook', 'stationery', 299); INSERT INTO products VALUES (2, 'Pen', 'stationery', 99); INSERT INTO products VALUES (3, 'Desk Lamp', 'electronics', 2999); INSERT INTO products VALUES (4, 'USB Hub', 'electronics', 1499); INSERT INTO products VALUES (5, 'Sticky Notes', 'stationery', 149);" rows="20">SELECT id, name, price_cents / 100.0 AS price
 FROM   products
 WHERE  category = 'stationery'
 ORDER  BY price;</textarea>

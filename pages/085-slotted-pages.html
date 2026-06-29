@@ -74,7 +74,7 @@ INSERT INTO slot_directory VALUES (3, 7700, 190, 1);
 INSERT INTO slot_directory VALUES (4, 7640, 60, 0);
 INSERT INTO slot_directory VALUES (5, 7580, 60, 1);
 CREATE TABLE page_meta (page_id INTEGER, page_size INTEGER, free_start INTEGER, free_end INTEGER);
-INSERT INTO page_meta VALUES (42, 8192, 96, 7580);">-- Which slots are live, and how much space do they use?
+INSERT INTO page_meta VALUES (42, 8192, 96, 7580);" rows="20">-- Which slots are live, and how much space do they use?
 SELECT
   slot_num,
   record_offset,
@@ -82,7 +82,6 @@ SELECT
   CASE WHEN is_live = 1 THEN 'live' ELSE 'deleted' END AS status
 FROM slot_directory
 ORDER BY record_offset DESC;
-
 -- Try: compute total wasted space from deleted slots
 -- SELECT SUM(record_length) AS reclaimable_bytes
 -- FROM slot_directory WHERE is_live = 0;</textarea>

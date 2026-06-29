@@ -91,7 +91,7 @@ The widget below seeds a `customers` table and an `orders` table linked by `cust
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · INNER JOIN vs LEFT JOIN</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, city TEXT); INSERT INTO customers VALUES (1, 'Alice', 'London'), (2, 'Bob', 'Paris'), (3, 'Carol', 'Berlin'), (4, 'Dave', 'Tokyo'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 2, 'Widget', 120), (2, 2, 'Gadget', 340), (3, 3, 'Widget', 210), (4, 3, 'Gadget', 450), (5, 4, 'Widget', 95);">SELECT c.name, c.city, o.product, o.amount
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, city TEXT); INSERT INTO customers VALUES (1, 'Alice', 'London'), (2, 'Bob', 'Paris'), (3, 'Carol', 'Berlin'), (4, 'Dave', 'Tokyo'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 2, 'Widget', 120), (2, 2, 'Gadget', 340), (3, 3, 'Widget', 210), (4, 3, 'Gadget', 450), (5, 4, 'Widget', 95);" rows="20">SELECT c.name, c.city, o.product, o.amount
 FROM customers AS c
 INNER JOIN orders AS o ON c.id = o.customer_id
 ORDER BY c.name;</textarea>
@@ -103,7 +103,7 @@ Now try aggregating across the join. The query below counts orders and totals sp
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Aggregating a join</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, city TEXT); INSERT INTO customers VALUES (1, 'Alice', 'London'), (2, 'Bob', 'Paris'), (3, 'Carol', 'Berlin'), (4, 'Dave', 'Tokyo'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 2, 'Widget', 120), (2, 2, 'Gadget', 340), (3, 3, 'Widget', 210), (4, 3, 'Gadget', 450), (5, 4, 'Widget', 95);">SELECT c.name,
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, city TEXT); INSERT INTO customers VALUES (1, 'Alice', 'London'), (2, 'Bob', 'Paris'), (3, 'Carol', 'Berlin'), (4, 'Dave', 'Tokyo'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 2, 'Widget', 120), (2, 2, 'Gadget', 340), (3, 3, 'Widget', 210), (4, 3, 'Gadget', 450), (5, 4, 'Widget', 95);" rows="20">SELECT c.name,
        COUNT(o.id)         AS num_orders,
        SUM(o.amount)       AS total_spent
 FROM customers AS c

@@ -159,12 +159,11 @@ Try the widget below. It models a cache table with TTL-style expiry and a persis
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Cache vs Persistent Store</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE cache_store (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_epoch INTEGER NOT NULL); CREATE TABLE persistent_store (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO cache_store VALUES ('page:home:en', 'cached HTML...', 9999999999); INSERT INTO cache_store VALUES ('page:about:en', 'cached HTML...', 1000000000); INSERT INTO persistent_store VALUES ('config:feature_flags', '{&quot;dark_mode&quot;:true}'); INSERT INTO persistent_store VALUES ('session:user:4291', '{&quot;role&quot;:&quot;admin&quot;}');">-- Cache lookup: only return the entry if it hasn't expired.
+    <textarea data-setup="CREATE TABLE cache_store (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_epoch INTEGER NOT NULL); CREATE TABLE persistent_store (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO cache_store VALUES ('page:home:en', 'cached HTML...', 9999999999); INSERT INTO cache_store VALUES ('page:about:en', 'cached HTML...', 1000000000); INSERT INTO persistent_store VALUES ('config:feature_flags', '{&quot;dark_mode&quot;:true}'); INSERT INTO persistent_store VALUES ('session:user:4291', '{&quot;role&quot;:&quot;admin&quot;}');" rows="20">-- Cache lookup: only return the entry if it hasn't expired.
 -- 'page:home:en' is fresh; 'page:about:en' has expired (epoch in the past).
 SELECT key, value,
        CASE WHEN expires_epoch > 1700000000 THEN 'HIT' ELSE 'MISS (expired)' END AS cache_result
 FROM cache_store;
-
 -- Persistent store: no TTL, data is always there:
 -- SELECT key, value FROM persistent_store;</textarea>
   </div>

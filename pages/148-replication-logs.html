@@ -176,13 +176,12 @@ The widget below models a simple replication log table. Each row is a log entry.
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Replication log catch-up</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replog (lsn INTEGER PRIMARY KEY, op TEXT, tbl TEXT, row_id INTEGER, old_val TEXT, new_val TEXT, committed_at TEXT); INSERT INTO replog VALUES (1001, 'INSERT', 'orders', 7, NULL, '{status:pending}', '2024-06-01 09:00:01'), (1002, 'UPDATE', 'orders', 3, '{status:pending}', '{status:shipped}', '2024-06-01 09:00:04'), (1003, 'DELETE', 'customers', 12, '{name:Alice}', NULL, '2024-06-01 09:00:07'), (1004, 'INSERT', 'orders', 8, NULL, '{status:pending}', '2024-06-01 09:00:09'), (1005, 'UPDATE', 'orders', 7, '{status:pending}', '{status:shipped}', '2024-06-01 09:00:15'), (1006, 'INSERT', 'customers', 99, NULL, '{name:Bob}', '2024-06-01 09:00:20');">-- A follower last confirmed position LSN 1002.
+    <textarea data-setup="CREATE TABLE replog (lsn INTEGER PRIMARY KEY, op TEXT, tbl TEXT, row_id INTEGER, old_val TEXT, new_val TEXT, committed_at TEXT); INSERT INTO replog VALUES (1001, 'INSERT', 'orders', 7, NULL, '{status:pending}', '2024-06-01 09:00:01'), (1002, 'UPDATE', 'orders', 3, '{status:pending}', '{status:shipped}', '2024-06-01 09:00:04'), (1003, 'DELETE', 'customers', 12, '{name:Alice}', NULL, '2024-06-01 09:00:07'), (1004, 'INSERT', 'orders', 8, NULL, '{status:pending}', '2024-06-01 09:00:09'), (1005, 'UPDATE', 'orders', 7, '{status:pending}', '{status:shipped}', '2024-06-01 09:00:15'), (1006, 'INSERT', 'customers', 99, NULL, '{name:Bob}', '2024-06-01 09:00:20');" rows="20">-- A follower last confirmed position LSN 1002.
 -- Ask the leader for everything after that:
 SELECT lsn, op, tbl, row_id, old_val, new_val
 FROM replog
 WHERE lsn > 1002
 ORDER BY lsn;
-
 -- Try changing the threshold to see different catch-up windows.</textarea>
   </div>
 </div>

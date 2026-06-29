@@ -177,7 +177,7 @@ db.orders.find({ status: "shipped" })
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Document-style field queries with json_extract</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO orders VALUES ('ORD-001','{&quot;status&quot;:&quot;shipped&quot;,&quot;total&quot;:250.00,&quot;customer&quot;:{&quot;name&quot;:&quot;Aroha&quot;,&quot;city&quot;:&quot;Auckland&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;SHOE-9B&quot;,&quot;qty&quot;:1},{&quot;sku&quot;:&quot;SOCK-3P&quot;,&quot;qty&quot;:3}]}'); INSERT INTO orders VALUES ('ORD-002','{&quot;status&quot;:&quot;pending&quot;,&quot;total&quot;:85.50,&quot;customer&quot;:{&quot;name&quot;:&quot;Leo&quot;,&quot;city&quot;:&quot;Wellington&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;HAT-1X&quot;,&quot;qty&quot;:2}]}'); INSERT INTO orders VALUES ('ORD-003','{&quot;status&quot;:&quot;shipped&quot;,&quot;total&quot;:1200.00,&quot;customer&quot;:{&quot;name&quot;:&quot;Priya&quot;,&quot;city&quot;:&quot;Auckland&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;LAPTOP-X&quot;,&quot;qty&quot;:1}]}'); INSERT INTO orders VALUES ('ORD-004','{&quot;status&quot;:&quot;cancelled&quot;,&quot;total&quot;:30.00,&quot;customer&quot;:{&quot;name&quot;:&quot;Sam&quot;,&quot;city&quot;:&quot;Christchurch&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;SOCK-3P&quot;,&quot;qty&quot;:1}]}');">-- Filter on nested field: shipped orders from Auckland customers
+    <textarea data-setup="CREATE TABLE orders (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO orders VALUES ('ORD-001','{&quot;status&quot;:&quot;shipped&quot;,&quot;total&quot;:250.00,&quot;customer&quot;:{&quot;name&quot;:&quot;Aroha&quot;,&quot;city&quot;:&quot;Auckland&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;SHOE-9B&quot;,&quot;qty&quot;:1},{&quot;sku&quot;:&quot;SOCK-3P&quot;,&quot;qty&quot;:3}]}'); INSERT INTO orders VALUES ('ORD-002','{&quot;status&quot;:&quot;pending&quot;,&quot;total&quot;:85.50,&quot;customer&quot;:{&quot;name&quot;:&quot;Leo&quot;,&quot;city&quot;:&quot;Wellington&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;HAT-1X&quot;,&quot;qty&quot;:2}]}'); INSERT INTO orders VALUES ('ORD-003','{&quot;status&quot;:&quot;shipped&quot;,&quot;total&quot;:1200.00,&quot;customer&quot;:{&quot;name&quot;:&quot;Priya&quot;,&quot;city&quot;:&quot;Auckland&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;LAPTOP-X&quot;,&quot;qty&quot;:1}]}'); INSERT INTO orders VALUES ('ORD-004','{&quot;status&quot;:&quot;cancelled&quot;,&quot;total&quot;:30.00,&quot;customer&quot;:{&quot;name&quot;:&quot;Sam&quot;,&quot;city&quot;:&quot;Christchurch&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;SOCK-3P&quot;,&quot;qty&quot;:1}]}');" rows="20">-- Filter on nested field: shipped orders from Auckland customers
 SELECT
   id,
   json_extract(doc, '$.customer.name')  AS customer,
@@ -186,7 +186,6 @@ FROM orders
 WHERE json_extract(doc, '$.status') = 'shipped'
   AND json_extract(doc, '$.customer.city') = 'Auckland'
 ORDER BY json_extract(doc, '$.total') DESC;
-
 -- Try: change the city, or remove the status filter, or sort ASC</textarea>
   </div>
 </div>

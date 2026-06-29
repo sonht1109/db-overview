@@ -79,7 +79,7 @@ Try the widget below. The default query filters, then projects. Experiment: remo
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Filter and project</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Ada Lovelace', 'engineering', 95000); INSERT INTO employees VALUES (2, 'Grace Hopper', 'engineering', 102000); INSERT INTO employees VALUES (3, 'Alan Turing', 'research', 88000); INSERT INTO employees VALUES (4, 'Claude Shannon', 'research', 91000); INSERT INTO employees VALUES (5, 'Barbara Liskov', 'engineering', 110000);">-- Filter to engineering, project only name and salary
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Ada Lovelace', 'engineering', 95000); INSERT INTO employees VALUES (2, 'Grace Hopper', 'engineering', 102000); INSERT INTO employees VALUES (3, 'Alan Turing', 'research', 88000); INSERT INTO employees VALUES (4, 'Claude Shannon', 'research', 91000); INSERT INTO employees VALUES (5, 'Barbara Liskov', 'engineering', 110000);" rows="20">-- Filter to engineering, project only name and salary
 SELECT name, salary
 FROM employees
 WHERE department = 'engineering'
@@ -92,7 +92,7 @@ Now try the set-based `UPDATE` from the earlier example — no loop needed:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Set-based update</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Ada Lovelace', 'engineering', 95000); INSERT INTO employees VALUES (2, 'Grace Hopper', 'engineering', 102000); INSERT INTO employees VALUES (3, 'Alan Turing', 'research', 88000); INSERT INTO employees VALUES (4, 'Claude Shannon', 'research', 91000); INSERT INTO employees VALUES (5, 'Barbara Liskov', 'engineering', 110000);">-- Give everyone in engineering a 10% raise, then check results
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Ada Lovelace', 'engineering', 95000); INSERT INTO employees VALUES (2, 'Grace Hopper', 'engineering', 102000); INSERT INTO employees VALUES (3, 'Alan Turing', 'research', 88000); INSERT INTO employees VALUES (4, 'Claude Shannon', 'research', 91000); INSERT INTO employees VALUES (5, 'Barbara Liskov', 'engineering', 110000);" rows="20">-- Give everyone in engineering a 10% raise, then check results
 UPDATE employees SET salary = salary * 1.10 WHERE department = 'engineering';
 SELECT name, department, salary FROM employees ORDER BY department, name;</textarea>
   </div>

@@ -78,7 +78,7 @@ The widget below creates a small `orders` and `customers` table and runs a join.
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Nested loop join</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (17, 'Priya'), (42, 'Leon'), (55, 'Amara'); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders VALUES (1, 42, 99.99), (2, 17, 14.50), (3, 42, 250.00), (4, 55, 5.00);">-- See the join result
+    <textarea data-setup="CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (17, 'Priya'), (42, 'Leon'), (55, 'Amara'); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders VALUES (1, 42, 99.99), (2, 17, 14.50), (3, 42, 250.00), (4, 55, 5.00);" rows="20">-- See the join result
 SELECT o.order_id, c.name, o.amount
 FROM orders AS o
 JOIN customers AS c ON o.customer_id = c.customer_id
@@ -91,7 +91,7 @@ After running the join, try this to see the query plan:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Query plan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (17, 'Priya'), (42, 'Leon'), (55, 'Amara'); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders VALUES (1, 42, 99.99), (2, 17, 14.50), (3, 42, 250.00), (4, 55, 5.00);">-- Inspect the query plan
+    <textarea data-setup="CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (17, 'Priya'), (42, 'Leon'), (55, 'Amara'); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders VALUES (1, 42, 99.99), (2, 17, 14.50), (3, 42, 250.00), (4, 55, 5.00);" rows="20">-- Inspect the query plan
 EXPLAIN QUERY PLAN
 SELECT o.order_id, c.name, o.amount
 FROM orders AS o

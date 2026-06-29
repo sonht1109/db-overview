@@ -212,13 +212,12 @@ The widget below uses SQLite to simulate a Cypher MATCH pattern using relational
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating Cypher MATCH with Relational Tables</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE nodes (id INTEGER PRIMARY KEY, label TEXT, name TEXT, age INTEGER); INSERT INTO nodes VALUES (1,'Person','Alice',31),(2,'Person','Bob',28),(3,'Person','Carol',35),(4,'Person','Dave',24),(5,'Person','Eve',29); CREATE TABLE edges (id INTEGER PRIMARY KEY, from_id INTEGER, to_id INTEGER, type TEXT, since TEXT); INSERT INTO edges VALUES (1,1,2,'KNOWS','2020-03'),(2,1,3,'KNOWS','2019-07'),(3,2,4,'KNOWS','2021-11'),(4,3,5,'KNOWS','2022-05'),(5,4,1,'KNOWS','2023-01');">-- Simulates: MATCH (a:Person {name:&quot;Alice&quot;})-[:KNOWS]-&gt;(b:Person) RETURN b.name
+    <textarea data-setup="CREATE TABLE nodes (id INTEGER PRIMARY KEY, label TEXT, name TEXT, age INTEGER); INSERT INTO nodes VALUES (1,'Person','Alice',31),(2,'Person','Bob',28),(3,'Person','Carol',35),(4,'Person','Dave',24),(5,'Person','Eve',29); CREATE TABLE edges (id INTEGER PRIMARY KEY, from_id INTEGER, to_id INTEGER, type TEXT, since TEXT); INSERT INTO edges VALUES (1,1,2,'KNOWS','2020-03'),(2,1,3,'KNOWS','2019-07'),(3,2,4,'KNOWS','2021-11'),(4,3,5,'KNOWS','2022-05'),(5,4,1,'KNOWS','2023-01');" rows="20">-- Simulates: MATCH (a:Person {name:&quot;Alice&quot;})-[:KNOWS]-&gt;(b:Person) RETURN b.name
 SELECT b.name AS friend
 FROM nodes a
 JOIN edges e ON a.id = e.from_id AND e.type = 'KNOWS'
 JOIN nodes b ON e.to_id = b.id
 WHERE a.name = 'Alice' AND b.label = 'Person';
-
 -- Simulates 2-hop: MATCH (a)-[:KNOWS*2]-&gt;(c) WHERE a.name=&quot;Alice&quot; RETURN c.name
 -- SELECT DISTINCT c.name AS friend_of_friend
 -- FROM nodes a

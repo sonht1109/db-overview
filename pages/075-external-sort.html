@@ -80,7 +80,7 @@ The widget below creates a small `sales` table and lets you observe how `ORDER B
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · ORDER BY and sort plans</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, region TEXT, amount REAL, sale_date TEXT); INSERT INTO sales VALUES (1, 'North', 520.00, '2024-03-01'), (2, 'South', 310.50, '2024-03-02'), (3, 'East', 875.25, '2024-02-28'), (4, 'North', 200.00, '2024-03-05'), (5, 'South', 640.75, '2024-03-03'), (6, 'East', 130.00, '2024-02-20'), (7, 'West', 990.10, '2024-03-07'), (8, 'West', 450.00, '2024-03-01');">-- Sort by amount descending (no index on amount -- engine must sort)
+    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, region TEXT, amount REAL, sale_date TEXT); INSERT INTO sales VALUES (1, 'North', 520.00, '2024-03-01'), (2, 'South', 310.50, '2024-03-02'), (3, 'East', 875.25, '2024-02-28'), (4, 'North', 200.00, '2024-03-05'), (5, 'South', 640.75, '2024-03-03'), (6, 'East', 130.00, '2024-02-20'), (7, 'West', 990.10, '2024-03-07'), (8, 'West', 450.00, '2024-03-01');" rows="20">-- Sort by amount descending (no index on amount -- engine must sort)
 SELECT region, amount, sale_date
 FROM sales
 ORDER BY amount DESC;</textarea>
@@ -92,10 +92,9 @@ Now check what the query planner says. Notice the "USE TEMP B-TREE" note on the 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Eliminating the sort with an index</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, region TEXT, amount REAL, sale_date TEXT); INSERT INTO sales VALUES (1, 'North', 520.00, '2024-03-01'), (2, 'South', 310.50, '2024-03-02'), (3, 'East', 875.25, '2024-02-28'), (4, 'North', 200.00, '2024-03-05'), (5, 'South', 640.75, '2024-03-03'), (6, 'East', 130.00, '2024-02-20'), (7, 'West', 990.10, '2024-03-07'), (8, 'West', 450.00, '2024-03-01');">-- Step 1: see the plan without an index
+    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, region TEXT, amount REAL, sale_date TEXT); INSERT INTO sales VALUES (1, 'North', 520.00, '2024-03-01'), (2, 'South', 310.50, '2024-03-02'), (3, 'East', 875.25, '2024-02-28'), (4, 'North', 200.00, '2024-03-05'), (5, 'South', 640.75, '2024-03-03'), (6, 'East', 130.00, '2024-02-20'), (7, 'West', 990.10, '2024-03-07'), (8, 'West', 450.00, '2024-03-01');" rows="20">-- Step 1: see the plan without an index
 EXPLAIN QUERY PLAN
 SELECT region, amount FROM sales ORDER BY amount DESC;
-
 -- Step 2: create an index, then re-run the EXPLAIN above
 -- CREATE INDEX idx_sales_amount ON sales(amount DESC);</textarea>
   </div>

@@ -124,7 +124,7 @@ The widget below simulates a small replica that lags behind a leader. The `repli
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Read-your-writes simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE nodes (node_id TEXT, role TEXT, applied_offset INTEGER); INSERT INTO nodes VALUES ('leader', 'leader', 10), ('replica-A', 'follower', 10), ('replica-B', 'follower', 4), ('replica-C', 'follower', 7); CREATE TABLE user_writes (username TEXT, write_offset INTEGER, content TEXT); INSERT INTO user_writes VALUES ('alice', 5, 'my comment'), ('alice', 9, 'my edited comment'), ('bob', 3, 'bobs post');">-- Alice just wrote at offset 5. Which nodes will show her comment?
+    <textarea data-setup="CREATE TABLE nodes (node_id TEXT, role TEXT, applied_offset INTEGER); INSERT INTO nodes VALUES ('leader', 'leader', 10), ('replica-A', 'follower', 10), ('replica-B', 'follower', 4), ('replica-C', 'follower', 7); CREATE TABLE user_writes (username TEXT, write_offset INTEGER, content TEXT); INSERT INTO user_writes VALUES ('alice', 5, 'my comment'), ('alice', 9, 'my edited comment'), ('bob', 3, 'bobs post');" rows="20">-- Alice just wrote at offset 5. Which nodes will show her comment?
 -- A node can serve alice's read only if its applied_offset >= alice's write_offset.
 SELECT
   n.node_id,

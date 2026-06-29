@@ -63,7 +63,7 @@ The widget below creates an `orders` table, adds a covering index, and lets you 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Covering index demo</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL, status TEXT, created_at TEXT); INSERT INTO orders VALUES (1, 101, 49.99, 'shipped', '2024-01-10'), (2, 102, 120.00, 'pending', '2024-01-11'), (3, 103, 75.50, 'shipped', '2024-01-12'), (4, 101, 200.00, 'shipped', '2024-01-13'), (5, 104, 35.00, 'cancelled', '2024-01-14'), (6, 102, 88.00, 'shipped', '2024-01-15'); CREATE INDEX idx_covering ON orders (status, customer_id, total);">-- See the query plan: does SQLite use the index?
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL, status TEXT, created_at TEXT); INSERT INTO orders VALUES (1, 101, 49.99, 'shipped', '2024-01-10'), (2, 102, 120.00, 'pending', '2024-01-11'), (3, 103, 75.50, 'shipped', '2024-01-12'), (4, 101, 200.00, 'shipped', '2024-01-13'), (5, 104, 35.00, 'cancelled', '2024-01-14'), (6, 102, 88.00, 'shipped', '2024-01-15'); CREATE INDEX idx_covering ON orders (status, customer_id, total);" rows="20">-- See the query plan: does SQLite use the index?
 EXPLAIN QUERY PLAN
 SELECT customer_id, total
 FROM   orders

@@ -110,7 +110,7 @@ CREATE TABLE orders (
   order_id    INTEGER PRIMARY KEY,
   customer_id INTEGER NOT NULL REFERENCES customers(customer_id) ON DELETE RESTRICT,
   status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'shipped', 'cancelled')),
-  total       REAL NOT NULL CHECK (total > 0)
+  total       REAL NOT NULL CHECK (total  rows="20"> 0)
 );
 INSERT INTO customers VALUES (1, 'alice@example.com');
 INSERT INTO customers VALUES (2, 'bob@example.com');
@@ -119,21 +119,15 @@ INSERT INTO orders VALUES (102, 2, 'pending', 12.00);">-- Inspect the current st
 SELECT o.order_id, c.email, o.status, o.total
 FROM orders o
 JOIN customers c ON o.customer_id = c.customer_id;
-
 -- Try these one at a time to see each integrity layer reject bad data:
-
 -- Entity integrity: duplicate primary key
 -- INSERT INTO customers VALUES (1, 'dup@example.com');
-
 -- Referential integrity: no customer 999
 -- INSERT INTO orders VALUES (103, 999, 'pending', 5.00);
-
 -- Domain integrity: negative total
 -- INSERT INTO orders VALUES (104, 1, 'pending', -1.00);
-
 -- Domain integrity: invalid status value
 -- INSERT INTO orders VALUES (105, 1, 'lost', 30.00);
-
 -- Referential integrity: RESTRICT blocks deleting a customer with orders
 -- DELETE FROM customers WHERE customer_id = 1;</textarea>
   </div>

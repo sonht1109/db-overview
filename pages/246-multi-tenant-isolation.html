@@ -180,13 +180,11 @@ Backups of a shared database contain all tenants' data. Consider whether your te
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Tenant Isolation Simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, tenant_id INTEGER NOT NULL, customer TEXT, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 1, 'Alice', 250.00, 'shipped'); INSERT INTO orders VALUES (2, 1, 'Bob', 89.50, 'pending'); INSERT INTO orders VALUES (3, 2, 'Carol', 410.00, 'delivered'); INSERT INTO orders VALUES (4, 2, 'Dave', 33.00, 'pending'); INSERT INTO orders VALUES (5, 3, 'Eve', 120.00, 'shipped'); CREATE TABLE tenants (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO tenants VALUES (1, 'Acme Corp'); INSERT INTO tenants VALUES (2, 'Globex'); INSERT INTO tenants VALUES (3, 'Initech');">-- Simulate RLS: tenant 1 can only see their own rows
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, tenant_id INTEGER NOT NULL, customer TEXT, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 1, 'Alice', 250.00, 'shipped'); INSERT INTO orders VALUES (2, 1, 'Bob', 89.50, 'pending'); INSERT INTO orders VALUES (3, 2, 'Carol', 410.00, 'delivered'); INSERT INTO orders VALUES (4, 2, 'Dave', 33.00, 'pending'); INSERT INTO orders VALUES (5, 3, 'Eve', 120.00, 'shipped'); CREATE TABLE tenants (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO tenants VALUES (1, 'Acme Corp'); INSERT INTO tenants VALUES (2, 'Globex'); INSERT INTO tenants VALUES (3, 'Initech');" rows="20">-- Simulate RLS: tenant 1 can only see their own rows
 -- (In a real DB, the WHERE clause below is enforced automatically by RLS policy)
-
 SELECT id, customer, amount, status
 FROM orders
 WHERE tenant_id = 1;   -- Change to 2 or 3 to see other tenants
-
 -- Without the filter, all tenants' data is visible — exactly what RLS prevents:
 -- SELECT * FROM orders;</textarea>
   </div>

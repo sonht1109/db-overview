@@ -141,7 +141,7 @@ The widget below lets you explore how the number of involved nodes and the round
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Commit latency model</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE scenarios (label TEXT, nodes INTEGER, rtt_ms INTEGER, phases INTEGER, local_ms INTEGER); INSERT INTO scenarios VALUES ('Local (1 node)', 1, 0, 0, 4), ('Same-DC 2PC (3 nodes)', 3, 1, 2, 4), ('Same-DC Raft (3 nodes)', 3, 1, 1, 4), ('Cross-region 2PC (3 nodes)', 3, 80, 2, 4), ('Cross-region Raft (5 nodes)', 5, 80, 1, 4), ('Global 2PC (5 nodes, US-EU-AP)', 5, 160, 2, 4);">-- Estimated commit latency = local work + (round-trip time × phases)
+    <textarea data-setup="CREATE TABLE scenarios (label TEXT, nodes INTEGER, rtt_ms INTEGER, phases INTEGER, local_ms INTEGER); INSERT INTO scenarios VALUES ('Local (1 node)', 1, 0, 0, 4), ('Same-DC 2PC (3 nodes)', 3, 1, 2, 4), ('Same-DC Raft (3 nodes)', 3, 1, 1, 4), ('Cross-region 2PC (3 nodes)', 3, 80, 2, 4), ('Cross-region Raft (5 nodes)', 5, 80, 1, 4), ('Global 2PC (5 nodes, US-EU-AP)', 5, 160, 2, 4);" rows="20">-- Estimated commit latency = local work + (round-trip time × phases)
 -- Adjust rtt_ms or phases to see the effect.
 SELECT
   label,

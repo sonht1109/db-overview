@@ -159,14 +159,12 @@ Full isolation requires either a lock manager (pessimistic) or a multi-version c
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Transactions</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1,'Alice',1000),(2,'Bob',500);">-- Atomic transfer: debit Alice, credit Bob
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1,'Alice',1000),(2,'Bob',500);" rows="20">-- Atomic transfer: debit Alice, credit Bob
 BEGIN;
   UPDATE accounts SET balance = balance - 200 WHERE id = 1;
   UPDATE accounts SET balance = balance + 200 WHERE id = 2;
 COMMIT;
-
 SELECT * FROM accounts;
-
 -- Now try a rollback:
 -- BEGIN;
 -- UPDATE accounts SET balance = balance - 9999 WHERE id = 1;

@@ -64,7 +64,7 @@ Try it yourself. The widget below sets up a small `orders` table with and withou
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index vs. full scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (1,'Alice'),(2,'Bob'),(3,'Carol'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL); INSERT INTO orders VALUES (1,1,120.00),(2,2,650.00),(3,1,310.00),(4,3,820.00),(5,2,45.00),(6,3,990.00); CREATE INDEX idx_orders_cust ON orders(customer_id);">EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (1,'Alice'),(2,'Bob'),(3,'Carol'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL); INSERT INTO orders VALUES (1,1,120.00),(2,2,650.00),(3,1,310.00),(4,3,820.00),(5,2,45.00),(6,3,990.00); CREATE INDEX idx_orders_cust ON orders(customer_id);" rows="20">EXPLAIN QUERY PLAN
 SELECT o.id, c.name, o.total
 FROM orders o
 JOIN customers c ON c.id = o.customer_id
@@ -113,7 +113,7 @@ The widget below lets you explore a join with aggregation — a common pattern w
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Aggregation and plan exploration</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (1,'Alice'),(2,'Bob'),(3,'Carol'),(4,'Dave'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL, status TEXT); INSERT INTO orders VALUES (1,1,120.00,'shipped'),(2,2,650.00,'shipped'),(3,1,310.00,'pending'),(4,3,820.00,'shipped'),(5,2,45.00,'cancelled'),(6,3,990.00,'shipped'),(7,4,200.00,'pending'),(8,4,80.00,'shipped'); CREATE INDEX idx_orders_customer ON orders(customer_id);">SELECT c.name,
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (1,'Alice'),(2,'Bob'),(3,'Carol'),(4,'Dave'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL, status TEXT); INSERT INTO orders VALUES (1,1,120.00,'shipped'),(2,2,650.00,'shipped'),(3,1,310.00,'pending'),(4,3,820.00,'shipped'),(5,2,45.00,'cancelled'),(6,3,990.00,'shipped'),(7,4,200.00,'pending'),(8,4,80.00,'shipped'); CREATE INDEX idx_orders_customer ON orders(customer_id);" rows="20">SELECT c.name,
        COUNT(o.id)   AS order_count,
        SUM(o.total)  AS revenue
 FROM customers c

@@ -81,14 +81,13 @@ The widget below sets up a small `orders`/`customers` schema. Run the default `E
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Reading EXPLAIN QUERY PLAN</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, country TEXT); INSERT INTO customers VALUES (1,'Alice','US'),(2,'Bob','UK'),(3,'Carol','US'),(4,'Dan','DE'),(5,'Eve','US'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1,1,250.0,'shipped'),(2,1,80.0,'pending'),(3,2,430.0,'shipped'),(4,3,90.0,'shipped'),(5,3,310.0,'pending'),(6,4,75.0,'shipped'),(7,5,520.0,'shipped'),(8,5,60.0,'pending');">-- Plan without an index on customer_id:
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, country TEXT); INSERT INTO customers VALUES (1,'Alice','US'),(2,'Bob','UK'),(3,'Carol','US'),(4,'Dan','DE'),(5,'Eve','US'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1,1,250.0,'shipped'),(2,1,80.0,'pending'),(3,2,430.0,'shipped'),(4,3,90.0,'shipped'),(5,3,310.0,'pending'),(6,4,75.0,'shipped'),(7,5,520.0,'shipped'),(8,5,60.0,'pending');" rows="20">-- Plan without an index on customer_id:
 EXPLAIN QUERY PLAN
 SELECT c.name, SUM(o.amount) AS total
 FROM orders o
 JOIN customers c ON o.customer_id = c.id
 WHERE c.country = 'US'
 GROUP BY c.name;
-
 -- Try adding this index, then re-run the EXPLAIN:
 -- CREATE INDEX idx_orders_customer ON orders(customer_id);</textarea>
   </div>

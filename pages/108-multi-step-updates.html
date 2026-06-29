@@ -120,19 +120,15 @@ The widget below models a ticket-booking scenario: a customer buys a seat, which
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · multi-step booking</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, name TEXT NOT NULL, seats_available INTEGER NOT NULL CHECK(seats_available >= 0));
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, name TEXT NOT NULL, seats_available INTEGER NOT NULL CHECK(seats_available  rows="20">= 0));
 CREATE TABLE bookings (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL, customer TEXT NOT NULL);
 INSERT INTO events VALUES (1, 'Jazz Night', 10);
 INSERT INTO events VALUES (2, 'Art Show', 2);">BEGIN;
-
 -- Step 1: record the booking
 INSERT INTO bookings (event_id, customer) VALUES (1, 'Alice');
-
 -- Step 2: decrement available seats
 UPDATE events SET seats_available = seats_available - 1 WHERE id = 1;
-
 COMMIT;
-
 -- Inspect the result:
 SELECT * FROM events;
 SELECT * FROM bookings;</textarea>

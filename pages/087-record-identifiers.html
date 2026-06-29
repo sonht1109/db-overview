@@ -75,7 +75,7 @@ CREATE TABLE email_index (email TEXT PRIMARY KEY, page_id INTEGER, slot_num INTE
 INSERT INTO email_index VALUES ('alice@example.com', 3, 0);
 INSERT INTO email_index VALUES ('bob@example.com', 3, 1);
 INSERT INTO email_index VALUES ('carol@example.com', 5, 0);
-INSERT INTO email_index VALUES ('dave@example.com', 5, 2);">-- Step 1: look up the RID in the index
+INSERT INTO email_index VALUES ('dave@example.com', 5, 2);" rows="20">-- Step 1: look up the RID in the index
 -- Step 2: use it to fetch the row from the 'heap'
 SELECT
   i.email,

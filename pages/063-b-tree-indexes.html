@@ -81,10 +81,9 @@ The widget below creates a small `orders` table, runs the same query with and wi
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · B-tree index vs. full scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, amount REAL); INSERT INTO orders VALUES (1,101,'shipped',250.0),(2,101,'pending',80.0),(3,102,'shipped',430.0),(4,103,'shipped',90.0),(5,103,'pending',310.0),(6,104,'shipped',75.0),(7,105,'shipped',520.0),(8,105,'pending',60.0),(9,106,'shipped',180.0),(10,107,'pending',95.0);">-- Step 1: see the plan WITHOUT an index (look for SCAN orders)
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, amount REAL); INSERT INTO orders VALUES (1,101,'shipped',250.0),(2,101,'pending',80.0),(3,102,'shipped',430.0),(4,103,'shipped',90.0),(5,103,'pending',310.0),(6,104,'shipped',75.0),(7,105,'shipped',520.0),(8,105,'pending',60.0),(9,106,'shipped',180.0),(10,107,'pending',95.0);" rows="20">-- Step 1: see the plan WITHOUT an index (look for SCAN orders)
 EXPLAIN QUERY PLAN
 SELECT * FROM orders WHERE customer_id = 103;
-
 -- Step 2: create the index, then re-run the EXPLAIN above
 -- CREATE INDEX idx_orders_customer ON orders(customer_id);</textarea>
   </div>

@@ -120,7 +120,7 @@ Relational databases require schema migrations — adding a column, renaming a f
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Database Evaluation Scoring</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE evaluation (criterion TEXT, weight INTEGER, pg_score INTEGER, mongo_score INTEGER, cassandra_score INTEGER); INSERT INTO evaluation VALUES ('Access pattern fit',5,4,4,2); INSERT INTO evaluation VALUES ('Consistency guarantees',4,5,3,2); INSERT INTO evaluation VALUES ('Write throughput',3,3,3,5); INSERT INTO evaluation VALUES ('Operational simplicity',4,5,3,2); INSERT INTO evaluation VALUES ('Query flexibility',3,5,4,1); INSERT INTO evaluation VALUES ('Schema evolution ease',2,3,5,3); INSERT INTO evaluation VALUES ('Team expertise',5,5,2,1);">-- Weighted scoring across candidate databases (1-5 scale)
+    <textarea data-setup="CREATE TABLE evaluation (criterion TEXT, weight INTEGER, pg_score INTEGER, mongo_score INTEGER, cassandra_score INTEGER); INSERT INTO evaluation VALUES ('Access pattern fit',5,4,4,2); INSERT INTO evaluation VALUES ('Consistency guarantees',4,5,3,2); INSERT INTO evaluation VALUES ('Write throughput',3,3,3,5); INSERT INTO evaluation VALUES ('Operational simplicity',4,5,3,2); INSERT INTO evaluation VALUES ('Query flexibility',3,5,4,1); INSERT INTO evaluation VALUES ('Schema evolution ease',2,3,5,3); INSERT INTO evaluation VALUES ('Team expertise',5,5,2,1);" rows="20">-- Weighted scoring across candidate databases (1-5 scale)
 SELECT
   criterion,
   weight,
@@ -132,7 +132,6 @@ SELECT
   cassandra_score * weight AS cassandra_weighted
 FROM evaluation
 ORDER BY weight DESC;
-
 -- Sum the weighted scores to compare overall fit
 -- SELECT
 --   SUM(pg_score * weight) AS postgres_total,

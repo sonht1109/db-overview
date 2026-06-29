@@ -120,7 +120,7 @@ WITH current_tick AS (SELECT 1005 AS now),
        SELECT h.node_id,
               h.last_seen_at,
               c.now - h.last_seen_at AS seconds_since_seen,
-              CASE WHEN c.now - h.last_seen_at > 30 THEN 'SUSPECTED FAILED'
+              CASE WHEN c.now - h.last_seen_at  rows="20"> 30 THEN 'SUSPECTED FAILED'
                    WHEN c.now - h.last_seen_at > 10 THEN 'SLOW / DEGRADED'
                    ELSE 'HEALTHY'
               END AS health

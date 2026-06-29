@@ -148,7 +148,7 @@ Self-hosting makes sense in specific situations:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Managed vs Self-Hosted TCO Comparison</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE tco (scenario TEXT, infra_monthly_usd INTEGER, ops_hours_monthly REAL, eng_hourly_rate INTEGER, incident_cost_annual INTEGER); INSERT INTO tco VALUES ('Managed RDS (db.t3.medium)',380,2,150,500); INSERT INTO tco VALUES ('Self-hosted EC2 (t3.medium)',180,12,150,3000); INSERT INTO tco VALUES ('Managed RDS (db.r6g.2xlarge)',2200,3,150,500); INSERT INTO tco VALUES ('Self-hosted EC2 (r6g.2xlarge)',900,20,150,8000);">-- Annual total cost of ownership comparison
+    <textarea data-setup="CREATE TABLE tco (scenario TEXT, infra_monthly_usd INTEGER, ops_hours_monthly REAL, eng_hourly_rate INTEGER, incident_cost_annual INTEGER); INSERT INTO tco VALUES ('Managed RDS (db.t3.medium)',380,2,150,500); INSERT INTO tco VALUES ('Self-hosted EC2 (t3.medium)',180,12,150,3000); INSERT INTO tco VALUES ('Managed RDS (db.r6g.2xlarge)',2200,3,150,500); INSERT INTO tco VALUES ('Self-hosted EC2 (r6g.2xlarge)',900,20,150,8000);" rows="20">-- Annual total cost of ownership comparison
 SELECT
   scenario,
   infra_monthly_usd * 12 AS annual_infra_usd,

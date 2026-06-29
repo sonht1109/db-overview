@@ -112,17 +112,15 @@ Real replication lag is a runtime phenomenon, but you can reason about it with a
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating stale reads from a lagging replica</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE primary_orders (id INTEGER PRIMARY KEY, customer TEXT, status TEXT, amount INTEGER); INSERT INTO primary_orders VALUES (1, 'Alice', 'shipped', 120); INSERT INTO primary_orders VALUES (2, 'Bob', 'cancelled', 45); INSERT INTO primary_orders VALUES (3, 'Carol', 'pending', 88); INSERT INTO primary_orders VALUES (4, 'Dave', 'shipped', 200); CREATE TABLE replica_orders (id INTEGER PRIMARY KEY, customer TEXT, status TEXT, amount INTEGER); INSERT INTO replica_orders VALUES (1, 'Alice', 'pending', 120); INSERT INTO replica_orders VALUES (2, 'Bob', 'pending', 45); INSERT INTO replica_orders VALUES (3, 'Carol', 'pending', 88);">-- The replica is one replication cycle behind the primary.
+    <textarea data-setup="CREATE TABLE primary_orders (id INTEGER PRIMARY KEY, customer TEXT, status TEXT, amount INTEGER); INSERT INTO primary_orders VALUES (1, 'Alice', 'shipped', 120); INSERT INTO primary_orders VALUES (2, 'Bob', 'cancelled', 45); INSERT INTO primary_orders VALUES (3, 'Carol', 'pending', 88); INSERT INTO primary_orders VALUES (4, 'Dave', 'shipped', 200); CREATE TABLE replica_orders (id INTEGER PRIMARY KEY, customer TEXT, status TEXT, amount INTEGER); INSERT INTO replica_orders VALUES (1, 'Alice', 'pending', 120); INSERT INTO replica_orders VALUES (2, 'Bob', 'pending', 45); INSERT INTO replica_orders VALUES (3, 'Carol', 'pending', 88);" rows="20">-- The replica is one replication cycle behind the primary.
 -- Row 4 (Dave) does not exist yet on the replica.
 -- Alice and Bob have stale statuses on the replica.
-
 -- Compare total shipped revenue as seen by each node:
 SELECT 'primary' AS source, SUM(amount) AS shipped_revenue
 FROM primary_orders WHERE status = 'shipped'
 UNION ALL
 SELECT 'replica' AS source, SUM(amount) AS shipped_revenue
 FROM replica_orders WHERE status = 'shipped';
-
 -- Try: query replica_orders for Bob's status — it shows 'pending'
 -- even though the primary already has 'cancelled'.</textarea>
   </div>

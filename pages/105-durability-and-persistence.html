@@ -118,18 +118,16 @@ Try the widget to see how SQLite reports its own synchronous setting, and experi
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Durability and COMMIT boundaries</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE ledger (id INTEGER PRIMARY KEY, description TEXT, amount INTEGER); INSERT INTO ledger VALUES (1, 'Opening balance', 5000);">-- Check SQLite's current durability mode
+    <textarea data-setup="CREATE TABLE ledger (id INTEGER PRIMARY KEY, description TEXT, amount INTEGER); INSERT INTO ledger VALUES (1, 'Opening balance', 5000);" rows="20">-- Check SQLite's current durability mode
 PRAGMA synchronous;
 -- 2 = FULL (fsync on every commit — maximum durability)
 -- 1 = NORMAL  0 = OFF (dangerous: skips fsync)
-
 -- Each COMMIT is the durability boundary.
 -- Everything inside BEGIN...COMMIT is written atomically AND durably.
 BEGIN;
   INSERT INTO ledger VALUES (2, 'Invoice payment received', 1200);
   INSERT INTO ledger VALUES (3, 'Supplier payment sent', -800);
 COMMIT;
-
 -- This is now durable: a crash after COMMIT cannot lose these rows.
 SELECT id, description, amount,
        SUM(amount) OVER (ORDER BY id) AS running_balance

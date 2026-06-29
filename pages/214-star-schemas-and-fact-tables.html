@@ -178,7 +178,7 @@ CREATE TABLE fact_sales (sale_id INT PRIMARY KEY, date_key INT, product_key INT,
 INSERT INTO dim_date VALUES (20240101, 2024, 1, &apos;January&apos;),(20240201, 2024, 1, &apos;February&apos;),(20240301, 2024, 1, &apos;March&apos;),(20240401, 2024, 2, &apos;April&apos;);
 INSERT INTO dim_product VALUES (1, &apos;Laptop Pro&apos;, &apos;Electronics&apos;, &apos;TechBrand&apos;),(2, &apos;Desk Chair&apos;, &apos;Furniture&apos;, &apos;ComfortCo&apos;),(3, &apos;USB Hub&apos;, &apos;Electronics&apos;, &apos;TechBrand&apos;);
 INSERT INTO dim_store VALUES (10, &apos;Downtown&apos;, &apos;East&apos;),(20, &apos;Westside&apos;, &apos;West&apos;),(30, &apos;Northgate&apos;, &apos;North&apos;);
-INSERT INTO fact_sales VALUES (1,20240101,1,10,1299.99,1),(2,20240101,2,20,349.00,2),(3,20240201,1,20,1299.99,1),(4,20240201,3,10,45.00,3),(5,20240301,1,30,1299.99,2),(6,20240401,2,10,349.00,1),(7,20240401,3,30,45.00,5);">-- Total revenue by product category and quarter
+INSERT INTO fact_sales VALUES (1,20240101,1,10,1299.99,1),(2,20240101,2,20,349.00,2),(3,20240201,1,20,1299.99,1),(4,20240201,3,10,45.00,3),(5,20240301,1,30,1299.99,2),(6,20240401,2,10,349.00,1),(7,20240401,3,30,45.00,5);" rows="20">-- Total revenue by product category and quarter
 SELECT
   d.quarter,
   p.category,

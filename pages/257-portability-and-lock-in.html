@@ -123,7 +123,7 @@ The mistake is not accepting lock-in; the mistake is accepting it unknowingly, w
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Migration Cost Estimation by Lock-In Level</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE migration_scenario (source_db TEXT, target_db TEXT, lock_in_level TEXT, data_migration_weeks REAL, app_rewrite_weeks REAL, validation_weeks REAL); INSERT INTO migration_scenario VALUES ('PostgreSQL','MySQL','Low (SQL-to-SQL)',1,2,1); INSERT INTO migration_scenario VALUES ('PostgreSQL','CockroachDB','Low (SQL-compatible)',0.5,1,1); INSERT INTO migration_scenario VALUES ('MongoDB','PostgreSQL','Medium (doc-to-relational)',3,6,2); INSERT INTO migration_scenario VALUES ('DynamoDB','PostgreSQL','High (proprietary API)',4,12,3); INSERT INTO migration_scenario VALUES ('Cassandra','ScyllaDB','Low (wire-compatible)',1,0.5,1);">-- Migration effort estimates by lock-in level
+    <textarea data-setup="CREATE TABLE migration_scenario (source_db TEXT, target_db TEXT, lock_in_level TEXT, data_migration_weeks REAL, app_rewrite_weeks REAL, validation_weeks REAL); INSERT INTO migration_scenario VALUES ('PostgreSQL','MySQL','Low (SQL-to-SQL)',1,2,1); INSERT INTO migration_scenario VALUES ('PostgreSQL','CockroachDB','Low (SQL-compatible)',0.5,1,1); INSERT INTO migration_scenario VALUES ('MongoDB','PostgreSQL','Medium (doc-to-relational)',3,6,2); INSERT INTO migration_scenario VALUES ('DynamoDB','PostgreSQL','High (proprietary API)',4,12,3); INSERT INTO migration_scenario VALUES ('Cassandra','ScyllaDB','Low (wire-compatible)',1,0.5,1);" rows="20">-- Migration effort estimates by lock-in level
 SELECT
   source_db || ' → ' || target_db AS migration,
   lock_in_level,

@@ -51,7 +51,7 @@ Try this widget to see fan-out in action. Notice how joining before aggregating 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Fan-out join</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT, amount REAL); INSERT INTO orders VALUES (1,'Alice',100),(2,'Bob',200),(3,'Alice',50); CREATE TABLE line_items (item_id INTEGER PRIMARY KEY, order_id INTEGER, product TEXT, qty INTEGER); INSERT INTO line_items VALUES (1,1,'Widget',2),(2,1,'Gadget',1),(3,2,'Widget',5),(4,3,'Gadget',3);"> -- How many rows does the join produce?
+    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT, amount REAL); INSERT INTO orders VALUES (1,'Alice',100),(2,'Bob',200),(3,'Alice',50); CREATE TABLE line_items (item_id INTEGER PRIMARY KEY, order_id INTEGER, product TEXT, qty INTEGER); INSERT INTO line_items VALUES (1,1,'Widget',2),(2,1,'Gadget',1),(3,2,'Widget',5),(4,3,'Gadget',3);" rows="20"> -- How many rows does the join produce?
 -- Compare this to the number of orders (3).
 SELECT o.order_id, o.customer, o.amount, li.product, li.qty
 FROM orders o
@@ -69,7 +69,7 @@ SQLite (and every SQL engine) gives you `COUNT(*)` for total rows and `COUNT(DIS
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · COUNT variants</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (event_id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT); INSERT INTO events VALUES (1,101,'click'),(2,101,'view'),(3,102,'click'),(4,103,'view'),(5,101,'purchase'),(6,102,'purchase');"> -- Total events vs unique users vs events per user
+    <textarea data-setup="CREATE TABLE events (event_id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT); INSERT INTO events VALUES (1,101,'click'),(2,101,'view'),(3,102,'click'),(4,103,'view'),(5,101,'purchase'),(6,102,'purchase');" rows="20"> -- Total events vs unique users vs events per user
 SELECT
   COUNT(*)                  AS total_events,
   COUNT(DISTINCT user_id)   AS unique_users,

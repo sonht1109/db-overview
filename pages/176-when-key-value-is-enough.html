@@ -118,11 +118,10 @@ A key-value store is conceptually a two-column table. This widget lets you explo
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Key-Value simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv_store (key TEXT PRIMARY KEY, value TEXT, expires_at INTEGER); INSERT INTO kv_store VALUES ('session:abc1', '{&quot;uid&quot;:1,&quot;role&quot;:&quot;admin&quot;}', strftime('%s','now') + 3600); INSERT INTO kv_store VALUES ('session:abc2', '{&quot;uid&quot;:2,&quot;role&quot;:&quot;user&quot;}', strftime('%s','now') - 10); INSERT INTO kv_store VALUES ('rate:api:1', '17', strftime('%s','now') + 60); INSERT INTO kv_store VALUES ('flag:dark-mode:1', 'true', NULL);">-- GET a single session (the key-value way: exact lookup)
+    <textarea data-setup="CREATE TABLE kv_store (key TEXT PRIMARY KEY, value TEXT, expires_at INTEGER); INSERT INTO kv_store VALUES ('session:abc1', '{&quot;uid&quot;:1,&quot;role&quot;:&quot;admin&quot;}', strftime('%s','now') + 3600); INSERT INTO kv_store VALUES ('session:abc2', '{&quot;uid&quot;:2,&quot;role&quot;:&quot;user&quot;}', strftime('%s','now') - 10); INSERT INTO kv_store VALUES ('rate:api:1', '17', strftime('%s','now') + 60); INSERT INTO kv_store VALUES ('flag:dark-mode:1', 'true', NULL);" rows="20">-- GET a single session (the key-value way: exact lookup)
 SELECT key, value
 FROM kv_store
 WHERE key = 'session:abc1';
-
 -- Uncomment to see all non-expired entries (simulating a TTL sweep):
 -- SELECT key, value FROM kv_store
 -- WHERE expires_at IS NULL OR expires_at > strftime('%s','now');

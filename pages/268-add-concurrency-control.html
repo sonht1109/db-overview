@@ -189,13 +189,12 @@ MVCC is what makes `SELECT` fast in PostgreSQL even when a long-running transact
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Isolation Anomalies</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1,'Alice',1000),(2,'Bob',500);">-- Demonstrate that SQLite prevents lost updates within a transaction:
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1,'Alice',1000),(2,'Bob',500);" rows="20">-- Demonstrate that SQLite prevents lost updates within a transaction:
 BEGIN;
   UPDATE accounts SET balance = balance - 200 WHERE id = 1;
   UPDATE accounts SET balance = balance + 200 WHERE id = 2;
 COMMIT;
 SELECT * FROM accounts;
-
 -- In SQLite WAL mode, readers and writers don't block each other.
 -- Show current isolation level:
 PRAGMA journal_mode;</textarea>

@@ -141,13 +141,12 @@ WHERE processed = 0;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index Impact</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, status TEXT NOT NULL, total REAL NOT NULL, created_at TEXT NOT NULL); INSERT INTO orders VALUES (1,101,'shipped',49.99,'2024-01-05'),(2,102,'pending',120.00,'2024-01-06'),(3,101,'pending',30.00,'2024-01-07'),(4,103,'cancelled',15.00,'2024-01-08'),(5,101,'shipped',200.00,'2024-01-09'),(6,102,'shipped',85.00,'2024-01-10'),(7,104,'pending',60.00,'2024-01-11'),(8,105,'shipped',300.00,'2024-01-12'); CREATE INDEX idx_orders_status_date ON orders(status, created_at);">-- Composite index: equality first, range second
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, status TEXT NOT NULL, total REAL NOT NULL, created_at TEXT NOT NULL); INSERT INTO orders VALUES (1,101,'shipped',49.99,'2024-01-05'),(2,102,'pending',120.00,'2024-01-06'),(3,101,'pending',30.00,'2024-01-07'),(4,103,'cancelled',15.00,'2024-01-08'),(5,101,'shipped',200.00,'2024-01-09'),(6,102,'shipped',85.00,'2024-01-10'),(7,104,'pending',60.00,'2024-01-11'),(8,105,'shipped',300.00,'2024-01-12'); CREATE INDEX idx_orders_status_date ON orders(status, created_at);" rows="20">-- Composite index: equality first, range second
 SELECT id, total, created_at
 FROM orders
 WHERE status = 'pending'
   AND created_at &gt; '2024-01-06'
 ORDER BY created_at;
-
 -- Try EXPLAIN QUERY PLAN ... to see if the index is used:
 -- EXPLAIN QUERY PLAN SELECT id FROM orders WHERE status = 'pending';</textarea>
   </div>

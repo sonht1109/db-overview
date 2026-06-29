@@ -66,13 +66,12 @@ The widget below creates a `sessions` table — a classic hash-index use case, s
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Point lookups on session tokens</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sessions (token TEXT PRIMARY KEY, user_id INTEGER, created_at TEXT, expires_at TEXT); INSERT INTO sessions VALUES ('tok_a1b2c3', 101, '2024-01-01 08:00', '2024-01-02 08:00'), ('tok_d4e5f6', 102, '2024-01-01 09:00', '2024-01-02 09:00'), ('tok_g7h8i9', 103, '2024-01-01 10:00', '2024-01-02 10:00'), ('tok_j0k1l2', 101, '2024-01-02 08:00', '2024-01-03 08:00'), ('tok_m3n4o5', 104, '2024-01-02 11:00', '2024-01-03 11:00'); CREATE INDEX idx_sessions_token ON sessions(token);">-- Equality lookup: this is what hash indexes are built for.
+    <textarea data-setup="CREATE TABLE sessions (token TEXT PRIMARY KEY, user_id INTEGER, created_at TEXT, expires_at TEXT); INSERT INTO sessions VALUES ('tok_a1b2c3', 101, '2024-01-01 08:00', '2024-01-02 08:00'), ('tok_d4e5f6', 102, '2024-01-01 09:00', '2024-01-02 09:00'), ('tok_g7h8i9', 103, '2024-01-01 10:00', '2024-01-02 10:00'), ('tok_j0k1l2', 101, '2024-01-02 08:00', '2024-01-03 08:00'), ('tok_m3n4o5', 104, '2024-01-02 11:00', '2024-01-03 11:00'); CREATE INDEX idx_sessions_token ON sessions(token);" rows="20">-- Equality lookup: this is what hash indexes are built for.
 -- SQLite uses its B-tree index here; a real hash index would cost O(1).
 EXPLAIN QUERY PLAN
 SELECT user_id, expires_at
 FROM sessions
 WHERE token = 'tok_d4e5f6';
-
 -- Try dropping the index and re-running to see the full scan:
 -- DROP INDEX idx_sessions_token;</textarea>
   </div>

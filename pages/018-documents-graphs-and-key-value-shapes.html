@@ -116,7 +116,7 @@ Below, explore how SQLite handles a simple JSON-like scenario using its built-in
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · JSON in SQLite</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO products VALUES ('NB-001', '{&quot;name&quot;:&quot;Notebook&quot;,&quot;price&quot;:2.99,&quot;tags&quot;:[&quot;stationery&quot;]}'); INSERT INTO products VALUES ('LP-042', '{&quot;name&quot;:&quot;Laptop&quot;,&quot;price&quot;:999.00,&quot;tags&quot;:[&quot;electronics&quot;]}'); INSERT INTO products VALUES ('PN-007', '{&quot;name&quot;:&quot;Pen&quot;,&quot;price&quot;:0.99,&quot;tags&quot;:[&quot;stationery&quot;]}');">SELECT
+    <textarea data-setup="CREATE TABLE products (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO products VALUES ('NB-001', '{&quot;name&quot;:&quot;Notebook&quot;,&quot;price&quot;:2.99,&quot;tags&quot;:[&quot;stationery&quot;]}'); INSERT INTO products VALUES ('LP-042', '{&quot;name&quot;:&quot;Laptop&quot;,&quot;price&quot;:999.00,&quot;tags&quot;:[&quot;electronics&quot;]}'); INSERT INTO products VALUES ('PN-007', '{&quot;name&quot;:&quot;Pen&quot;,&quot;price&quot;:0.99,&quot;tags&quot;:[&quot;stationery&quot;]}');" rows="20">SELECT
   id,
   json_extract(doc, '$.name')  AS name,
   json_extract(doc, '$.price') AS price

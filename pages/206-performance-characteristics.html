@@ -159,16 +159,13 @@ The SQL widget below simulates two scenarios side by side using recursive CTEs: 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating graph traversal cost growth</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE nodes (id INTEGER PRIMARY KEY, label TEXT); INSERT INTO nodes VALUES (1,'A'),(2,'B'),(3,'C'),(4,'D'),(5,'E'),(6,'F'),(7,'G'),(8,'H'),(9,'I'),(10,'J'),(11,'K'),(12,'L'),(13,'M'),(14,'N'),(15,'O'); CREATE TABLE edges (src INTEGER, dst INTEGER); INSERT INTO edges VALUES (1,2),(1,3),(1,4),(2,5),(2,6),(2,7),(3,8),(3,9),(3,10),(4,11),(4,12),(4,13),(5,14),(6,15),(7,14),(8,15),(9,14),(10,15);">-- Count intermediate rows at each hop depth
+    <textarea data-setup="CREATE TABLE nodes (id INTEGER PRIMARY KEY, label TEXT); INSERT INTO nodes VALUES (1,'A'),(2,'B'),(3,'C'),(4,'D'),(5,'E'),(6,'F'),(7,'G'),(8,'H'),(9,'I'),(10,'J'),(11,'K'),(12,'L'),(13,'M'),(14,'N'),(15,'O'); CREATE TABLE edges (src INTEGER, dst INTEGER); INSERT INTO edges VALUES (1,2),(1,3),(1,4),(2,5),(2,6),(2,7),(3,8),(3,9),(3,10),(4,11),(4,12),(4,13),(5,14),(6,15),(7,14),(8,15),(9,14),(10,15);" rows="20">-- Count intermediate rows at each hop depth
 -- This shows the multiplicative growth SQL must manage
-
 WITH RECURSIVE traversal(node_id, depth, path) AS (
   SELECT dst, 1, CAST(src AS TEXT) || &apos;-&apos; || CAST(dst AS TEXT)
   FROM   edges
   WHERE  src = 1
-
   UNION ALL
-
   SELECT e.dst, t.depth + 1, t.path || &apos;-&apos; || CAST(e.dst AS TEXT)
   FROM   traversal t
   JOIN   edges e ON e.src = t.node_id

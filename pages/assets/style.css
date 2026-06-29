@@ -129,7 +129,7 @@ body.show-raw #raw { display: block; }
 .widget textarea {
   width: 100%; font-family: var(--mono); font-size: 14px; border: 1px solid var(--border);
   border-radius: 8px; padding: 12px; background: var(--code-bg); color: var(--text);
-  resize: vertical; min-height: 90px; line-height: 1.5;
+  resize: vertical; line-height: 1.5;
 }
 .widget .run-btn {
   margin-top: 10px; background: var(--accent); color: #fff; border: none; cursor: pointer;

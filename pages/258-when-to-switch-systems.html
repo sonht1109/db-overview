@@ -120,14 +120,13 @@ Once the decision to switch is made, the migration pattern that minimises risk f
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Migration Readiness Checklist</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE migration_checklist (category TEXT, item TEXT, completed INTEGER); INSERT INTO migration_checklist VALUES ('Signal','Structural ceiling confirmed (not a tuning problem)',0); INSERT INTO migration_checklist VALUES ('Signal','Pain quantified: ops hours/month or latency impact',0); INSERT INTO migration_checklist VALUES ('Signal','Business cost of staying exceeds migration cost',0); INSERT INTO migration_checklist VALUES ('Preparation','Target DB validated with production-representative data',0); INSERT INTO migration_checklist VALUES ('Preparation','Migration timeline and rollback plan documented',0); INSERT INTO migration_checklist VALUES ('Preparation','Dual-write infrastructure in place',0); INSERT INTO migration_checklist VALUES ('Execution','Historical data backfill complete and validated',0); INSERT INTO migration_checklist VALUES ('Execution','Shadow reads running, discrepancy rate &lt; 0.01%',0); INSERT INTO migration_checklist VALUES ('Execution','Rollback window defined and old system warm',0);">-- Track migration readiness (set completed = 1 as items are done)
+    <textarea data-setup="CREATE TABLE migration_checklist (category TEXT, item TEXT, completed INTEGER); INSERT INTO migration_checklist VALUES ('Signal','Structural ceiling confirmed (not a tuning problem)',0); INSERT INTO migration_checklist VALUES ('Signal','Pain quantified: ops hours/month or latency impact',0); INSERT INTO migration_checklist VALUES ('Signal','Business cost of staying exceeds migration cost',0); INSERT INTO migration_checklist VALUES ('Preparation','Target DB validated with production-representative data',0); INSERT INTO migration_checklist VALUES ('Preparation','Migration timeline and rollback plan documented',0); INSERT INTO migration_checklist VALUES ('Preparation','Dual-write infrastructure in place',0); INSERT INTO migration_checklist VALUES ('Execution','Historical data backfill complete and validated',0); INSERT INTO migration_checklist VALUES ('Execution','Shadow reads running, discrepancy rate &lt; 0.01%',0); INSERT INTO migration_checklist VALUES ('Execution','Rollback window defined and old system warm',0);" rows="20">-- Track migration readiness (set completed = 1 as items are done)
 SELECT
   category,
   item,
   CASE completed WHEN 1 THEN 'Done' ELSE 'Pending' END AS status
 FROM migration_checklist
 ORDER BY category, completed DESC;
-
 -- Count completion by category
 -- SELECT category, SUM(completed) || '/' || COUNT(*) AS progress
 -- FROM migration_checklist GROUP BY category;</textarea>

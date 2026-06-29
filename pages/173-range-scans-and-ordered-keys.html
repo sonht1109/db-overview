@@ -141,13 +141,12 @@ Try the default query first, then modify the `BETWEEN` bounds to narrow or widen
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Ordered Key Range Scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv_log (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO kv_log VALUES ('acme:2024-01-05T09:00:00Z:evt_001', 'login'); INSERT INTO kv_log VALUES ('acme:2024-01-20T11:30:00Z:evt_002', 'purchase'); INSERT INTO kv_log VALUES ('acme:2024-02-14T08:15:00Z:evt_003', 'refund'); INSERT INTO kv_log VALUES ('acme:2024-03-01T10:00:00Z:evt_004', 'login'); INSERT INTO kv_log VALUES ('acme:2024-03-10T14:22:00Z:evt_005', 'purchase'); INSERT INTO kv_log VALUES ('acme:2024-03-28T17:05:00Z:evt_006', 'logout'); INSERT INTO kv_log VALUES ('acme:2024-04-02T09:45:00Z:evt_007', 'login'); INSERT INTO kv_log VALUES ('beta:2024-03-15T12:00:00Z:evt_001', 'login'); INSERT INTO kv_log VALUES ('beta:2024-03-22T16:30:00Z:evt_002', 'purchase');">-- Range scan: all events for tenant 'acme' in March 2024
+    <textarea data-setup="CREATE TABLE kv_log (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO kv_log VALUES ('acme:2024-01-05T09:00:00Z:evt_001', 'login'); INSERT INTO kv_log VALUES ('acme:2024-01-20T11:30:00Z:evt_002', 'purchase'); INSERT INTO kv_log VALUES ('acme:2024-02-14T08:15:00Z:evt_003', 'refund'); INSERT INTO kv_log VALUES ('acme:2024-03-01T10:00:00Z:evt_004', 'login'); INSERT INTO kv_log VALUES ('acme:2024-03-10T14:22:00Z:evt_005', 'purchase'); INSERT INTO kv_log VALUES ('acme:2024-03-28T17:05:00Z:evt_006', 'logout'); INSERT INTO kv_log VALUES ('acme:2024-04-02T09:45:00Z:evt_007', 'login'); INSERT INTO kv_log VALUES ('beta:2024-03-15T12:00:00Z:evt_001', 'login'); INSERT INTO kv_log VALUES ('beta:2024-03-22T16:30:00Z:evt_002', 'purchase');" rows="20">-- Range scan: all events for tenant 'acme' in March 2024
 -- Key format: &lt;tenant&gt;:&lt;timestamp&gt;:&lt;event_id&gt;
 SELECT key, value
 FROM kv_log
 WHERE key BETWEEN 'acme:2024-03-' AND 'acme:2024-03~'
 ORDER BY key;
-
 -- Try these variations:
 -- All acme events ever:    WHERE key BETWEEN 'acme:' AND 'acme~'
 -- All beta events:         WHERE key BETWEEN 'beta:' AND 'beta~'

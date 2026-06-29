@@ -183,19 +183,17 @@ Use this table to evaluate whether a column-family database fits your workload:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Messaging Inbox Model</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE messages (recipient TEXT, sent_at TEXT, sender TEXT, body TEXT, PRIMARY KEY (recipient, sent_at)); INSERT INTO messages VALUES ('alice', '2024-06-25 09:00', 'bob',   'Hey, are you free today?'); INSERT INTO messages VALUES ('alice', '2024-06-25 09:05', 'carol', 'Sure! What time works?'); INSERT INTO messages VALUES ('alice', '2024-06-25 10:15', 'bob',   'Meet at 2pm?'); INSERT INTO messages VALUES ('alice', '2024-06-25 10:20', 'alice', 'Works for me!'); INSERT INTO messages VALUES ('bob',   '2024-06-25 08:45', 'alice', 'Project update attached'); INSERT INTO messages VALUES ('bob',   '2024-06-25 11:30', 'carol', 'Approved!'); INSERT INTO messages VALUES ('carol', '2024-06-24 16:00', 'alice', 'Team lunch tomorrow?'); INSERT INTO messages VALUES ('carol', '2024-06-24 16:12', 'bob',   'Italian place?'); INSERT INTO messages VALUES ('carol', '2024-06-25 12:00', 'alice', 'Confirmed, 1pm!');">-- Fetch all messages for alice, newest first (single-partition read)
+    <textarea data-setup="CREATE TABLE messages (recipient TEXT, sent_at TEXT, sender TEXT, body TEXT, PRIMARY KEY (recipient, sent_at)); INSERT INTO messages VALUES ('alice', '2024-06-25 09:00', 'bob',   'Hey, are you free today?'); INSERT INTO messages VALUES ('alice', '2024-06-25 09:05', 'carol', 'Sure! What time works?'); INSERT INTO messages VALUES ('alice', '2024-06-25 10:15', 'bob',   'Meet at 2pm?'); INSERT INTO messages VALUES ('alice', '2024-06-25 10:20', 'alice', 'Works for me!'); INSERT INTO messages VALUES ('bob',   '2024-06-25 08:45', 'alice', 'Project update attached'); INSERT INTO messages VALUES ('bob',   '2024-06-25 11:30', 'carol', 'Approved!'); INSERT INTO messages VALUES ('carol', '2024-06-24 16:00', 'alice', 'Team lunch tomorrow?'); INSERT INTO messages VALUES ('carol', '2024-06-24 16:12', 'bob',   'Italian place?'); INSERT INTO messages VALUES ('carol', '2024-06-25 12:00', 'alice', 'Confirmed, 1pm!');" rows="20">-- Fetch all messages for alice, newest first (single-partition read)
 SELECT recipient, sent_at, sender, body
 FROM messages
 WHERE recipient = 'alice'
 ORDER BY sent_at DESC;
-
 -- Fetch only messages received after a given time (range scan within partition)
 -- SELECT sent_at, sender, body
 -- FROM messages
 -- WHERE recipient = 'alice'
 --   AND sent_at &gt;= '2024-06-25 09:00'
 -- ORDER BY sent_at ASC;
-
 -- Count messages per recipient (shows natural partitioning)
 -- SELECT recipient, COUNT(*) AS message_count
 -- FROM messages

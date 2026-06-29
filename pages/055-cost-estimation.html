@@ -60,14 +60,13 @@ The widget below lets you see how row-count estimates appear in SQLite's `EXPLAI
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · EXPLAIN and cost hints</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x < 500) INSERT INTO orders SELECT x, (x % 50) + 1, (x % 100) * 9.5, CASE WHEN x % 10 = 0 THEN 'refunded' ELSE 'completed' END FROM cnt; CREATE INDEX idx_orders_status ON orders(status); ANALYZE;">-- Ask SQLite how it plans to execute this query.
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x < 500) INSERT INTO orders SELECT x, (x % 50) + 1, (x % 100) * 9.5, CASE WHEN x % 10 = 0 THEN 'refunded' ELSE 'completed' END FROM cnt; CREATE INDEX idx_orders_status ON orders(status); ANALYZE;" rows="20">-- Ask SQLite how it plans to execute this query.
 -- SCAN means a full table read; SEARCH means it used an index.
 EXPLAIN QUERY PLAN
 SELECT customer_id, SUM(amount)
 FROM orders
 WHERE status = 'refunded'
 GROUP BY customer_id;
-
 -- Try dropping the index and re-running:
 -- DROP INDEX idx_orders_status;
 -- ANALYZE;

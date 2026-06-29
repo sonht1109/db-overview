@@ -230,7 +230,7 @@ INSERT INTO sales VALUES
   (7, &apos;APAC&apos;, &apos;Books&apos;, 120.00, &apos;2024-01-11&apos;),
   (8, &apos;AMER&apos;, &apos;Electronics&apos;, 3400.00, &apos;2024-01-12&apos;),
   (9, &apos;EMEA&apos;, &apos;Clothing&apos;, 480.00, &apos;2024-01-13&apos;),
-  (10, &apos;APAC&apos;, &apos;Electronics&apos;, 760.00, &apos;2024-01-14&apos;);">-- In a real MPP system this GROUP BY would fan out:
+  (10, &apos;APAC&apos;, &apos;Electronics&apos;, 760.00, &apos;2024-01-14&apos;);" rows="20">-- In a real MPP system this GROUP BY would fan out:
 -- each worker aggregates its own partition,
 -- then partial sums are merged at the coordinator.
 -- Try modifying the GROUP BY columns.

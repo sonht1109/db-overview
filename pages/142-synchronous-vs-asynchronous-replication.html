@@ -166,7 +166,7 @@ Use this widget to explore what a replication lag monitor might look like. The q
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Replication lag monitor</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replicas (replica_id TEXT PRIMARY KEY, mode TEXT, leader_lsn INTEGER, replica_lsn INTEGER, last_contact_sec INTEGER); INSERT INTO replicas VALUES ('replica-1', 'sync',  10500, 10500, 1); INSERT INTO replicas VALUES ('replica-2', 'async', 10500, 10480, 3); INSERT INTO replicas VALUES ('replica-3', 'async', 10500, 10100, 8); INSERT INTO replicas VALUES ('replica-4', 'async', 10500,  9800, 45);">
+    <textarea data-setup="CREATE TABLE replicas (replica_id TEXT PRIMARY KEY, mode TEXT, leader_lsn INTEGER, replica_lsn INTEGER, last_contact_sec INTEGER); INSERT INTO replicas VALUES ('replica-1', 'sync',  10500, 10500, 1); INSERT INTO replicas VALUES ('replica-2', 'async', 10500, 10480, 3); INSERT INTO replicas VALUES ('replica-3', 'async', 10500, 10100, 8); INSERT INTO replicas VALUES ('replica-4', 'async', 10500,  9800, 45);" rows="20">
 -- How far behind is each replica?
 -- lag_bytes = how many log bytes the replica hasn't applied yet.
 -- A replica that is too far behind may serve stale reads.

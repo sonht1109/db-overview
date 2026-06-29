@@ -123,7 +123,7 @@ SQLite is a single-node engine so it is always strongly consistent — but you c
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating stale reads</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replica_a (key TEXT PRIMARY KEY, value INTEGER, updated_at INTEGER); CREATE TABLE replica_b (key TEXT PRIMARY KEY, value INTEGER, updated_at INTEGER); INSERT INTO replica_a VALUES ('balance', 100, 1); INSERT INTO replica_b VALUES ('balance', 100, 1); /* Simulate a write that reached replica_a but NOT yet replica_b */ UPDATE replica_a SET value = 80, updated_at = 2 WHERE key = 'balance';">
+    <textarea data-setup="CREATE TABLE replica_a (key TEXT PRIMARY KEY, value INTEGER, updated_at INTEGER); CREATE TABLE replica_b (key TEXT PRIMARY KEY, value INTEGER, updated_at INTEGER); INSERT INTO replica_a VALUES ('balance', 100, 1); INSERT INTO replica_b VALUES ('balance', 100, 1); /* Simulate a write that reached replica_a but NOT yet replica_b */ UPDATE replica_a SET value = 80, updated_at = 2 WHERE key = 'balance';" rows="20">
 -- Read from both replicas right after the write.
 -- Replica B hasn't synced yet, so it returns stale data.
 SELECT 'replica_a' AS replica, value, updated_at FROM replica_a WHERE key = 'balance'

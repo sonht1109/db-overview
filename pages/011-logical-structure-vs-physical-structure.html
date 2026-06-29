@@ -56,7 +56,7 @@ Try the widget below. The setup creates an `orders` table and seeds it with data
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Logical query, physical index</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 42, 120.00, 'shipped'); INSERT INTO orders VALUES (2, 17, 45.50, 'pending'); INSERT INTO orders VALUES (3, 42, 200.00, 'pending'); INSERT INTO orders VALUES (4, 99, 15.00, 'shipped'); INSERT INTO orders VALUES (5, 17, 310.00, 'shipped'); CREATE INDEX idx_customer ON orders (customer_id);">-- This query is the same whether or not the index exists.
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 42, 120.00, 'shipped'); INSERT INTO orders VALUES (2, 17, 45.50, 'pending'); INSERT INTO orders VALUES (3, 42, 200.00, 'pending'); INSERT INTO orders VALUES (4, 99, 15.00, 'shipped'); INSERT INTO orders VALUES (5, 17, 310.00, 'shipped'); CREATE INDEX idx_customer ON orders (customer_id);" rows="20">-- This query is the same whether or not the index exists.
 -- The index only changes HOW the engine finds the rows, not WHAT it returns.
 SELECT id, amount, status
 FROM orders

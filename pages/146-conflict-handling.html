@@ -134,7 +134,7 @@ The widget below simulates a simplified conflict log — the kind of table a mul
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Conflict Resolution</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE conflict_log (conflict_id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, node TEXT NOT NULL, new_balance INTEGER NOT NULL, written_at TEXT NOT NULL); INSERT INTO conflict_log VALUES (1, 42, 'EU', 150, '2024-06-01 10:00:00'); INSERT INTO conflict_log VALUES (2, 42, 'US', 120, '2024-06-01 10:00:01'); INSERT INTO conflict_log VALUES (3, 99, 'EU', 300, '2024-06-01 10:05:00'); INSERT INTO conflict_log VALUES (4, 99, 'US', 290, '2024-06-01 10:04:58');">-- Last Write Wins: pick the row with the latest written_at per user
+    <textarea data-setup="CREATE TABLE conflict_log (conflict_id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, node TEXT NOT NULL, new_balance INTEGER NOT NULL, written_at TEXT NOT NULL); INSERT INTO conflict_log VALUES (1, 42, 'EU', 150, '2024-06-01 10:00:00'); INSERT INTO conflict_log VALUES (2, 42, 'US', 120, '2024-06-01 10:00:01'); INSERT INTO conflict_log VALUES (3, 99, 'EU', 300, '2024-06-01 10:05:00'); INSERT INTO conflict_log VALUES (4, 99, 'US', 290, '2024-06-01 10:04:58');" rows="20">-- Last Write Wins: pick the row with the latest written_at per user
 SELECT user_id,
        node        AS winning_node,
        new_balance AS resolved_balance,
@@ -146,7 +146,6 @@ WHERE (user_id, written_at) IN (
     GROUP BY user_id
 )
 ORDER BY user_id;
-
 -- Try changing MAX to MIN to see "First Write Wins" instead.
 -- Notice user 99: the EU write arrives LATER even though it has a lower balance.
 -- LWW picks it silently -- potentially wrong for a debit scenario.</textarea>

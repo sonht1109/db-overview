@@ -143,9 +143,8 @@ The widget below simulates what happens when two transactions compete for the sa
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Lock compatibility demo</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000), (2, 'Bob', 500); CREATE TABLE xfer_log (note TEXT); INSERT INTO xfer_log VALUES ('Transfer simulation (SQLite runs statements sequentially, modeling one txn at a time)'); UPDATE accounts SET balance = balance - 200 WHERE id = 1; UPDATE accounts SET balance = balance + 200 WHERE id = 2; INSERT INTO xfer_log VALUES ('Transferred $200 from Alice to Bob');">-- Check balances after the simulated transfer
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000), (2, 'Bob', 500); CREATE TABLE xfer_log (note TEXT); INSERT INTO xfer_log VALUES ('Transfer simulation (SQLite runs statements sequentially, modeling one txn at a time)'); UPDATE accounts SET balance = balance - 200 WHERE id = 1; UPDATE accounts SET balance = balance + 200 WHERE id = 2; INSERT INTO xfer_log VALUES ('Transferred $200 from Alice to Bob');" rows="20">-- Check balances after the simulated transfer
 SELECT owner, balance FROM accounts;
-
 -- Also see the log
 SELECT note FROM xfer_log;
 </textarea>

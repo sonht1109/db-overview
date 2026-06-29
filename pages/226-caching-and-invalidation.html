@@ -140,7 +140,7 @@ This keeps cache fresh without waiting for TTL expiry, but requires disciplined 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Cache TTL Simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE cache_entries (key TEXT PRIMARY KEY, value TEXT NOT NULL, cached_at INTEGER NOT NULL, ttl_seconds INTEGER NOT NULL); INSERT INTO cache_entries VALUES ('user:101','Alice,alice@ex.com',1700000000,300),('user:102','Bob,bob@ex.com',1700000050,300),('user:103','Carol,carol@ex.com',1700000100,60),('product:55','Widget Pro',1700000000,3600); -- Simulate current unix time as 1700000200">-- See which cache entries are still valid vs expired
+    <textarea data-setup="CREATE TABLE cache_entries (key TEXT PRIMARY KEY, value TEXT NOT NULL, cached_at INTEGER NOT NULL, ttl_seconds INTEGER NOT NULL); INSERT INTO cache_entries VALUES ('user:101','Alice,alice@ex.com',1700000000,300),('user:102','Bob,bob@ex.com',1700000050,300),('user:103','Carol,carol@ex.com',1700000100,60),('product:55','Widget Pro',1700000000,3600); -- Simulate current unix time as 1700000200" rows="20">-- See which cache entries are still valid vs expired
 -- (simulated: current time = 1700000200)
 SELECT
   key,

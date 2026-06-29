@@ -67,7 +67,7 @@ The widget below sets up two tables — a small `customers` table and a larger `
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · CBO in action with EXPLAIN QUERY PLAN</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, region TEXT); INSERT INTO customers VALUES (1, 'Acme Corp', 'north'), (2, 'Globex', 'south'), (3, 'Initech', 'north'), (4, 'Umbrella', 'east'), (5, 'Hooli', 'west'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1,1,120.0,'shipped'),(2,2,45.0,'pending'),(3,1,300.0,'delivered'),(4,3,90.0,'shipped'),(5,4,60.0,'pending'),(6,5,200.0,'delivered'),(7,1,75.0,'shipped'),(8,2,500.0,'delivered'),(9,3,30.0,'pending'),(10,5,410.0,'shipped'),(11,1,55.0,'delivered'),(12,4,180.0,'shipped'),(13,2,95.0,'pending'),(14,3,340.0,'delivered'),(15,5,22.0,'shipped'),(16,1,88.0,'delivered'),(17,2,260.0,'shipped'),(18,4,47.0,'pending'),(19,3,130.0,'delivered'),(20,5,310.0,'shipped'); CREATE INDEX idx_orders_customer ON orders(customer_id); ANALYZE;">-- Ask SQLite how it plans to execute this join.
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, region TEXT); INSERT INTO customers VALUES (1, 'Acme Corp', 'north'), (2, 'Globex', 'south'), (3, 'Initech', 'north'), (4, 'Umbrella', 'east'), (5, 'Hooli', 'west'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1,1,120.0,'shipped'),(2,2,45.0,'pending'),(3,1,300.0,'delivered'),(4,3,90.0,'shipped'),(5,4,60.0,'pending'),(6,5,200.0,'delivered'),(7,1,75.0,'shipped'),(8,2,500.0,'delivered'),(9,3,30.0,'pending'),(10,5,410.0,'shipped'),(11,1,55.0,'delivered'),(12,4,180.0,'shipped'),(13,2,95.0,'pending'),(14,3,340.0,'delivered'),(15,5,22.0,'shipped'),(16,1,88.0,'delivered'),(17,2,260.0,'shipped'),(18,4,47.0,'pending'),(19,3,130.0,'delivered'),(20,5,310.0,'shipped'); CREATE INDEX idx_orders_customer ON orders(customer_id); ANALYZE;" rows="20">-- Ask SQLite how it plans to execute this join.
 -- SCAN = full table read; SEARCH = index used.
 EXPLAIN QUERY PLAN
 SELECT c.name, COUNT(o.id) AS order_count, SUM(o.amount) AS total
@@ -75,7 +75,6 @@ FROM customers c
 JOIN orders o ON o.customer_id = c.id
 WHERE c.region = 'north'
 GROUP BY c.id, c.name;
-
 -- Try: DROP INDEX idx_orders_customer; then re-run to see the plan change.</textarea>
   </div>
 </div>

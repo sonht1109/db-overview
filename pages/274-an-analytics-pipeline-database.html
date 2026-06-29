@@ -204,13 +204,12 @@ INSERT INTO dim_users VALUES (1,'u1','US','free',1700000000,NULL),(2,'u1','US','
 INSERT INTO dim_pages VALUES (1,'/home','Home','landing'),(2,'/pricing','Pricing','marketing'),(3,'/docs','Docs','product'),(4,'/blog','Blog','content');
 INSERT INTO fact_pageviews VALUES (1,1700100000,1,1,'s1',45,'google.com'),(2,1700100060,1,2,'s1',120,NULL),(3,1700200000,3,3,'s2',300,'bing.com'),(4,1700200300,3,1,'s2',30,NULL),(5,1700300000,2,2,'s3',90,'direct'),(6,1700300600,2,3,'s3',250,NULL);
 INSERT INTO agg_daily_traffic VALUES ('2023-11-16',1,2,2,37.5),('2023-11-16',2,2,2,105.0),('2023-11-16',3,2,2,275.0);
-">-- Top pages by views from pre-computed aggregate
+" rows="20">-- Top pages by views from pre-computed aggregate
 SELECT p.title, a.views, a.unique_users, ROUND(a.avg_duration_s,1) AS avg_s
 FROM agg_daily_traffic a
 JOIN dim_pages p ON p.page_key = a.page_key
 WHERE a.report_date = '2023-11-16'
 ORDER BY a.views DESC;
-
 -- Try: compute directly from facts (slower at scale)
 -- SELECT p.title, COUNT(*) AS views, AVG(f.duration_s) AS avg_dur
 -- FROM fact_pageviews f

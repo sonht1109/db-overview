@@ -79,7 +79,7 @@ Try the widget below to see page-size reasoning in action. The query counts how 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Rows per page calculator</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE row_sizes (label TEXT, row_bytes INTEGER); INSERT INTO row_sizes VALUES ('Tiny row (50 B)', 50), ('Small row (200 B)', 200), ('Medium row (500 B)', 500), ('Large row (1 000 B)', 1000), ('Near-page row (3 000 B)', 3000);">-- How many rows fit on a 4 KB page?
+    <textarea data-setup="CREATE TABLE row_sizes (label TEXT, row_bytes INTEGER); INSERT INTO row_sizes VALUES ('Tiny row (50 B)', 50), ('Small row (200 B)', 200), ('Medium row (500 B)', 500), ('Large row (1 000 B)', 1000), ('Near-page row (3 000 B)', 3000);" rows="20">-- How many rows fit on a 4 KB page?
 -- We assume 100 bytes overhead per row (slot entry + alignment).
 SELECT
     label,

@@ -126,13 +126,12 @@ Modern document stores offer middle ground:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Schema Drift Simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products_flexible (id INTEGER PRIMARY KEY, data TEXT); INSERT INTO products_flexible VALUES (1, '{&quot;name&quot;:&quot;Widget&quot;,&quot;price&quot;:9.99,&quot;category&quot;:&quot;tools&quot;}'); INSERT INTO products_flexible VALUES (2, '{&quot;name&quot;:&quot;Gadget&quot;,&quot;price&quot;:49.99}'); INSERT INTO products_flexible VALUES (3, '{&quot;title&quot;:&quot;Doohickey&quot;,&quot;cost&quot;:4.5,&quot;tag&quot;:&quot;promo&quot;}'); CREATE TABLE products_strict (id INTEGER PRIMARY KEY, name TEXT NOT NULL, price REAL NOT NULL CHECK(price &gt; 0), category TEXT NOT NULL DEFAULT 'uncategorized'); INSERT INTO products_strict VALUES (1, 'Widget', 9.99, 'tools'); INSERT INTO products_strict VALUES (2, 'Gadget', 49.99, 'electronics');"> -- Flexible: every row can have different fields. What is the average price?
+    <textarea data-setup="CREATE TABLE products_flexible (id INTEGER PRIMARY KEY, data TEXT); INSERT INTO products_flexible VALUES (1, '{&quot;name&quot;:&quot;Widget&quot;,&quot;price&quot;:9.99,&quot;category&quot;:&quot;tools&quot;}'); INSERT INTO products_flexible VALUES (2, '{&quot;name&quot;:&quot;Gadget&quot;,&quot;price&quot;:49.99}'); INSERT INTO products_flexible VALUES (3, '{&quot;title&quot;:&quot;Doohickey&quot;,&quot;cost&quot;:4.5,&quot;tag&quot;:&quot;promo&quot;}'); CREATE TABLE products_strict (id INTEGER PRIMARY KEY, name TEXT NOT NULL, price REAL NOT NULL CHECK(price &gt; 0), category TEXT NOT NULL DEFAULT 'uncategorized'); INSERT INTO products_strict VALUES (1, 'Widget', 9.99, 'tools'); INSERT INTO products_strict VALUES (2, 'Gadget', 49.99, 'electronics');" rows="20"> -- Flexible: every row can have different fields. What is the average price?
 -- We must know which JSON field name was used (inconsistent: "price" vs "cost"):
 SELECT id,
        json_extract(data, '$.price') AS price_field,
        json_extract(data, '$.cost')  AS cost_field
 FROM products_flexible;
-
 -- Strict: straightforward, no guessing:
 -- SELECT AVG(price) FROM products_strict;</textarea>
   </div>

@@ -153,16 +153,13 @@ This is better — you don't hard-code the number of joins — but the engine st
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · 2-hop friend-of-friend with recursive CTE</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE users (user_id INTEGER PRIMARY KEY, name TEXT); INSERT INTO users VALUES (1,'Alice'),(2,'Bob'),(3,'Carol'),(4,'Dave'),(5,'Eve'),(6,'Frank'),(7,'Grace'),(8,'Hank'),(9,'Ivy'),(10,'Jack'); CREATE TABLE connections (from_user INTEGER, to_user INTEGER); INSERT INTO connections VALUES (1,2),(1,3),(1,4),(2,5),(2,6),(3,7),(3,8),(4,9),(4,10),(5,6),(6,7),(7,8),(8,9),(9,10);">-- Find everyone reachable from Alice (user 1) within 2 hops
+    <textarea data-setup="CREATE TABLE users (user_id INTEGER PRIMARY KEY, name TEXT); INSERT INTO users VALUES (1,'Alice'),(2,'Bob'),(3,'Carol'),(4,'Dave'),(5,'Eve'),(6,'Frank'),(7,'Grace'),(8,'Hank'),(9,'Ivy'),(10,'Jack'); CREATE TABLE connections (from_user INTEGER, to_user INTEGER); INSERT INTO connections VALUES (1,2),(1,3),(1,4),(2,5),(2,6),(3,7),(3,8),(4,9),(4,10),(5,6),(6,7),(7,8),(8,9),(9,10);" rows="20">-- Find everyone reachable from Alice (user 1) within 2 hops
 -- Change the WHERE clause depth limit to 3 to see the explosion
-
 WITH RECURSIVE reachable(user_id, depth) AS (
   SELECT to_user, 1
   FROM   connections
   WHERE  from_user = 1
-
   UNION ALL
-
   SELECT c.to_user, r.depth + 1
   FROM   reachable r
   JOIN   connections c ON c.from_user = r.user_id

@@ -115,7 +115,7 @@ Database expertise is part of your team's bus factor. If one engineer is the sol
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Team Capacity vs Database Complexity</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE db_option (db_name TEXT, infra_monthly_usd INTEGER, ops_hours_monthly REAL, learning_curve_weeks INTEGER, on_call_incidents_per_year REAL, incident_recovery_hours REAL); INSERT INTO db_option VALUES ('Managed PostgreSQL (RDS)',400,3,2,1,0.5); INSERT INTO db_option VALUES ('Self-hosted PostgreSQL',200,10,4,3,2); INSERT INTO db_option VALUES ('Self-hosted Cassandra',600,25,12,6,6); INSERT INTO db_option VALUES ('Managed DynamoDB',500,4,6,1,0.5); INSERT INTO db_option VALUES ('Self-hosted Redis Cluster',300,15,8,4,3);">-- Annual total cost including operations and incident risk (assume $150/hr eng cost)
+    <textarea data-setup="CREATE TABLE db_option (db_name TEXT, infra_monthly_usd INTEGER, ops_hours_monthly REAL, learning_curve_weeks INTEGER, on_call_incidents_per_year REAL, incident_recovery_hours REAL); INSERT INTO db_option VALUES ('Managed PostgreSQL (RDS)',400,3,2,1,0.5); INSERT INTO db_option VALUES ('Self-hosted PostgreSQL',200,10,4,3,2); INSERT INTO db_option VALUES ('Self-hosted Cassandra',600,25,12,6,6); INSERT INTO db_option VALUES ('Managed DynamoDB',500,4,6,1,0.5); INSERT INTO db_option VALUES ('Self-hosted Redis Cluster',300,15,8,4,3);" rows="20">-- Annual total cost including operations and incident risk (assume $150/hr eng cost)
 SELECT
   db_name,
   infra_monthly_usd * 12 AS annual_infra,

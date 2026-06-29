@@ -109,14 +109,16 @@ Some architectures create replica chains: Replica B replicates from Replica A, w
 
 Use this widget to explore how a missing column (simulating a migration applied on the primary but not yet on the replica) causes query failures. The `orders_primary` table has the new `status` column; `orders_replica` does not yet.
 
-<div class="widget" data-widget="sql"
-  data-setup="CREATE TABLE orders_primary (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders_primary VALUES (1, 7, 99.99, 'shipped'), (2, 7, 14.50, 'pending'), (3, 12, 200.00, 'shipped'); CREATE TABLE orders_replica (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders_replica VALUES (1, 7, 99.99), (2, 7, 14.50), (3, 12, 200.00);">
--- The primary has a new 'status' column; the replica does not yet.
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Schema mismatch simulation</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE orders_primary (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders_primary VALUES (1, 7, 99.99, 'shipped'), (2, 7, 14.50, 'pending'), (3, 12, 200.00, 'shipped'); CREATE TABLE orders_replica (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders_replica VALUES (1, 7, 99.99), (2, 7, 14.50), (3, 12, 200.00);">-- The primary has a new 'status' column; the replica does not yet.
 -- This query works on the primary:
 SELECT id, amount, status FROM orders_primary WHERE customer_id = 7;
 
 -- Try changing the table name to orders_replica and re-run.
--- The replica query will fail because 'status' does not exist there yet.
+-- The replica query will fail because 'status' does not exist there yet.</textarea>
+  </div>
 </div>
 
 The gap between when a migration lands on the primary and when it fully propagates to all replicas is a real deployment risk. The expand–contract pattern closes that gap safely.

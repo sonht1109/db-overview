@@ -153,15 +153,13 @@ The widget below simulates the session store and rate-limiting patterns that Red
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Session store + rate limiting</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sessions (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_unix INTEGER); CREATE TABLE rate_counters (key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0, window_end INTEGER NOT NULL); INSERT INTO sessions VALUES ('session:tok_abc123', '{&quot;userId&quot;:4291,&quot;role&quot;:&quot;admin&quot;,&quot;cart&quot;:[1,5,9]}', 9999999999); INSERT INTO sessions VALUES ('session:tok_xyz987', '{&quot;userId&quot;:8842,&quot;role&quot;:&quot;viewer&quot;,&quot;cart&quot;:[]}', 9999999999); INSERT INTO sessions VALUES ('session:tok_expired', '{&quot;userId&quot;:1111,&quot;role&quot;:&quot;viewer&quot;}', 1000000000); INSERT INTO rate_counters VALUES ('ratelimit:user:4291:hour', 47, 9999999999); INSERT INTO rate_counters VALUES ('ratelimit:user:8842:hour', 3, 9999999999); INSERT INTO rate_counters VALUES ('ratelimit:ip:203.0.113.5:hour', 98, 9999999999);">-- 1. Validate a session token (exact key lookup)
+    <textarea data-setup="CREATE TABLE sessions (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_unix INTEGER); CREATE TABLE rate_counters (key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0, window_end INTEGER NOT NULL); INSERT INTO sessions VALUES ('session:tok_abc123', '{&quot;userId&quot;:4291,&quot;role&quot;:&quot;admin&quot;,&quot;cart&quot;:[1,5,9]}', 9999999999); INSERT INTO sessions VALUES ('session:tok_xyz987', '{&quot;userId&quot;:8842,&quot;role&quot;:&quot;viewer&quot;,&quot;cart&quot;:[]}', 9999999999); INSERT INTO sessions VALUES ('session:tok_expired', '{&quot;userId&quot;:1111,&quot;role&quot;:&quot;viewer&quot;}', 1000000000); INSERT INTO rate_counters VALUES ('ratelimit:user:4291:hour', 47, 9999999999); INSERT INTO rate_counters VALUES ('ratelimit:user:8842:hour', 3, 9999999999); INSERT INTO rate_counters VALUES ('ratelimit:ip:203.0.113.5:hour', 98, 9999999999);" rows="20">-- 1. Validate a session token (exact key lookup)
 SELECT key, value
 FROM sessions
 WHERE key = 'session:tok_abc123'
   AND expires_unix > 1700000000;   -- simulating: strftime('%s','now')
-
 -- 2. Check rate limit before serving a request:
 -- SELECT count FROM rate_counters WHERE key = 'ratelimit:user:4291:hour';
-
 -- 3. Find expired sessions (full scan -- costly in a real KV store):
 -- SELECT key FROM sessions WHERE expires_unix < 1700000000;</textarea>
   </div>

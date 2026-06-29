@@ -161,7 +161,7 @@ Understanding these dependencies is what transforms a list of facts into a menta
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Comprehensive Review Exercise</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, price REAL NOT NULL, stock INTEGER NOT NULL); CREATE TABLE sales (id INTEGER PRIMARY KEY, product_id INTEGER NOT NULL, quantity INTEGER NOT NULL, sale_date INTEGER NOT NULL, channel TEXT NOT NULL); CREATE INDEX idx_prod_cat ON products(category); CREATE INDEX idx_sales_product ON sales(product_id); CREATE INDEX idx_sales_date ON sales(sale_date); INSERT INTO products VALUES (1,'Laptop','Electronics',999.0,50),(2,'Mouse','Electronics',29.0,200),(3,'Desk','Furniture',349.0,30),(4,'Chair','Furniture',249.0,45),(5,'Monitor','Electronics',399.0,80); INSERT INTO sales VALUES (1,1,2,1700000100,'online'),(2,2,5,1700000200,'online'),(3,3,1,1700000300,'store'),(4,1,1,1700000400,'store'),(5,4,3,1700000500,'online'),(6,5,2,1700000600,'online'),(7,2,10,1700000700,'store'),(8,3,2,1700000800,'online');">-- Part IV review: window function query with join
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, price REAL NOT NULL, stock INTEGER NOT NULL); CREATE TABLE sales (id INTEGER PRIMARY KEY, product_id INTEGER NOT NULL, quantity INTEGER NOT NULL, sale_date INTEGER NOT NULL, channel TEXT NOT NULL); CREATE INDEX idx_prod_cat ON products(category); CREATE INDEX idx_sales_product ON sales(product_id); CREATE INDEX idx_sales_date ON sales(sale_date); INSERT INTO products VALUES (1,'Laptop','Electronics',999.0,50),(2,'Mouse','Electronics',29.0,200),(3,'Desk','Furniture',349.0,30),(4,'Chair','Furniture',249.0,45),(5,'Monitor','Electronics',399.0,80); INSERT INTO sales VALUES (1,1,2,1700000100,'online'),(2,2,5,1700000200,'online'),(3,3,1,1700000300,'store'),(4,1,1,1700000400,'store'),(5,4,3,1700000500,'online'),(6,5,2,1700000600,'online'),(7,2,10,1700000700,'store'),(8,3,2,1700000800,'online');" rows="20">-- Part IV review: window function query with join
 -- Revenue per product with running total ordered by revenue
 SELECT
   p.name,
@@ -174,7 +174,6 @@ FROM products p
 JOIN sales s ON p.id = s.product_id
 GROUP BY p.id, p.name, p.category
 ORDER BY revenue DESC;
-
 -- Try adding a WHERE filter and observe how the plan changes:
 -- WHERE p.category = 'Electronics'</textarea>
   </div>

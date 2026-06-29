@@ -142,18 +142,16 @@ The widget below lets you practice an important skill: designing schemas that se
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Schema Design Exercise</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, event_type TEXT NOT NULL, payload TEXT, created_at INTEGER NOT NULL); INSERT INTO events VALUES (1,101,'click','button=submit',1700000001); INSERT INTO events VALUES (2,102,'view','page=home',1700000002); INSERT INTO events VALUES (3,101,'purchase','item=42',1700000010); INSERT INTO events VALUES (4,103,'click','button=cancel',1700000020); INSERT INTO events VALUES (5,101,'view','page=checkout',1700000030); INSERT INTO events VALUES (6,102,'purchase','item=99',1700000040); CREATE INDEX idx_user_type ON events(user_id, event_type);">-- Query 1: all events for a specific user, newest first
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, event_type TEXT NOT NULL, payload TEXT, created_at INTEGER NOT NULL); INSERT INTO events VALUES (1,101,'click','button=submit',1700000001); INSERT INTO events VALUES (2,102,'view','page=home',1700000002); INSERT INTO events VALUES (3,101,'purchase','item=42',1700000010); INSERT INTO events VALUES (4,103,'click','button=cancel',1700000020); INSERT INTO events VALUES (5,101,'view','page=checkout',1700000030); INSERT INTO events VALUES (6,102,'purchase','item=99',1700000040); CREATE INDEX idx_user_type ON events(user_id, event_type);" rows="20">-- Query 1: all events for a specific user, newest first
 SELECT event_type, payload, created_at
 FROM events
 WHERE user_id = 101
 ORDER BY created_at DESC;
-
 -- Query 2: count purchases per user
 SELECT user_id, COUNT(*) AS purchase_count
 FROM events
 WHERE event_type = 'purchase'
 GROUP BY user_id;
-
 -- Try adding: CREATE INDEX idx_type ON events(event_type);
 -- Then re-run query 2 and observe the plan with EXPLAIN QUERY PLAN</textarea>
   </div>

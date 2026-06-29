@@ -115,21 +115,20 @@ Each level adds stronger guarantees at the cost of reduced concurrency (more loc
 
 Try the widget below to observe how read isolation works in practice. The setup creates two "snapshots" by using SQLite's `BEGIN` semantics — notice how a committed change by one session appears in a subsequent read by another.
 
-<div class="widget" data-widget="sql"
-  data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000); INSERT INTO accounts VALUES (2, 'Bob', 500);">
--- Simulate a non-repeatable read scenario:
+<div class="widget" data-widget="sql">
+  <div class="widget-head"><span>Interactive SQL · Non-repeatable read simulation</span></div>
+  <div class="widget-body">
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000); INSERT INTO accounts VALUES (2, 'Bob', 500);" rows="20">-- Simulate a non-repeatable read scenario:
 -- Step 1: read Alice's balance (first read)
 SELECT owner, balance FROM accounts WHERE id = 1;
-
 -- Imagine another transaction runs: UPDATE accounts SET balance = 250 WHERE id = 1;
 -- Step 2: apply that change here to simulate a committed update
 UPDATE accounts SET balance = 250 WHERE id = 1;
-
 -- Step 3: read Alice's balance again (second read in the same "transaction")
 SELECT owner, balance FROM accounts WHERE id = 1;
-
 -- Under Read Committed: you see 250. A non-repeatable read occurred.
--- Under Repeatable Read: the DB would return 1000 again (snapshot isolation).
+-- Under Repeatable Read: the DB would return 1000 again (snapshot isolation).</textarea>
+  </div>
 </div>
 
 Try changing the `UPDATE` amount and re-running both `SELECT`s to see how the second read reflects the new value — this is exactly the non-repeatable read anomaly in action.

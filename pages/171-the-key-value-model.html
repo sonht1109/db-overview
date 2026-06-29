@@ -149,11 +149,10 @@ SQLite is not a key-value store, but you can simulate the model to make the mech
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating a key-value store</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv_store (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_at INTEGER); INSERT INTO kv_store VALUES ('session:user:4291', '{&quot;token&quot;:&quot;abc123&quot;,&quot;role&quot;:&quot;admin&quot;}', 1751100000); INSERT INTO kv_store VALUES ('rate:user:4291:day', '47', NULL); INSERT INTO kv_store VALUES ('product:sku:NB-001', '{&quot;name&quot;:&quot;Notebook&quot;,&quot;price&quot;:2.99}', NULL); INSERT INTO kv_store VALUES ('feature:dark_mode', 'true', NULL); INSERT INTO kv_store VALUES ('cache:homepage:v3', '&lt;html&gt;...&lt;/html&gt;', 1751000000);">-- GET: look up a specific key
+    <textarea data-setup="CREATE TABLE kv_store (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_at INTEGER); INSERT INTO kv_store VALUES ('session:user:4291', '{&quot;token&quot;:&quot;abc123&quot;,&quot;role&quot;:&quot;admin&quot;}', 1751100000); INSERT INTO kv_store VALUES ('rate:user:4291:day', '47', NULL); INSERT INTO kv_store VALUES ('product:sku:NB-001', '{&quot;name&quot;:&quot;Notebook&quot;,&quot;price&quot;:2.99}', NULL); INSERT INTO kv_store VALUES ('feature:dark_mode', 'true', NULL); INSERT INTO kv_store VALUES ('cache:homepage:v3', '&lt;html&gt;...&lt;/html&gt;', 1751000000);" rows="20">-- GET: look up a specific key
 SELECT value
 FROM kv_store
 WHERE key = 'session:user:4291';
-
 -- Try changing the key above to 'feature:dark_mode' or 'rate:user:4291:day'
 -- Try a SET: INSERT OR REPLACE INTO kv_store VALUES ('new:key', 'hello', NULL);
 -- Try filtering by prefix (simulating a namespace scan):

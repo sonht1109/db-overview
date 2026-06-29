@@ -108,7 +108,7 @@ Each approach has failure modes. The key insight is that the synchronisation mec
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating Dual-Store Session Fallback</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sessions_primary (session_id TEXT PRIMARY KEY, user_id INTEGER, data TEXT, created_at INTEGER); CREATE TABLE sessions_cache_status (session_id TEXT PRIMARY KEY, cached INTEGER DEFAULT 1); INSERT INTO sessions_primary VALUES ('sess:abc123', 42, '{&quot;role&quot;:&quot;admin&quot;}', 1700000000); INSERT INTO sessions_primary VALUES ('sess:xyz789', 17, '{&quot;role&quot;:&quot;viewer&quot;}', 1700000100); INSERT INTO sessions_cache_status VALUES ('sess:abc123', 1); -- xyz789 is NOT in cache (simulating cache miss)">-- Simulate cache-aside lookup: return from cache if available, else fall back to primary
+    <textarea data-setup="CREATE TABLE sessions_primary (session_id TEXT PRIMARY KEY, user_id INTEGER, data TEXT, created_at INTEGER); CREATE TABLE sessions_cache_status (session_id TEXT PRIMARY KEY, cached INTEGER DEFAULT 1); INSERT INTO sessions_primary VALUES ('sess:abc123', 42, '{&quot;role&quot;:&quot;admin&quot;}', 1700000000); INSERT INTO sessions_primary VALUES ('sess:xyz789', 17, '{&quot;role&quot;:&quot;viewer&quot;}', 1700000100); INSERT INTO sessions_cache_status VALUES ('sess:abc123', 1); -- xyz789 is NOT in cache (simulating cache miss)" rows="20">-- Simulate cache-aside lookup: return from cache if available, else fall back to primary
 SELECT
   sp.session_id,
   sp.user_id,
@@ -117,7 +117,6 @@ SELECT
 FROM sessions_primary sp
 LEFT JOIN sessions_cache_status sc ON sc.session_id = sp.session_id
 WHERE sp.session_id IN ('sess:abc123','sess:xyz789');
-
 -- In a real system, a cache miss would also trigger a write back to Redis.</textarea>
   </div>
 </div>

@@ -109,15 +109,12 @@ The widget below sets up a small `accounts` table. Run the block as-is to see a 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Commit vs. rollback</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1, 'Alice', 500); INSERT INTO accounts VALUES (2, 'Bob', 300);">-- Transfer $100 from Alice to Bob.
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1, 'Alice', 500); INSERT INTO accounts VALUES (2, 'Bob', 300);" rows="20">-- Transfer $100 from Alice to Bob.
 -- Change COMMIT to ROLLBACK to undo everything.
 BEGIN;
-
 UPDATE accounts SET balance = balance - 100 WHERE id = 1;
 UPDATE accounts SET balance = balance + 100 WHERE id = 2;
-
 COMMIT;
-
 -- See the final state:
 SELECT id, owner, balance FROM accounts;</textarea>
   </div>

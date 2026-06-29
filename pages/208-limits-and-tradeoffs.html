@@ -59,9 +59,8 @@ If your application needs both deep traversal **and** large-scale aggregation, y
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Global aggregations — easy in SQL</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL, manager_id INTEGER); INSERT INTO employees VALUES (1,&quot;Alice&quot;,&quot;Engineering&quot;,120000,NULL),(2,&quot;Bob&quot;,&quot;Engineering&quot;,95000,1),(3,&quot;Carol&quot;,&quot;Engineering&quot;,102000,1),(4,&quot;Dave&quot;,&quot;Marketing&quot;,88000,NULL),(5,&quot;Eve&quot;,&quot;Marketing&quot;,76000,4),(6,&quot;Frank&quot;,&quot;Marketing&quot;,81000,4),(7,&quot;Grace&quot;,&quot;HR&quot;,72000,NULL),(8,&quot;Hank&quot;,&quot;HR&quot;,68000,7),(9,&quot;Ivy&quot;,&quot;Engineering&quot;,110000,1),(10,&quot;Jack&quot;,&quot;Marketing&quot;,93000,4);">-- Global aggregation: trivial in SQL, expensive in graph DBs
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL, manager_id INTEGER); INSERT INTO employees VALUES (1,&quot;Alice&quot;,&quot;Engineering&quot;,120000,NULL),(2,&quot;Bob&quot;,&quot;Engineering&quot;,95000,1),(3,&quot;Carol&quot;,&quot;Engineering&quot;,102000,1),(4,&quot;Dave&quot;,&quot;Marketing&quot;,88000,NULL),(5,&quot;Eve&quot;,&quot;Marketing&quot;,76000,4),(6,&quot;Frank&quot;,&quot;Marketing&quot;,81000,4),(7,&quot;Grace&quot;,&quot;HR&quot;,72000,NULL),(8,&quot;Hank&quot;,&quot;HR&quot;,68000,7),(9,&quot;Ivy&quot;,&quot;Engineering&quot;,110000,1),(10,&quot;Jack&quot;,&quot;Marketing&quot;,93000,4);" rows="20">-- Global aggregation: trivial in SQL, expensive in graph DBs
 -- Graph DBs have no columnar storage — they must scan every node &amp; property
-
 SELECT
   department,
   COUNT(*)              AS headcount,

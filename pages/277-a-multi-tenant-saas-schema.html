@@ -214,7 +214,7 @@ INSERT INTO tenants VALUES (1,'acme','Acme Corp','pro',1700000000,0),(2,'globex'
 INSERT INTO users VALUES (1,1,'alice@acme.com','Alice','owner',1700001000),(2,1,'bob@acme.com','Bob','member',1700002000),(3,2,'carol@globex.com','Carol','owner',1700003000),(4,3,'dave@initech.com','Dave','owner',1700004000);
 INSERT INTO projects VALUES (1,1,'Apollo',1,1700010000),(2,1,'Hermes',1,1700020000),(3,2,'Omega',3,1700030000);
 INSERT INTO audit_log VALUES (1,1,1,'create','project:1',1700010000),(2,1,2,'update','project:1',1700015000),(3,2,3,'create','project:3',1700030000);
-">-- All active tenants with their project count
+" rows="20">-- All active tenants with their project count
 SELECT t.slug, t.plan,
        COUNT(p.id) AS project_count
 FROM tenants t
@@ -222,7 +222,6 @@ LEFT JOIN projects p ON p.tenant_id = t.id
 WHERE t.suspended = 0
 GROUP BY t.id
 ORDER BY project_count DESC;
-
 -- Try: all users for a specific tenant
 -- SELECT u.name, u.email, u.role
 -- FROM users u

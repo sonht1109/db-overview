@@ -125,14 +125,13 @@ The query below lets you see scatter-gather behavior (querying all shards) vs. a
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Single-shard vs. scatter-gather</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, user_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 1, 49.99, 'shipped'); INSERT INTO orders VALUES (2, 2, 120.00, 'pending'); INSERT INTO orders VALUES (3, 3, 9.99, 'shipped'); INSERT INTO orders VALUES (4, 4, 75.50, 'cancelled'); INSERT INTO orders VALUES (5, 5, 200.00, 'shipped'); INSERT INTO orders VALUES (6, 6, 33.00, 'pending'); INSERT INTO orders VALUES (7, 7, 15.00, 'shipped'); INSERT INTO orders VALUES (8, 8, 88.00, 'pending'); INSERT INTO orders VALUES (9, 9, 60.00, 'shipped'); INSERT INTO orders VALUES (10, 1, 22.00, 'pending'); INSERT INTO orders VALUES (11, 3, 45.00, 'shipped'); INSERT INTO orders VALUES (12, 6, 11.00, 'cancelled');">-- A router with shard key = user_id % 3 can send this
+    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, user_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 1, 49.99, 'shipped'); INSERT INTO orders VALUES (2, 2, 120.00, 'pending'); INSERT INTO orders VALUES (3, 3, 9.99, 'shipped'); INSERT INTO orders VALUES (4, 4, 75.50, 'cancelled'); INSERT INTO orders VALUES (5, 5, 200.00, 'shipped'); INSERT INTO orders VALUES (6, 6, 33.00, 'pending'); INSERT INTO orders VALUES (7, 7, 15.00, 'shipped'); INSERT INTO orders VALUES (8, 8, 88.00, 'pending'); INSERT INTO orders VALUES (9, 9, 60.00, 'shipped'); INSERT INTO orders VALUES (10, 1, 22.00, 'pending'); INSERT INTO orders VALUES (11, 3, 45.00, 'shipped'); INSERT INTO orders VALUES (12, 6, 11.00, 'cancelled');" rows="20">-- A router with shard key = user_id % 3 can send this
 -- directly to shard 1 (only rows where user_id % 3 = 1).
 -- Try changing user_id to one of: 1, 4, 7, 10 (all on shard 1).
 SELECT order_id, user_id, amount, status,
        (user_id % 3) AS shard
 FROM orders
 WHERE user_id = 1;
-
 -- Now try a query with NO shard key filter -- the router must
 -- ask all three shards (scatter-gather). Uncomment to run:
 -- SELECT status, COUNT(*) AS cnt, SUM(amount) AS total

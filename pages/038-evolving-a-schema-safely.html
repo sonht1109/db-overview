@@ -102,10 +102,9 @@ Try the widget below to see the expand-contract pattern in action. Run the defau
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Expand-contract rename</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT NOT NULL, email TEXT NOT NULL); INSERT INTO users VALUES (1, 'alice', 'alice@example.com'); INSERT INTO users VALUES (2, 'bob_p', 'bob@example.com'); INSERT INTO users VALUES (3, 'carol99', 'carol@example.com'); ALTER TABLE users ADD COLUMN full_name TEXT;">-- Phase 1 done: full_name column added (NULL so far)
+    <textarea data-setup="CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT NOT NULL, email TEXT NOT NULL); INSERT INTO users VALUES (1, 'alice', 'alice@example.com'); INSERT INTO users VALUES (2, 'bob_p', 'bob@example.com'); INSERT INTO users VALUES (3, 'carol99', 'carol@example.com'); ALTER TABLE users ADD COLUMN full_name TEXT;" rows="20">-- Phase 1 done: full_name column added (NULL so far)
 -- Run this to back-fill it from username (Phase 2):
 UPDATE users SET full_name = username WHERE full_name IS NULL;
-
 -- Then inspect the result:
 SELECT id, username, full_name, email FROM users;</textarea>
   </div>

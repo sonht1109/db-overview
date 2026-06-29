@@ -162,14 +162,13 @@ Cassandra is a JVM-based application, and JVM systems have specific operational 
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating Skewed Partition Load</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (event_id INTEGER PRIMARY KEY, status TEXT, user_id TEXT, payload TEXT); INSERT INTO events VALUES (1, 'active', 'u-001', 'click'); INSERT INTO events VALUES (2, 'active', 'u-002', 'view'); INSERT INTO events VALUES (3, 'active', 'u-003', 'purchase'); INSERT INTO events VALUES (4, 'active', 'u-004', 'click'); INSERT INTO events VALUES (5, 'active', 'u-005', 'view'); INSERT INTO events VALUES (6, 'inactive', 'u-006', 'logout'); INSERT INTO events VALUES (7, 'inactive', 'u-007', 'logout'); INSERT INTO events VALUES (8, 'active', 'u-008', 'click'); INSERT INTO events VALUES (9, 'active', 'u-009', 'view'); INSERT INTO events VALUES (10, 'active', 'u-010', 'click');">-- See how skewed the data is when partitioned by 'status'
+    <textarea data-setup="CREATE TABLE events (event_id INTEGER PRIMARY KEY, status TEXT, user_id TEXT, payload TEXT); INSERT INTO events VALUES (1, 'active', 'u-001', 'click'); INSERT INTO events VALUES (2, 'active', 'u-002', 'view'); INSERT INTO events VALUES (3, 'active', 'u-003', 'purchase'); INSERT INTO events VALUES (4, 'active', 'u-004', 'click'); INSERT INTO events VALUES (5, 'active', 'u-005', 'view'); INSERT INTO events VALUES (6, 'inactive', 'u-006', 'logout'); INSERT INTO events VALUES (7, 'inactive', 'u-007', 'logout'); INSERT INTO events VALUES (8, 'active', 'u-008', 'click'); INSERT INTO events VALUES (9, 'active', 'u-009', 'view'); INSERT INTO events VALUES (10, 'active', 'u-010', 'click');" rows="20">-- See how skewed the data is when partitioned by 'status'
 -- In Cassandra, all 'active' rows would land on the same node(s)
 SELECT status, COUNT(*) AS row_count,
        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM events), 1) AS pct_of_total
 FROM events
 GROUP BY status
 ORDER BY row_count DESC;
-
 -- Better: use user_id as partition key — high cardinality, even distribution
 -- SELECT user_id, COUNT(*) AS events FROM events GROUP BY user_id;</textarea>
   </div>

@@ -132,9 +132,8 @@ The widget below sets up an `accounts` table and simulates what each transaction
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Snapshot reads</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000), (2, 'Bob', 500); /* Simulate Txn C committing a write */ UPDATE accounts SET balance = 1500 WHERE id = 1; CREATE TABLE snapshots (label TEXT, owner TEXT, balance INTEGER); /* before-write snapshot */ INSERT INTO snapshots VALUES ('before-write snapshot', 'Alice', 1000), ('before-write snapshot', 'Bob', 500); /* after-write snapshot */ INSERT INTO snapshots SELECT 'after-write snapshot', owner, balance FROM accounts;">-- Compare what two transactions at different times see:
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000), (2, 'Bob', 500); /* Simulate Txn C committing a write */ UPDATE accounts SET balance = 1500 WHERE id = 1; CREATE TABLE snapshots (label TEXT, owner TEXT, balance INTEGER); /* before-write snapshot */ INSERT INTO snapshots VALUES ('before-write snapshot', 'Alice', 1000), ('before-write snapshot', 'Bob', 500); /* after-write snapshot */ INSERT INTO snapshots SELECT 'after-write snapshot', owner, balance FROM accounts;" rows="20">-- Compare what two transactions at different times see:
 SELECT label, owner, balance FROM snapshots ORDER BY label, owner;
-
 -- Current committed state (what a new txn would see today):
 SELECT 'current' AS label, owner, balance FROM accounts ORDER BY owner;
 </textarea>

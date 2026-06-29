@@ -79,7 +79,7 @@ The widget below has the `orders` table already set up. The default query runs t
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Data flow pipeline</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 120), (2, 'Bob', 340), (3, 'Alice', 30), (4, 'Carol', 210), (5, 'Bob', 180), (6, 'Alice', 300), (7, 'Carol', 450), (8, 'Bob', 40), (9, 'Dana', 45), (10, 'Dana', 60);">SELECT customer,
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 120), (2, 'Bob', 340), (3, 'Alice', 30), (4, 'Carol', 210), (5, 'Bob', 180), (6, 'Alice', 300), (7, 'Carol', 450), (8, 'Bob', 40), (9, 'Dana', 45), (10, 'Dana', 60);" rows="20">SELECT customer,
        SUM(amount) AS total_spent
 FROM   orders
 WHERE  amount > 50
@@ -95,7 +95,7 @@ Now try this variation — remove the `LIMIT` and lower the `HAVING` threshold t
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Adjusting the pipeline</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 120), (2, 'Bob', 340), (3, 'Alice', 30), (4, 'Carol', 210), (5, 'Bob', 180), (6, 'Alice', 300), (7, 'Carol', 450), (8, 'Bob', 40), (9, 'Dana', 45), (10, 'Dana', 60);">SELECT customer,
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 120), (2, 'Bob', 340), (3, 'Alice', 30), (4, 'Carol', 210), (5, 'Bob', 180), (6, 'Alice', 300), (7, 'Carol', 450), (8, 'Bob', 40), (9, 'Dana', 45), (10, 'Dana', 60);" rows="20">SELECT customer,
        COUNT(*)        AS num_orders,
        SUM(amount)     AS total_spent,
        ROUND(AVG(amount), 2) AS avg_order

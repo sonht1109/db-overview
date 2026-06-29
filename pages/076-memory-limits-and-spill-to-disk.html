@@ -72,7 +72,7 @@ The widget below lets you inspect SQLite's plan for an aggregation with an unind
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Spill signals in query plans</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, session_id INTEGER, page TEXT, duration_ms INTEGER); INSERT INTO events VALUES (1,101,'home',320),(2,102,'checkout',840),(3,101,'product',510),(4,103,'home',200),(5,102,'product',670),(6,103,'checkout',1100),(7,101,'checkout',430),(8,104,'home',290),(9,104,'product',750),(10,102,'home',180),(11,105,'product',600),(12,105,'checkout',920),(13,106,'home',410),(14,106,'product',380),(15,107,'checkout',760);">-- See how SQLite plans an unindexed GROUP BY + ORDER BY.
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, session_id INTEGER, page TEXT, duration_ms INTEGER); INSERT INTO events VALUES (1,101,'home',320),(2,102,'checkout',840),(3,101,'product',510),(4,103,'home',200),(5,102,'product',670),(6,103,'checkout',1100),(7,101,'checkout',430),(8,104,'home',290),(9,104,'product',750),(10,102,'home',180),(11,105,'product',600),(12,105,'checkout',920),(13,106,'home',410),(14,106,'product',380),(15,107,'checkout',760);" rows="20">-- See how SQLite plans an unindexed GROUP BY + ORDER BY.
 -- 'USE TEMP B-TREE' means it needed a temporary on-disk structure.
 EXPLAIN QUERY PLAN
 SELECT page,
@@ -113,9 +113,8 @@ The widget below lets you compare a wide-column sort against a narrow-column sor
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Wide vs. narrow working sets</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT, category TEXT, region TEXT, amount REAL, note TEXT); INSERT INTO orders VALUES (1,10,'Widget','Hardware','North',49.99,'first purchase'),(2,11,'Gadget','Electronics','South',129.00,'gift'),(3,10,'Doohickey','Hardware','East',19.50,'reorder'),(4,12,'Widget','Hardware','West',49.99,'bulk'),(5,11,'Widget','Hardware','North',49.99,'reorder'),(6,12,'Gadget','Electronics','South',129.00,'first purchase'),(7,13,'Doohickey','Hardware','East',19.50,'sale'),(8,13,'Gadget','Electronics','West',129.00,'promo'),(9,14,'Widget','Hardware','North',49.99,'standard'),(10,14,'Doohickey','Hardware','South',19.50,'standard');">-- Option A: sort all columns (wider working set in memory)
+    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT, category TEXT, region TEXT, amount REAL, note TEXT); INSERT INTO orders VALUES (1,10,'Widget','Hardware','North',49.99,'first purchase'),(2,11,'Gadget','Electronics','South',129.00,'gift'),(3,10,'Doohickey','Hardware','East',19.50,'reorder'),(4,12,'Widget','Hardware','West',49.99,'bulk'),(5,11,'Widget','Hardware','North',49.99,'reorder'),(6,12,'Gadget','Electronics','South',129.00,'first purchase'),(7,13,'Doohickey','Hardware','East',19.50,'sale'),(8,13,'Gadget','Electronics','West',129.00,'promo'),(9,14,'Widget','Hardware','North',49.99,'standard'),(10,14,'Doohickey','Hardware','South',19.50,'standard');" rows="20">-- Option A: sort all columns (wider working set in memory)
 SELECT * FROM orders ORDER BY amount DESC;
-
 -- Option B: sort only what you need (narrower working set)
 -- SELECT customer_id, amount FROM orders ORDER BY amount DESC;</textarea>
   </div>

@@ -140,9 +140,8 @@ Extensions often give you 80% of the specialist performance with none of the ope
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Column-Store vs Row-Store Access Patterns</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, product TEXT, region TEXT, salesperson TEXT, amount REAL, sale_date TEXT); WITH RECURSIVE gs(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM gs WHERE value &lt; 2000) INSERT INTO sales SELECT value, CASE abs(random()%4) WHEN 0 THEN 'Widget' WHEN 1 THEN 'Gadget' WHEN 2 THEN 'Doohickey' ELSE 'Thingamajig' END, CASE abs(random()%3) WHEN 0 THEN 'North' WHEN 1 THEN 'South' ELSE 'East' END, 'Rep_' || (abs(random()%10)), round(abs(random()%10000)/100.0,2), '2024-0' || (1+abs(random()%9)) || '-01' FROM gs;">-- OLTP pattern: fetch one specific row (fast in row-store)
+    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, product TEXT, region TEXT, salesperson TEXT, amount REAL, sale_date TEXT); WITH RECURSIVE gs(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM gs WHERE value &lt; 2000) INSERT INTO sales SELECT value, CASE abs(random()%4) WHEN 0 THEN 'Widget' WHEN 1 THEN 'Gadget' WHEN 2 THEN 'Doohickey' ELSE 'Thingamajig' END, CASE abs(random()%3) WHEN 0 THEN 'North' WHEN 1 THEN 'South' ELSE 'East' END, 'Rep_' || (abs(random()%10)), round(abs(random()%10000)/100.0,2), '2024-0' || (1+abs(random()%9)) || '-01' FROM gs;" rows="20">-- OLTP pattern: fetch one specific row (fast in row-store)
 SELECT * FROM sales WHERE id = 42;
-
 -- OLAP pattern: aggregate across all rows, only need two columns.
 -- In a real column-store, only those two columns are scanned (not the whole row).
 -- In a row-store like SQLite, all columns are read for every row:

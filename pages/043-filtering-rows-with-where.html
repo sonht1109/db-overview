@@ -117,7 +117,7 @@ The widget below has a small `orders` table. The default query finds all paid or
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · WHERE Filters</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT NOT NULL, amount REAL NOT NULL, status TEXT NOT NULL, note TEXT); INSERT INTO orders VALUES (1, 'Alice', 120.00, 'paid', NULL); INSERT INTO orders VALUES (2, 'Bob', 45.50, 'pending', 'Rush delivery'); INSERT INTO orders VALUES (3, 'Carol', 200.00, 'paid', 'Gift wrap'); INSERT INTO orders VALUES (4, 'David', 75.00, 'cancelled', NULL); INSERT INTO orders VALUES (5, 'Elena', 15.00, 'paid', NULL); INSERT INTO orders VALUES (6, 'Frank', 90.00, 'pending', NULL); INSERT INTO orders VALUES (7, 'Grace', 310.00, 'paid', 'Corporate account');">SELECT id, customer, amount, status
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT NOT NULL, amount REAL NOT NULL, status TEXT NOT NULL, note TEXT); INSERT INTO orders VALUES (1, 'Alice', 120.00, 'paid', NULL); INSERT INTO orders VALUES (2, 'Bob', 45.50, 'pending', 'Rush delivery'); INSERT INTO orders VALUES (3, 'Carol', 200.00, 'paid', 'Gift wrap'); INSERT INTO orders VALUES (4, 'David', 75.00, 'cancelled', NULL); INSERT INTO orders VALUES (5, 'Elena', 15.00, 'paid', NULL); INSERT INTO orders VALUES (6, 'Frank', 90.00, 'pending', NULL); INSERT INTO orders VALUES (7, 'Grace', 310.00, 'paid', 'Corporate account');" rows="20">SELECT id, customer, amount, status
 FROM orders
 WHERE status = 'paid'
   AND amount > 50

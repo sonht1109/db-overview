@@ -130,7 +130,7 @@ Below is an interactive query that simulates what a replication lag monitoring v
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Replication lag simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replication_status (replica_name TEXT, sent_lsn INTEGER, write_lsn INTEGER, flush_lsn INTEGER, replay_lsn INTEGER, lag_seconds REAL); INSERT INTO replication_status VALUES ('replica-1', 10500, 10500, 10500, 10498, 0.04), ('replica-2', 10500, 10499, 10495, 10480, 1.20), ('replica-3', 10500, 10490, 10488, 10450, 8.75);">-- Which replicas are lagging more than 1 second behind the leader?
+    <textarea data-setup="CREATE TABLE replication_status (replica_name TEXT, sent_lsn INTEGER, write_lsn INTEGER, flush_lsn INTEGER, replay_lsn INTEGER, lag_seconds REAL); INSERT INTO replication_status VALUES ('replica-1', 10500, 10500, 10500, 10498, 0.04), ('replica-2', 10500, 10499, 10495, 10480, 1.20), ('replica-3', 10500, 10490, 10488, 10450, 8.75);" rows="20">-- Which replicas are lagging more than 1 second behind the leader?
 SELECT
   replica_name,
   sent_lsn - replay_lsn AS log_bytes_behind,

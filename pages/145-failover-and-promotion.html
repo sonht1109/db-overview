@@ -150,7 +150,7 @@ The interactive example below lets you explore replication lag in a simulated re
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating replication lag and missing writes</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE leader_log (lsn INTEGER PRIMARY KEY, data TEXT, committed_at TEXT); INSERT INTO leader_log VALUES (1, 'INSERT users Alice', '10:00:01'); INSERT INTO leader_log VALUES (2, 'INSERT users Bob', '10:00:02'); INSERT INTO leader_log VALUES (3, 'UPDATE orders SET status=paid WHERE id=7', '10:00:03'); INSERT INTO leader_log VALUES (4, 'INSERT users Carol', '10:00:04'); INSERT INTO leader_log VALUES (5, 'DELETE orders WHERE id=2', '10:00:05'); CREATE TABLE replica_log (lsn INTEGER PRIMARY KEY, data TEXT, received_at TEXT); INSERT INTO replica_log VALUES (1, 'INSERT users Alice', '10:00:01'); INSERT INTO replica_log VALUES (2, 'INSERT users Bob', '10:00:02'); INSERT INTO replica_log VALUES (3, 'UPDATE orders SET status=paid WHERE id=7', '10:00:03');">-- Which writes did the leader commit that the replica has NOT yet received?
+    <textarea data-setup="CREATE TABLE leader_log (lsn INTEGER PRIMARY KEY, data TEXT, committed_at TEXT); INSERT INTO leader_log VALUES (1, 'INSERT users Alice', '10:00:01'); INSERT INTO leader_log VALUES (2, 'INSERT users Bob', '10:00:02'); INSERT INTO leader_log VALUES (3, 'UPDATE orders SET status=paid WHERE id=7', '10:00:03'); INSERT INTO leader_log VALUES (4, 'INSERT users Carol', '10:00:04'); INSERT INTO leader_log VALUES (5, 'DELETE orders WHERE id=2', '10:00:05'); CREATE TABLE replica_log (lsn INTEGER PRIMARY KEY, data TEXT, received_at TEXT); INSERT INTO replica_log VALUES (1, 'INSERT users Alice', '10:00:01'); INSERT INTO replica_log VALUES (2, 'INSERT users Bob', '10:00:02'); INSERT INTO replica_log VALUES (3, 'UPDATE orders SET status=paid WHERE id=7', '10:00:03');" rows="20">-- Which writes did the leader commit that the replica has NOT yet received?
 -- These would be LOST if we promoted this replica right now.
 SELECT
   l.lsn,
@@ -160,7 +160,6 @@ FROM leader_log l
 LEFT JOIN replica_log r ON r.lsn = l.lsn
 WHERE r.lsn IS NULL
 ORDER BY l.lsn;
-
 -- Try: INSERT INTO replica_log VALUES (4, 'INSERT users Carol', '10:00:04');
 -- Then re-run to see the lag shrink.</textarea>
   </div>

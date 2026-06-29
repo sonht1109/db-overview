@@ -123,7 +123,7 @@ Every system has a point where adding more concurrency hurts throughput. Past th
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Latency Distribution</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE query_log (id INTEGER PRIMARY KEY, endpoint TEXT, latency_ms REAL, recorded_at TEXT); INSERT INTO query_log VALUES (1,'GET /users',4.2,'2024-01-01'),(2,'GET /users',3.8,'2024-01-01'),(3,'GET /users',5.1,'2024-01-01'),(4,'GET /users',220.0,'2024-01-01'),(5,'GET /users',4.5,'2024-01-01'),(6,'POST /orders',12.3,'2024-01-01'),(7,'POST /orders',14.0,'2024-01-01'),(8,'POST /orders',800.0,'2024-01-01'),(9,'POST /orders',11.8,'2024-01-01'),(10,'POST /orders',13.2,'2024-01-01');">-- See how the mean hides the tail
+    <textarea data-setup="CREATE TABLE query_log (id INTEGER PRIMARY KEY, endpoint TEXT, latency_ms REAL, recorded_at TEXT); INSERT INTO query_log VALUES (1,'GET /users',4.2,'2024-01-01'),(2,'GET /users',3.8,'2024-01-01'),(3,'GET /users',5.1,'2024-01-01'),(4,'GET /users',220.0,'2024-01-01'),(5,'GET /users',4.5,'2024-01-01'),(6,'POST /orders',12.3,'2024-01-01'),(7,'POST /orders',14.0,'2024-01-01'),(8,'POST /orders',800.0,'2024-01-01'),(9,'POST /orders',11.8,'2024-01-01'),(10,'POST /orders',13.2,'2024-01-01');" rows="20">-- See how the mean hides the tail
 SELECT
   endpoint,
   COUNT(*)                                  AS requests,
@@ -132,7 +132,6 @@ SELECT
   ROUND(MAX(latency_ms), 1)                 AS max_ms
 FROM query_log
 GROUP BY endpoint;
-
 -- Try also: SELECT * FROM query_log ORDER BY latency_ms DESC LIMIT 3;</textarea>
   </div>
 </div>

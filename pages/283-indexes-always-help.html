@@ -121,12 +121,11 @@ LSM-tree engines (RocksDB, Cassandra's SSTables) handle write amplification diff
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · When the Index Hurts</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, type TEXT, user_id INTEGER, payload TEXT); WITH RECURSIVE gs(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM gs WHERE value &lt; 3000) INSERT INTO events SELECT value, CASE abs(random()%3) WHEN 0 THEN 'click' WHEN 1 THEN 'view' ELSE 'purchase' END, abs(random()%200), 'data' FROM gs; CREATE INDEX idx_events_type ON events(type);">-- Low selectivity: 'click' is ~33% of rows.
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, type TEXT, user_id INTEGER, payload TEXT); WITH RECURSIVE gs(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM gs WHERE value &lt; 3000) INSERT INTO events SELECT value, CASE abs(random()%3) WHEN 0 THEN 'click' WHEN 1 THEN 'view' ELSE 'purchase' END, abs(random()%200), 'data' FROM gs; CREATE INDEX idx_events_type ON events(type);" rows="20">-- Low selectivity: 'click' is ~33% of rows.
 -- The planner often prefers a full scan over the index here.
 -- Check the query plan:
 EXPLAIN QUERY PLAN
 SELECT id, user_id FROM events WHERE type = 'click';
-
 -- High selectivity: specific user narrows results significantly.
 -- The index on user_id would be much more useful:
 -- EXPLAIN QUERY PLAN SELECT id, type FROM events WHERE user_id = 42;</textarea>

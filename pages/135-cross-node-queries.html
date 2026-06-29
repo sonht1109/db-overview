@@ -145,7 +145,7 @@ The widget below lets you explore how a coordinator might combine partial aggreg
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Merging partial aggregates</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE shard_a_orders (order_id INTEGER, customer_id INTEGER, amount REAL); CREATE TABLE shard_b_orders (order_id INTEGER, customer_id INTEGER, amount REAL); INSERT INTO shard_a_orders VALUES (1,10,50.0),(2,10,30.0),(3,11,20.0),(4,12,80.0),(5,13,15.0); INSERT INTO shard_b_orders VALUES (6,10,40.0),(7,11,60.0),(8,12,10.0),(9,14,90.0),(10,14,25.0);">-- Each CTE represents partial results from one shard.
+    <textarea data-setup="CREATE TABLE shard_a_orders (order_id INTEGER, customer_id INTEGER, amount REAL); CREATE TABLE shard_b_orders (order_id INTEGER, customer_id INTEGER, amount REAL); INSERT INTO shard_a_orders VALUES (1,10,50.0),(2,10,30.0),(3,11,20.0),(4,12,80.0),(5,13,15.0); INSERT INTO shard_b_orders VALUES (6,10,40.0),(7,11,60.0),(8,12,10.0),(9,14,90.0),(10,14,25.0);" rows="20">-- Each CTE represents partial results from one shard.
 -- The coordinator merges them to get correct totals.
 WITH shard_a AS (
   SELECT customer_id,
@@ -174,7 +174,6 @@ SELECT
 FROM combined
 GROUP BY customer_id
 ORDER BY customer_id;
-
 -- Try: compute just AVG(amount) per shard and compare — you'll get wrong numbers!</textarea>
   </div>
 </div>

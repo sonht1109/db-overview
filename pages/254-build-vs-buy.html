@@ -122,7 +122,7 @@ Both "buy" paths — open source and commercial — have different trade-off pro
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Build vs Buy Cost Model</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE cost_model (option TEXT, initial_eng_weeks INTEGER, monthly_eng_hours REAL, monthly_infra_usd REAL, license_monthly_usd REAL); INSERT INTO cost_model VALUES ('Build custom cache',16,20,200,0); INSERT INTO cost_model VALUES ('Self-host Redis',2,4,200,0); INSERT INTO cost_model VALUES ('Managed Redis (ElastiCache)',1,1,300,0); INSERT INTO cost_model VALUES ('Build custom search',32,30,300,0); INSERT INTO cost_model VALUES ('Self-host Elasticsearch',3,8,400,0);">-- Compare 12-month total cost (assume $150/hr blended eng cost)
+    <textarea data-setup="CREATE TABLE cost_model (option TEXT, initial_eng_weeks INTEGER, monthly_eng_hours REAL, monthly_infra_usd REAL, license_monthly_usd REAL); INSERT INTO cost_model VALUES ('Build custom cache',16,20,200,0); INSERT INTO cost_model VALUES ('Self-host Redis',2,4,200,0); INSERT INTO cost_model VALUES ('Managed Redis (ElastiCache)',1,1,300,0); INSERT INTO cost_model VALUES ('Build custom search',32,30,300,0); INSERT INTO cost_model VALUES ('Self-host Elasticsearch',3,8,400,0);" rows="20">-- Compare 12-month total cost (assume $150/hr blended eng cost)
 SELECT
   option,
   initial_eng_weeks * 40 * 150 AS initial_eng_cost_usd,

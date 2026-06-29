@@ -126,7 +126,7 @@ Hot partition mitigation (cell-based architectures, celebrity-user special casin
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating Cross-Shard Join Cost</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE shard_a_users (id INTEGER PRIMARY KEY, name TEXT); CREATE TABLE shard_b_orders (id INTEGER PRIMARY KEY, user_id INTEGER, amount REAL); INSERT INTO shard_a_users VALUES (1,'Alice'),(2,'Bob'),(3,'Carol'); INSERT INTO shard_b_orders VALUES (1,1,99.9),(2,1,45.0),(3,2,200.0),(4,3,12.5),(5,3,88.0);">-- In a single-node DB this join is free (no network).
+    <textarea data-setup="CREATE TABLE shard_a_users (id INTEGER PRIMARY KEY, name TEXT); CREATE TABLE shard_b_orders (id INTEGER PRIMARY KEY, user_id INTEGER, amount REAL); INSERT INTO shard_a_users VALUES (1,'Alice'),(2,'Bob'),(3,'Carol'); INSERT INTO shard_b_orders VALUES (1,1,99.9),(2,1,45.0),(3,2,200.0),(4,3,12.5),(5,3,88.0);" rows="20">-- In a single-node DB this join is free (no network).
 -- In a sharded system, shard_a and shard_b are on different machines;
 -- the join either runs on the coordinator (expensive data transfer)
 -- or requires a broadcast join (every shard queries every other shard).
@@ -135,7 +135,6 @@ FROM shard_a_users u
 JOIN shard_b_orders o ON u.id = o.user_id
 GROUP BY u.name
 ORDER BY total_spent DESC;
-
 -- Co-locating related data on the same shard eliminates this cost.
 -- Good sharding key: shard BOTH users and orders by user_id.</textarea>
   </div>

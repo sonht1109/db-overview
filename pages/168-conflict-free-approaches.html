@@ -132,11 +132,10 @@ Try the widget below to see how a simple CRDT-like merge works in SQL — simula
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · G-Counter merge simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE node_a_counter(node TEXT PRIMARY KEY, val INTEGER); CREATE TABLE node_b_counter(node TEXT PRIMARY KEY, val INTEGER); INSERT INTO node_a_counter VALUES ('A', 5), ('B', 0), ('C', 2); INSERT INTO node_b_counter VALUES ('A', 4), ('B', 3), ('C', 2); CREATE VIEW merged_counter AS SELECT node_a_counter.node, MAX(node_a_counter.val, node_b_counter.val) AS merged_val FROM node_a_counter JOIN node_b_counter USING (node);">-- After a network partition, Node A and Node B diverged.
+    <textarea data-setup="CREATE TABLE node_a_counter(node TEXT PRIMARY KEY, val INTEGER); CREATE TABLE node_b_counter(node TEXT PRIMARY KEY, val INTEGER); INSERT INTO node_a_counter VALUES ('A', 5), ('B', 0), ('C', 2); INSERT INTO node_b_counter VALUES ('A', 4), ('B', 3), ('C', 2); CREATE VIEW merged_counter AS SELECT node_a_counter.node, MAX(node_a_counter.val, node_b_counter.val) AS merged_val FROM node_a_counter JOIN node_b_counter USING (node);" rows="20">-- After a network partition, Node A and Node B diverged.
 -- This query merges them using the G-Counter rule: element-wise MAX.
 -- Try changing the values in node_a_counter or node_b_counter above
 -- and re-run to see how the merge always picks the highest count per node.
-
 SELECT
   node,
   merged_val,

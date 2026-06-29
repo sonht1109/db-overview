@@ -128,10 +128,9 @@ INSERT INTO txn_log VALUES (1, 'UPDATE accounts SET balance = 900 WHERE id = 1',
 INSERT INTO txn_log VALUES (1, 'UPDATE accounts SET balance = 1100 WHERE id = 2', 1);
 INSERT INTO txn_log VALUES (2, 'UPDATE accounts SET balance = 500 WHERE id = 3', 1);
 INSERT INTO txn_log VALUES (3, 'UPDATE accounts SET balance = 200 WHERE id = 1', 0);
-INSERT INTO txn_log VALUES (3, 'UPDATE accounts SET balance = 750 WHERE id = 4', 0);">-- After a crash, recovery scans the log.
+INSERT INTO txn_log VALUES (3, 'UPDATE accounts SET balance = 750 WHERE id = 4', 0);" rows="20">-- After a crash, recovery scans the log.
 -- Rows where committed=1 need to be redone (replayed).
 -- Rows where committed=0 belong to in-flight txns and must be undone (ignored or reversed).
-
 SELECT
   txn_id,
   action,

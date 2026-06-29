@@ -73,15 +73,13 @@ The widget below creates an `orders` table and two indexes. Run the first query,
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Composite indexes</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, created_at TEXT, amount REAL); INSERT INTO orders VALUES (1, 42, 'pending',   '2024-01-10', 99.00); INSERT INTO orders VALUES (2, 42, 'shipped',   '2024-01-15', 149.50); INSERT INTO orders VALUES (3, 42, 'cancelled', '2024-02-01', 29.99); INSERT INTO orders VALUES (4, 99, 'pending',   '2024-01-20', 59.00); INSERT INTO orders VALUES (5, 99, 'shipped',   '2024-02-05', 210.00); INSERT INTO orders VALUES (6, 7,  'shipped',   '2024-01-08', 75.00); CREATE INDEX idx_cust_status ON orders (customer_id, status); CREATE INDEX idx_cust_date  ON orders (customer_id, created_at);">-- Uses idx_cust_status (leading prefix match)
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, created_at TEXT, amount REAL); INSERT INTO orders VALUES (1, 42, 'pending',   '2024-01-10', 99.00); INSERT INTO orders VALUES (2, 42, 'shipped',   '2024-01-15', 149.50); INSERT INTO orders VALUES (3, 42, 'cancelled', '2024-02-01', 29.99); INSERT INTO orders VALUES (4, 99, 'pending',   '2024-01-20', 59.00); INSERT INTO orders VALUES (5, 99, 'shipped',   '2024-02-05', 210.00); INSERT INTO orders VALUES (6, 7,  'shipped',   '2024-01-08', 75.00); CREATE INDEX idx_cust_status ON orders (customer_id, status); CREATE INDEX idx_cust_date  ON orders (customer_id, created_at);" rows="20">-- Uses idx_cust_status (leading prefix match)
 EXPLAIN QUERY PLAN
 SELECT * FROM orders
 WHERE customer_id = 42 AND status = 'shipped';
-
 -- Try this next — does it use an index?
 -- EXPLAIN QUERY PLAN
 -- SELECT * FROM orders WHERE status = 'shipped';
-
 -- Try a range query — which index is chosen?
 -- EXPLAIN QUERY PLAN
 -- SELECT * FROM orders
