@@ -5,125 +5,106 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Capacity planning — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VI. Engineering Practice</p>
   <p class="chapter-label">Chapter 24. Designing for Reliability</p>
   <h1 class="content-title">Capacity planning</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="236-monitoring-and-alerts.html"><span class="dir">← Previous</span><span class="ttl">Monitoring and alerts</span></a><a class="next" href="238-operational-runbooks.html"><span class="dir">Next →</span><span class="ttl">Operational runbooks</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-A database that runs out of disk space, connections, or memory does not degrade gracefully — it crashes. **Capacity planning** is the practice of measuring current resource consumption, modelling future growth, and acting before limits are reached. Done well, it is invisible engineering that prevents emergencies. Done poorly, it results in 2 AM pages and emergency infrastructure tickets.
-
-## The Three Resource Families
-
-Database capacity problems cluster around three families of resources:
-
-| Family | Resources | Typical failure mode |
-|---|---|---|
-| **Storage** | Disk space, IOPS, throughput | Disk full → database halts all writes |
-| **Memory** | Shared buffer pool, work_mem, OS page cache | Buffer pool thrashing → cache hit rate collapses → 10–100× latency spike |
-| **Compute** | CPU cores, connections, thread pool | Connection exhaustion → new connections rejected → 503 errors |
-
-Planning for all three is required; they interact (insufficient memory forces more IOPS, which saturates CPU for I/O wait).
-
-## Measuring Current Usage
-
-Before projecting forward, establish accurate baselines. The key measurements:
-
-### Storage
-
-```sql
--- PostgreSQL: table and index sizes
+  <div id="rendered" class="content">
+<p>A database that runs out of disk space, connections, or memory does not degrade gracefully — it crashes. <strong>Capacity planning</strong> is the practice of measuring current resource consumption, modelling future growth, and acting before limits are reached. Done well, it is invisible engineering that prevents emergencies. Done poorly, it results in 2 AM pages and emergency infrastructure tickets.</p>
+<h2>The Three Resource Families</h2>
+<p>Database capacity problems cluster around three families of resources:</p>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Resources</th>
+<th>Typical failure mode</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Storage</strong></td>
+<td>Disk space, IOPS, throughput</td>
+<td>Disk full → database halts all writes</td>
+</tr>
+<tr>
+<td><strong>Memory</strong></td>
+<td>Shared buffer pool, work_mem, OS page cache</td>
+<td>Buffer pool thrashing → cache hit rate collapses → 10–100× latency spike</td>
+</tr>
+<tr>
+<td><strong>Compute</strong></td>
+<td>CPU cores, connections, thread pool</td>
+<td>Connection exhaustion → new connections rejected → 503 errors</td>
+</tr>
+</tbody></table>
+<p>Planning for all three is required; they interact (insufficient memory forces more IOPS, which saturates CPU for I/O wait).</p>
+<h2>Measuring Current Usage</h2>
+<p>Before projecting forward, establish accurate baselines. The key measurements:</p>
+<h3>Storage</h3>
+<pre><code class="language-sql">-- PostgreSQL: table and index sizes
 SELECT relname AS table_name,
        pg_size_pretty(pg_total_relation_size(oid)) AS total_size,
        pg_size_pretty(pg_relation_size(oid))        AS table_size,
        pg_size_pretty(pg_indexes_size(oid))         AS index_size
 FROM pg_class
-WHERE relkind = 'r'
+WHERE relkind = &#39;r&#39;
 ORDER BY pg_total_relation_size(oid) DESC
 LIMIT 10;
-```
-
-### Memory (Buffer Cache Hit Rate)
-
-```sql
--- Cache hit rate: target > 99% for OLTP workloads
+</code></pre>
+<h3>Memory (Buffer Cache Hit Rate)</h3>
+<pre><code class="language-sql">-- Cache hit rate: target &gt; 99% for OLTP workloads
 SELECT
   sum(heap_blks_hit) AS cache_hits,
   sum(heap_blks_read) AS disk_reads,
   ROUND(100.0 * sum(heap_blks_hit) /
     NULLIF(sum(heap_blks_hit) + sum(heap_blks_read), 0), 2) AS hit_rate_pct
 FROM pg_statio_user_tables;
-```
-
-### Connections
-
-```sql
--- Active connections vs. maximum
+</code></pre>
+<h3>Connections</h3>
+<pre><code class="language-sql">-- Active connections vs. maximum
 SELECT count(*) AS active,
-       (SELECT setting::int FROM pg_settings WHERE name = 'max_connections') AS max_conn,
+       (SELECT setting::int FROM pg_settings WHERE name = &#39;max_connections&#39;) AS max_conn,
        ROUND(100.0 * count(*) /
-         (SELECT setting::int FROM pg_settings WHERE name = 'max_connections'), 1) AS pct_used
+         (SELECT setting::int FROM pg_settings WHERE name = &#39;max_connections&#39;), 1) AS pct_used
 FROM pg_stat_activity
-WHERE state != 'idle';
-```
-
-## Growth Modelling
-
-Once you have baselines, project forward using historical growth rates. The simplest model is **linear extrapolation** from a time series of measurements:
-
-```
-Current size:         800 GB
+WHERE state != &#39;idle&#39;;
+</code></pre>
+<h2>Growth Modelling</h2>
+<p>Once you have baselines, project forward using historical growth rates. The simplest model is <strong>linear extrapolation</strong> from a time series of measurements:</p>
+<pre><code>Current size:         800 GB
 Average growth/month: 40 GB (from past 6 months)
 Available disk:       2 TB (2048 GB)
 Headroom:             2048 - 800 = 1248 GB
 Months to 85% full:   (2048 × 0.85 - 800) / 40 = 23.5 months
-```
-
-For write-heavy workloads with exponential growth (e.g., event logs, telemetry), model with compound growth:
-
-```
-size(t) = current × (1 + monthly_growth_rate)^t
-```
-
-> **Always plan to 80%, not 100%.** Running a disk past 80% degrades PostgreSQL performance (autovacuum needs free space to rewrite pages). Alert at 75%, page at 85%.
-
+</code></pre>
+<p>For write-heavy workloads with exponential growth (e.g., event logs, telemetry), model with compound growth:</p>
+<pre><code>size(t) = current × (1 + monthly_growth_rate)^t
+</code></pre>
+<blockquote>
+<p><strong>Always plan to 80%, not 100%.</strong> Running a disk past 80% degrades PostgreSQL performance (autovacuum needs free space to rewrite pages). Alert at 75%, page at 85%.</p>
+</blockquote>
 <figure class="diagram">
 <svg viewBox="0 0 680 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Capacity projection chart: historical disk usage from Jan to Jun, linear projection to Dec showing crossing 85% threshold in October">
   <defs>
     <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
     </marker>
-  </defs>
-
-  <!-- Chart area -->
-  <rect x="60" y="20" width="590" height="200" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
-
-  <!-- Y axis labels (GB) -->
-  <text x="55" y="225" text-anchor="end" font-size="10" fill="var(--muted)">0</text>
+  </defs>  <!-- Chart area -->
+  <rect x="60" y="20" width="590" height="200" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>  <!-- Y axis labels (GB) -->
+<p>  <text x="55" y="225" text-anchor="end" font-size="10" fill="var(--muted)">0</text>
   <text x="55" y="175" text-anchor="end" font-size="10" fill="var(--muted)">500</text>
   <text x="55" y="125" text-anchor="end" font-size="10" fill="var(--muted)">1000</text>
   <text x="55" y="75" text-anchor="end" font-size="10" fill="var(--muted)">1500</text>
-  <text x="55" y="30" text-anchor="end" font-size="10" fill="var(--muted)">2000</text>
-
+  <text x="55" y="30" text-anchor="end" font-size="10" fill="var(--muted)">2000</text></p>
   <!-- 85% threshold line -->
   <line x1="60" y1="54" x2="650" y2="54" stroke="var(--text)" stroke-width="1" stroke-dasharray="6,3" opacity="0.5"/>
-  <text x="655" y="58" font-size="10" fill="var(--text)" opacity="0.7">85%</text>
-
-  <!-- 75% threshold line -->
+  <text x="655" y="58" font-size="10" fill="var(--text)" opacity="0.7">85%</text>  <!-- 75% threshold line -->
   <line x1="60" y1="75" x2="650" y2="75" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
-  <text x="655" y="79" font-size="10" fill="var(--muted)">75%</text>
-
-  <!-- Historical data points (Jan-Jun): GB values 400,440,480,520,580,640 mapped to y: 140,136,132,128,122,116 -->
+  <text x="655" y="79" font-size="10" fill="var(--muted)">75%</text>  <!-- Historical data points (Jan-Jun): GB values 400,440,480,520,580,640 mapped to y: 140,136,132,128,122,116 -->
   <!-- y = 220 - (gb/2000)*200 -->
   <!-- Jan 400→180, Feb 440→176, Mar 480→172, Apr 520→168, May 580→162, Jun 640→156 -->
   <circle cx="110" cy="180" r="4" fill="var(--accent)"/>
@@ -131,28 +112,23 @@ size(t) = current × (1 + monthly_growth_rate)^t
   <circle cx="276" cy="172" r="4" fill="var(--accent)"/>
   <circle cx="359" cy="168" r="4" fill="var(--accent)"/>
   <circle cx="442" cy="162" r="4" fill="var(--accent)"/>
-  <circle cx="525" cy="156" r="4" fill="var(--accent)"/>
-
-  <!-- Historical line -->
-  <polyline points="110,180 193,176 276,172 359,168 442,162 525,156"
-    fill="none" stroke="var(--accent)" stroke-width="2"/>
-
+  <circle cx="525" cy="156" r="4" fill="var(--accent)"/>  <!-- Historical line -->
+<p>  <polyline points="110,180 193,176 276,172 359,168 442,162 525,156"
+    fill="none" stroke="var(--accent)" stroke-width="2"/></p>
   <!-- Projection line (dashed, Jul-Dec): 680,720,760,800,840,880 GB -->
   <!-- Jul 680→152, Aug 720→148, Sep 760→144, Oct 800→140, Nov 840→136, Dec 880→132 — but 85% = 1700 GB = y54 -->
   <!-- Actually project to cross 85%: 1700 GB at ~27 months out. Let's show a steeper example. -->
   <!-- Use scenario: 40GB/month: Jun=640, Jul=680→y153, Aug=720→148, Sep=760→144, Oct=800→140, Dec=880→132 -->
-  <polyline points="525,156 608,152 645,140"
-    fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6,3"/>
-
+<p>  <polyline points="525,156 608,152 645,140"
+    fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6,3"/></p>
   <!-- X axis labels -->
-  <text x="110" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Jan</text>
+<p>  <text x="110" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Jan</text>
   <text x="193" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Feb</text>
   <text x="276" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Mar</text>
   <text x="359" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Apr</text>
   <text x="442" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">May</text>
   <text x="525" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Jun</text>
-  <text x="645" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">→</text>
-
+  <text x="645" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">→</text></p>
   <!-- Legend -->
   <line x1="80" y1="258" x2="110" y2="258" stroke="var(--accent)" stroke-width="2"/>
   <text x="115" y="262" font-size="10" fill="var(--text)">actual usage</text>
@@ -160,43 +136,30 @@ size(t) = current × (1 + monthly_growth_rate)^t
   <text x="235" y="262" font-size="10" fill="var(--text)">projected</text>
 </svg>
 <figcaption>Disk usage trend with linear projection. The 75% and 85% thresholds (dashed lines) indicate warning and critical alert points — order storage upgrades before the warning line.</figcaption>
-</figure>
-
-## Connection Capacity
-
-The database's `max_connections` setting is a hard limit. Hitting it is immediately catastrophic — new connections fail with "too many connections" and the application returns errors to users.
-
-The correct approach is **connection pooling** (PgBouncer, ProxySQL): applications connect to the pooler, which maintains a smaller number of real database connections. A database can comfortably handle 200–400 real connections; behind a pooler, thousands of application threads share those connections.
-
-```
-Application tier: 50 pods × 10 threads = 500 concurrent connections to pooler
+</figure><h2>Connection Capacity</h2>
+<p>The database&#39;s <code>max_connections</code> setting is a hard limit. Hitting it is immediately catastrophic — new connections fail with &quot;too many connections&quot; and the application returns errors to users.</p>
+<p>The correct approach is <strong>connection pooling</strong> (PgBouncer, ProxySQL): applications connect to the pooler, which maintains a smaller number of real database connections. A database can comfortably handle 200–400 real connections; behind a pooler, thousands of application threads share those connections.</p>
+<pre><code>Application tier: 50 pods × 10 threads = 500 concurrent connections to pooler
 PgBouncer pool:   30 real connections to PostgreSQL
 PostgreSQL:       max_connections = 100 (safe headroom)
-```
-
-## Table Bloat and Autovacuum
-
-In PostgreSQL, UPDATEs and DELETEs do not immediately reclaim space — they leave dead tuples that autovacuum must clean up. Tables that are vacuumed too infrequently grow **bloated**: a 10 GB table may physically occupy 40 GB on disk.
-
-```sql
--- Identify bloated tables (approximate)
+</code></pre>
+<h2>Table Bloat and Autovacuum</h2>
+<p>In PostgreSQL, UPDATEs and DELETEs do not immediately reclaim space — they leave dead tuples that autovacuum must clean up. Tables that are vacuumed too infrequently grow <strong>bloated</strong>: a 10 GB table may physically occupy 40 GB on disk.</p>
+<pre><code class="language-sql">-- Identify bloated tables (approximate)
 SELECT relname,
        n_dead_tup,
        n_live_tup,
        ROUND(100.0 * n_dead_tup / NULLIF(n_live_tup + n_dead_tup, 0), 1) AS dead_pct
 FROM pg_stat_user_tables
-WHERE n_dead_tup > 10000
+WHERE n_dead_tup &gt; 10000
 ORDER BY dead_pct DESC;
-```
-
-Tune autovacuum aggressively for hot tables; consider manual `VACUUM ANALYZE` after large bulk operations.
-
-## Interactive: Storage Growth Projection
-
+</code></pre>
+<p>Tune autovacuum aggressively for hot tables; consider manual <code>VACUUM ANALYZE</code> after large bulk operations.</p>
+<h2>Interactive: Storage Growth Projection</h2>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Storage Runway Calculation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE storage_samples (sample_date TEXT, used_gb REAL); INSERT INTO storage_samples VALUES ('2024-01-01',400); INSERT INTO storage_samples VALUES ('2024-02-01',440); INSERT INTO storage_samples VALUES ('2024-03-01',480); INSERT INTO storage_samples VALUES ('2024-04-01',520); INSERT INTO storage_samples VALUES ('2024-05-01',580); INSERT INTO storage_samples VALUES ('2024-06-01',640);" rows="20">-- Calculate monthly growth rate and project runway to 85% of 2TB
+    <textarea data-setup="CREATE TABLE storage_samples (sample_date TEXT, used_gb REAL); INSERT INTO storage_samples VALUES ('2024-01-01',400); INSERT INTO storage_samples VALUES ('2024-02-01',440); INSERT INTO storage_samples VALUES ('2024-03-01',480); INSERT INTO storage_samples VALUES ('2024-04-01',520); INSERT INTO storage_samples VALUES ('2024-05-01',580); INSERT INTO storage_samples VALUES ('2024-06-01',640);" rows="10">-- Calculate monthly growth rate and project runway to 85% of 2TB
 WITH growth AS (
   SELECT
     MAX(used_gb) AS current_gb,
@@ -219,17 +182,18 @@ SELECT
   months_to_alert || ' months' AS runway
 FROM runway;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li>Capacity problems happen in three families: storage, memory, and compute — monitor all three</li>
+<li>Establish growth baselines from 3–6 months of historical data; linear extrapolation is usually sufficient</li>
+<li>Alert at 75% disk usage; order storage upgrades with enough lead time to avoid emergency provisioning</li>
+<li>Use connection pooling (PgBouncer) to keep real database connections well below <code>max_connections</code></li>
+<li>Watch table bloat (dead tuple %) on high-churn tables and tune autovacuum accordingly</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- Capacity problems happen in three families: storage, memory, and compute — monitor all three
-- Establish growth baselines from 3–6 months of historical data; linear extrapolation is usually sufficient
-- Alert at 75% disk usage; order storage upgrades with enough lead time to avoid emergency provisioning
-- Use connection pooling (PgBouncer) to keep real database connections well below `max_connections`
-- Watch table bloat (dead tuple %) on high-churn tables and tune autovacuum accordingly
-
-</script>
+  <nav class="pagenav"><a class="prev" href="236-monitoring-and-alerts.html"><span class="dir">← Previous</span><span class="ttl">Monitoring and alerts</span></a><a class="next" href="238-operational-runbooks.html"><span class="dir">Next →</span><span class="ttl">Operational runbooks</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

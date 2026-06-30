@@ -5,147 +5,128 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Backups and restores — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VI. Engineering Practice</p>
   <p class="chapter-label">Chapter 24. Designing for Reliability</p>
   <h1 class="content-title">Backups and restores</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="229-performance-tradeoffs.html"><span class="dir">← Previous</span><span class="ttl">Performance tradeoffs</span></a><a class="next" href="232-point-in-time-recovery.html"><span class="dir">Next →</span><span class="ttl">Point-in-time recovery</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every database will eventually face hardware failure, software bugs, accidental deletes, or ransomware. **Backups are the last line of defence** — not a nice-to-have, but a survival mechanism. This page covers how database backups work physically, the different types in common use, and how a restore actually plays out under pressure.
-
-## Why Backups Fail (and Why You Still Need Them)
-
-The uncomfortable truth: many backup schemes feel solid but fail at restore time. Common causes include:
-
-- Backup jobs that silently error out, leaving files empty or corrupt
-- Files stored on the same disk or RAID array as the database
-- Backups that capture a logically inconsistent state (e.g., half-written transaction)
-- No tested restore procedure — the first restore attempt happens during an outage
-
-A backup is only as good as a verified restore. **Test restores regularly**, not just during emergencies.
-
-## Types of Backups
-
-### Logical vs. Physical
-
-| | Logical | Physical |
-|---|---|---|
-| **What is copied** | SQL statements or row-level dumps | Raw data files (pages, WAL segments) |
-| **Tool examples** | `pg_dump`, `mysqldump` | `pg_basebackup`, file copy, snapshot |
-| **Restore speed** | Slow — SQL must re-execute | Fast — files are placed directly |
-| **Portability** | High — schema can be modified | Low — engine version must match |
-| **Consistency** | Depends on snapshot isolation | Native page-level consistency |
-
-### Full, Incremental, and Differential
-
-```
-Full backup:          [=============] captures everything
+  <div id="rendered" class="content">
+<p>Every database will eventually face hardware failure, software bugs, accidental deletes, or ransomware. <strong>Backups are the last line of defence</strong> — not a nice-to-have, but a survival mechanism. This page covers how database backups work physically, the different types in common use, and how a restore actually plays out under pressure.</p>
+<h2>Why Backups Fail (and Why You Still Need Them)</h2>
+<p>The uncomfortable truth: many backup schemes feel solid but fail at restore time. Common causes include:</p>
+<ul>
+<li>Backup jobs that silently error out, leaving files empty or corrupt</li>
+<li>Files stored on the same disk or RAID array as the database</li>
+<li>Backups that capture a logically inconsistent state (e.g., half-written transaction)</li>
+<li>No tested restore procedure — the first restore attempt happens during an outage</li>
+</ul>
+<p>A backup is only as good as a verified restore. <strong>Test restores regularly</strong>, not just during emergencies.</p>
+<h2>Types of Backups</h2>
+<h3>Logical vs. Physical</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Logical</th>
+<th>Physical</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>What is copied</strong></td>
+<td>SQL statements or row-level dumps</td>
+<td>Raw data files (pages, WAL segments)</td>
+</tr>
+<tr>
+<td><strong>Tool examples</strong></td>
+<td><code>pg_dump</code>, <code>mysqldump</code></td>
+<td><code>pg_basebackup</code>, file copy, snapshot</td>
+</tr>
+<tr>
+<td><strong>Restore speed</strong></td>
+<td>Slow — SQL must re-execute</td>
+<td>Fast — files are placed directly</td>
+</tr>
+<tr>
+<td><strong>Portability</strong></td>
+<td>High — schema can be modified</td>
+<td>Low — engine version must match</td>
+</tr>
+<tr>
+<td><strong>Consistency</strong></td>
+<td>Depends on snapshot isolation</td>
+<td>Native page-level consistency</td>
+</tr>
+</tbody></table>
+<h3>Full, Incremental, and Differential</h3>
+<pre><code>Full backup:          [=============] captures everything
 Incremental:          [F] [i1] [i2] [i3]  each captures only changes since previous
 Differential:         [F] [d1]     [d2]   each captures changes since last full
-```
-
-- **Full** — simplest to restore; expensive in storage and time to produce
-- **Incremental** — smallest per-backup size; restore requires chaining: full + every increment in order
-- **Differential** — restore is full + the single latest differential; middle ground in storage cost
-
-Most production setups combine approaches: a **weekly full** + **daily differentials** + **continuous WAL archiving** for point-in-time granularity.
-
+</code></pre>
+<ul>
+<li><strong>Full</strong> — simplest to restore; expensive in storage and time to produce</li>
+<li><strong>Incremental</strong> — smallest per-backup size; restore requires chaining: full + every increment in order</li>
+<li><strong>Differential</strong> — restore is full + the single latest differential; middle ground in storage cost</li>
+</ul>
+<p>Most production setups combine approaches: a <strong>weekly full</strong> + <strong>daily differentials</strong> + <strong>continuous WAL archiving</strong> for point-in-time granularity.</p>
 <figure class="diagram">
 <svg viewBox="0 0 680 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Backup timeline: weekly full backups with daily incremental backups and continuous WAL archiving between them">
   <defs>
     <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
     </marker>
-  </defs>
-
-  <!-- Timeline -->
-  <line x1="40" y1="110" x2="640" y2="110" stroke="var(--border)" stroke-width="2"/>
-
-  <!-- Full backups - Mon -->
+  </defs>  <!-- Timeline -->
+  <line x1="40" y1="110" x2="640" y2="110" stroke="var(--border)" stroke-width="2"/>  <!-- Full backups - Mon -->
   <rect x="40" y="70" width="50" height="40" rx="4" fill="var(--accent)" opacity="0.8"/>
   <text x="65" y="86" text-anchor="middle" font-size="10" font-weight="700" fill="var(--surface-2)">FULL</text>
   <text x="65" y="100" text-anchor="middle" font-size="10" fill="var(--surface-2)">Mon</text>
-  <text x="65" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Day 0</text>
-
-  <!-- Incrementals Tue-Sat -->
+  <text x="65" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Day 0</text>  <!-- Incrementals Tue-Sat -->
   <rect x="130" y="85" width="36" height="25" rx="3" fill="var(--accent)" opacity="0.35"/>
   <text x="148" y="102" text-anchor="middle" font-size="9" fill="var(--text)">INC</text>
-  <text x="148" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Tue</text>
-
-  <rect x="200" y="85" width="36" height="25" rx="3" fill="var(--accent)" opacity="0.35"/>
+  <text x="148" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Tue</text>  <rect x="200" y="85" width="36" height="25" rx="3" fill="var(--accent)" opacity="0.35"/>
   <text x="218" y="102" text-anchor="middle" font-size="9" fill="var(--text)">INC</text>
-  <text x="218" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Wed</text>
-
-  <rect x="270" y="85" width="36" height="25" rx="3" fill="var(--accent)" opacity="0.35"/>
+  <text x="218" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Wed</text>  <rect x="270" y="85" width="36" height="25" rx="3" fill="var(--accent)" opacity="0.35"/>
   <text x="288" y="102" text-anchor="middle" font-size="9" fill="var(--text)">INC</text>
-  <text x="288" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Thu</text>
-
-  <rect x="340" y="85" width="36" height="25" rx="3" fill="var(--accent)" opacity="0.35"/>
+  <text x="288" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Thu</text>  <rect x="340" y="85" width="36" height="25" rx="3" fill="var(--accent)" opacity="0.35"/>
   <text x="358" y="102" text-anchor="middle" font-size="9" fill="var(--text)">INC</text>
-  <text x="358" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Fri</text>
-
-  <rect x="410" y="85" width="36" height="25" rx="3" fill="var(--accent)" opacity="0.35"/>
+  <text x="358" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Fri</text>  <rect x="410" y="85" width="36" height="25" rx="3" fill="var(--accent)" opacity="0.35"/>
   <text x="428" y="102" text-anchor="middle" font-size="9" fill="var(--text)">INC</text>
-  <text x="428" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Sat</text>
-
-  <!-- Next Full - Sun -->
+  <text x="428" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Sat</text>  <!-- Next Full - Sun -->
   <rect x="490" y="70" width="50" height="40" rx="4" fill="var(--accent)" opacity="0.8"/>
   <text x="515" y="86" text-anchor="middle" font-size="10" font-weight="700" fill="var(--surface-2)">FULL</text>
   <text x="515" y="100" text-anchor="middle" font-size="10" fill="var(--surface-2)">Mon</text>
-  <text x="515" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Day 7</text>
-
-  <!-- WAL stream -->
+  <text x="515" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">Day 7</text>  <!-- WAL stream -->
   <rect x="40" y="155" width="600" height="18" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
-  <text x="340" y="168" text-anchor="middle" font-size="11" fill="var(--muted)">Continuous WAL / redo-log archiving  →→→→→→→→→</text>
-
-  <text x="340" y="210" text-anchor="middle" font-size="12" fill="var(--text)">Restore to any second: apply full + incrementals + WAL replay up to target time</text>
-</svg>
+  <text x="340" y="168" text-anchor="middle" font-size="11" fill="var(--muted)">Continuous WAL / redo-log archiving  →→→→→→→→→</text><p>  <text x="340" y="210" text-anchor="middle" font-size="12" fill="var(--text)">Restore to any second: apply full + incrementals + WAL replay up to target time</text>
+</svg></p>
 <figcaption>A weekly full backup combined with daily incrementals and continuous WAL archiving provides point-in-time restore granularity down to the second.</figcaption>
-</figure>
-
-## How a Restore Works
-
-### Physical Restore (PostgreSQL example)
-
-1. **Stop** the database server
-2. **Replace** the data directory with the base backup files
-3. Create `recovery.conf` (Postgres ≤ 11) or `postgresql.conf` + `recovery.signal` (Postgres ≥ 12) pointing to the WAL archive and target time
-4. **Start** the server — it replays WAL forward from the backup's end LSN until the target
-5. Verify row counts, application smoke tests
-6. **Promote** to read-write mode
-
-The total time = (copy base backup) + (replay WAL segments). For a 500 GB database replaying 6 hours of WAL, that can be 2–4 hours. Size the RTO (recovery time objective) accordingly.
-
-### Logical Restore (pg_dump)
-
-```bash
-# Dump
+</figure><h2>How a Restore Works</h2>
+<h3>Physical Restore (PostgreSQL example)</h3>
+<ol>
+<li><strong>Stop</strong> the database server</li>
+<li><strong>Replace</strong> the data directory with the base backup files</li>
+<li>Create <code>recovery.conf</code> (Postgres ≤ 11) or <code>postgresql.conf</code> + <code>recovery.signal</code> (Postgres ≥ 12) pointing to the WAL archive and target time</li>
+<li><strong>Start</strong> the server — it replays WAL forward from the backup&#39;s end LSN until the target</li>
+<li>Verify row counts, application smoke tests</li>
+<li><strong>Promote</strong> to read-write mode</li>
+</ol>
+<p>The total time = (copy base backup) + (replay WAL segments). For a 500 GB database replaying 6 hours of WAL, that can be 2–4 hours. Size the RTO (recovery time objective) accordingly.</p>
+<h3>Logical Restore (pg_dump)</h3>
+<pre><code class="language-bash"># Dump
 pg_dump -Fc -d mydb -f mydb.dump
 
 # Restore
 pg_restore -d mydb_new -j 4 mydb.dump   # -j 4 = 4 parallel workers
-```
-
-Logical restores must re-execute every INSERT. On large databases this can take many hours. Use physical backups for large databases; reserve logical dumps for smaller databases or partial restores (single table, single schema).
-
-## Interactive: Simulating a Backup Audit Table
-
-Production teams track every backup job in a log table. The query below lets you explore backup coverage and spot gaps.
-
+</code></pre>
+<p>Logical restores must re-execute every INSERT. On large databases this can take many hours. Use physical backups for large databases; reserve logical dumps for smaller databases or partial restores (single table, single schema).</p>
+<h2>Interactive: Simulating a Backup Audit Table</h2>
+<p>Production teams track every backup job in a log table. The query below lets you explore backup coverage and spot gaps.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Backup Audit Log</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE backup_jobs (id INTEGER PRIMARY KEY, backup_type TEXT, started_at TEXT, finished_at TEXT, size_mb INTEGER, status TEXT, destination TEXT); INSERT INTO backup_jobs VALUES (1,'full','2024-06-17 01:00','2024-06-17 02:14',82400,'success','s3://backups/full-20240617'); INSERT INTO backup_jobs VALUES (2,'incremental','2024-06-18 01:00','2024-06-18 01:08',1240,'success','s3://backups/inc-20240618'); INSERT INTO backup_jobs VALUES (3,'incremental','2024-06-19 01:00','2024-06-19 01:09',1380,'success','s3://backups/inc-20240619'); INSERT INTO backup_jobs VALUES (4,'incremental','2024-06-20 01:00','2024-06-20 01:00',0,'failed',''); INSERT INTO backup_jobs VALUES (5,'incremental','2024-06-21 01:00','2024-06-21 01:07',1190,'success','s3://backups/inc-20240621'); INSERT INTO backup_jobs VALUES (6,'full','2024-06-24 01:00','2024-06-24 02:20',84100,'success','s3://backups/full-20240624');" rows="20">-- Find any failed or missing backup jobs
+    <textarea data-setup="CREATE TABLE backup_jobs (id INTEGER PRIMARY KEY, backup_type TEXT, started_at TEXT, finished_at TEXT, size_mb INTEGER, status TEXT, destination TEXT); INSERT INTO backup_jobs VALUES (1,'full','2024-06-17 01:00','2024-06-17 02:14',82400,'success','s3://backups/full-20240617'); INSERT INTO backup_jobs VALUES (2,'incremental','2024-06-18 01:00','2024-06-18 01:08',1240,'success','s3://backups/inc-20240618'); INSERT INTO backup_jobs VALUES (3,'incremental','2024-06-19 01:00','2024-06-19 01:09',1380,'success','s3://backups/inc-20240619'); INSERT INTO backup_jobs VALUES (4,'incremental','2024-06-20 01:00','2024-06-20 01:00',0,'failed',''); INSERT INTO backup_jobs VALUES (5,'incremental','2024-06-21 01:00','2024-06-21 01:07',1190,'success','s3://backups/inc-20240621'); INSERT INTO backup_jobs VALUES (6,'full','2024-06-24 01:00','2024-06-24 02:20',84100,'success','s3://backups/full-20240624');" rows="10">-- Find any failed or missing backup jobs
 SELECT id, backup_type, started_at, status, size_mb
 FROM backup_jobs
 WHERE status != 'success'
@@ -155,38 +136,51 @@ ORDER BY started_at;
 -- SELECT backup_type, COUNT(*) AS jobs, SUM(size_mb) AS total_mb
 -- FROM backup_jobs GROUP BY backup_type;</textarea>
   </div>
+</div><h2>Key Design Decisions</h2>
+<h3>Storage Location (the 3-2-1 Rule)</h3>
+<blockquote>
+<p>Keep <strong>3</strong> copies, on <strong>2</strong> different media types, with <strong>1</strong> offsite. A backup on the same SAN as the primary is worthless if the SAN fails.</p>
+</blockquote>
+<p>Object storage (S3, GCS, Azure Blob) has become the standard offsite target: cheap, durable (11-nines), globally accessible, and easy to version.</p>
+<h3>Encryption</h3>
+<p>Backups often contain regulated data (PII, payment records). Encrypt at rest (AES-256) and in transit (TLS). Manage keys separately from the backups — an encrypted backup and key stored together is no better than plaintext.</p>
+<h3>Retention Policy</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Typical retention</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Daily incrementals</td>
+<td>7–30 days</td>
+</tr>
+<tr>
+<td>Weekly fulls</td>
+<td>3–12 months</td>
+</tr>
+<tr>
+<td>Monthly fulls</td>
+<td>1–7 years (compliance)</td>
+</tr>
+<tr>
+<td>WAL archives</td>
+<td>Keep until next verified full covers the period</td>
+</tr>
+</tbody></table>
+<h2>Key Takeaways</h2>
+<ul>
+<li><strong>A backup you have never restored is an untested hypothesis</strong> — schedule restore drills</li>
+<li>Physical backups (file copy + WAL) are faster to restore; logical dumps are more portable</li>
+<li>Combine full + incremental + continuous log archiving for sub-minute RPO</li>
+<li>Apply the 3-2-1 rule: 3 copies, 2 media, 1 offsite</li>
+<li>Encrypt backups and store keys separately; audit every backup job with a status table</li>
+</ul>
+
 </div>
-
-## Key Design Decisions
-
-### Storage Location (the 3-2-1 Rule)
-
-> Keep **3** copies, on **2** different media types, with **1** offsite. A backup on the same SAN as the primary is worthless if the SAN fails.
-
-Object storage (S3, GCS, Azure Blob) has become the standard offsite target: cheap, durable (11-nines), globally accessible, and easy to version.
-
-### Encryption
-
-Backups often contain regulated data (PII, payment records). Encrypt at rest (AES-256) and in transit (TLS). Manage keys separately from the backups — an encrypted backup and key stored together is no better than plaintext.
-
-### Retention Policy
-
-| Category | Typical retention |
-|---|---|
-| Daily incrementals | 7–30 days |
-| Weekly fulls | 3–12 months |
-| Monthly fulls | 1–7 years (compliance) |
-| WAL archives | Keep until next verified full covers the period |
-
-## Key Takeaways
-
-- **A backup you have never restored is an untested hypothesis** — schedule restore drills
-- Physical backups (file copy + WAL) are faster to restore; logical dumps are more portable
-- Combine full + incremental + continuous log archiving for sub-minute RPO
-- Apply the 3-2-1 rule: 3 copies, 2 media, 1 offsite
-- Encrypt backups and store keys separately; audit every backup job with a status table
-
-</script>
+  <nav class="pagenav"><a class="prev" href="229-performance-tradeoffs.html"><span class="dir">← Previous</span><span class="ttl">Performance tradeoffs</span></a><a class="next" href="232-point-in-time-recovery.html"><span class="dir">Next →</span><span class="ttl">Point-in-time recovery</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

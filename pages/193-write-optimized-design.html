@@ -5,68 +5,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Write-optimized design — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part V. Database Families</p>
   <p class="chapter-label">Chapter 20. Column-Family Databases</p>
   <h1 class="content-title">Write-optimized design</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="192-partitioning-and-clustering-keys.html"><span class="dir">← Previous</span><span class="ttl">Partitioning and clustering keys</span></a><a class="next" href="194-lsm-trees.html"><span class="dir">Next →</span><span class="ttl">LSM trees</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Column-family databases like Apache Cassandra are not just "NoSQL with a different API" — they are engineered from the ground up around one constraint: **writes must be as fast as possible, even at petabyte scale**. This shapes every design decision, from the on-disk format to the way updates and deletes work. This page explains the write-optimized architecture: why in-place updates are slow, what the append-only model looks like, and how data flows from a client write all the way to durable storage.
-
-## Why In-Place Updates Are Slow
-
-In a traditional B-tree-based database (PostgreSQL, MySQL, SQLite), an update works roughly like this:
-
-1. Find the page on disk that contains the row.
-2. Lock the page.
-3. Modify the byte range in-place.
-4. Write the change to the WAL.
-5. Mark the page dirty in the buffer pool.
-
-Step 1 is the bottleneck at scale. On a **spinning disk (HDD)**, finding a page requires a seek — physically moving the read head to the right track. A typical HDD seek takes 5–10 milliseconds. At 200 updates/second per spinning disk, you're already near the physical limit. Even with SSDs (where there is no moving head), **random writes cause write amplification**: the SSD's flash translation layer must erase and rewrite entire flash blocks (128KB–1MB) to change a few bytes, wearing out the device faster and reducing throughput.
-
-The fundamental problem: in-place updates require **random I/O**, and random I/O is expensive whether you're on HDD or SSD.
-
-## The Append-Only Alternative
-
-Column-family systems sidestep random I/O by making writes **always sequential and append-only**:
-
-- A new value never overwrites the old one.
-- Instead, the new value is appended as a newer version with a higher timestamp.
-- Old versions are cleaned up later, in the background, during **compaction**.
-
-This means writes are fast because sequential I/O to an append-only log saturates disk bandwidth, rather than crawling through random seeks. A single SSD can sustain hundreds of thousands of sequential writes per second — orders of magnitude more than random writes.
-
-> **Key insight:** "Update" in Cassandra is not a modification — it is an **insert of a new version**. The system resolves which version is current at read time (or during compaction) using timestamps.
-
-## The Write Path: Commit Log + Memtable
-
-Every write in Cassandra follows a two-step path before it is acknowledged to the client:
-
-```
-Client
+  <div id="rendered" class="content">
+<p>Column-family databases like Apache Cassandra are not just &quot;NoSQL with a different API&quot; — they are engineered from the ground up around one constraint: <strong>writes must be as fast as possible, even at petabyte scale</strong>. This shapes every design decision, from the on-disk format to the way updates and deletes work. This page explains the write-optimized architecture: why in-place updates are slow, what the append-only model looks like, and how data flows from a client write all the way to durable storage.</p>
+<h2>Why In-Place Updates Are Slow</h2>
+<p>In a traditional B-tree-based database (PostgreSQL, MySQL, SQLite), an update works roughly like this:</p>
+<ol>
+<li>Find the page on disk that contains the row.</li>
+<li>Lock the page.</li>
+<li>Modify the byte range in-place.</li>
+<li>Write the change to the WAL.</li>
+<li>Mark the page dirty in the buffer pool.</li>
+</ol>
+<p>Step 1 is the bottleneck at scale. On a <strong>spinning disk (HDD)</strong>, finding a page requires a seek — physically moving the read head to the right track. A typical HDD seek takes 5–10 milliseconds. At 200 updates/second per spinning disk, you&#39;re already near the physical limit. Even with SSDs (where there is no moving head), <strong>random writes cause write amplification</strong>: the SSD&#39;s flash translation layer must erase and rewrite entire flash blocks (128KB–1MB) to change a few bytes, wearing out the device faster and reducing throughput.</p>
+<p>The fundamental problem: in-place updates require <strong>random I/O</strong>, and random I/O is expensive whether you&#39;re on HDD or SSD.</p>
+<h2>The Append-Only Alternative</h2>
+<p>Column-family systems sidestep random I/O by making writes <strong>always sequential and append-only</strong>:</p>
+<ul>
+<li>A new value never overwrites the old one.</li>
+<li>Instead, the new value is appended as a newer version with a higher timestamp.</li>
+<li>Old versions are cleaned up later, in the background, during <strong>compaction</strong>.</li>
+</ul>
+<p>This means writes are fast because sequential I/O to an append-only log saturates disk bandwidth, rather than crawling through random seeks. A single SSD can sustain hundreds of thousands of sequential writes per second — orders of magnitude more than random writes.</p>
+<blockquote>
+<p><strong>Key insight:</strong> &quot;Update&quot; in Cassandra is not a modification — it is an <strong>insert of a new version</strong>. The system resolves which version is current at read time (or during compaction) using timestamps.</p>
+</blockquote>
+<h2>The Write Path: Commit Log + Memtable</h2>
+<p>Every write in Cassandra follows a two-step path before it is acknowledged to the client:</p>
+<pre><code>Client
   │
   ├──► Commit Log (WAL) ── sequential append to disk ── durable immediately
   │
   └──► Memtable ── in-memory sorted data structure ── fast, not yet on disk
-```
-
-1. **Commit log (Write-Ahead Log):** The write is appended to an on-disk sequential log file. This is what makes the write durable — if the node crashes before the memtable is flushed, the commit log can replay all writes on restart.
-
-2. **Memtable:** The write is also inserted into an in-memory sorted structure (a memtable — think of it as an in-memory SSTable). Reads can be served from the memtable before data ever hits a permanent SSTable file.
-
-Once the write is safely in both the commit log and the memtable, Cassandra acknowledges success to the client. The entire operation involves zero random disk I/O — the commit log is sequential, and the memtable is in RAM.
-
+</code></pre>
+<ol>
+<li><p><strong>Commit log (Write-Ahead Log):</strong> The write is appended to an on-disk sequential log file. This is what makes the write durable — if the node crashes before the memtable is flushed, the commit log can replay all writes on restart.</p>
+</li>
+<li><p><strong>Memtable:</strong> The write is also inserted into an in-memory sorted structure (a memtable — think of it as an in-memory SSTable). Reads can be served from the memtable before data ever hits a permanent SSTable file.</p>
+</li>
+</ol>
+<p>Once the write is safely in both the commit log and the memtable, Cassandra acknowledges success to the client. The entire operation involves zero random disk I/O — the commit log is sequential, and the memtable is in RAM.</p>
 <figure class="diagram">
 <svg viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Write path diagram: client write goes to commit log (sequential, durable) and memtable (in-memory). When memtable is full it flushes to SSTable on disk. SSTables are later merged by compaction.">
   <defs>
@@ -76,133 +61,136 @@ Once the write is safely in both the commit log and the memtable, Cassandra ackn
     <marker id="arr193b" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
     </marker>
-  </defs>
-
-  <!-- Client -->
+  </defs>  <!-- Client -->
   <rect x="10" y="130" width="90" height="50" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="55" y="152" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Client</text>
-  <text x="55" y="168" text-anchor="middle" font-size="10" fill="var(--muted)">INSERT</text>
-
-  <!-- Arrow: client to fork -->
-  <line x1="100" y1="155" x2="145" y2="155" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr193a)"/>
-
-  <!-- Fork point -->
+  <text x="55" y="168" text-anchor="middle" font-size="10" fill="var(--muted)">INSERT</text>  <!-- Arrow: client to fork -->
+  <line x1="100" y1="155" x2="145" y2="155" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr193a)"/>  <!-- Fork point -->
   <line x1="148" y1="155" x2="148" y2="90" stroke="var(--accent)" stroke-width="2"/>
-  <line x1="148" y1="155" x2="148" y2="220" stroke="var(--accent)" stroke-width="2"/>
-
-  <!-- Commit Log box -->
+  <line x1="148" y1="155" x2="148" y2="220" stroke="var(--accent)" stroke-width="2"/>  <!-- Commit Log box -->
   <rect x="152" y="60" width="140" height="60" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="222" y="84" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">Commit Log</text>
   <text x="222" y="100" text-anchor="middle" font-size="10" fill="var(--muted)">(WAL — disk, sequential)</text>
   <text x="222" y="112" text-anchor="middle" font-size="10" fill="var(--muted)">durable on write</text>
-  <line x1="148" y1="90" x2="152" y2="90" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr193a)"/>
-
-  <!-- Memtable box -->
+  <line x1="148" y1="90" x2="152" y2="90" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr193a)"/>  <!-- Memtable box -->
   <rect x="152" y="190" width="140" height="60" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="222" y="214" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">Memtable</text>
   <text x="222" y="230" text-anchor="middle" font-size="10" fill="var(--muted)">(in-memory, sorted)</text>
   <text x="222" y="242" text-anchor="middle" font-size="10" fill="var(--muted)">fast, not yet durable</text>
-  <line x1="148" y1="220" x2="152" y2="220" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr193a)"/>
-
-  <!-- ACK label -->
-  <text x="125" y="148" text-anchor="middle" font-size="9" fill="var(--muted)">write</text>
-
+  <line x1="148" y1="220" x2="152" y2="220" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr193a)"/>  <!-- ACK label -->
+<p>  <text x="125" y="148" text-anchor="middle" font-size="9" fill="var(--muted)">write</text></p>
   <!-- Acknowledged label -->
   <rect x="10" y="200" width="90" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" opacity="0.7"/>
   <text x="55" y="219" text-anchor="middle" font-size="10" fill="var(--accent)">ACK ✓</text>
-  <line x1="100" y1="214" x2="145" y2="174" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr193b)"/>
-
-  <!-- Flush arrow: memtable to SSTable -->
-  <text x="360" y="222" text-anchor="middle" font-size="10" fill="var(--muted)">flush when full</text>
-  <line x1="292" y1="220" x2="390" y2="220" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr193b)"/>
-
+  <line x1="100" y1="214" x2="145" y2="174" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr193b)"/>  <!-- Flush arrow: memtable to SSTable -->
+<p>  <text x="360" y="222" text-anchor="middle" font-size="10" fill="var(--muted)">flush when full</text>
+  <line x1="292" y1="220" x2="390" y2="220" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr193b)"/></p>
   <!-- SSTable 1 -->
   <rect x="395" y="60" width="100" height="50" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="445" y="82" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">SSTable 1</text>
-  <text x="445" y="98" text-anchor="middle" font-size="9" fill="var(--muted)">immutable, sorted</text>
-
-  <!-- SSTable 2 -->
+  <text x="445" y="98" text-anchor="middle" font-size="9" fill="var(--muted)">immutable, sorted</text>  <!-- SSTable 2 -->
   <rect x="395" y="120" width="100" height="50" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="445" y="142" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">SSTable 2</text>
-  <text x="445" y="158" text-anchor="middle" font-size="9" fill="var(--muted)">immutable, sorted</text>
-
-  <!-- SSTable 3 -->
+  <text x="445" y="158" text-anchor="middle" font-size="9" fill="var(--muted)">immutable, sorted</text>  <!-- SSTable 3 -->
   <rect x="395" y="180" width="100" height="50" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="445" y="202" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">SSTable 3</text>
-  <text x="445" y="218" text-anchor="middle" font-size="9" fill="var(--muted)">immutable, sorted</text>
-
-  <!-- Flush arrow from memtable to SSTables -->
-  <line x1="292" y1="210" x2="393" y2="170" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr193b)"/>
-
-  <!-- Compaction arrow -->
+  <text x="445" y="218" text-anchor="middle" font-size="9" fill="var(--muted)">immutable, sorted</text>  <!-- Flush arrow from memtable to SSTables -->
+  <line x1="292" y1="210" x2="393" y2="170" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr193b)"/>  <!-- Compaction arrow -->
   <line x1="500" y1="145" x2="568" y2="145" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr193b)"/>
-  <text x="534" y="138" text-anchor="middle" font-size="10" fill="var(--muted)">compaction</text>
-
-  <!-- Merged SSTable -->
+  <text x="534" y="138" text-anchor="middle" font-size="10" fill="var(--muted)">compaction</text>  <!-- Merged SSTable -->
   <rect x="572" y="100" width="100" height="90" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="622" y="128" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">Merged</text>
   <text x="622" y="144" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">SSTable</text>
   <text x="622" y="162" text-anchor="middle" font-size="9" fill="var(--muted)">deduped, sorted</text>
-  <text x="622" y="178" text-anchor="middle" font-size="9" fill="var(--muted)">old versions removed</text>
-
-  <!-- Bottom label -->
-  <text x="340" y="295" text-anchor="middle" font-size="11" fill="var(--muted)">All disk I/O is sequential — no random seeks on the write path</text>
-</svg>
+  <text x="622" y="178" text-anchor="middle" font-size="9" fill="var(--muted)">old versions removed</text>  <!-- Bottom label -->
+<p>  <text x="340" y="295" text-anchor="middle" font-size="11" fill="var(--muted)">All disk I/O is sequential — no random seeks on the write path</text>
+</svg></p>
 <figcaption>The Cassandra write path: every write hits the commit log (sequential, durable) and the in-memory memtable simultaneously. When the memtable is full it flushes to an immutable SSTable. Compaction periodically merges SSTables, removing stale versions.</figcaption>
-</figure>
-
-## The Memtable Flush Cycle
-
-The memtable is bounded in size (configurable, typically 64MB–256MB per table). When it fills:
-
-1. The memtable is **frozen** — no more writes go to it.
-2. A new, empty memtable takes over immediately. Writes continue without interruption.
-3. The frozen memtable is **flushed** to disk as an immutable **SSTable** (Sorted String Table) file.
-4. Once the SSTable is fully written, the corresponding portion of the commit log can be discarded (since the data is now safely on disk).
-
-This cycle repeats continuously. The result: a steady stream of sequential disk writes, and an accumulation of SSTable files.
-
-## What "No In-Place Update" Means for Reads and Deletes
-
-The append-only model has some non-obvious consequences:
-
-**Updates are new versions.** If you write `(user_id=42, name='Alice')` and then write `(user_id=42, name='Alice Smith')`, both versions exist somewhere — possibly in different SSTables or the memtable. A read for `user_id=42` must check the memtable and potentially multiple SSTables, then take the most recent version by timestamp. This is why **reads in Cassandra can be slower than writes** — they may require merging multiple sources.
-
-**Deletes are "tombstones."** You cannot erase a byte in an immutable SSTable. Instead, a delete writes a special marker called a **tombstone** — a record saying "this key was deleted at time T". On a read, if a tombstone is found that is newer than any actual value, the key is treated as deleted. Tombstones are physically removed only when compaction runs.
-
-**Compaction resolves versions.** Compaction is the background process that reads multiple SSTables, merges them, keeps only the most recent version of each cell, discards tombstoned rows, and writes a new, clean SSTable. After compaction, reads are faster because fewer files need to be consulted.
-
-## Comparing B-Tree vs LSM-Tree Write Paths
-
-| Characteristic | B-Tree (PostgreSQL, MySQL) | LSM-Tree (Cassandra, HBase) |
-|---|---|---|
-| Write mechanism | In-place update in page | Append to commit log + memtable |
-| Disk I/O type | Random (seek to page) | Sequential (append-only) |
-| Write durability | WAL + in-place | Commit log |
-| Update cost | Seek + lock + modify | Always O(1) append |
-| Read cost | Single B-tree traversal | Merge memtable + N SSTables |
-| Delete | Mark as deleted (vacuum later) | Write tombstone |
-| Background work | Vacuum / autovacuum | Compaction |
-| Write amplification | Moderate (WAL + heap) | High (compaction rewrites data) |
-| Read amplification | Low (one path through tree) | Higher (multiple SSTables) |
-
-> **The fundamental trade-off:** LSM-trees optimize write throughput by making reads slightly more expensive. B-trees optimize read performance by making writes involve random I/O. Choose based on your workload's write-to-read ratio.
-
-## Why This Matters for Time-Series and Event Workloads
-
-Column-family databases excel at workloads where:
-
-- Data is **append-only by nature** (events, logs, sensor readings, audit trails).
-- Rows are **never updated** — only new readings are inserted.
-- **Write rate vastly exceeds read rate**.
-- Reads are always by partition key (e.g., "give me all events for device X in the last hour").
-
-For these patterns, the write-optimized design is not a compromise — it is the ideal architecture. A single Cassandra node can sustain tens of thousands of writes per second. A cluster of dozens of nodes can sustain millions.
-
+</figure><h2>The Memtable Flush Cycle</h2>
+<p>The memtable is bounded in size (configurable, typically 64MB–256MB per table). When it fills:</p>
+<ol>
+<li>The memtable is <strong>frozen</strong> — no more writes go to it.</li>
+<li>A new, empty memtable takes over immediately. Writes continue without interruption.</li>
+<li>The frozen memtable is <strong>flushed</strong> to disk as an immutable <strong>SSTable</strong> (Sorted String Table) file.</li>
+<li>Once the SSTable is fully written, the corresponding portion of the commit log can be discarded (since the data is now safely on disk).</li>
+</ol>
+<p>This cycle repeats continuously. The result: a steady stream of sequential disk writes, and an accumulation of SSTable files.</p>
+<h2>What &quot;No In-Place Update&quot; Means for Reads and Deletes</h2>
+<p>The append-only model has some non-obvious consequences:</p>
+<p><strong>Updates are new versions.</strong> If you write <code>(user_id=42, name=&#39;Alice&#39;)</code> and then write <code>(user_id=42, name=&#39;Alice Smith&#39;)</code>, both versions exist somewhere — possibly in different SSTables or the memtable. A read for <code>user_id=42</code> must check the memtable and potentially multiple SSTables, then take the most recent version by timestamp. This is why <strong>reads in Cassandra can be slower than writes</strong> — they may require merging multiple sources.</p>
+<p><strong>Deletes are &quot;tombstones.&quot;</strong> You cannot erase a byte in an immutable SSTable. Instead, a delete writes a special marker called a <strong>tombstone</strong> — a record saying &quot;this key was deleted at time T&quot;. On a read, if a tombstone is found that is newer than any actual value, the key is treated as deleted. Tombstones are physically removed only when compaction runs.</p>
+<p><strong>Compaction resolves versions.</strong> Compaction is the background process that reads multiple SSTables, merges them, keeps only the most recent version of each cell, discards tombstoned rows, and writes a new, clean SSTable. After compaction, reads are faster because fewer files need to be consulted.</p>
+<h2>Comparing B-Tree vs LSM-Tree Write Paths</h2>
+<table>
+<thead>
+<tr>
+<th>Characteristic</th>
+<th>B-Tree (PostgreSQL, MySQL)</th>
+<th>LSM-Tree (Cassandra, HBase)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Write mechanism</td>
+<td>In-place update in page</td>
+<td>Append to commit log + memtable</td>
+</tr>
+<tr>
+<td>Disk I/O type</td>
+<td>Random (seek to page)</td>
+<td>Sequential (append-only)</td>
+</tr>
+<tr>
+<td>Write durability</td>
+<td>WAL + in-place</td>
+<td>Commit log</td>
+</tr>
+<tr>
+<td>Update cost</td>
+<td>Seek + lock + modify</td>
+<td>Always O(1) append</td>
+</tr>
+<tr>
+<td>Read cost</td>
+<td>Single B-tree traversal</td>
+<td>Merge memtable + N SSTables</td>
+</tr>
+<tr>
+<td>Delete</td>
+<td>Mark as deleted (vacuum later)</td>
+<td>Write tombstone</td>
+</tr>
+<tr>
+<td>Background work</td>
+<td>Vacuum / autovacuum</td>
+<td>Compaction</td>
+</tr>
+<tr>
+<td>Write amplification</td>
+<td>Moderate (WAL + heap)</td>
+<td>High (compaction rewrites data)</td>
+</tr>
+<tr>
+<td>Read amplification</td>
+<td>Low (one path through tree)</td>
+<td>Higher (multiple SSTables)</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>The fundamental trade-off:</strong> LSM-trees optimize write throughput by making reads slightly more expensive. B-trees optimize read performance by making writes involve random I/O. Choose based on your workload&#39;s write-to-read ratio.</p>
+</blockquote>
+<h2>Why This Matters for Time-Series and Event Workloads</h2>
+<p>Column-family databases excel at workloads where:</p>
+<ul>
+<li>Data is <strong>append-only by nature</strong> (events, logs, sensor readings, audit trails).</li>
+<li>Rows are <strong>never updated</strong> — only new readings are inserted.</li>
+<li><strong>Write rate vastly exceeds read rate</strong>.</li>
+<li>Reads are always by partition key (e.g., &quot;give me all events for device X in the last hour&quot;).</li>
+</ul>
+<p>For these patterns, the write-optimized design is not a compromise — it is the ideal architecture. A single Cassandra node can sustain tens of thousands of writes per second. A cluster of dozens of nodes can sustain millions.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Append-Only Write Pattern</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (device_id TEXT, recorded_at INTEGER, value REAL, version INTEGER); INSERT INTO events VALUES ('sensor-1', 100, 22.5, 1); INSERT INTO events VALUES ('sensor-1', 200, 23.1, 2); INSERT INTO events VALUES ('sensor-1', 200, 23.4, 3); INSERT INTO events VALUES ('sensor-1', 300, 22.9, 4); INSERT INTO events VALUES ('sensor-2', 100, 65.0, 1); INSERT INTO events VALUES ('sensor-2', 150, 66.2, 2); CREATE TABLE inplace_updates (device_id TEXT PRIMARY KEY, recorded_at INTEGER, value REAL); INSERT OR REPLACE INTO inplace_updates VALUES ('sensor-1', 300, 22.9); INSERT OR REPLACE INTO inplace_updates VALUES ('sensor-2', 150, 66.2);" rows="20">-- Append-only model: all versions exist, newest wins
+    <textarea data-setup="CREATE TABLE events (device_id TEXT, recorded_at INTEGER, value REAL, version INTEGER); INSERT INTO events VALUES ('sensor-1', 100, 22.5, 1); INSERT INTO events VALUES ('sensor-1', 200, 23.1, 2); INSERT INTO events VALUES ('sensor-1', 200, 23.4, 3); INSERT INTO events VALUES ('sensor-1', 300, 22.9, 4); INSERT INTO events VALUES ('sensor-2', 100, 65.0, 1); INSERT INTO events VALUES ('sensor-2', 150, 66.2, 2); CREATE TABLE inplace_updates (device_id TEXT PRIMARY KEY, recorded_at INTEGER, value REAL); INSERT OR REPLACE INTO inplace_updates VALUES ('sensor-1', 300, 22.9); INSERT OR REPLACE INTO inplace_updates VALUES ('sensor-2', 150, 66.2);" rows="10">-- Append-only model: all versions exist, newest wins
 -- (simulates what Cassandra stores before compaction)
 SELECT device_id, recorded_at, value, version
 FROM events
@@ -218,19 +206,20 @@ ORDER BY device_id, recorded_at, version;
 -- Compare: in-place update table (only latest value stored)
 -- SELECT * FROM inplace_updates;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li><strong>In-place updates are slow</strong> because they require random I/O — seeking to the right page on disk before modifying it.</li>
+<li>Cassandra&#39;s write path is <strong>always sequential</strong>: commit log (WAL) + in-memory memtable. No random seeks on write.</li>
+<li>Every write is <strong>an append, never an overwrite</strong>. Updates create new versions with higher timestamps.</li>
+<li>Deletes write <strong>tombstones</strong> — logical markers, not physical erasure.</li>
+<li>The <strong>memtable flushes</strong> to an immutable SSTable when full; background <strong>compaction</strong> merges SSTables and removes stale versions.</li>
+<li>This design makes writes extremely fast at the cost of slightly more complex reads.</li>
+<li>Best fit: high-volume append workloads — events, IoT sensors, time-series, logs — where write throughput is the primary constraint.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- **In-place updates are slow** because they require random I/O — seeking to the right page on disk before modifying it.
-- Cassandra's write path is **always sequential**: commit log (WAL) + in-memory memtable. No random seeks on write.
-- Every write is **an append, never an overwrite**. Updates create new versions with higher timestamps.
-- Deletes write **tombstones** — logical markers, not physical erasure.
-- The **memtable flushes** to an immutable SSTable when full; background **compaction** merges SSTables and removes stale versions.
-- This design makes writes extremely fast at the cost of slightly more complex reads.
-- Best fit: high-volume append workloads — events, IoT sensors, time-series, logs — where write throughput is the primary constraint.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="192-partitioning-and-clustering-keys.html"><span class="dir">← Previous</span><span class="ttl">Partitioning and clustering keys</span></a><a class="next" href="194-lsm-trees.html"><span class="dir">Next →</span><span class="ttl">LSM trees</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

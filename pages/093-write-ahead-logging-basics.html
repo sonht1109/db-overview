@@ -5,34 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Write-ahead logging basics — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 10. Trees, Logs, and Internal Structures</p>
   <h1 class="content-title">Write-ahead logging basics</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="092-splits-merges-and-rebalancing.html"><span class="dir">← Previous</span><span class="ttl">Splits, merges, and rebalancing</span></a><a class="next" href="094-checkpoints.html"><span class="dir">Next →</span><span class="ttl">Checkpoints</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Before a database can promise that a committed transaction survives a crash, it needs to record what it *intended* to do before touching the data files on disk. That mechanism is **write-ahead logging (WAL)** — the foundation of durability in PostgreSQL, SQLite, MySQL/InnoDB, Oracle, SQL Server, and virtually every other production engine.
-
-## The Core Idea: Write the Log First
-
-The "write-ahead" rule is simple:
-
-> **Before any change is written to the main data file, a record of that change must be written to the log.**
-
-The log (also called the redo log, transaction log, or WAL file) is an append-only sequence of **log records**. Each record captures which page was affected, the before-image (old value), the after-image (new value), and a **log sequence number (LSN)** that orders records globally.
-
-```
-WAL file (append-only, on disk)
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">093-write-ahead-logging-basics</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 093-write-ahead-logging-basics.</figcaption>
+</figure>
+<p>Before a database can promise that a committed transaction survives a crash, it needs to record what it <em>intended</em> to do before touching the data files on disk. That mechanism is <strong>write-ahead logging (WAL)</strong> — the foundation of durability in PostgreSQL, SQLite, MySQL/InnoDB, Oracle, SQL Server, and virtually every other production engine.</p>
+<h2>The Core Idea: Write the Log First</h2>
+<p>The &quot;write-ahead&quot; rule is simple:</p>
+<blockquote>
+<p><strong>Before any change is written to the main data file, a record of that change must be written to the log.</strong></p>
+</blockquote>
+<p>The log (also called the redo log, transaction log, or WAL file) is an append-only sequence of <strong>log records</strong>. Each record captures which page was affected, the before-image (old value), the after-image (new value), and a <strong>log sequence number (LSN)</strong> that orders records globally.</p>
+<pre><code>WAL file (append-only, on disk)
 ───────────────────────────────────────────────────────
 LSN 101 | txn 42 | BEGIN
 LSN 102 | txn 42 | UPDATE accounts SET balance=900 WHERE id=1  (old=1000)
@@ -40,56 +43,60 @@ LSN 103 | txn 42 | UPDATE accounts SET balance=1100 WHERE id=2 (old=1000)
 LSN 104 | txn 42 | COMMIT
 ───────────────────────────────────────────────────────
          ↑ flushed to disk before the COMMIT returns to the client
-```
-
-When you issue `COMMIT`, the engine flushes log records through the COMMIT entry to durable storage (`fsync`). Only after that flush succeeds does it tell your application "committed." The data pages in the heap file may still be dirty in memory — that is fine, because the log has everything needed to replay the change.
-
-## Why This Survives a Crash
-
-Suppose the server loses power one second after your `COMMIT` returns. The data page was still in the buffer pool and never reached disk. On restart, the database runs **crash recovery**:
-
-1. **Scan the log** from the last checkpoint forward.
-2. **Redo** every change that has a COMMIT record in the log — this replays the change into the data file.
-3. **Undo** any changes whose transaction never reached a COMMIT (they were in-flight at crash time).
-
-After recovery, the data files are exactly as if the crash never happened. Committed data is not lost; uncommitted data is rolled back cleanly.
-
-| Phase | What it does | Reason |
-|---|---|---|
-| Redo | Re-applies committed log records to data pages | Data page may not have been flushed |
-| Undo | Reverses log records for uncommitted transactions | Partial writes must not be visible |
-
-## Checkpoints: Keeping Recovery Fast
-
-If recovery always replayed the log from the very beginning, startup after a crash could take hours on a busy system. **Checkpoints** bound that cost. At a checkpoint the engine:
-
-1. Flushes all dirty data pages to disk.
-2. Writes a checkpoint record into the log noting the LSN at which this happened.
-
-On recovery, the engine only needs to start from the most recent checkpoint LSN — everything before it is already safe on disk. Most engines take checkpoints automatically every few seconds or every N megabytes of log written.
-
-```
-...older log records (already on disk in data files)...
+</code></pre>
+<p>When you issue <code>COMMIT</code>, the engine flushes log records through the COMMIT entry to durable storage (<code>fsync</code>). Only after that flush succeeds does it tell your application &quot;committed.&quot; The data pages in the heap file may still be dirty in memory — that is fine, because the log has everything needed to replay the change.</p>
+<h2>Why This Survives a Crash</h2>
+<p>Suppose the server loses power one second after your <code>COMMIT</code> returns. The data page was still in the buffer pool and never reached disk. On restart, the database runs <strong>crash recovery</strong>:</p>
+<ol>
+<li><strong>Scan the log</strong> from the last checkpoint forward.</li>
+<li><strong>Redo</strong> every change that has a COMMIT record in the log — this replays the change into the data file.</li>
+<li><strong>Undo</strong> any changes whose transaction never reached a COMMIT (they were in-flight at crash time).</li>
+</ol>
+<p>After recovery, the data files are exactly as if the crash never happened. Committed data is not lost; uncommitted data is rolled back cleanly.</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>What it does</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Redo</td>
+<td>Re-applies committed log records to data pages</td>
+<td>Data page may not have been flushed</td>
+</tr>
+<tr>
+<td>Undo</td>
+<td>Reverses log records for uncommitted transactions</td>
+<td>Partial writes must not be visible</td>
+</tr>
+</tbody></table>
+<h2>Checkpoints: Keeping Recovery Fast</h2>
+<p>If recovery always replayed the log from the very beginning, startup after a crash could take hours on a busy system. <strong>Checkpoints</strong> bound that cost. At a checkpoint the engine:</p>
+<ol>
+<li>Flushes all dirty data pages to disk.</li>
+<li>Writes a checkpoint record into the log noting the LSN at which this happened.</li>
+</ol>
+<p>On recovery, the engine only needs to start from the most recent checkpoint LSN — everything before it is already safe on disk. Most engines take checkpoints automatically every few seconds or every N megabytes of log written.</p>
+<pre><code>...older log records (already on disk in data files)...
            ↑
      [CHECKPOINT at LSN 500]
            ↓
 LSN 501 → LSN 502 → ... → LSN 610 [COMMIT txn 77]
                                    ↑
                            only this window needs redo
-```
-
-> **Note:** A very long-running transaction delays how far back the log can be truncated, because the undo information for that transaction must be retained. This is why engines warn about or limit idle-in-transaction sessions.
-
-## Seeing WAL Behavior in SQLite
-
-SQLite has two storage modes: the classic **rollback journal** and **WAL mode**. In WAL mode, writes go to a separate `.wal` file instead of modifying the database in place. Readers see a consistent snapshot of the main file while a writer appends to the WAL concurrently — better read/write parallelism with no extra complexity for application code.
-
-Try the widget below to see transactions commit in WAL mode.
-
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> A very long-running transaction delays how far back the log can be truncated, because the undo information for that transaction must be retained. This is why engines warn about or limit idle-in-transaction sessions.</p>
+</blockquote>
+<h2>Seeing WAL Behavior in SQLite</h2>
+<p>SQLite has two storage modes: the classic <strong>rollback journal</strong> and <strong>WAL mode</strong>. In WAL mode, writes go to a separate <code>.wal</code> file instead of modifying the database in place. Readers see a consistent snapshot of the main file while a writer appends to the WAL concurrently — better read/write parallelism with no extra complexity for application code.</p>
+<p>Try the widget below to see transactions commit in WAL mode.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · WAL mode and transactions</span></div>
   <div class="widget-body">
-    <textarea data-setup="PRAGMA journal_mode=WAL; CREATE TABLE transfers (id INTEGER PRIMARY KEY, from_acct INTEGER, to_acct INTEGER, amount REAL, committed_at TEXT); INSERT INTO transfers VALUES (1, 101, 202, 250.00, '2024-01-10 09:00:00'); INSERT INTO transfers VALUES (2, 303, 404, 75.50, '2024-01-10 09:01:12'); INSERT INTO transfers VALUES (3, 101, 505, 500.00, '2024-01-10 09:03:44');" rows="20">-- WAL mode is active. Each committed transaction appends to the WAL.
+    <textarea data-setup="PRAGMA journal_mode=WAL; CREATE TABLE transfers (id INTEGER PRIMARY KEY, from_acct INTEGER, to_acct INTEGER, amount REAL, committed_at TEXT); INSERT INTO transfers VALUES (1, 101, 202, 250.00, '2024-01-10 09:00:00'); INSERT INTO transfers VALUES (2, 303, 404, 75.50, '2024-01-10 09:01:12'); INSERT INTO transfers VALUES (3, 101, 505, 500.00, '2024-01-10 09:03:44');" rows="10">-- WAL mode is active. Each committed transaction appends to the WAL.
 -- Run a transaction and see how SQLite tracks journal mode.
 PRAGMA journal_mode;   -- should show 'wal'
 -- Now simulate a transfer as an atomic transaction:
@@ -102,15 +109,13 @@ SELECT id, from_acct || ' -> ' || to_acct AS route, amount, committed_at
 FROM transfers
 ORDER BY id;</textarea>
   </div>
+</div><p>Try changing <code>COMMIT</code> to <code>ROLLBACK</code> and re-run — the two inserts inside the transaction will disappear, exactly as crash-recovery undo would remove them.</p>
+<h2>The Trade-Off: Sequential Writes Win</h2>
+<p>One reason WAL is so effective is that <strong>appending to a log is sequential I/O</strong>, which is far cheaper than random writes to scattered data pages. A single sequential <code>fsync</code> of a small log buffer can make dozens of random page updates durable in one shot. This is the fundamental performance bargain that makes WAL both safe and fast.</p>
+
 </div>
-
-Try changing `COMMIT` to `ROLLBACK` and re-run — the two inserts inside the transaction will disappear, exactly as crash-recovery undo would remove them.
-
-## The Trade-Off: Sequential Writes Win
-
-One reason WAL is so effective is that **appending to a log is sequential I/O**, which is far cheaper than random writes to scattered data pages. A single sequential `fsync` of a small log buffer can make dozens of random page updates durable in one shot. This is the fundamental performance bargain that makes WAL both safe and fast.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="092-splits-merges-and-rebalancing.html"><span class="dir">← Previous</span><span class="ttl">Splits, merges, and rebalancing</span></a><a class="next" href="094-checkpoints.html"><span class="dir">Next →</span><span class="ttl">Checkpoints</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

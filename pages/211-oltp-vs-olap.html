@@ -5,32 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OLTP vs OLAP — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part V. Database Families</p>
   <p class="chapter-label">Chapter 22. Analytical Databases and Warehouses</p>
   <h1 class="content-title">OLTP vs OLAP</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="209-good-use-cases.html"><span class="dir">← Previous</span><span class="ttl">Good use cases</span></a><a class="next" href="212-columnar-storage.html"><span class="dir">Next →</span><span class="ttl">Columnar storage</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every production system eventually faces the same tension: the database that keeps your application running second-by-second is rarely the right tool for the queries that tell you *why* it ran the way it did. **OLTP** (Online Transaction Processing) and **OLAP** (Online Analytical Processing) are the two poles of this spectrum — and understanding what separates them is the foundation for every decision in database architecture, from index design to the choice of a data warehouse.
-
-## What OLTP Means in Practice
-
-OLTP systems are the heartbeat of operational software. Every time a user places an order, transfers money, or updates a profile, an OLTP database records that event — atomically, durably, and fast. The defining characteristic is **many short transactions hitting individual rows**, often thousands per second.
-
-A typical OLTP transaction looks like this:
-
-```sql
-BEGIN;
+  <div id="rendered" class="content">
+<p>Every production system eventually faces the same tension: the database that keeps your application running second-by-second is rarely the right tool for the queries that tell you <em>why</em> it ran the way it did. <strong>OLTP</strong> (Online Transaction Processing) and <strong>OLAP</strong> (Online Analytical Processing) are the two poles of this spectrum — and understanding what separates them is the foundation for every decision in database architecture, from index design to the choice of a data warehouse.</p>
+<h2>What OLTP Means in Practice</h2>
+<p>OLTP systems are the heartbeat of operational software. Every time a user places an order, transfers money, or updates a profile, an OLTP database records that event — atomically, durably, and fast. The defining characteristic is <strong>many short transactions hitting individual rows</strong>, often thousands per second.</p>
+<p>A typical OLTP transaction looks like this:</p>
+<pre><code class="language-sql">BEGIN;
   -- Point lookup on a single order
   SELECT id, status, amount
   FROM orders
@@ -38,105 +26,133 @@ BEGIN;
 
   -- Update exactly one row
   UPDATE orders
-  SET status = 'shipped'
+  SET status = &#39;shipped&#39;
   WHERE id = 10042;
 COMMIT;
-```
-
-Notice what this query does *not* do: it does not scan millions of rows, compute averages, or group results. It touches **one row** with a known primary key, and it does so in milliseconds.
-
-### OLTP Characteristics
-
-- **Query pattern:** Point lookups and short-range scans via indexed columns.
-- **Data volume touched per query:** Typically one to a few hundred rows.
-- **Latency target:** Single-digit milliseconds; sub-millisecond for cached paths.
-- **Concurrency:** Hundreds to thousands of simultaneous transactions.
-- **Write intensity:** High — every user action is a write.
-- **Schema style:** Third Normal Form (3NF) to minimize redundancy and prevent update anomalies.
-- **Primary optimization target:** Write throughput and low-latency point reads.
-
-The 3NF schema is not an accident. When you process thousands of inserts per second, you cannot afford to write the same customer name in fifty order rows every time it changes. Normalizing into separate `customers`, `products`, and `orders` tables means each piece of data lives in exactly one place.
-
-## What OLAP Means in Practice
-
-OLAP systems are built for *understanding* data, not recording it. A business analyst asking "What was our revenue by region last quarter, broken down by product category?" is issuing an OLAP query. It touches millions of rows, computes aggregations, and might run for minutes.
-
-```sql
--- OLAP query: aggregate over millions of rows
+</code></pre>
+<p>Notice what this query does <em>not</em> do: it does not scan millions of rows, compute averages, or group results. It touches <strong>one row</strong> with a known primary key, and it does so in milliseconds.</p>
+<h3>OLTP Characteristics</h3>
+<ul>
+<li><strong>Query pattern:</strong> Point lookups and short-range scans via indexed columns.</li>
+<li><strong>Data volume touched per query:</strong> Typically one to a few hundred rows.</li>
+<li><strong>Latency target:</strong> Single-digit milliseconds; sub-millisecond for cached paths.</li>
+<li><strong>Concurrency:</strong> Hundreds to thousands of simultaneous transactions.</li>
+<li><strong>Write intensity:</strong> High — every user action is a write.</li>
+<li><strong>Schema style:</strong> Third Normal Form (3NF) to minimize redundancy and prevent update anomalies.</li>
+<li><strong>Primary optimization target:</strong> Write throughput and low-latency point reads.</li>
+</ul>
+<p>The 3NF schema is not an accident. When you process thousands of inserts per second, you cannot afford to write the same customer name in fifty order rows every time it changes. Normalizing into separate <code>customers</code>, <code>products</code>, and <code>orders</code> tables means each piece of data lives in exactly one place.</p>
+<h2>What OLAP Means in Practice</h2>
+<p>OLAP systems are built for <em>understanding</em> data, not recording it. A business analyst asking &quot;What was our revenue by region last quarter, broken down by product category?&quot; is issuing an OLAP query. It touches millions of rows, computes aggregations, and might run for minutes.</p>
+<pre><code class="language-sql">-- OLAP query: aggregate over millions of rows
 SELECT
-  DATE_TRUNC('month', created_at) AS month,
+  DATE_TRUNC(&#39;month&#39;, created_at) AS month,
   product_id,
   SUM(amount)                     AS total_revenue,
   COUNT(*)                        AS order_count
 FROM orders
-WHERE created_at >= '2024-01-01'
-  AND created_at <  '2025-01-01'
+WHERE created_at &gt;= &#39;2024-01-01&#39;
+  AND created_at &lt;  &#39;2025-01-01&#39;
 GROUP BY 1, 2
 ORDER BY 1, total_revenue DESC;
-```
-
-This query might scan every order from the past year. On a row-oriented OLTP database with 50 million rows, this can take tens of seconds even with optimal indexes — because indexes are designed for point lookups, not full-column aggregations.
-
-### OLAP Characteristics
-
-- **Query pattern:** Full or partial table scans with GROUP BY, aggregations, and multi-table joins.
-- **Data volume touched per query:** Millions to billions of rows.
-- **Latency target:** Seconds to minutes are acceptable; humans tolerate longer waits for insight.
-- **Concurrency:** Low — a handful of analysts, not thousands of application users.
-- **Write intensity:** Low — data is typically loaded in bulk (ETL/ELT pipelines), not updated row by row.
-- **Schema style:** Star schema or snowflake schema — denormalized for fast reads.
-- **Primary optimization target:** Scan throughput and aggregation speed.
-
-The star schema denormalizes deliberately. A `fact_orders` table surrounded by `dim_customers`, `dim_products`, and `dim_dates` dimension tables means an analyst can answer almost any business question with a single join — at the cost of some data redundancy.
-
-## Side-by-Side Comparison
-
-| Dimension | OLTP | OLAP |
-|---|---|---|
-| **Full name** | Online Transaction Processing | Online Analytical Processing |
-| **Query type** | INSERT / UPDATE / DELETE + point SELECT | Aggregate SELECT (SUM, COUNT, AVG) |
-| **Rows touched per query** | 1 – few hundred | Millions – billions |
-| **Query latency** | < 10 ms | Seconds – minutes |
-| **Concurrent users** | Thousands | Single digits – dozens |
-| **Write pattern** | Continuous, row-by-row | Bulk loads (ETL), infrequent |
-| **Schema style** | 3NF (normalized) | Star / snowflake (denormalized) |
-| **Index strategy** | B-tree on PK + FK columns | Sparse indexes; columnar compression |
-| **Storage layout** | Row-oriented (NSM) | Column-oriented (DSM) |
-| **Optimization target** | Write throughput, low latency | Scan throughput, compression ratio |
-| **Example systems** | PostgreSQL, MySQL, Oracle | Snowflake, BigQuery, Redshift, DuckDB |
-
-## The Fundamental Tension
-
-Why can't one database do both well? The answer lies in the **physical storage layout**.
-
-Row-oriented storage (used by OLTP engines) keeps all columns of a row together on disk:
-
-```
-[id=1, customer_id=42, product_id=7, amount=99.00, status='paid', created_at='2024-03-01']
-[id=2, customer_id=17, product_id=3, amount=12.50, status='shipped', created_at='2024-03-01']
+</code></pre>
+<p>This query might scan every order from the past year. On a row-oriented OLTP database with 50 million rows, this can take tens of seconds even with optimal indexes — because indexes are designed for point lookups, not full-column aggregations.</p>
+<h3>OLAP Characteristics</h3>
+<ul>
+<li><strong>Query pattern:</strong> Full or partial table scans with GROUP BY, aggregations, and multi-table joins.</li>
+<li><strong>Data volume touched per query:</strong> Millions to billions of rows.</li>
+<li><strong>Latency target:</strong> Seconds to minutes are acceptable; humans tolerate longer waits for insight.</li>
+<li><strong>Concurrency:</strong> Low — a handful of analysts, not thousands of application users.</li>
+<li><strong>Write intensity:</strong> Low — data is typically loaded in bulk (ETL/ELT pipelines), not updated row by row.</li>
+<li><strong>Schema style:</strong> Star schema or snowflake schema — denormalized for fast reads.</li>
+<li><strong>Primary optimization target:</strong> Scan throughput and aggregation speed.</li>
+</ul>
+<p>The star schema denormalizes deliberately. A <code>fact_orders</code> table surrounded by <code>dim_customers</code>, <code>dim_products</code>, and <code>dim_dates</code> dimension tables means an analyst can answer almost any business question with a single join — at the cost of some data redundancy.</p>
+<h2>Side-by-Side Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>OLTP</th>
+<th>OLAP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Full name</strong></td>
+<td>Online Transaction Processing</td>
+<td>Online Analytical Processing</td>
+</tr>
+<tr>
+<td><strong>Query type</strong></td>
+<td>INSERT / UPDATE / DELETE + point SELECT</td>
+<td>Aggregate SELECT (SUM, COUNT, AVG)</td>
+</tr>
+<tr>
+<td><strong>Rows touched per query</strong></td>
+<td>1 – few hundred</td>
+<td>Millions – billions</td>
+</tr>
+<tr>
+<td><strong>Query latency</strong></td>
+<td>&lt; 10 ms</td>
+<td>Seconds – minutes</td>
+</tr>
+<tr>
+<td><strong>Concurrent users</strong></td>
+<td>Thousands</td>
+<td>Single digits – dozens</td>
+</tr>
+<tr>
+<td><strong>Write pattern</strong></td>
+<td>Continuous, row-by-row</td>
+<td>Bulk loads (ETL), infrequent</td>
+</tr>
+<tr>
+<td><strong>Schema style</strong></td>
+<td>3NF (normalized)</td>
+<td>Star / snowflake (denormalized)</td>
+</tr>
+<tr>
+<td><strong>Index strategy</strong></td>
+<td>B-tree on PK + FK columns</td>
+<td>Sparse indexes; columnar compression</td>
+</tr>
+<tr>
+<td><strong>Storage layout</strong></td>
+<td>Row-oriented (NSM)</td>
+<td>Column-oriented (DSM)</td>
+</tr>
+<tr>
+<td><strong>Optimization target</strong></td>
+<td>Write throughput, low latency</td>
+<td>Scan throughput, compression ratio</td>
+</tr>
+<tr>
+<td><strong>Example systems</strong></td>
+<td>PostgreSQL, MySQL, Oracle</td>
+<td>Snowflake, BigQuery, Redshift, DuckDB</td>
+</tr>
+</tbody></table>
+<h2>The Fundamental Tension</h2>
+<p>Why can&#39;t one database do both well? The answer lies in the <strong>physical storage layout</strong>.</p>
+<p>Row-oriented storage (used by OLTP engines) keeps all columns of a row together on disk:</p>
+<pre><code>[id=1, customer_id=42, product_id=7, amount=99.00, status=&#39;paid&#39;, created_at=&#39;2024-03-01&#39;]
+[id=2, customer_id=17, product_id=3, amount=12.50, status=&#39;shipped&#39;, created_at=&#39;2024-03-01&#39;]
 ...
-```
-
-When you fetch order #10042 by primary key, you read exactly one disk page and get every column you need. Perfect for OLTP.
-
-But when you want `SUM(amount)` across 50 million rows, you must read *every single row* — pulling `id`, `customer_id`, `product_id`, `status`, and `created_at` into memory even though you only care about `amount`. You pay the I/O cost of all columns to aggregate one.
-
-Column-oriented storage (used by OLAP engines) keeps each column contiguous:
-
-```
-id column:          [1, 2, 3, 4, 5, ...]
+</code></pre>
+<p>When you fetch order #10042 by primary key, you read exactly one disk page and get every column you need. Perfect for OLTP.</p>
+<p>But when you want <code>SUM(amount)</code> across 50 million rows, you must read <em>every single row</em> — pulling <code>id</code>, <code>customer_id</code>, <code>product_id</code>, <code>status</code>, and <code>created_at</code> into memory even though you only care about <code>amount</code>. You pay the I/O cost of all columns to aggregate one.</p>
+<p>Column-oriented storage (used by OLAP engines) keeps each column contiguous:</p>
+<pre><code>id column:          [1, 2, 3, 4, 5, ...]
 customer_id column: [42, 17, 88, 42, 7, ...]
 amount column:      [99.00, 12.50, 45.00, 230.00, 8.99, ...]
-```
-
-Now `SUM(amount)` reads only the `amount` column — a fraction of the data. It also compresses beautifully (sorted integers compress 10–50×). But updating a single row means touching a location in *every* column file, which is expensive and complex under high concurrency.
-
-> **The core tradeoff:** Row storage writes one row atomically and reads it back in one I/O. Column storage reads one attribute across all rows in minimal I/O but pays dearly for single-row writes. You cannot optimize both simultaneously.
-
-This is not merely a tuning dial. It is a fundamental architectural divide — which is why the industry long ago split into separate systems for each workload.
-
-## The OLTP / OLAP Architecture Diagram
-
+</code></pre>
+<p>Now <code>SUM(amount)</code> reads only the <code>amount</code> column — a fraction of the data. It also compresses beautifully (sorted integers compress 10–50×). But updating a single row means touching a location in <em>every</em> column file, which is expensive and complex under high concurrency.</p>
+<blockquote>
+<p><strong>The core tradeoff:</strong> Row storage writes one row atomically and reads it back in one I/O. Column storage reads one attribute across all rows in minimal I/O but pays dearly for single-row writes. You cannot optimize both simultaneously.</p>
+</blockquote>
+<p>This is not merely a tuning dial. It is a fundamental architectural divide — which is why the industry long ago split into separate systems for each workload.</p>
+<h2>The OLTP / OLAP Architecture Diagram</h2>
 <figure class="diagram">
 <svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Side-by-side comparison: OLTP panel on the left showing many small transactions hitting individual rows; OLAP panel on the right showing one wide scan across millions of rows">
   <defs>
@@ -146,14 +162,10 @@ This is not merely a tuning dial. It is a fundamental architectural divide — w
     <marker id="olap-arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
     </marker>
-  </defs>
-
-  <!-- OLTP panel -->
+  </defs>  <!-- OLTP panel -->
   <rect x="10" y="10" width="330" height="300" rx="10" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="175" y="36" text-anchor="middle" font-size="14" font-weight="700" fill="var(--accent)">OLTP</text>
-  <text x="175" y="54" text-anchor="middle" font-size="11" fill="var(--muted)">Many short transactions</text>
-
-  <!-- Row store representation -->
+  <text x="175" y="54" text-anchor="middle" font-size="11" fill="var(--muted)">Many short transactions</text>  <!-- Row store representation -->
   <rect x="120" y="66" width="180" height="20" rx="3" fill="var(--accent)" opacity="0.12" stroke="var(--border)" stroke-width="1"/>
   <text x="210" y="80" text-anchor="middle" font-size="10" fill="var(--text)">row 1 · id · cust · amt · status</text>
   <rect x="120" y="90" width="180" height="20" rx="3" fill="var(--accent)" opacity="0.35" stroke="var(--accent)" stroke-width="1.5"/>
@@ -164,29 +176,22 @@ This is not merely a tuning dial. It is a fundamental architectural divide — w
   <text x="210" y="152" text-anchor="middle" font-size="10" fill="var(--text)">row 4 · id · cust · amt · status</text>
   <rect x="120" y="162" width="180" height="20" rx="3" fill="var(--accent)" opacity="0.12" stroke="var(--border)" stroke-width="1"/>
   <text x="210" y="176" text-anchor="middle" font-size="10" fill="var(--text)">row 5 · id · cust · amt · status</text>
-  <text x="210" y="200" text-anchor="middle" font-size="10" fill="var(--muted)">⋮  millions of rows  ⋮</text>
-
-  <!-- Multiple small transaction arrows -->
+  <text x="210" y="200" text-anchor="middle" font-size="10" fill="var(--muted)">⋮  millions of rows  ⋮</text>  <!-- Multiple small transaction arrows -->
   <line x1="30" y1="100" x2="116" y2="100" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#oltp-arr)"/>
   <text x="72" y="94" text-anchor="middle" font-size="9" fill="var(--accent)">txn A</text>
   <line x1="30" y1="130" x2="116" y2="121" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#oltp-arr)"/>
   <text x="60" y="124" text-anchor="middle" font-size="9" fill="var(--muted)">txn B</text>
   <line x1="30" y1="160" x2="116" y2="142" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#oltp-arr)"/>
-  <text x="60" y="155" text-anchor="middle" font-size="9" fill="var(--muted)">txn C</text>
-
-  <!-- OLTP stats -->
-  <text x="175" y="228" text-anchor="middle" font-size="11" fill="var(--text)">Rows per query: <tspan font-weight="700" fill="var(--accent)">1 – 100</tspan></text>
+  <text x="60" y="155" text-anchor="middle" font-size="9" fill="var(--muted)">txn C</text>  <!-- OLTP stats -->
+<p>  <text x="175" y="228" text-anchor="middle" font-size="11" fill="var(--text)">Rows per query: <tspan font-weight="700" fill="var(--accent)">1 – 100</tspan></text>
   <text x="175" y="246" text-anchor="middle" font-size="11" fill="var(--text)">Concurrent users: <tspan font-weight="700" fill="var(--accent)">thousands</tspan></text>
   <text x="175" y="264" text-anchor="middle" font-size="11" fill="var(--text)">Latency target: <tspan font-weight="700" fill="var(--accent)">&lt; 10 ms</tspan></text>
   <text x="175" y="282" text-anchor="middle" font-size="11" fill="var(--text)">Storage: <tspan font-weight="700" fill="var(--accent)">row-oriented</tspan></text>
-  <text x="175" y="300" text-anchor="middle" font-size="11" fill="var(--text)">Schema: <tspan font-weight="700" fill="var(--accent)">3NF normalized</tspan></text>
-
+  <text x="175" y="300" text-anchor="middle" font-size="11" fill="var(--text)">Schema: <tspan font-weight="700" fill="var(--accent)">3NF normalized</tspan></text></p>
   <!-- OLAP panel -->
   <rect x="380" y="10" width="330" height="300" rx="10" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="545" y="36" text-anchor="middle" font-size="14" font-weight="700" fill="var(--muted)">OLAP</text>
-  <text x="545" y="54" text-anchor="middle" font-size="11" fill="var(--muted)">One wide scan across all rows</text>
-
-  <!-- Column store representation -->
+  <text x="545" y="54" text-anchor="middle" font-size="11" fill="var(--muted)">One wide scan across all rows</text>  <!-- Column store representation -->
   <rect x="390" y="66" width="30" height="130" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="405" y="134" text-anchor="middle" font-size="9" fill="var(--muted)" writing-mode="tb">id</text>
   <rect x="424" y="66" width="30" height="130" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
@@ -196,35 +201,24 @@ This is not merely a tuning dial. It is a fundamental architectural divide — w
   <rect x="502" y="66" width="38" height="130" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="521" y="134" text-anchor="middle" font-size="9" fill="var(--muted)" writing-mode="tb">status</text>
   <rect x="544" y="66" width="44" height="130" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
-  <text x="566" y="134" text-anchor="middle" font-size="9" fill="var(--muted)" writing-mode="tb">created_at</text>
-
-  <!-- Scan arrow across amount column -->
+  <text x="566" y="134" text-anchor="middle" font-size="9" fill="var(--muted)" writing-mode="tb">created_at</text>  <!-- Scan arrow across amount column -->
   <line x1="478" y1="62" x2="478" y2="200" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#olap-arr)"/>
   <text x="603" y="105" text-anchor="middle" font-size="10" fill="var(--muted)">SUM(amount)</text>
   <text x="603" y="120" text-anchor="middle" font-size="10" fill="var(--muted)">scans only</text>
   <text x="603" y="135" text-anchor="middle" font-size="10" fill="var(--muted)">one column</text>
-  <text x="603" y="150" text-anchor="middle" font-size="10" fill="var(--text)" font-weight="600">= $4.2 M</text>
-
-  <!-- OLAP stats -->
-  <text x="545" y="228" text-anchor="middle" font-size="11" fill="var(--text)">Rows per query: <tspan font-weight="700" fill="var(--muted)">millions</tspan></text>
+  <text x="603" y="150" text-anchor="middle" font-size="10" fill="var(--text)" font-weight="600">= $4.2 M</text>  <!-- OLAP stats -->
+<p>  <text x="545" y="228" text-anchor="middle" font-size="11" fill="var(--text)">Rows per query: <tspan font-weight="700" fill="var(--muted)">millions</tspan></text>
   <text x="545" y="246" text-anchor="middle" font-size="11" fill="var(--text)">Concurrent users: <tspan font-weight="700" fill="var(--muted)">dozens</tspan></text>
   <text x="545" y="264" text-anchor="middle" font-size="11" fill="var(--text)">Latency target: <tspan font-weight="700" fill="var(--muted)">seconds – mins</tspan></text>
   <text x="545" y="282" text-anchor="middle" font-size="11" fill="var(--text)">Storage: <tspan font-weight="700" fill="var(--muted)">column-oriented</tspan></text>
   <text x="545" y="300" text-anchor="middle" font-size="11" fill="var(--text)">Schema: <tspan font-weight="700" fill="var(--muted)">star / snowflake</tspan></text>
-</svg>
+</svg></p>
 <figcaption>Left: OLTP targets individual rows with many concurrent transactions. Right: OLAP sweeps entire columns across millions of rows to compute aggregates — a fundamentally different I/O pattern.</figcaption>
-</figure>
-
-## Schema Design Reflects the Workload
-
-The schema style is not decoration — it is a direct consequence of the access pattern.
-
-### OLTP: Third Normal Form
-
-In an OLTP system, each fact is stored once. The `orders` table references `customers` and `products` by foreign key rather than embedding their attributes:
-
-```sql
--- OLTP schema (3NF)
+</figure><h2>Schema Design Reflects the Workload</h2>
+<p>The schema style is not decoration — it is a direct consequence of the access pattern.</p>
+<h3>OLTP: Third Normal Form</h3>
+<p>In an OLTP system, each fact is stored once. The <code>orders</code> table references <code>customers</code> and <code>products</code> by foreign key rather than embedding their attributes:</p>
+<pre><code class="language-sql">-- OLTP schema (3NF)
 CREATE TABLE customers (
   id         SERIAL PRIMARY KEY,
   name       TEXT NOT NULL,
@@ -247,16 +241,11 @@ CREATE TABLE orders (
   status      TEXT NOT NULL,
   created_at  TIMESTAMPTZ DEFAULT now()
 );
-```
-
-Updating a customer's email touches exactly one row. There are no anomalies.
-
-### OLAP: Star Schema
-
-In an OLAP warehouse, you pre-join the data into a **fact table** surrounded by **dimension tables**. Redundancy is intentional:
-
-```sql
--- OLAP star schema
+</code></pre>
+<p>Updating a customer&#39;s email touches exactly one row. There are no anomalies.</p>
+<h3>OLAP: Star Schema</h3>
+<p>In an OLAP warehouse, you pre-join the data into a <strong>fact table</strong> surrounded by <strong>dimension tables</strong>. Redundancy is intentional:</p>
+<pre><code class="language-sql">-- OLAP star schema
 CREATE TABLE fact_orders (
   order_id     BIGINT,
   customer_key BIGINT,   -- FK to dim_customers
@@ -271,7 +260,7 @@ CREATE TABLE dim_customers (
   name         TEXT,
   country      TEXT,
   region       TEXT,
-  segment      TEXT      -- e.g. 'Enterprise', 'SMB'
+  segment      TEXT      -- e.g. &#39;Enterprise&#39;, &#39;SMB&#39;
 );
 
 CREATE TABLE dim_products (
@@ -281,34 +270,24 @@ CREATE TABLE dim_products (
   subcategory  TEXT,
   brand        TEXT
 );
-```
-
-An analyst can now answer "revenue by country and product category" with a single join from `fact_orders` — no multi-hop join chain through normalized tables.
-
-## Why Mixing Workloads Breaks Databases
-
-Running OLAP queries against an OLTP database causes **two classes of pain**:
-
-### 1. Lock Contention and Latency Spikes
-
-A long-running analytic query holds shared locks (or MVCC snapshots) on large swaths of data. Even with MVCC, the query inflates the undo/version chain, increasing memory pressure and checkpoint lag. Concurrent OLTP transactions slow down because the buffer pool fills with cold analytic pages, evicting hot operational data.
-
-### 2. Index Misuse
-
-OLTP indexes are B-trees designed for point lookups. An OLAP query doing a full-table aggregate cannot use a B-tree index efficiently — it triggers an index scan or falls back to a sequential scan anyway. Now you have the worst of both: slow analytic queries *and* a B-tree maintenance overhead that taxes every OLTP write.
-
-> **Industry response:** The dominant solution is to separate the systems. An OLTP database captures writes in real time; an ELT pipeline (Fivetran, dbt, Airbyte) replicates data into an OLAP warehouse (Snowflake, BigQuery, Redshift, DuckDB) on a schedule. Analysts query the warehouse; the application never touches it.
-
-Some databases offer a middle ground — **HTAP** (Hybrid Transactional/Analytical Processing). TiDB and SingleStore maintain both a row store and a columnar replica of the same data, routing queries to the appropriate engine. This adds significant complexity but can eliminate the ETL pipeline for use cases where near-real-time analytics matter.
-
-## Interactive SQL Widget
-
-The widget below lets you experiment with both access patterns against the same `orders` table. The default query is an **OLTP-style point lookup** — run it first. Then uncomment the **OLAP-style aggregate** to feel the contrast.
-
+</code></pre>
+<p>An analyst can now answer &quot;revenue by country and product category&quot; with a single join from <code>fact_orders</code> — no multi-hop join chain through normalized tables.</p>
+<h2>Why Mixing Workloads Breaks Databases</h2>
+<p>Running OLAP queries against an OLTP database causes <strong>two classes of pain</strong>:</p>
+<h3>1. Lock Contention and Latency Spikes</h3>
+<p>A long-running analytic query holds shared locks (or MVCC snapshots) on large swaths of data. Even with MVCC, the query inflates the undo/version chain, increasing memory pressure and checkpoint lag. Concurrent OLTP transactions slow down because the buffer pool fills with cold analytic pages, evicting hot operational data.</p>
+<h3>2. Index Misuse</h3>
+<p>OLTP indexes are B-trees designed for point lookups. An OLAP query doing a full-table aggregate cannot use a B-tree index efficiently — it triggers an index scan or falls back to a sequential scan anyway. Now you have the worst of both: slow analytic queries <em>and</em> a B-tree maintenance overhead that taxes every OLTP write.</p>
+<blockquote>
+<p><strong>Industry response:</strong> The dominant solution is to separate the systems. An OLTP database captures writes in real time; an ELT pipeline (Fivetran, dbt, Airbyte) replicates data into an OLAP warehouse (Snowflake, BigQuery, Redshift, DuckDB) on a schedule. Analysts query the warehouse; the application never touches it.</p>
+</blockquote>
+<p>Some databases offer a middle ground — <strong>HTAP</strong> (Hybrid Transactional/Analytical Processing). TiDB and SingleStore maintain both a row store and a columnar replica of the same data, routing queries to the appropriate engine. This adds significant complexity but can eliminate the ETL pipeline for use cases where near-real-time analytics matter.</p>
+<h2>Interactive SQL Widget</h2>
+<p>The widget below lets you experiment with both access patterns against the same <code>orders</code> table. The default query is an <strong>OLTP-style point lookup</strong> — run it first. Then uncomment the <strong>OLAP-style aggregate</strong> to feel the contrast.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · OLTP vs OLAP Workloads</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product_id INTEGER, amount NUMERIC, status TEXT, created_at TEXT); INSERT INTO orders VALUES (1, 101, 7, 49.99, 'paid', '2024-01-05'); INSERT INTO orders VALUES (2, 204, 3, 129.00, 'shipped', '2024-01-08'); INSERT INTO orders VALUES (3, 101, 12, 19.99, 'paid', '2024-02-14'); INSERT INTO orders VALUES (4, 317, 7, 49.99, 'cancelled', '2024-02-20'); INSERT INTO orders VALUES (5, 204, 5, 89.50, 'paid', '2024-03-03'); INSERT INTO orders VALUES (6, 512, 3, 129.00, 'shipped', '2024-03-11'); INSERT INTO orders VALUES (7, 101, 7, 49.99, 'paid', '2024-04-02'); INSERT INTO orders VALUES (8, 317, 12, 19.99, 'paid', '2024-04-19');" rows="20">-- OLTP-style: point lookup on a single known order (uses the primary key index)
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product_id INTEGER, amount NUMERIC, status TEXT, created_at TEXT); INSERT INTO orders VALUES (1, 101, 7, 49.99, 'paid', '2024-01-05'); INSERT INTO orders VALUES (2, 204, 3, 129.00, 'shipped', '2024-01-08'); INSERT INTO orders VALUES (3, 101, 12, 19.99, 'paid', '2024-02-14'); INSERT INTO orders VALUES (4, 317, 7, 49.99, 'cancelled', '2024-02-20'); INSERT INTO orders VALUES (5, 204, 5, 89.50, 'paid', '2024-03-03'); INSERT INTO orders VALUES (6, 512, 3, 129.00, 'shipped', '2024-03-11'); INSERT INTO orders VALUES (7, 101, 7, 49.99, 'paid', '2024-04-02'); INSERT INTO orders VALUES (8, 317, 12, 19.99, 'paid', '2024-04-19');" rows="10">-- OLTP-style: point lookup on a single known order (uses the primary key index)
 SELECT id, customer_id, product_id, amount, status
 FROM orders
 WHERE id = 5;
@@ -323,23 +302,25 @@ WHERE id = 5;
 -- GROUP BY product_id
 -- ORDER BY total_revenue DESC;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li><p><strong>OLTP</strong> handles the operational heartbeat of your application: many short, concurrent transactions that read or write individual rows with strict latency requirements. Normalized (3NF) schemas and B-tree indexes are the right tools.</p>
+</li>
+<li><p><strong>OLAP</strong> handles analytical insight: few, long-running queries that scan and aggregate millions of rows. Denormalized star schemas, columnar storage, and vectorized execution engines are the right tools.</p>
+</li>
+<li><p><strong>The fundamental tension</strong> is physical: row-oriented storage optimizes single-row access; column-oriented storage optimizes per-attribute scans. No single layout excels at both simultaneously.</p>
+</li>
+<li><p><strong>Lock contention and buffer pool thrashing</strong> make it dangerous to run heavy analytic queries against a live OLTP database. Even with MVCC, long transactions degrade operational performance.</p>
+</li>
+<li><p><strong>The standard architecture</strong> is separation: OLTP database → ETL/ELT pipeline → OLAP warehouse. HTAP systems (TiDB, SingleStore) blur this boundary at the cost of operational complexity.</p>
+</li>
+<li><p>When you encounter a performance problem in a database, asking &quot;is this OLTP or OLAP traffic?&quot; is almost always the right first question — because the answer determines every subsequent design choice.</p>
+</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- **OLTP** handles the operational heartbeat of your application: many short, concurrent transactions that read or write individual rows with strict latency requirements. Normalized (3NF) schemas and B-tree indexes are the right tools.
-
-- **OLAP** handles analytical insight: few, long-running queries that scan and aggregate millions of rows. Denormalized star schemas, columnar storage, and vectorized execution engines are the right tools.
-
-- **The fundamental tension** is physical: row-oriented storage optimizes single-row access; column-oriented storage optimizes per-attribute scans. No single layout excels at both simultaneously.
-
-- **Lock contention and buffer pool thrashing** make it dangerous to run heavy analytic queries against a live OLTP database. Even with MVCC, long transactions degrade operational performance.
-
-- **The standard architecture** is separation: OLTP database → ETL/ELT pipeline → OLAP warehouse. HTAP systems (TiDB, SingleStore) blur this boundary at the cost of operational complexity.
-
-- When you encounter a performance problem in a database, asking "is this OLTP or OLAP traffic?" is almost always the right first question — because the answer determines every subsequent design choice.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="209-good-use-cases.html"><span class="dir">← Previous</span><span class="ttl">Good use cases</span></a><a class="next" href="212-columnar-storage.html"><span class="dir">Next →</span><span class="ttl">Columnar storage</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

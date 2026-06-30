@@ -5,91 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Good use cases — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part V. Database Families</p>
   <p class="chapter-label">Chapter 22. Analytical Databases and Warehouses</p>
   <h1 class="content-title">Good use cases</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="218-why-analytics-engines-feel-different.html"><span class="dir">← Previous</span><span class="ttl">Why analytics engines feel different</span></a><a class="next" href="221-latency-throughput-and-concurrency.html"><span class="dir">Next →</span><span class="ttl">Latency, throughput, and concurrency</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Knowing *how* an analytical database works is only half the picture. The other half is knowing *when* to reach for one — and when not to. Analytical databases and warehouses are powerful tools with a well-defined sweet spot: large volumes of historical data, read-heavy workloads, complex aggregations, and latency tolerance measured in seconds rather than milliseconds. This page maps the landscape of use cases and gives you a framework for making the decision.
-
-## Business Intelligence and Dashboards
-
-The canonical use case. A BI tool (Tableau, Looker, Metabase, Power BI) issues pre-defined SQL queries that aggregate data across weeks or months of history. Typical patterns:
-
-- **Weekly sales trends**: `GROUP BY week, region, product_category` over 52 weeks of order history
-- **Cohort analysis**: group users by signup month, track their activity over subsequent months
-- **Funnel metrics**: measure conversion rates at each step of a purchase or onboarding flow
-- **KPI dashboards**: revenue, active users, churn rate, average order value — refreshed hourly or daily
-
-These queries are **read-only, long-running, and repetitive**. They run well in an analytical database because:
-- Result caching makes repeated dashboard loads fast
-- The queries are planned and optimized offline (not interactive)
-- 5–30 second latency is acceptable; users aren't waiting at a transaction screen
-
-```sql
--- Typical BI query: weekly revenue trend by region
+  <div id="rendered" class="content">
+<p>Knowing <em>how</em> an analytical database works is only half the picture. The other half is knowing <em>when</em> to reach for one — and when not to. Analytical databases and warehouses are powerful tools with a well-defined sweet spot: large volumes of historical data, read-heavy workloads, complex aggregations, and latency tolerance measured in seconds rather than milliseconds. This page maps the landscape of use cases and gives you a framework for making the decision.</p>
+<h2>Business Intelligence and Dashboards</h2>
+<p>The canonical use case. A BI tool (Tableau, Looker, Metabase, Power BI) issues pre-defined SQL queries that aggregate data across weeks or months of history. Typical patterns:</p>
+<ul>
+<li><strong>Weekly sales trends</strong>: <code>GROUP BY week, region, product_category</code> over 52 weeks of order history</li>
+<li><strong>Cohort analysis</strong>: group users by signup month, track their activity over subsequent months</li>
+<li><strong>Funnel metrics</strong>: measure conversion rates at each step of a purchase or onboarding flow</li>
+<li><strong>KPI dashboards</strong>: revenue, active users, churn rate, average order value — refreshed hourly or daily</li>
+</ul>
+<p>These queries are <strong>read-only, long-running, and repetitive</strong>. They run well in an analytical database because:</p>
+<ul>
+<li>Result caching makes repeated dashboard loads fast</li>
+<li>The queries are planned and optimized offline (not interactive)</li>
+<li>5–30 second latency is acceptable; users aren&#39;t waiting at a transaction screen</li>
+</ul>
+<pre><code class="language-sql">-- Typical BI query: weekly revenue trend by region
 SELECT
-  DATE_TRUNC('week', order_date) AS week,
+  DATE_TRUNC(&#39;week&#39;, order_date) AS week,
   region,
   SUM(revenue) AS total_revenue,
   COUNT(DISTINCT customer_id) AS unique_customers
 FROM orders
-WHERE order_date >= CURRENT_DATE - INTERVAL '1 year'
+WHERE order_date &gt;= CURRENT_DATE - INTERVAL &#39;1 year&#39;
 GROUP BY 1, 2
 ORDER BY 1, 2;
-```
-
-## Ad-Hoc Exploration
-
-Data scientists and analysts often need to explore data without a predefined question. They issue one-off queries: "how many users did X before doing Y?", "what's the distribution of session lengths?", "is there a correlation between feature usage and churn?"
-
-Ad-hoc workloads favor:
-- **Low barrier to query authorship**: SQL or DataFrame APIs
-- **Fast iteration**: query, see result, refine, repeat — 10–30 second turnarounds are fine
-- **Column-level access to raw events**: not just pre-aggregated summaries
-- **Large data range**: exploring months or years of raw event history
-
-Tools like DuckDB, BigQuery, and Athena are popular for ad-hoc work because they require no infrastructure — you point them at Parquet files and start querying.
-
-## Financial Reporting
-
-End-of-period reporting has strict requirements: accuracy, auditability, and the ability to reproduce historical snapshots.
-
-- **Month/quarter/year-end aggregations**: revenue recognition, expense summaries, balance sheet snapshots
-- **Regulatory reports**: detailed breakdowns required by tax authorities or financial regulators
-- **Variance analysis**: actual vs. budget, period-over-period comparison
-- **Multi-currency consolidation**: convert subsidiary financials to reporting currency at period-end FX rates
-
-Lakehouses are well-suited here because **time travel** lets you reproduce the exact state of data at the close date — critical when an auditor asks "what did your books show on March 31 at 23:59?"
-
-## Product Analytics
-
-Product teams track user behavior to understand how features are used and what drives retention.
-
-- **Feature adoption**: what percentage of users have tried feature X within 30 days of signup?
-- **A/B test analysis**: did users in the treatment group retain better after 14 days?
-- **Funnel drop-off**: at which step of the onboarding flow do users abandon?
-- **User segmentation**: which user attributes predict high lifetime value?
-
-These workloads generate **very high event volumes** (billions of rows per month for mid-sized products) but queries aggregate across the entire population. Analytical databases handle this well; OLTP databases do not.
-
-## Machine Learning Feature Stores
-
-ML models consume **features** — derived attributes computed from raw data. Computing features at inference time (for each prediction request) is often too slow or too expensive. Instead, teams **pre-compute features** in batch using an analytical engine and serve them from a fast key-value store at inference time.
-
-```
-Raw events (S3/GCS)
+</code></pre>
+<h2>Ad-Hoc Exploration</h2>
+<p>Data scientists and analysts often need to explore data without a predefined question. They issue one-off queries: &quot;how many users did X before doing Y?&quot;, &quot;what&#39;s the distribution of session lengths?&quot;, &quot;is there a correlation between feature usage and churn?&quot;</p>
+<p>Ad-hoc workloads favor:</p>
+<ul>
+<li><strong>Low barrier to query authorship</strong>: SQL or DataFrame APIs</li>
+<li><strong>Fast iteration</strong>: query, see result, refine, repeat — 10–30 second turnarounds are fine</li>
+<li><strong>Column-level access to raw events</strong>: not just pre-aggregated summaries</li>
+<li><strong>Large data range</strong>: exploring months or years of raw event history</li>
+</ul>
+<p>Tools like DuckDB, BigQuery, and Athena are popular for ad-hoc work because they require no infrastructure — you point them at Parquet files and start querying.</p>
+<h2>Financial Reporting</h2>
+<p>End-of-period reporting has strict requirements: accuracy, auditability, and the ability to reproduce historical snapshots.</p>
+<ul>
+<li><strong>Month/quarter/year-end aggregations</strong>: revenue recognition, expense summaries, balance sheet snapshots</li>
+<li><strong>Regulatory reports</strong>: detailed breakdowns required by tax authorities or financial regulators</li>
+<li><strong>Variance analysis</strong>: actual vs. budget, period-over-period comparison</li>
+<li><strong>Multi-currency consolidation</strong>: convert subsidiary financials to reporting currency at period-end FX rates</li>
+</ul>
+<p>Lakehouses are well-suited here because <strong>time travel</strong> lets you reproduce the exact state of data at the close date — critical when an auditor asks &quot;what did your books show on March 31 at 23:59?&quot;</p>
+<h2>Product Analytics</h2>
+<p>Product teams track user behavior to understand how features are used and what drives retention.</p>
+<ul>
+<li><strong>Feature adoption</strong>: what percentage of users have tried feature X within 30 days of signup?</li>
+<li><strong>A/B test analysis</strong>: did users in the treatment group retain better after 14 days?</li>
+<li><strong>Funnel drop-off</strong>: at which step of the onboarding flow do users abandon?</li>
+<li><strong>User segmentation</strong>: which user attributes predict high lifetime value?</li>
+</ul>
+<p>These workloads generate <strong>very high event volumes</strong> (billions of rows per month for mid-sized products) but queries aggregate across the entire population. Analytical databases handle this well; OLTP databases do not.</p>
+<h2>Machine Learning Feature Stores</h2>
+<p>ML models consume <strong>features</strong> — derived attributes computed from raw data. Computing features at inference time (for each prediction request) is often too slow or too expensive. Instead, teams <strong>pre-compute features</strong> in batch using an analytical engine and serve them from a fast key-value store at inference time.</p>
+<pre><code>Raw events (S3/GCS)
         │
         ▼
 Analytical query (Spark/BigQuery)
@@ -102,38 +83,55 @@ Feature store (Redis/DynamoDB)
         │
         ▼
 ML model inference (millisecond lookups)
-```
-
-The analytical engine handles the heavy aggregation; the feature store handles the low-latency serving. This is the **offline feature computation** pattern used by most production ML systems.
-
-## Log and Event Analytics
-
-Application logs, clickstreams, and IoT sensor data share a common profile: **high write throughput, append-only, read-rarely-but-scan-much**.
-
-- **Application log analysis**: "how many 5xx errors occurred in the last hour, broken down by endpoint?"
-- **Clickstream analysis**: "what pages did users visit before converting?"
-- **IoT sensor data**: "what is the 99th percentile temperature reading per device per day?"
-- **Security event analysis**: "show me all login attempts from unusual geolocations in the past week"
-
-ClickHouse, Apache Druid, and TimescaleDB are especially popular here because they optimize for **time-series scans** and **high-cardinality GROUP BY** queries on append-only data.
-
-## When NOT to Use an Analytical Database
-
-This is as important as knowing when to use one.
-
-| Workload | Why analytics engines struggle |
-|---|---|
-| Point lookups by primary key | Columnar storage is slow for single-row reads; use Postgres or DynamoDB |
-| Frequent small writes | Column stores batch-optimize writes; individual row inserts are inefficient |
-| Sub-millisecond latency | No analytics engine achieves &lt;1 ms; use a cache or OLTP DB |
-| Complex transactions (multi-table ACID) | Most analytical engines lack row-level locking |
-| Heavy concurrent updates | No concurrency control for writers; designed for bulk loads |
-| Small data (&lt;1 GB) | DuckDB or Postgres are faster; overhead of cluster setup is not justified |
-
-> **Note:** The boundary is blurring. Some systems like SingleStore (MemSQL) and YugabyteDB claim HTAP (Hybrid Transactional/Analytical Processing) — serving both workloads. But in practice, most organizations still separate OLTP and OLAP tiers.
-
-## Decision Framework
-
+</code></pre>
+<p>The analytical engine handles the heavy aggregation; the feature store handles the low-latency serving. This is the <strong>offline feature computation</strong> pattern used by most production ML systems.</p>
+<h2>Log and Event Analytics</h2>
+<p>Application logs, clickstreams, and IoT sensor data share a common profile: <strong>high write throughput, append-only, read-rarely-but-scan-much</strong>.</p>
+<ul>
+<li><strong>Application log analysis</strong>: &quot;how many 5xx errors occurred in the last hour, broken down by endpoint?&quot;</li>
+<li><strong>Clickstream analysis</strong>: &quot;what pages did users visit before converting?&quot;</li>
+<li><strong>IoT sensor data</strong>: &quot;what is the 99th percentile temperature reading per device per day?&quot;</li>
+<li><strong>Security event analysis</strong>: &quot;show me all login attempts from unusual geolocations in the past week&quot;</li>
+</ul>
+<p>ClickHouse, Apache Druid, and TimescaleDB are especially popular here because they optimize for <strong>time-series scans</strong> and <strong>high-cardinality GROUP BY</strong> queries on append-only data.</p>
+<h2>When NOT to Use an Analytical Database</h2>
+<p>This is as important as knowing when to use one.</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th>Why analytics engines struggle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Point lookups by primary key</td>
+<td>Columnar storage is slow for single-row reads; use Postgres or DynamoDB</td>
+</tr>
+<tr>
+<td>Frequent small writes</td>
+<td>Column stores batch-optimize writes; individual row inserts are inefficient</td>
+</tr>
+<tr>
+<td>Sub-millisecond latency</td>
+<td>No analytics engine achieves &lt;1 ms; use a cache or OLTP DB</td>
+</tr>
+<tr>
+<td>Complex transactions (multi-table ACID)</td>
+<td>Most analytical engines lack row-level locking</td>
+</tr>
+<tr>
+<td>Heavy concurrent updates</td>
+<td>No concurrency control for writers; designed for bulk loads</td>
+</tr>
+<tr>
+<td>Small data (&lt;1 GB)</td>
+<td>DuckDB or Postgres are faster; overhead of cluster setup is not justified</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> The boundary is blurring. Some systems like SingleStore (MemSQL) and YugabyteDB claim HTAP (Hybrid Transactional/Analytical Processing) — serving both workloads. But in practice, most organizations still separate OLTP and OLAP tiers.</p>
+</blockquote>
+<h2>Decision Framework</h2>
 <figure class="diagram">
 <svg viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Workload characteristics matrix: read/write ratio vs query complexity, showing which engine type to use in each quadrant">
   <defs>
@@ -177,27 +175,57 @@ This is as important as knowing when to use one.
   <text x="490" y="356" font-size="10" fill="var(--muted)">read-heavy, complex</text>
 </svg>
 <figcaption>Workload characteristics matrix. Analytical databases belong in the lower-right quadrant: read-heavy workloads with complex, multi-table aggregations. Other quadrants are better served by OLTP, caches, or stream processors.</figcaption>
-</figure>
-
-## Structured Decision Table
-
-| Workload characteristic | Recommended engine type |
-|---|---|
-| Reads >> Writes; complex aggregations | Analytical DB / Warehouse |
-| Mixed reads/writes; ACID required | OLTP (Postgres, MySQL) |
-| Time-series, append-only, high cardinality | ClickHouse, TimescaleDB, Druid |
-| Unstructured/semi-structured data | Lakehouse (Iceberg, Delta) |
-| Sub-millisecond point lookups | Key-value (DynamoDB, Redis) |
-| Full-text search | Elasticsearch, OpenSearch |
-| Real-time streaming aggregations | Flink, Kafka Streams, Druid |
-| Large-scale ML feature computation | Spark, BigQuery |
-| Small data (&lt;1 GB), local analysis | DuckDB, SQLite |
-| Multi-model (graph + relational) | ArangoDB, Amazon Neptune |
-
-## A Realistic BI Query: Cohort Retention
-
-A cohort retention query measures what percentage of users acquired in a given month are still active N months later. This is a staple of product analytics that requires analytical horsepower.
-
+</figure><h2>Structured Decision Table</h2>
+<table>
+<thead>
+<tr>
+<th>Workload characteristic</th>
+<th>Recommended engine type</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Reads &gt;&gt; Writes; complex aggregations</td>
+<td>Analytical DB / Warehouse</td>
+</tr>
+<tr>
+<td>Mixed reads/writes; ACID required</td>
+<td>OLTP (Postgres, MySQL)</td>
+</tr>
+<tr>
+<td>Time-series, append-only, high cardinality</td>
+<td>ClickHouse, TimescaleDB, Druid</td>
+</tr>
+<tr>
+<td>Unstructured/semi-structured data</td>
+<td>Lakehouse (Iceberg, Delta)</td>
+</tr>
+<tr>
+<td>Sub-millisecond point lookups</td>
+<td>Key-value (DynamoDB, Redis)</td>
+</tr>
+<tr>
+<td>Full-text search</td>
+<td>Elasticsearch, OpenSearch</td>
+</tr>
+<tr>
+<td>Real-time streaming aggregations</td>
+<td>Flink, Kafka Streams, Druid</td>
+</tr>
+<tr>
+<td>Large-scale ML feature computation</td>
+<td>Spark, BigQuery</td>
+</tr>
+<tr>
+<td>Small data (&lt;1 GB), local analysis</td>
+<td>DuckDB, SQLite</td>
+</tr>
+<tr>
+<td>Multi-model (graph + relational)</td>
+<td>ArangoDB, Amazon Neptune</td>
+</tr>
+</tbody></table>
+<h2>A Realistic BI Query: Cohort Retention</h2>
+<p>A cohort retention query measures what percentage of users acquired in a given month are still active N months later. This is a staple of product analytics that requires analytical horsepower.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Cohort retention funnel</span></div>
   <div class="widget-body">
@@ -222,7 +250,7 @@ INSERT INTO user_events VALUES
   (3, &apos;active&apos;, &apos;2024-04-02&apos;),
   (5, &apos;active&apos;, &apos;2024-02-25&apos;),
   (5, &apos;active&apos;, &apos;2024-03-30&apos;),
-  (5, &apos;active&apos;, &apos;2024-04-15&apos;);" rows="20">-- Cohort retention: for each signup cohort month,
+  (5, &apos;active&apos;, &apos;2024-04-15&apos;);" rows="10">-- Cohort retention: for each signup cohort month,
 -- how many users were active in subsequent months?
 WITH cohorts AS (
   SELECT
@@ -265,31 +293,46 @@ FROM cohort_activity ca
 JOIN cohort_sizes cs ON ca.cohort_month = cs.cohort_month
 ORDER BY ca.cohort_month, ca.months_since_signup;</textarea>
   </div>
+</div><h2>Sizing Guidance</h2>
+<p>Rough rules of thumb for deciding <em>which</em> analytical tool fits:</p>
+<table>
+<thead>
+<tr>
+<th>Data size</th>
+<th>Recommended approach</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&lt; 1 GB</td>
+<td>DuckDB locally; no cluster needed</td>
+</tr>
+<tr>
+<td>1 GB – 100 GB</td>
+<td>DuckDB, Postgres with columnar extension, or a small Snowflake/BQ slot</td>
+</tr>
+<tr>
+<td>100 GB – 10 TB</td>
+<td>Snowflake, BigQuery, Redshift, ClickHouse</td>
+</tr>
+<tr>
+<td>&gt; 10 TB</td>
+<td>Spark on a lakehouse (Delta/Iceberg), BigQuery with reservation, ClickHouse cluster</td>
+</tr>
+</tbody></table>
+<p>The biggest mistake teams make is reaching for a distributed system before they need it. DuckDB can query 50 GB of Parquet files on a laptop in under a second. Use the simplest tool that fits.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li><strong>BI dashboards, ad-hoc exploration, financial reporting, product analytics, ML feature computation, and log analysis</strong> are all strong fits for analytical databases.</li>
+<li><strong>Real-time transactional workloads, sub-millisecond latency requirements, and frequent small writes</strong> are poor fits — use an OLTP or streaming system instead.</li>
+<li>The core signal is the <strong>read/write ratio and query complexity</strong>. High read ratio + complex multi-table aggregations = analytical DB territory.</li>
+<li><strong>Data size matters</strong>: DuckDB handles up to ~100 GB comfortably; only reach for distributed systems when you genuinely need them.</li>
+<li><strong>Lakehouses</strong> add auditability (time travel) that is uniquely valuable for financial reporting and reproducible ML experiments.</li>
+<li>When in doubt, prototype with DuckDB against a sample of your data first — if it fits, you&#39;ve saved yourself enormous operational complexity.</li>
+</ul>
+
 </div>
-
-## Sizing Guidance
-
-Rough rules of thumb for deciding *which* analytical tool fits:
-
-| Data size | Recommended approach |
-|---|---|
-| &lt; 1 GB | DuckDB locally; no cluster needed |
-| 1 GB – 100 GB | DuckDB, Postgres with columnar extension, or a small Snowflake/BQ slot |
-| 100 GB – 10 TB | Snowflake, BigQuery, Redshift, ClickHouse |
-| &gt; 10 TB | Spark on a lakehouse (Delta/Iceberg), BigQuery with reservation, ClickHouse cluster |
-
-The biggest mistake teams make is reaching for a distributed system before they need it. DuckDB can query 50 GB of Parquet files on a laptop in under a second. Use the simplest tool that fits.
-
-## Key Takeaways
-
-- **BI dashboards, ad-hoc exploration, financial reporting, product analytics, ML feature computation, and log analysis** are all strong fits for analytical databases.
-- **Real-time transactional workloads, sub-millisecond latency requirements, and frequent small writes** are poor fits — use an OLTP or streaming system instead.
-- The core signal is the **read/write ratio and query complexity**. High read ratio + complex multi-table aggregations = analytical DB territory.
-- **Data size matters**: DuckDB handles up to ~100 GB comfortably; only reach for distributed systems when you genuinely need them.
-- **Lakehouses** add auditability (time travel) that is uniquely valuable for financial reporting and reproducible ML experiments.
-- When in doubt, prototype with DuckDB against a sample of your data first — if it fits, you've saved yourself enormous operational complexity.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="218-why-analytics-engines-feel-different.html"><span class="dir">← Previous</span><span class="ttl">Why analytics engines feel different</span></a><a class="next" href="221-latency-throughput-and-concurrency.html"><span class="dir">Next →</span><span class="ttl">Latency, throughput, and concurrency</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

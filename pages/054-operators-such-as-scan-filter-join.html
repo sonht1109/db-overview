@@ -5,109 +5,122 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Operators such as scan, filter, join — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 6. How Query Processing Works</p>
   <h1 class="content-title">Operators such as scan, filter, join</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="053-physical-plans.html"><span class="dir">← Previous</span><span class="ttl">Physical plans</span></a><a class="next" href="055-cost-estimation.html"><span class="dir">Next →</span><span class="ttl">Cost estimation</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When a database receives a SQL query, it does not execute it as a single monolithic step. Instead, the query is decomposed into a tree of **physical operators** — small, composable units that each do one thing well. Understanding these operators is the key to reading query plans, diagnosing slow queries, and building better intuitions about how engines work.
-
-## The Three Fundamental Operators
-
-Every relational engine — whether SQLite, PostgreSQL, or MySQL — has its own set of operators, but three appear in virtually every query plan.
-
-### Scan
-
-A **scan** reads rows from a base table. It is the entry point for data: before any filtering or joining can happen, rows must first be pulled off disk (or from memory).
-
-| Scan type | What it does |
-|-----------|-------------|
-| **Full table scan** (Sequential scan) | Reads every row in the table, top to bottom |
-| **Index scan** | Traverses a B-tree index to find matching rows; skips unneeded pages |
-| **Index-only scan** | Reads the index alone, without touching the table, when all needed columns are in the index |
-
-A full table scan is not always bad — for small tables or queries that need most of the rows, it is often the fastest option. An index scan pays off when only a small fraction of rows qualify.
-
-### Filter (Selection)
-
-A **filter** takes an incoming stream of rows and passes through only the ones that satisfy a **predicate** (a boolean condition). In SQL terms, a filter corresponds to the `WHERE` clause.
-
-```sql
-SELECT * FROM orders WHERE amount > 500;
-```
-
-Internally the engine applies a filter operator on top of the scan: every row that comes out of the scan is tested against `amount > 500`. Rows that fail are discarded immediately; they never move further up the tree.
-
-> **Note:** Filters are "cheap" in CPU but do nothing to reduce I/O if they sit on top of a full table scan. Placing an index on the filtered column lets the engine skip the scan of disqualified rows entirely — turning a filter + full scan into an index scan.
-
-### Join
-
-A **join** combines rows from two inputs (tables, or the results of earlier operators) into a single output stream, based on a **join condition**. It is the most complex and expensive of the three.
-
-The three most common physical join strategies are:
-
-| Strategy | How it works | Best when |
-|----------|-------------|-----------|
-| **Nested-loop join** | For every row in the outer input, scan the inner input for matches | Inner input is small or indexed |
-| **Hash join** | Build a hash table from the smaller input; probe it with each row from the larger input | Large inputs with no useful index |
-| **Sort-merge join** | Sort both inputs on the join key, then merge | Both inputs are already sorted, or an index provides order |
-
-The optimizer chooses the strategy; you rarely control it directly. But knowing these strategies explains why adding an index on a foreign key column often speeds up joins dramatically — it turns a hash or sort-merge join into an efficient nested-loop join.
-
-## Operators Compose Into a Tree
-
-These operators are not used in isolation. The engine builds a **plan tree** where each operator feeds its output as input to the next. A query like:
-
-```sql
-SELECT c.name, o.amount
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">054-operators-such-as-scan-filter-join</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 054-operators-such-as-scan-filter-join.</figcaption>
+</figure>
+<p>When a database receives a SQL query, it does not execute it as a single monolithic step. Instead, the query is decomposed into a tree of <strong>physical operators</strong> — small, composable units that each do one thing well. Understanding these operators is the key to reading query plans, diagnosing slow queries, and building better intuitions about how engines work.</p>
+<h2>The Three Fundamental Operators</h2>
+<p>Every relational engine — whether SQLite, PostgreSQL, or MySQL — has its own set of operators, but three appear in virtually every query plan.</p>
+<h3>Scan</h3>
+<p>A <strong>scan</strong> reads rows from a base table. It is the entry point for data: before any filtering or joining can happen, rows must first be pulled off disk (or from memory).</p>
+<table>
+<thead>
+<tr>
+<th>Scan type</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Full table scan</strong> (Sequential scan)</td>
+<td>Reads every row in the table, top to bottom</td>
+</tr>
+<tr>
+<td><strong>Index scan</strong></td>
+<td>Traverses a B-tree index to find matching rows; skips unneeded pages</td>
+</tr>
+<tr>
+<td><strong>Index-only scan</strong></td>
+<td>Reads the index alone, without touching the table, when all needed columns are in the index</td>
+</tr>
+</tbody></table>
+<p>A full table scan is not always bad — for small tables or queries that need most of the rows, it is often the fastest option. An index scan pays off when only a small fraction of rows qualify.</p>
+<h3>Filter (Selection)</h3>
+<p>A <strong>filter</strong> takes an incoming stream of rows and passes through only the ones that satisfy a <strong>predicate</strong> (a boolean condition). In SQL terms, a filter corresponds to the <code>WHERE</code> clause.</p>
+<pre><code class="language-sql">SELECT * FROM orders WHERE amount &gt; 500;
+</code></pre>
+<p>Internally the engine applies a filter operator on top of the scan: every row that comes out of the scan is tested against <code>amount &gt; 500</code>. Rows that fail are discarded immediately; they never move further up the tree.</p>
+<blockquote>
+<p><strong>Note:</strong> Filters are &quot;cheap&quot; in CPU but do nothing to reduce I/O if they sit on top of a full table scan. Placing an index on the filtered column lets the engine skip the scan of disqualified rows entirely — turning a filter + full scan into an index scan.</p>
+</blockquote>
+<h3>Join</h3>
+<p>A <strong>join</strong> combines rows from two inputs (tables, or the results of earlier operators) into a single output stream, based on a <strong>join condition</strong>. It is the most complex and expensive of the three.</p>
+<p>The three most common physical join strategies are:</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>How it works</th>
+<th>Best when</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Nested-loop join</strong></td>
+<td>For every row in the outer input, scan the inner input for matches</td>
+<td>Inner input is small or indexed</td>
+</tr>
+<tr>
+<td><strong>Hash join</strong></td>
+<td>Build a hash table from the smaller input; probe it with each row from the larger input</td>
+<td>Large inputs with no useful index</td>
+</tr>
+<tr>
+<td><strong>Sort-merge join</strong></td>
+<td>Sort both inputs on the join key, then merge</td>
+<td>Both inputs are already sorted, or an index provides order</td>
+</tr>
+</tbody></table>
+<p>The optimizer chooses the strategy; you rarely control it directly. But knowing these strategies explains why adding an index on a foreign key column often speeds up joins dramatically — it turns a hash or sort-merge join into an efficient nested-loop join.</p>
+<h2>Operators Compose Into a Tree</h2>
+<p>These operators are not used in isolation. The engine builds a <strong>plan tree</strong> where each operator feeds its output as input to the next. A query like:</p>
+<pre><code class="language-sql">SELECT c.name, o.amount
 FROM customers c
 JOIN orders o ON c.id = o.customer_id
-WHERE o.amount > 500;
-```
-
-might produce a plan tree like this:
-
-```
-Project (c.name, o.amount)
-  └─ Filter (o.amount > 500)
+WHERE o.amount &gt; 500;
+</code></pre>
+<p>might produce a plan tree like this:</p>
+<pre><code>Project (c.name, o.amount)
+  └─ Filter (o.amount &gt; 500)
        └─ Hash Join (c.id = o.customer_id)
             ├─ Scan (customers)
             └─ Scan (orders)
-```
-
-Data flows **bottom-up**: both scans read raw rows, the join merges them, the filter discards low-value orders, and the project trims down to only the two requested columns. Each operator is unaware of what is above or below it — it just consumes a row stream and emits a row stream.
-
-## Try It Live
-
-The widget below sets up a small `customers` and `orders` table. The default query uses a join and a filter together. Try changing the `WHERE` threshold or swapping `INNER JOIN` for `LEFT JOIN` to see how the result set changes.
-
+</code></pre>
+<p>Data flows <strong>bottom-up</strong>: both scans read raw rows, the join merges them, the filter discards low-value orders, and the project trims down to only the two requested columns. Each operator is unaware of what is above or below it — it just consumes a row stream and emits a row stream.</p>
+<h2>Try It Live</h2>
+<p>The widget below sets up a small <code>customers</code> and <code>orders</code> table. The default query uses a join and a filter together. Try changing the <code>WHERE</code> threshold or swapping <code>INNER JOIN</code> for <code>LEFT JOIN</code> to see how the result set changes.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Scan, Filter, Join</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL); INSERT INTO customers VALUES (1, 'Alice'); INSERT INTO customers VALUES (2, 'Bob'); INSERT INTO customers VALUES (3, 'Carmen'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount INTEGER NOT NULL); INSERT INTO orders VALUES (1, 1, 120); INSERT INTO orders VALUES (2, 1, 850); INSERT INTO orders VALUES (3, 2, 430); INSERT INTO orders VALUES (4, 2, 610); INSERT INTO orders VALUES (5, 3, 75);" rows="20">SELECT c.name, o.amount
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL); INSERT INTO customers VALUES (1, 'Alice'); INSERT INTO customers VALUES (2, 'Bob'); INSERT INTO customers VALUES (3, 'Carmen'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount INTEGER NOT NULL); INSERT INTO orders VALUES (1, 1, 120); INSERT INTO orders VALUES (2, 1, 850); INSERT INTO orders VALUES (3, 2, 430); INSERT INTO orders VALUES (4, 2, 610); INSERT INTO orders VALUES (5, 3, 75);" rows="10">SELECT c.name, o.amount
 FROM customers c
 JOIN orders o ON c.id = o.customer_id
 WHERE o.amount > 500
 ORDER BY o.amount DESC;</textarea>
   </div>
-</div>
-
-Notice that Carmen has no qualifying order and disappears from the result — a consequence of the `INNER JOIN` discarding unmatched rows. Switch to `LEFT JOIN` and she reappears with a `NULL` amount.
-
+</div><p>Notice that Carmen has no qualifying order and disappears from the result — a consequence of the <code>INNER JOIN</code> discarding unmatched rows. Switch to <code>LEFT JOIN</code> and she reappears with a <code>NULL</code> amount.</p>
 <details class="reveal"><summary>Reveal: Which operator runs first — the join or the filter?</summary><div class="reveal-body">It depends on the optimizer. Logically, the filter is applied <em>after</em> the join (the SQL standard defines it that way). But a smart optimizer performs <strong>predicate pushdown</strong>: it moves the filter below the join so that fewer rows enter the join in the first place. In the example above, the engine might filter <code>orders</code> to only rows with <code>amount &gt; 500</code> before joining them to <code>customers</code> — dramatically reducing the work the join has to do. The SQL you write stays the same; the engine silently reorders the operators for efficiency.</div></details>
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="053-physical-plans.html"><span class="dir">← Previous</span><span class="ttl">Physical plans</span></a><a class="next" href="055-cost-estimation.html"><span class="dir">Next →</span><span class="ttl">Cost estimation</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

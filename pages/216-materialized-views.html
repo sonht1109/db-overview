@@ -5,43 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Materialized views — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part V. Database Families</p>
   <p class="chapter-label">Chapter 22. Analytical Databases and Warehouses</p>
   <h1 class="content-title">Materialized views</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="215-batch-loading.html"><span class="dir">← Previous</span><span class="ttl">Batch loading</span></a><a class="next" href="217-data-lakes-and-lakehouses.html"><span class="dir">Next →</span><span class="ttl">Data lakes and lakehouses</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Queries that aggregate millions of rows into a dashboard metric are expensive — but they tend to run repeatedly against largely the same data. A **materialized view** turns this pattern inside-out: instead of recomputing the aggregation on every query, the result is precomputed and stored on disk, then served like a regular table. The computation moves from query time to refresh time. That trade-off — faster reads, potentially stale results — defines when materialized views shine and when they create problems.
-
-## Regular Views vs Materialized Views
-
-A **regular (logical) view** is nothing more than a named query stored in the catalog. Every time you query the view, the database substitutes the view definition and runs the underlying query from scratch.
-
-```sql
--- Regular view: recomputed every time it is queried
+  <div id="rendered" class="content">
+<p>Queries that aggregate millions of rows into a dashboard metric are expensive — but they tend to run repeatedly against largely the same data. A <strong>materialized view</strong> turns this pattern inside-out: instead of recomputing the aggregation on every query, the result is precomputed and stored on disk, then served like a regular table. The computation moves from query time to refresh time. That trade-off — faster reads, potentially stale results — defines when materialized views shine and when they create problems.</p>
+<h2>Regular Views vs Materialized Views</h2>
+<p>A <strong>regular (logical) view</strong> is nothing more than a named query stored in the catalog. Every time you query the view, the database substitutes the view definition and runs the underlying query from scratch.</p>
+<pre><code class="language-sql">-- Regular view: recomputed every time it is queried
 CREATE VIEW daily_revenue AS
 SELECT sale_date, SUM(sale_amount) AS revenue
 FROM fact_sales
 GROUP BY sale_date;
 
 -- This SELECT triggers the full aggregation every time:
-SELECT * FROM daily_revenue WHERE sale_date = '2024-06-25';
-```
-
-A **materialized view** stores the result of that query as actual rows on disk. The query above runs once during refresh, and subsequent reads hit the precomputed table.
-
-```sql
--- Materialized view: result stored on disk
+SELECT * FROM daily_revenue WHERE sale_date = &#39;2024-06-25&#39;;
+</code></pre>
+<p>A <strong>materialized view</strong> stores the result of that query as actual rows on disk. The query above runs once during refresh, and subsequent reads hit the precomputed table.</p>
+<pre><code class="language-sql">-- Materialized view: result stored on disk
 CREATE MATERIALIZED VIEW daily_revenue_mv AS
 SELECT sale_date, SUM(sale_amount) AS revenue
 FROM fact_sales
@@ -51,11 +37,9 @@ GROUP BY sale_date;
 REFRESH MATERIALIZED VIEW daily_revenue_mv;
 
 -- This SELECT now reads from the stored rows — very fast:
-SELECT * FROM daily_revenue_mv WHERE sale_date = '2024-06-25';
-```
-
-## Query Path Comparison
-
+SELECT * FROM daily_revenue_mv WHERE sale_date = &#39;2024-06-25&#39;;
+</code></pre>
+<h2>Query Path Comparison</h2>
 <figure class="diagram">
 <svg viewBox="0 0 540 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two query paths: slow path scans base table, fast path reads from materialized view">
   <defs>
@@ -65,17 +49,12 @@ SELECT * FROM daily_revenue_mv WHERE sale_date = '2024-06-25';
     <marker id="arrowhead-accent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
     </marker>
-  </defs>
-
-  <!-- Base table (fact_sales) -->
+  </defs>  <!-- Base table (fact_sales) -->
   <rect x="10" y="95" width="120" height="70" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="70" y="126" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--text)">fact_sales</text>
   <text x="70" y="143" text-anchor="middle" font-size="10" fill="var(--muted)">1 billion rows</text>
-  <text x="70" y="157" text-anchor="middle" font-size="10" fill="var(--muted)">(columnar)</text>
-
-  <!-- Slow path label -->
-  <text x="200" y="38" text-anchor="middle" font-size="11" fill="var(--muted)">Slow path (view / base table)</text>
-
+  <text x="70" y="157" text-anchor="middle" font-size="10" fill="var(--muted)">(columnar)</text>  <!-- Slow path label -->
+<p>  <text x="200" y="38" text-anchor="middle" font-size="11" fill="var(--muted)">Slow path (view / base table)</text></p>
   <!-- Slow path: base → aggregation → client -->
   <line x1="130" y1="118" x2="175" y2="70" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowhead)"/>
   <rect x="175" y="45" width="110" height="50" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
@@ -84,21 +63,14 @@ SELECT * FROM daily_revenue_mv WHERE sale_date = '2024-06-25';
   <line x1="285" y1="70" x2="340" y2="70" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowhead)"/>
   <rect x="340" y="45" width="90" height="50" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="385" y="67" text-anchor="middle" font-size="11" font-weight="bold" fill="var(--text)">Client</text>
-  <text x="385" y="83" text-anchor="middle" font-size="10" fill="var(--muted)">slow result</text>
-
-  <!-- Materialized view -->
+  <text x="385" y="83" text-anchor="middle" font-size="10" fill="var(--muted)">slow result</text>  <!-- Materialized view -->
   <rect x="175" y="155" width="140" height="70" rx="6" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="2"/>
   <text x="245" y="184" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--accent)">Materialized View</text>
   <text x="245" y="200" text-anchor="middle" font-size="10" fill="var(--text)">daily_revenue_mv</text>
-  <text x="245" y="216" text-anchor="middle" font-size="10" fill="var(--muted)">precomputed rows on disk</text>
-
-  <!-- Refresh arrow: base → mat view -->
+  <text x="245" y="216" text-anchor="middle" font-size="10" fill="var(--muted)">precomputed rows on disk</text>  <!-- Refresh arrow: base → mat view -->
   <line x1="110" y1="148" x2="175" y2="185" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrowhead)"/>
-  <text x="130" y="178" text-anchor="middle" font-size="9" fill="var(--muted)">refresh</text>
-
-  <!-- Fast path label -->
-  <text x="410" y="195" text-anchor="middle" font-size="11" fill="var(--accent)">Fast path</text>
-
+  <text x="130" y="178" text-anchor="middle" font-size="9" fill="var(--muted)">refresh</text>  <!-- Fast path label -->
+<p>  <text x="410" y="195" text-anchor="middle" font-size="11" fill="var(--accent)">Fast path</text></p>
   <!-- Fast path: mat view → client -->
   <line x1="315" y1="190" x2="355" y2="190" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrowhead-accent)"/>
   <rect x="355" y="165" width="90" height="50" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
@@ -106,57 +78,73 @@ SELECT * FROM daily_revenue_mv WHERE sale_date = '2024-06-25';
   <text x="400" y="203" text-anchor="middle" font-size="10" fill="var(--accent)">instant result</text>
 </svg>
 <figcaption>Two query paths: the slow path scans the base fact table and aggregates at query time; the fast path reads directly from the precomputed materialized view. Refresh happens asynchronously from the base table.</figcaption>
-</figure>
-
-## When to Use Materialized Views
-
-Materialized views are most valuable when:
-
-- The underlying query is **expensive** (aggregating millions of rows, joining large tables)
-- The query is **run frequently** (dashboard loaded by dozens of users per minute)
-- The data does not need to be **perfectly current** (stale by minutes or hours is acceptable)
-- The result set is **significantly smaller** than the base data (a daily summary is tiny vs. billions of transaction rows)
-
-They are less useful when:
-- Data changes constantly and staleness of even a few seconds is unacceptable
-- The query is run only occasionally (the refresh cost outweighs the savings)
-- The result set is nearly as large as the base data (storage cost with no real benefit)
-
-## Refresh Strategies
-
-How and when a materialized view is updated defines its behavior:
-
-| Strategy | How it works | Freshness | Cost |
-|---|---|---|---|
-| **Manual refresh** | Operator runs `REFRESH` explicitly | Depends on schedule | Low (full recompute on demand) |
-| **Scheduled refresh** | Cron job or warehouse scheduler triggers refresh | Predictable lag | Medium |
-| **On-commit refresh** | Refreshed automatically when base table commits | Near real-time | High — refresh on every write |
-| **Incremental refresh** | Only rows changed since last refresh are reprocessed | Near real-time | Low per refresh, complex to implement |
-
-### Incremental Refresh
-
-Incremental (also called **differential**) refresh is the most sophisticated and most valuable strategy. Instead of recomputing the entire result, the system tracks which base rows changed and merges only those deltas into the materialized view.
-
-```
-new_mv_result = old_mv_result
+</figure><h2>When to Use Materialized Views</h2>
+<p>Materialized views are most valuable when:</p>
+<ul>
+<li>The underlying query is <strong>expensive</strong> (aggregating millions of rows, joining large tables)</li>
+<li>The query is <strong>run frequently</strong> (dashboard loaded by dozens of users per minute)</li>
+<li>The data does not need to be <strong>perfectly current</strong> (stale by minutes or hours is acceptable)</li>
+<li>The result set is <strong>significantly smaller</strong> than the base data (a daily summary is tiny vs. billions of transaction rows)</li>
+</ul>
+<p>They are less useful when:</p>
+<ul>
+<li>Data changes constantly and staleness of even a few seconds is unacceptable</li>
+<li>The query is run only occasionally (the refresh cost outweighs the savings)</li>
+<li>The result set is nearly as large as the base data (storage cost with no real benefit)</li>
+</ul>
+<h2>Refresh Strategies</h2>
+<p>How and when a materialized view is updated defines its behavior:</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>How it works</th>
+<th>Freshness</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Manual refresh</strong></td>
+<td>Operator runs <code>REFRESH</code> explicitly</td>
+<td>Depends on schedule</td>
+<td>Low (full recompute on demand)</td>
+</tr>
+<tr>
+<td><strong>Scheduled refresh</strong></td>
+<td>Cron job or warehouse scheduler triggers refresh</td>
+<td>Predictable lag</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><strong>On-commit refresh</strong></td>
+<td>Refreshed automatically when base table commits</td>
+<td>Near real-time</td>
+<td>High — refresh on every write</td>
+</tr>
+<tr>
+<td><strong>Incremental refresh</strong></td>
+<td>Only rows changed since last refresh are reprocessed</td>
+<td>Near real-time</td>
+<td>Low per refresh, complex to implement</td>
+</tr>
+</tbody></table>
+<h3>Incremental Refresh</h3>
+<p>Incremental (also called <strong>differential</strong>) refresh is the most sophisticated and most valuable strategy. Instead of recomputing the entire result, the system tracks which base rows changed and merges only those deltas into the materialized view.</p>
+<pre><code>new_mv_result = old_mv_result
               + aggregations of newly inserted rows
               - aggregations of deleted rows
               + updated aggregations for modified rows
-```
-
-This works cleanly for additive aggregates (SUM, COUNT). It is harder for non-additive aggregates (MEDIAN, PERCENTILE) because you cannot easily combine partial results. Support for incremental refresh varies by database:
-
-- **PostgreSQL:** No incremental refresh built-in; full refresh only with `REFRESH MATERIALIZED VIEW`
-- **Oracle:** Supports incremental refresh via materialized view logs
-- **Snowflake:** Dynamic tables with automatic incremental refresh
-- **BigQuery:** Materialized views with incremental updates for supported query shapes
-
-## Query Rewriting
-
-Advanced optimizers do not require you to explicitly query the materialized view — they **automatically rewrite** queries against the base table to use the materialized view instead, if the view's precomputed result can satisfy the query.
-
-```sql
--- User writes this query against the base table:
+</code></pre>
+<p>This works cleanly for additive aggregates (SUM, COUNT). It is harder for non-additive aggregates (MEDIAN, PERCENTILE) because you cannot easily combine partial results. Support for incremental refresh varies by database:</p>
+<ul>
+<li><strong>PostgreSQL:</strong> No incremental refresh built-in; full refresh only with <code>REFRESH MATERIALIZED VIEW</code></li>
+<li><strong>Oracle:</strong> Supports incremental refresh via materialized view logs</li>
+<li><strong>Snowflake:</strong> Dynamic tables with automatic incremental refresh</li>
+<li><strong>BigQuery:</strong> Materialized views with incremental updates for supported query shapes</li>
+</ul>
+<h2>Query Rewriting</h2>
+<p>Advanced optimizers do not require you to explicitly query the materialized view — they <strong>automatically rewrite</strong> queries against the base table to use the materialized view instead, if the view&#39;s precomputed result can satisfy the query.</p>
+<pre><code class="language-sql">-- User writes this query against the base table:
 SELECT sale_date, SUM(sale_amount) AS revenue
 FROM fact_sales
 GROUP BY sale_date;
@@ -165,18 +153,12 @@ GROUP BY sale_date;
 SELECT sale_date, revenue
 FROM daily_revenue_mv;
 -- (because the materialized view covers exactly this aggregation)
-```
-
-This is called **query rewriting** or **transparent rewriting**. It means application code does not need to know that materialized views exist — the optimizer routes the query transparently. BigQuery, Oracle, and Snowflake support this; PostgreSQL does not (you must query the view by name).
-
-## Materialized Views in Practice
-
-### Dashboard Acceleration
-
-A BI dashboard that shows "revenue by region by week" aggregates facts constantly. Instead of scanning the fact table on every page load:
-
-```sql
-CREATE MATERIALIZED VIEW weekly_revenue_by_region AS
+</code></pre>
+<p>This is called <strong>query rewriting</strong> or <strong>transparent rewriting</strong>. It means application code does not need to know that materialized views exist — the optimizer routes the query transparently. BigQuery, Oracle, and Snowflake support this; PostgreSQL does not (you must query the view by name).</p>
+<h2>Materialized Views in Practice</h2>
+<h3>Dashboard Acceleration</h3>
+<p>A BI dashboard that shows &quot;revenue by region by week&quot; aggregates facts constantly. Instead of scanning the fact table on every page load:</p>
+<pre><code class="language-sql">CREATE MATERIALIZED VIEW weekly_revenue_by_region AS
 SELECT
   d.year,
   d.week_number,
@@ -187,34 +169,25 @@ FROM fact_sales f
 JOIN dim_date  d ON f.date_key  = d.date_key
 JOIN dim_store s ON f.store_key = s.store_key
 GROUP BY d.year, d.week_number, s.region;
-```
-
-Refresh nightly. The dashboard reads millisecond-level queries instead of multi-second scans.
-
-### Pre-aggregation Layers
-
-Data warehouses often layer multiple materialized views:
-
-```
-fact_sales (base, billions of rows)
+</code></pre>
+<p>Refresh nightly. The dashboard reads millisecond-level queries instead of multi-second scans.</p>
+<h3>Pre-aggregation Layers</h3>
+<p>Data warehouses often layer multiple materialized views:</p>
+<pre><code>fact_sales (base, billions of rows)
   └── mv_daily_product_sales   (daily grain, millions of rows)
         └── mv_weekly_category (weekly grain, thousands of rows)
               └── mv_monthly_summary (monthly grain, hundreds of rows)
-```
-
-Upper layers build on lower layers, each refresh being faster because the input is already smaller.
-
-## Staleness and Correctness
-
-The fundamental risk of materialized views is **stale data**. A dashboard showing last night's numbers as if they were live can mislead decision-makers. Mitigations:
-
-1. **Display the refresh timestamp** clearly in every dashboard using a materialized view
-2. **Set user expectations** — label dashboards "Updated hourly" or "As of 06:00 UTC"
-3. **Alert on refresh failures** — a stale view that hasn't refreshed in 48 hours is a bug, not a feature
-4. **Use on-commit refresh selectively** only for small, critical aggregates where staleness is unacceptable
-
-## Interactive Example: Creating and Querying a Materialized View
-
+</code></pre>
+<p>Upper layers build on lower layers, each refresh being faster because the input is already smaller.</p>
+<h2>Staleness and Correctness</h2>
+<p>The fundamental risk of materialized views is <strong>stale data</strong>. A dashboard showing last night&#39;s numbers as if they were live can mislead decision-makers. Mitigations:</p>
+<ol>
+<li><strong>Display the refresh timestamp</strong> clearly in every dashboard using a materialized view</li>
+<li><strong>Set user expectations</strong> — label dashboards &quot;Updated hourly&quot; or &quot;As of 06:00 UTC&quot;</li>
+<li><strong>Alert on refresh failures</strong> — a stale view that hasn&#39;t refreshed in 48 hours is a bug, not a feature</li>
+<li><strong>Use on-commit refresh selectively</strong> only for small, critical aggregates where staleness is unacceptable</li>
+</ol>
+<h2>Interactive Example: Creating and Querying a Materialized View</h2>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Materialized view aggregation and query</span></div>
   <div class="widget-body">
@@ -238,7 +211,7 @@ SELECT
 FROM fact_sales f
 JOIN dim_date    d ON f.date_key    = d.date_key
 JOIN dim_product p ON f.product_key = p.product_key
-GROUP BY d.year, d.quarter, p.category;" rows="20">-- Query the precomputed materialized view (fast!)
+GROUP BY d.year, d.quarter, p.category;" rows="10">-- Query the precomputed materialized view (fast!)
 -- No aggregation needed -- result is already stored
 SELECT year, quarter, category, total_revenue, units_sold
 FROM mv_quarterly_category_sales
@@ -254,19 +227,20 @@ JOIN dim_product p ON f.product_key = p.product_key
 GROUP BY d.year, d.quarter, p.category
 ORDER BY d.year, d.quarter, total_revenue DESC;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li>A <strong>regular view</strong> is a stored query — recomputed every time it is queried with no performance benefit over writing the query inline.</li>
+<li>A <strong>materialized view</strong> stores the precomputed result on disk; reads are fast because they scan a small, pre-aggregated table instead of billions of base rows.</li>
+<li><strong>Refresh strategies</strong> range from manual (lowest cost, maximum staleness) to on-commit (lowest staleness, highest write overhead) — incremental refresh balances both.</li>
+<li><strong>Query rewriting</strong> allows optimizers to transparently route queries to materialized views even when the user queries the base table.</li>
+<li>Materialized views excel for <strong>expensive aggregations queried frequently</strong> — dashboard metrics, fixed KPI summaries, pre-aggregation layers.</li>
+<li>The central trade-off is <strong>speed vs. freshness</strong>: always surface the refresh timestamp to users so they understand when the data was last updated.</li>
+<li><strong>Layered materialization</strong> (daily → weekly → monthly) amortizes refresh cost across multiple granularities.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- A **regular view** is a stored query — recomputed every time it is queried with no performance benefit over writing the query inline.
-- A **materialized view** stores the precomputed result on disk; reads are fast because they scan a small, pre-aggregated table instead of billions of base rows.
-- **Refresh strategies** range from manual (lowest cost, maximum staleness) to on-commit (lowest staleness, highest write overhead) — incremental refresh balances both.
-- **Query rewriting** allows optimizers to transparently route queries to materialized views even when the user queries the base table.
-- Materialized views excel for **expensive aggregations queried frequently** — dashboard metrics, fixed KPI summaries, pre-aggregation layers.
-- The central trade-off is **speed vs. freshness**: always surface the refresh timestamp to users so they understand when the data was last updated.
-- **Layered materialization** (daily → weekly → monthly) amortizes refresh cost across multiple granularities.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="215-batch-loading.html"><span class="dir">← Previous</span><span class="ttl">Batch loading</span></a><a class="next" href="217-data-lakes-and-lakehouses.html"><span class="dir">Next →</span><span class="ttl">Data lakes and lakehouses</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

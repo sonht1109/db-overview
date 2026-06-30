@@ -5,30 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Suggested learning path — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VII. Building Understanding</p>
   <p class="chapter-label">Chapter 30. Where to Go Next</p>
   <h1 class="content-title">Suggested learning path</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="297-a-database-engineers-mindset.html"><span class="dir">← Previous</span><span class="ttl">A database engineer’s mindset</span></a><a class="next" href="299-final-review.html"><span class="dir">Next →</span><span class="ttl">Final review</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Knowing *what* to learn is easy; knowing *in what order* is harder. Database engineering has deep prerequisites — understanding a query optimizer requires understanding what data structures it is optimizing over, which requires understanding storage, which requires understanding I/O. This page lays out a concrete, sequenced path that builds on those dependencies correctly, whether you are starting from zero or filling in gaps.
-
-## Who This Is For
-
-This path assumes you are comfortable writing code in at least one language and have a passing familiarity with SQL — you can write a `SELECT` with a `JOIN` but you don't know what happens inside the database when you do. If you are more advanced, use the stage map below to identify which stage you are at and start there.
-
-## The Five Stages
-
+  <div id="rendered" class="content">
+<p>Knowing <em>what</em> to learn is easy; knowing <em>in what order</em> is harder. Database engineering has deep prerequisites — understanding a query optimizer requires understanding what data structures it is optimizing over, which requires understanding storage, which requires understanding I/O. This page lays out a concrete, sequenced path that builds on those dependencies correctly, whether you are starting from zero or filling in gaps.</p>
+<h2>Who This Is For</h2>
+<p>This path assumes you are comfortable writing code in at least one language and have a passing familiarity with SQL — you can write a <code>SELECT</code> with a <code>JOIN</code> but you don&#39;t know what happens inside the database when you do. If you are more advanced, use the stage map below to identify which stage you are at and start there.</p>
+<h2>The Five Stages</h2>
 <figure class="diagram">
 <svg viewBox="0 0 640 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Five-stage learning path: Stage 1 foundations, Stage 2 internals, Stage 3 distributed systems, Stage 4 advanced topics, Stage 5 research frontier — connected in sequence with estimated time per stage">
   <defs>
@@ -87,100 +76,174 @@ This path assumes you are comfortable writing code in at least one language and 
   <text x="574" y="198" text-anchor="middle" font-size="9" fill="var(--muted)">Ongoing</text>
 </svg>
 <figcaption>Five stages from SQL foundations through research-level engagement — each builds on the prerequisites of the previous stage.</figcaption>
-</figure>
-
----
-
-### Stage 1 — Foundations (1–2 months)
-
-**Goal:** Write correct, efficient SQL and understand what ACID means at a practical level.
-
-| Activity | Resource |
-|---|---|
-| Master SQL | Mode Analytics SQL tutorial; SQLZoo; LeetCode DB problems |
-| Understand indexes | "Use the Index, Luke" — `use-the-index-luke.com` (free, excellent) |
-| Schema design | "Database Design for Mere Mortals" — Hernandez |
-| ACID in practice | PostgreSQL docs: "Transactions" and "Concurrency Control" chapters |
-| Build something | A personal project with PostgreSQL or SQLite |
-
-**Checkpoint:** You can write complex queries with window functions, explain what each isolation level prevents, and design a normalized schema for a given domain.
-
----
-
-### Stage 2 — Internals (2–4 months)
-
-**Goal:** Understand what happens inside the database when you run a query.
-
-| Activity | Resource |
-|---|---|
-| Storage engines | This course (Parts I–III) |
-| Build a B-tree | Implement insert, lookup, split from scratch |
-| Build a WAL | Append-only log with crash recovery |
-| Read SQLite source | `btree.c`, `wal.c`, `vdbe.c` |
-| Read the ARIES paper | Mohan et al. (1992) — the WAL algorithm used by most RDBMS |
-
-**Checkpoint:** You can describe the B-tree split algorithm, explain what makes WAL crash-safe, and trace a PostgreSQL INSERT from executor to WAL.
-
----
-
-### Stage 3 — Distribution (2–4 months)
-
-**Goal:** Understand replication, partitioning, and distributed transactions.
-
-| Activity | Resource |
-|---|---|
-| Replication | "Designing Data-Intensive Applications" — Kleppmann, Chapters 5–9 |
-| Consensus | Read the Raft paper; implement leader election |
-| Distributed transactions | Kleppmann Chapters 8–9; Spanner paper |
-| Study TiKV or etcd | Follow the write path through the Raft log |
-| Build TinyKV | PingCAP Talent Plan project |
-
-**Checkpoint:** You can explain the difference between sync and async replication, describe what a network partition does to a replicated system, and explain how Raft achieves consensus.
-
----
-
-### Stage 4 — Advanced Topics (3–6 months)
-
-**Goal:** Deep expertise in one area; broad awareness of the others.
-
-| Activity | Resource |
-|---|---|
-| Query optimization | CMU 15-721 lectures 5–8 (free on YouTube) |
-| Columnar and OLAP | DuckDB paper; read DuckDB execution engine source |
-| Benchmarking | Run TPC-C and YCSB; read the benchmarking literature |
-| Read 10 papers | Use the paper list from page 291 |
-| Specialize | Pick storage, query processing, or distribution |
-
-**Checkpoint:** You can design a benchmark methodology, read a systems paper critically, and explain the trade-offs in at least one production database engine.
-
----
-
-### Stage 5 — Research Frontier (Ongoing)
-
-**Goal:** Follow active research and contribute to open-source projects.
-
-| Activity | Resource |
-|---|---|
-| Follow SIGMOD / VLDB | Conference proceedings (many papers are open access) |
-| Read The Morning Paper | `blog.acolyer.org` (archived) |
-| Contribute to OSS | File a bug, write a test, fix a small issue in PostgreSQL or RocksDB |
-| Write about what you learn | Blog posts force clarity; teaching is the best test of understanding |
-| Find a specialization | Storage engines, query optimization, distributed transactions, streaming |
-
----
-
-## Practical Advice for Staying on Track
-
-**Block time, don't find time.** Database internals require sustained attention. One two-hour block per week produces better results than five scattered 20-minute sessions.
-
-**Work through exercises, not just reading.** For every concept, implement a minimal version or run a concrete experiment. Reading about compaction is different from watching compaction happen in a running RocksDB instance.
-
-**Use the SQL widget below to practice query analysis** — a skill that bridges Stage 1 and Stage 2. Understanding `EXPLAIN` output is the gateway to understanding internals.
-
+</figure><hr>
+<h3>Stage 1 — Foundations (1–2 months)</h3>
+<p><strong>Goal:</strong> Write correct, efficient SQL and understand what ACID means at a practical level.</p>
+<table>
+<thead>
+<tr>
+<th>Activity</th>
+<th>Resource</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Master SQL</td>
+<td>Mode Analytics SQL tutorial; SQLZoo; LeetCode DB problems</td>
+</tr>
+<tr>
+<td>Understand indexes</td>
+<td>&quot;Use the Index, Luke&quot; — <code>use-the-index-luke.com</code> (free, excellent)</td>
+</tr>
+<tr>
+<td>Schema design</td>
+<td>&quot;Database Design for Mere Mortals&quot; — Hernandez</td>
+</tr>
+<tr>
+<td>ACID in practice</td>
+<td>PostgreSQL docs: &quot;Transactions&quot; and &quot;Concurrency Control&quot; chapters</td>
+</tr>
+<tr>
+<td>Build something</td>
+<td>A personal project with PostgreSQL or SQLite</td>
+</tr>
+</tbody></table>
+<p><strong>Checkpoint:</strong> You can write complex queries with window functions, explain what each isolation level prevents, and design a normalized schema for a given domain.</p>
+<hr>
+<h3>Stage 2 — Internals (2–4 months)</h3>
+<p><strong>Goal:</strong> Understand what happens inside the database when you run a query.</p>
+<table>
+<thead>
+<tr>
+<th>Activity</th>
+<th>Resource</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Storage engines</td>
+<td>This course (Parts I–III)</td>
+</tr>
+<tr>
+<td>Build a B-tree</td>
+<td>Implement insert, lookup, split from scratch</td>
+</tr>
+<tr>
+<td>Build a WAL</td>
+<td>Append-only log with crash recovery</td>
+</tr>
+<tr>
+<td>Read SQLite source</td>
+<td><code>btree.c</code>, <code>wal.c</code>, <code>vdbe.c</code></td>
+</tr>
+<tr>
+<td>Read the ARIES paper</td>
+<td>Mohan et al. (1992) — the WAL algorithm used by most RDBMS</td>
+</tr>
+</tbody></table>
+<p><strong>Checkpoint:</strong> You can describe the B-tree split algorithm, explain what makes WAL crash-safe, and trace a PostgreSQL INSERT from executor to WAL.</p>
+<hr>
+<h3>Stage 3 — Distribution (2–4 months)</h3>
+<p><strong>Goal:</strong> Understand replication, partitioning, and distributed transactions.</p>
+<table>
+<thead>
+<tr>
+<th>Activity</th>
+<th>Resource</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Replication</td>
+<td>&quot;Designing Data-Intensive Applications&quot; — Kleppmann, Chapters 5–9</td>
+</tr>
+<tr>
+<td>Consensus</td>
+<td>Read the Raft paper; implement leader election</td>
+</tr>
+<tr>
+<td>Distributed transactions</td>
+<td>Kleppmann Chapters 8–9; Spanner paper</td>
+</tr>
+<tr>
+<td>Study TiKV or etcd</td>
+<td>Follow the write path through the Raft log</td>
+</tr>
+<tr>
+<td>Build TinyKV</td>
+<td>PingCAP Talent Plan project</td>
+</tr>
+</tbody></table>
+<p><strong>Checkpoint:</strong> You can explain the difference between sync and async replication, describe what a network partition does to a replicated system, and explain how Raft achieves consensus.</p>
+<hr>
+<h3>Stage 4 — Advanced Topics (3–6 months)</h3>
+<p><strong>Goal:</strong> Deep expertise in one area; broad awareness of the others.</p>
+<table>
+<thead>
+<tr>
+<th>Activity</th>
+<th>Resource</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Query optimization</td>
+<td>CMU 15-721 lectures 5–8 (free on YouTube)</td>
+</tr>
+<tr>
+<td>Columnar and OLAP</td>
+<td>DuckDB paper; read DuckDB execution engine source</td>
+</tr>
+<tr>
+<td>Benchmarking</td>
+<td>Run TPC-C and YCSB; read the benchmarking literature</td>
+</tr>
+<tr>
+<td>Read 10 papers</td>
+<td>Use the paper list from page 291</td>
+</tr>
+<tr>
+<td>Specialize</td>
+<td>Pick storage, query processing, or distribution</td>
+</tr>
+</tbody></table>
+<p><strong>Checkpoint:</strong> You can design a benchmark methodology, read a systems paper critically, and explain the trade-offs in at least one production database engine.</p>
+<hr>
+<h3>Stage 5 — Research Frontier (Ongoing)</h3>
+<p><strong>Goal:</strong> Follow active research and contribute to open-source projects.</p>
+<table>
+<thead>
+<tr>
+<th>Activity</th>
+<th>Resource</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Follow SIGMOD / VLDB</td>
+<td>Conference proceedings (many papers are open access)</td>
+</tr>
+<tr>
+<td>Read The Morning Paper</td>
+<td><code>blog.acolyer.org</code> (archived)</td>
+</tr>
+<tr>
+<td>Contribute to OSS</td>
+<td>File a bug, write a test, fix a small issue in PostgreSQL or RocksDB</td>
+</tr>
+<tr>
+<td>Write about what you learn</td>
+<td>Blog posts force clarity; teaching is the best test of understanding</td>
+</tr>
+<tr>
+<td>Find a specialization</td>
+<td>Storage engines, query optimization, distributed transactions, streaming</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Practical Advice for Staying on Track</h2>
+<p><strong>Block time, don&#39;t find time.</strong> Database internals require sustained attention. One two-hour block per week produces better results than five scattered 20-minute sessions.</p>
+<p><strong>Work through exercises, not just reading.</strong> For every concept, implement a minimal version or run a concrete experiment. Reading about compaction is different from watching compaction happen in a running RocksDB instance.</p>
+<p><strong>Use the SQL widget below to practice query analysis</strong> — a skill that bridges Stage 1 and Stage 2. Understanding <code>EXPLAIN</code> output is the gateway to understanding internals.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Query Analysis Practice</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, total REAL NOT NULL, status TEXT NOT NULL, created_at INTEGER NOT NULL); CREATE INDEX idx_customer ON orders(customer_id); CREATE INDEX idx_status ON orders(status); INSERT INTO orders VALUES (1,101,99.0,'completed',1700000001); INSERT INTO orders VALUES (2,102,250.0,'pending',1700000002); INSERT INTO orders VALUES (3,101,75.0,'completed',1700000010); INSERT INTO orders VALUES (4,103,500.0,'completed',1700000020); INSERT INTO orders VALUES (5,102,30.0,'cancelled',1700000030); INSERT INTO orders VALUES (6,101,120.0,'pending',1700000040);" rows="20">-- Stage 1: write the query
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, total REAL NOT NULL, status TEXT NOT NULL, created_at INTEGER NOT NULL); CREATE INDEX idx_customer ON orders(customer_id); CREATE INDEX idx_status ON orders(status); INSERT INTO orders VALUES (1,101,99.0,'completed',1700000001); INSERT INTO orders VALUES (2,102,250.0,'pending',1700000002); INSERT INTO orders VALUES (3,101,75.0,'completed',1700000010); INSERT INTO orders VALUES (4,103,500.0,'completed',1700000020); INSERT INTO orders VALUES (5,102,30.0,'cancelled',1700000030); INSERT INTO orders VALUES (6,101,120.0,'pending',1700000040);" rows="10">-- Stage 1: write the query
 SELECT customer_id, COUNT(*) AS order_count, SUM(total) AS revenue
 FROM orders
 WHERE status = 'completed'
@@ -194,17 +257,18 @@ WHERE status = 'completed'
 GROUP BY customer_id
 ORDER BY revenue DESC;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li>Database learning has a natural sequence: foundations → internals → distribution → advanced → research. Skipping stages creates confusion.</li>
+<li>Build something at every stage — reading without building produces knowledge that doesn&#39;t stick.</li>
+<li>Allocate time in blocks, not fragments; sustained attention is required.</li>
+<li>Stage 2 (internals) is the hardest transition and the most valuable — it unlocks the ability to reason about all the stages that follow.</li>
+<li>There is no end to Stage 5; the field moves continuously. The goal is to build the habits and community connections to keep learning efficiently.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- Database learning has a natural sequence: foundations → internals → distribution → advanced → research. Skipping stages creates confusion.
-- Build something at every stage — reading without building produces knowledge that doesn't stick.
-- Allocate time in blocks, not fragments; sustained attention is required.
-- Stage 2 (internals) is the hardest transition and the most valuable — it unlocks the ability to reason about all the stages that follow.
-- There is no end to Stage 5; the field moves continuously. The goal is to build the habits and community connections to keep learning efficiently.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="297-a-database-engineers-mindset.html"><span class="dir">← Previous</span><span class="ttl">A database engineer’s mindset</span></a><a class="next" href="299-final-review.html"><span class="dir">Next →</span><span class="ttl">Final review</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

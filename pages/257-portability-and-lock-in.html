@@ -5,36 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Portability and lock-in — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VI. Engineering Practice</p>
   <p class="chapter-label">Chapter 26. Choosing a Database</p>
   <h1 class="content-title">Portability and lock-in</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="256-cost-team-and-operations.html"><span class="dir">← Previous</span><span class="ttl">Cost, team, and operations</span></a><a class="next" href="258-when-to-switch-systems.html"><span class="dir">Next →</span><span class="ttl">When to switch systems</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every database you adopt is a commitment, but not all commitments are equally binding. Some databases are built on open standards and can be swapped with modest effort. Others expose proprietary APIs, query languages, and data formats that make migration expensive enough to be effectively permanent. Understanding the spectrum of lock-in before you adopt a system gives you the ability to make that trade-off consciously rather than discovering it when you want to leave.
-
-## What Lock-In Actually Looks Like
-
-Lock-in is not a binary property — it exists on a spectrum, and it operates through several distinct mechanisms:
-
-**API and query language lock-in.** A system that uses standard SQL (even with extensions) is easier to migrate from than one that uses a proprietary query language. Moving from PostgreSQL to MySQL is painful but tractable because both speak SQL. Moving from DynamoDB's API to a different key-value store requires rewriting every database call.
-
-**Data format lock-in.** If your data is stored in a proprietary binary format that requires the vendor's tools to read, export becomes an active project rather than a background concern. Databases that support standard export formats (CSV, Parquet, SQL dump, JSON) give you an escape hatch.
-
-**Feature lock-in.** Using a proprietary feature — DynamoDB Streams, Spanner's TrueTime-based external consistency, Snowflake's TIME_TRAVEL — adds value but creates migration cost. When the time comes to move, any feature without a direct equivalent in the target system requires application redesign.
-
-**Operational lock-in.** Your team's expertise, your monitoring setup, and your deployment automation are all built around the current system. Even if the data is portable, the operational knowledge is not.
-
+  <div id="rendered" class="content">
+<p>Every database you adopt is a commitment, but not all commitments are equally binding. Some databases are built on open standards and can be swapped with modest effort. Others expose proprietary APIs, query languages, and data formats that make migration expensive enough to be effectively permanent. Understanding the spectrum of lock-in before you adopt a system gives you the ability to make that trade-off consciously rather than discovering it when you want to leave.</p>
+<h2>What Lock-In Actually Looks Like</h2>
+<p>Lock-in is not a binary property — it exists on a spectrum, and it operates through several distinct mechanisms:</p>
+<p><strong>API and query language lock-in.</strong> A system that uses standard SQL (even with extensions) is easier to migrate from than one that uses a proprietary query language. Moving from PostgreSQL to MySQL is painful but tractable because both speak SQL. Moving from DynamoDB&#39;s API to a different key-value store requires rewriting every database call.</p>
+<p><strong>Data format lock-in.</strong> If your data is stored in a proprietary binary format that requires the vendor&#39;s tools to read, export becomes an active project rather than a background concern. Databases that support standard export formats (CSV, Parquet, SQL dump, JSON) give you an escape hatch.</p>
+<p><strong>Feature lock-in.</strong> Using a proprietary feature — DynamoDB Streams, Spanner&#39;s TrueTime-based external consistency, Snowflake&#39;s TIME_TRAVEL — adds value but creates migration cost. When the time comes to move, any feature without a direct equivalent in the target system requires application redesign.</p>
+<p><strong>Operational lock-in.</strong> Your team&#39;s expertise, your monitoring setup, and your deployment automation are all built around the current system. Even if the data is portable, the operational knowledge is not.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lock-in spectrum from low to high across four dimensions">
   <defs>
@@ -45,85 +31,61 @@ Lock-in is not a binary property — it exists on a spectrum, and it operates th
   <!-- Spectrum arrow -->
   <line x1="60" y1="130" x2="580" y2="130" stroke="var(--border)" stroke-width="2" marker-end="url(#arr)"/>
   <text x="60" y="150" text-anchor="start" font-size="11" fill="var(--muted)">Low lock-in</text>
-  <text x="580" y="150" text-anchor="end" font-size="11" fill="var(--muted)">High lock-in</text>
-
-  <!-- Points on spectrum -->
+  <text x="580" y="150" text-anchor="end" font-size="11" fill="var(--muted)">High lock-in</text>  <!-- Points on spectrum -->
   <circle cx="120" cy="130" r="7" fill="var(--accent)" opacity="0.9"/>
   <text x="120" y="112" text-anchor="middle" font-size="11" fill="var(--text)">SQLite</text>
   <text x="120" y="96" text-anchor="middle" font-size="10" fill="var(--muted)">open format</text>
-  <text x="120" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">standard SQL</text>
-
-  <circle cx="240" cy="130" r="7" fill="var(--accent)" opacity="0.75"/>
+  <text x="120" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">standard SQL</text>  <circle cx="240" cy="130" r="7" fill="var(--accent)" opacity="0.75"/>
   <text x="240" y="112" text-anchor="middle" font-size="11" fill="var(--text)">PostgreSQL</text>
   <text x="240" y="96" text-anchor="middle" font-size="10" fill="var(--muted)">open source</text>
-  <text x="240" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">SQL + extensions</text>
-
-  <circle cx="380" cy="130" r="7" fill="var(--accent)" opacity="0.55"/>
+  <text x="240" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">SQL + extensions</text>  <circle cx="380" cy="130" r="7" fill="var(--accent)" opacity="0.55"/>
   <text x="380" y="112" text-anchor="middle" font-size="11" fill="var(--text)">MongoDB</text>
   <text x="380" y="96" text-anchor="middle" font-size="10" fill="var(--muted)">open source</text>
-  <text x="380" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">proprietary query API</text>
-
-  <circle cx="500" cy="130" r="7" fill="var(--accent)" opacity="0.35"/>
+  <text x="380" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">proprietary query API</text>  <circle cx="500" cy="130" r="7" fill="var(--accent)" opacity="0.35"/>
   <text x="500" y="112" text-anchor="middle" font-size="11" fill="var(--text)">DynamoDB</text>
   <text x="500" y="96" text-anchor="middle" font-size="10" fill="var(--muted)">managed only</text>
-  <text x="500" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">AWS-specific API</text>
-
-  <!-- Below axis: migration difficulty -->
-  <text x="120" y="170" text-anchor="middle" font-size="10" fill="var(--muted)">Easy migration</text>
-  <text x="500" y="170" text-anchor="middle" font-size="10" fill="var(--muted)">Expensive migration</text>
-
+  <text x="500" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">AWS-specific API</text>  <!-- Below axis: migration difficulty -->
+<p>  <text x="120" y="170" text-anchor="middle" font-size="10" fill="var(--muted)">Easy migration</text>
+  <text x="500" y="170" text-anchor="middle" font-size="10" fill="var(--muted)">Expensive migration</text></p>
   <!-- Lock-in dimensions legend -->
-  <text x="60" y="210" font-size="11" fill="var(--text)" font-weight="600">Lock-in dimensions:</text>
+<p>  <text x="60" y="210" font-size="11" fill="var(--text)" font-weight="600">Lock-in dimensions:</text>
   <text x="60" y="228" font-size="11" fill="var(--muted)">API/query language  ·  data format  ·  proprietary features  ·  operational knowledge</text>
-</svg>
+</svg></p>
 <figcaption>Lock-in is a spectrum. Standard SQL and open formats reduce migration cost; proprietary APIs and managed-only deployment increase it.</figcaption>
-</figure>
-
-## The Cost of Migration
-
-The cost of migrating away from a database has two components:
-
-1. **Data migration cost** — exporting data from the source, transforming it to the target's format, validating completeness and correctness. For large datasets this can take weeks or months, with complex cutover logistics to avoid data loss during the transition.
-
-2. **Application migration cost** — rewriting every place in the application that talks to the database: connection setup, queries, transactions, error handling. The more proprietary the API, the larger this surface area.
-
-A rough heuristic: migrating between two databases that both speak standard SQL costs roughly one to three months of engineering effort for a medium-sized application. Migrating from a proprietary key-value API to anything else is more like rewriting the data access layer from scratch.
-
-## Strategies to Reduce Lock-In
-
-**Use standard SQL where possible.** Even when your database supports proprietary extensions, prefer standard SQL for core queries. This does not mean avoiding useful extensions — PostgreSQL's `JSONB` or window functions are worth using — but it means being deliberate about which proprietary features you rely on critically.
-
-**Wrap the database behind a thin abstraction layer.** A repository or data-access layer that hides the database-specific client behind an interface means that changing the underlying database requires changing one layer, not every call site. This is more relevant for application code than for complex query logic.
-
-```
-// Low lock-in: query language hidden behind interface
+</figure><h2>The Cost of Migration</h2>
+<p>The cost of migrating away from a database has two components:</p>
+<ol>
+<li><p><strong>Data migration cost</strong> — exporting data from the source, transforming it to the target&#39;s format, validating completeness and correctness. For large datasets this can take weeks or months, with complex cutover logistics to avoid data loss during the transition.</p>
+</li>
+<li><p><strong>Application migration cost</strong> — rewriting every place in the application that talks to the database: connection setup, queries, transactions, error handling. The more proprietary the API, the larger this surface area.</p>
+</li>
+</ol>
+<p>A rough heuristic: migrating between two databases that both speak standard SQL costs roughly one to three months of engineering effort for a medium-sized application. Migrating from a proprietary key-value API to anything else is more like rewriting the data access layer from scratch.</p>
+<h2>Strategies to Reduce Lock-In</h2>
+<p><strong>Use standard SQL where possible.</strong> Even when your database supports proprietary extensions, prefer standard SQL for core queries. This does not mean avoiding useful extensions — PostgreSQL&#39;s <code>JSONB</code> or window functions are worth using — but it means being deliberate about which proprietary features you rely on critically.</p>
+<p><strong>Wrap the database behind a thin abstraction layer.</strong> A repository or data-access layer that hides the database-specific client behind an interface means that changing the underlying database requires changing one layer, not every call site. This is more relevant for application code than for complex query logic.</p>
+<pre><code>// Low lock-in: query language hidden behind interface
 interface UserRepository {
-  findById(id: string): Promise<User>
-  save(user: User): Promise<void>
+  findById(id: string): Promise&lt;User&gt;
+  save(user: User): Promise&lt;void&gt;
 }
 
 // Higher lock-in: DynamoDB-specific code scattered across services
 const result = await dynamoClient.query({
-  TableName: 'users',
-  KeyConditionExpression: 'pk = :pk',
-  ExpressionAttributeValues: { ':pk': { S: userId } }
+  TableName: &#39;users&#39;,
+  KeyConditionExpression: &#39;pk = :pk&#39;,
+  ExpressionAttributeValues: { &#39;:pk&#39;: { S: userId } }
 }).promise()
-```
-
-**Plan data exports regularly.** Test your ability to export the full dataset in a portable format (SQL dump, Parquet, JSON lines) on a schedule. This serves two purposes: it validates your backup, and it proves that the migration path is open.
-
-**Separate the system-of-record from the specialised store.** If your canonical data lives in a portable relational database and a specialised store (search, cache, analytics) holds derived copies, migrating the specialised store is much simpler — you can rebuild it from the primary.
-
-## When Lock-In Is Acceptable
-
-Lock-in is not always bad. If the specialised capabilities of a system provide significant competitive or operational advantage, and the cost of migration is a known, acceptable risk, locking in may be the right choice. DynamoDB's managed infrastructure, multi-region active-active replication, and predictable pricing are genuinely valuable — many companies accept the API lock-in in exchange for that operational simplicity.
-
-The mistake is not accepting lock-in; the mistake is accepting it unknowingly, without having evaluated the migration cost.
-
+</code></pre>
+<p><strong>Plan data exports regularly.</strong> Test your ability to export the full dataset in a portable format (SQL dump, Parquet, JSON lines) on a schedule. This serves two purposes: it validates your backup, and it proves that the migration path is open.</p>
+<p><strong>Separate the system-of-record from the specialised store.</strong> If your canonical data lives in a portable relational database and a specialised store (search, cache, analytics) holds derived copies, migrating the specialised store is much simpler — you can rebuild it from the primary.</p>
+<h2>When Lock-In Is Acceptable</h2>
+<p>Lock-in is not always bad. If the specialised capabilities of a system provide significant competitive or operational advantage, and the cost of migration is a known, acceptable risk, locking in may be the right choice. DynamoDB&#39;s managed infrastructure, multi-region active-active replication, and predictable pricing are genuinely valuable — many companies accept the API lock-in in exchange for that operational simplicity.</p>
+<p>The mistake is not accepting lock-in; the mistake is accepting it unknowingly, without having evaluated the migration cost.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Migration Cost Estimation by Lock-In Level</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE migration_scenario (source_db TEXT, target_db TEXT, lock_in_level TEXT, data_migration_weeks REAL, app_rewrite_weeks REAL, validation_weeks REAL); INSERT INTO migration_scenario VALUES ('PostgreSQL','MySQL','Low (SQL-to-SQL)',1,2,1); INSERT INTO migration_scenario VALUES ('PostgreSQL','CockroachDB','Low (SQL-compatible)',0.5,1,1); INSERT INTO migration_scenario VALUES ('MongoDB','PostgreSQL','Medium (doc-to-relational)',3,6,2); INSERT INTO migration_scenario VALUES ('DynamoDB','PostgreSQL','High (proprietary API)',4,12,3); INSERT INTO migration_scenario VALUES ('Cassandra','ScyllaDB','Low (wire-compatible)',1,0.5,1);" rows="20">-- Migration effort estimates by lock-in level
+    <textarea data-setup="CREATE TABLE migration_scenario (source_db TEXT, target_db TEXT, lock_in_level TEXT, data_migration_weeks REAL, app_rewrite_weeks REAL, validation_weeks REAL); INSERT INTO migration_scenario VALUES ('PostgreSQL','MySQL','Low (SQL-to-SQL)',1,2,1); INSERT INTO migration_scenario VALUES ('PostgreSQL','CockroachDB','Low (SQL-compatible)',0.5,1,1); INSERT INTO migration_scenario VALUES ('MongoDB','PostgreSQL','Medium (doc-to-relational)',3,6,2); INSERT INTO migration_scenario VALUES ('DynamoDB','PostgreSQL','High (proprietary API)',4,12,3); INSERT INTO migration_scenario VALUES ('Cassandra','ScyllaDB','Low (wire-compatible)',1,0.5,1);" rows="10">-- Migration effort estimates by lock-in level
 SELECT
   source_db || ' → ' || target_db AS migration,
   lock_in_level,
@@ -134,16 +96,17 @@ SELECT
 FROM migration_scenario
 ORDER BY total_weeks;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li>Lock-in operates through four mechanisms: query language, data format, proprietary features, and operational knowledge.</li>
+<li>Migration costs have two components: data migration and application rewrite — both scale with lock-in level.</li>
+<li>Reduce lock-in by preferring standard SQL, wrapping databases in thin abstraction layers, and validating data exports regularly.</li>
+<li>Lock-in can be an acceptable trade-off if the capabilities justify it — the mistake is accepting it unknowingly.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- Lock-in operates through four mechanisms: query language, data format, proprietary features, and operational knowledge.
-- Migration costs have two components: data migration and application rewrite — both scale with lock-in level.
-- Reduce lock-in by preferring standard SQL, wrapping databases in thin abstraction layers, and validating data exports regularly.
-- Lock-in can be an acceptable trade-off if the capabilities justify it — the mistake is accepting it unknowingly.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="256-cost-team-and-operations.html"><span class="dir">← Previous</span><span class="ttl">Cost, team, and operations</span></a><a class="next" href="258-when-to-switch-systems.html"><span class="dir">Next →</span><span class="ttl">When to switch systems</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

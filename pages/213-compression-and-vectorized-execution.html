@@ -5,245 +5,227 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Compression and vectorized execution — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part V. Database Families</p>
   <p class="chapter-label">Chapter 22. Analytical Databases and Warehouses</p>
   <h1 class="content-title">Compression and vectorized execution</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="212-columnar-storage.html"><span class="dir">← Previous</span><span class="ttl">Columnar storage</span></a><a class="next" href="214-star-schemas-and-fact-tables.html"><span class="dir">Next →</span><span class="ttl">Star schemas and fact tables</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Columnar storage gives analytical databases their storage layout advantage. But layout alone is only half the story. The other half is what happens *after* the data is read off disk: **compression** shrinks the bytes that must move through the memory hierarchy, and **vectorized execution** changes the fundamental rhythm of how the CPU processes those bytes. Together they are why a modern analytical engine can scan billions of rows per second on commodity hardware.
-
-## Why Columnar Data Compresses So Well
-
-Row-oriented data mixes values of different types and meanings on the same page — an order row might hold a timestamp, a customer ID, a status string, a decimal amount, and a country code all interleaved. There is little statistical regularity to exploit.
-
-A column file is the opposite: every byte in the file is the same logical attribute — all `country` values, or all `amount` values. This homogeneity creates three compression-friendly properties:
-
-| Property | What it means | Example |
-|---|---|---|
-| **Homogeneous types** | Every value in the column shares the same data type and encoding width | A `SMALLINT` column needs exactly 2 bytes per value — no padding, no type tags |
-| **Sorted values** | If the column is sorted (or clustered), long runs of identical or near-identical values appear | After sorting by `country`, all US rows group together |
-| **Low cardinality** | Many real-world categorical columns have a tiny set of distinct values repeated millions of times | A `status` column with only `PENDING`, `PAID`, `REFUNDED` |
-
-These properties make generic compression (gzip, zstd) already more effective on column files than on row files. But analytical engines go further: they apply **data-aware compression schemes** that understand the column's semantics and can be operated on *without full decompression*.
-
-## Compression Techniques
-
-### Run-Length Encoding (RLE)
-
-**Run-length encoding** replaces a sequence of repeated values with a single `(value, count)` pair.
-
-```
-Raw column (8 values):    [US, US, US, CA, CA, CA, CA, MX]
+  <div id="rendered" class="content">
+<p>Columnar storage gives analytical databases their storage layout advantage. But layout alone is only half the story. The other half is what happens <em>after</em> the data is read off disk: <strong>compression</strong> shrinks the bytes that must move through the memory hierarchy, and <strong>vectorized execution</strong> changes the fundamental rhythm of how the CPU processes those bytes. Together they are why a modern analytical engine can scan billions of rows per second on commodity hardware.</p>
+<h2>Why Columnar Data Compresses So Well</h2>
+<p>Row-oriented data mixes values of different types and meanings on the same page — an order row might hold a timestamp, a customer ID, a status string, a decimal amount, and a country code all interleaved. There is little statistical regularity to exploit.</p>
+<p>A column file is the opposite: every byte in the file is the same logical attribute — all <code>country</code> values, or all <code>amount</code> values. This homogeneity creates three compression-friendly properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>What it means</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Homogeneous types</strong></td>
+<td>Every value in the column shares the same data type and encoding width</td>
+<td>A <code>SMALLINT</code> column needs exactly 2 bytes per value — no padding, no type tags</td>
+</tr>
+<tr>
+<td><strong>Sorted values</strong></td>
+<td>If the column is sorted (or clustered), long runs of identical or near-identical values appear</td>
+<td>After sorting by <code>country</code>, all US rows group together</td>
+</tr>
+<tr>
+<td><strong>Low cardinality</strong></td>
+<td>Many real-world categorical columns have a tiny set of distinct values repeated millions of times</td>
+<td>A <code>status</code> column with only <code>PENDING</code>, <code>PAID</code>, <code>REFUNDED</code></td>
+</tr>
+</tbody></table>
+<p>These properties make generic compression (gzip, zstd) already more effective on column files than on row files. But analytical engines go further: they apply <strong>data-aware compression schemes</strong> that understand the column&#39;s semantics and can be operated on <em>without full decompression</em>.</p>
+<h2>Compression Techniques</h2>
+<h3>Run-Length Encoding (RLE)</h3>
+<p><strong>Run-length encoding</strong> replaces a sequence of repeated values with a single <code>(value, count)</code> pair.</p>
+<pre><code>Raw column (8 values):    [US, US, US, CA, CA, CA, CA, MX]
 RLE encoded (3 pairs):    [(US, 3), (CA, 4), (MX, 1)]
-```
-
-Storage drops from 8 entries to 3. More importantly, an aggregate like `COUNT(*) WHERE country = 'CA'` can be answered by reading the `count` field of the matching pair — **without decompressing or scanning individual rows at all**. This is called *operating directly on compressed data*.
-
-RLE is most effective when the column is sorted; a sort on `country` before storing turns scattered occurrences into contiguous runs.
-
-### Dictionary Encoding
-
-**Dictionary encoding** maps each distinct value to a small integer, then stores the integers instead of the original strings.
-
-```
-Dictionary:   {US → 0, CA → 1, MX → 2, BR → 3}
+</code></pre>
+<p>Storage drops from 8 entries to 3. More importantly, an aggregate like <code>COUNT(*) WHERE country = &#39;CA&#39;</code> can be answered by reading the <code>count</code> field of the matching pair — <strong>without decompressing or scanning individual rows at all</strong>. This is called <em>operating directly on compressed data</em>.</p>
+<p>RLE is most effective when the column is sorted; a sort on <code>country</code> before storing turns scattered occurrences into contiguous runs.</p>
+<h3>Dictionary Encoding</h3>
+<p><strong>Dictionary encoding</strong> maps each distinct value to a small integer, then stores the integers instead of the original strings.</p>
+<pre><code>Dictionary:   {US → 0, CA → 1, MX → 2, BR → 3}
 Raw column:   [US, US, CA, MX, US, BR, CA, CA]
 Encoded:      [ 0,  0,  1,  2,  0,  3,  1,  1]
-```
-
-A country name like `"United States"` might take 13 bytes as a string. Its dictionary code takes 2 bits if there are fewer than 4 countries, or 1 byte for up to 256. Equality filters (`WHERE country = 'CA'`) translate into integer comparisons, which are faster than string comparisons and can be vectorized trivially.
-
-Most columnar engines (Parquet, DuckDB, Redshift) apply dictionary encoding by default for string columns with fewer than a few thousand distinct values.
-
-### Delta Encoding
-
-**Delta encoding** stores the *difference* between consecutive values instead of the values themselves. It shines on monotonically increasing sequences like timestamps, IDs, or prices.
-
-```
-Raw column:   [1000, 1003, 1007, 1008, 1015, 1020]
+</code></pre>
+<p>A country name like <code>&quot;United States&quot;</code> might take 13 bytes as a string. Its dictionary code takes 2 bits if there are fewer than 4 countries, or 1 byte for up to 256. Equality filters (<code>WHERE country = &#39;CA&#39;</code>) translate into integer comparisons, which are faster than string comparisons and can be vectorized trivially.</p>
+<p>Most columnar engines (Parquet, DuckDB, Redshift) apply dictionary encoding by default for string columns with fewer than a few thousand distinct values.</p>
+<h3>Delta Encoding</h3>
+<p><strong>Delta encoding</strong> stores the <em>difference</em> between consecutive values instead of the values themselves. It shines on monotonically increasing sequences like timestamps, IDs, or prices.</p>
+<pre><code>Raw column:   [1000, 1003, 1007, 1008, 1015, 1020]
 Deltas:       [1000,    3,    4,    1,    7,    5]
-```
-
-Deltas are much smaller numbers, so they need fewer bits. A timestamp column spanning one day of data has raw values in the billions; the per-row deltas are typically under 1000 ms, fitting in 10 bits instead of 32.
-
-Delta encoding is often combined with bit-packing for maximum effect.
-
-### Bit-Packing
-
-**Bit-packing** stores integers using only as many bits as the data actually requires, instead of the fixed 32 or 64 bits a standard integer type would use.
-
-```
-Max value in column: 200   →   needs only 8 bits (2^8 = 256)
+</code></pre>
+<p>Deltas are much smaller numbers, so they need fewer bits. A timestamp column spanning one day of data has raw values in the billions; the per-row deltas are typically under 1000 ms, fitting in 10 bits instead of 32.</p>
+<p>Delta encoding is often combined with bit-packing for maximum effect.</p>
+<h3>Bit-Packing</h3>
+<p><strong>Bit-packing</strong> stores integers using only as many bits as the data actually requires, instead of the fixed 32 or 64 bits a standard integer type would use.</p>
+<pre><code>Max value in column: 200   →   needs only 8 bits (2^8 = 256)
 Standard storage:    200 values × 32 bits = 6 400 bits
 Bit-packed storage:  200 values ×  8 bits = 1 600 bits   (4× smaller)
-```
-
-After dictionary encoding reduces a string column to small integers, bit-packing compresses those integers further. A column with 100 distinct values only needs 7 bits per entry. Engines like Apache Arrow and DuckDB use bit-packed representations as their default in-memory column format.
-
+</code></pre>
+<p>After dictionary encoding reduces a string column to small integers, bit-packing compresses those integers further. A column with 100 distinct values only needs 7 bits per entry. Engines like Apache Arrow and DuckDB use bit-packed representations as their default in-memory column format.</p>
 <figure class="diagram">
 <svg viewBox="0 0 680 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RLE compression diagram: raw column of 8 country values on the left compressed into 3 run-length pairs on the right">
   <defs>
     <marker id="arr-rle" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
       <path d="M0,0 L0,6 L9,3 z" fill="var(--accent)"/>
     </marker>
-  </defs>
-
-  <!-- Left: raw column -->
-  <text x="130" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">RAW COLUMN</text>
-
+  </defs>  <!-- Left: raw column -->
+<p>  <text x="130" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">RAW COLUMN</text></p>
   <!-- 8 cells -->
   <rect x="80" y="32" width="100" height="30" rx="4" fill="var(--accent)" opacity="0.22" stroke="var(--accent)" stroke-width="1.5"/>
-  <text x="130" y="52" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">US</text>
-
-  <rect x="80" y="66" width="100" height="30" rx="4" fill="var(--accent)" opacity="0.22" stroke="var(--accent)" stroke-width="1.5"/>
-  <text x="130" y="86" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">US</text>
-
-  <rect x="80" y="100" width="100" height="30" rx="4" fill="var(--accent)" opacity="0.22" stroke="var(--accent)" stroke-width="1.5"/>
-  <text x="130" y="120" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">US</text>
-
-  <rect x="80" y="134" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
-  <text x="130" y="154" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">CA</text>
-
-  <rect x="80" y="168" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
-  <text x="130" y="188" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">CA</text>
-
-  <rect x="80" y="202" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
-  <text x="130" y="222" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">CA</text>
-
-  <rect x="80" y="236" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
-  <text x="130" y="256" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">CA</text>
-
-  <rect x="80" y="270" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
-  <text x="130" y="290" text-anchor="middle" font-size="13" font-weight="600" fill="var(--muted)">MX</text>
-
-  <text x="130" y="308" text-anchor="middle" font-size="10" fill="var(--muted)">8 rows stored</text>
-
+  <text x="130" y="52" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">US</text>  <rect x="80" y="66" width="100" height="30" rx="4" fill="var(--accent)" opacity="0.22" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="130" y="86" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">US</text>  <rect x="80" y="100" width="100" height="30" rx="4" fill="var(--accent)" opacity="0.22" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="130" y="120" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">US</text>  <rect x="80" y="134" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="130" y="154" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">CA</text>  <rect x="80" y="168" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="130" y="188" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">CA</text>  <rect x="80" y="202" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="130" y="222" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">CA</text>  <rect x="80" y="236" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="130" y="256" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">CA</text>  <rect x="80" y="270" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="130" y="290" text-anchor="middle" font-size="13" font-weight="600" fill="var(--muted)">MX</text><p>  <text x="130" y="308" text-anchor="middle" font-size="10" fill="var(--muted)">8 rows stored</text></p>
   <!-- Arrow -->
   <line x1="200" y1="165" x2="300" y2="165" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arr-rle)"/>
   <text x="250" y="155" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">RLE</text>
-  <text x="250" y="178" text-anchor="middle" font-size="10" fill="var(--muted)">encode</text>
-
-  <!-- Right: RLE output -->
-  <text x="490" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">RLE ENCODED</text>
-
+  <text x="250" y="178" text-anchor="middle" font-size="10" fill="var(--muted)">encode</text>  <!-- Right: RLE output -->
+<p>  <text x="490" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">RLE ENCODED</text></p>
   <!-- Pair 1 -->
   <rect x="310" y="80" width="360" height="42" rx="6" fill="var(--accent)" opacity="0.22" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="415" y="107" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">US</text>
   <text x="490" y="107" text-anchor="middle" font-size="12" fill="var(--muted)">count =</text>
-  <text x="575" y="107" text-anchor="middle" font-size="15" font-weight="700" fill="var(--accent)">3</text>
-
-  <!-- Pair 2 -->
+  <text x="575" y="107" text-anchor="middle" font-size="15" font-weight="700" fill="var(--accent)">3</text>  <!-- Pair 2 -->
   <rect x="310" y="132" width="360" height="42" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="415" y="159" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">CA</text>
   <text x="490" y="159" text-anchor="middle" font-size="12" fill="var(--muted)">count =</text>
-  <text x="575" y="159" text-anchor="middle" font-size="15" font-weight="700" fill="var(--accent)">4</text>
-
-  <!-- Pair 3 -->
+  <text x="575" y="159" text-anchor="middle" font-size="15" font-weight="700" fill="var(--accent)">4</text>  <!-- Pair 3 -->
   <rect x="310" y="184" width="360" height="42" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
   <text x="415" y="211" text-anchor="middle" font-size="13" font-weight="700" fill="var(--muted)">MX</text>
   <text x="490" y="211" text-anchor="middle" font-size="12" fill="var(--muted)">count =</text>
-  <text x="575" y="211" text-anchor="middle" font-size="15" font-weight="700" fill="var(--muted)">1</text>
-
-  <text x="490" y="245" text-anchor="middle" font-size="10" fill="var(--muted)">3 pairs stored — 62% smaller</text>
+  <text x="575" y="211" text-anchor="middle" font-size="15" font-weight="700" fill="var(--muted)">1</text><p>  <text x="490" y="245" text-anchor="middle" font-size="10" fill="var(--muted)">3 pairs stored — 62% smaller</text>
   <text x="490" y="260" text-anchor="middle" font-size="10" fill="var(--muted)">COUNT(CA) = read the count field directly</text>
-</svg>
+</svg></p>
 <figcaption>Run-length encoding collapses repeated values into (value, count) pairs. The CA count can be read directly without scanning individual rows — an example of operating on compressed data.</figcaption>
-</figure>
-
-## What Vectorized Execution Means
-
-Compression controls *how much data* must be processed. Vectorized execution controls *how efficiently* the CPU processes it.
-
-To understand vectorized execution, it helps to first see what it replaced.
-
-### The Volcano Model (Row-at-a-Time)
-
-The classic database execution model — sometimes called the **Volcano model** or **iterator model** — structures query execution as a tree of operators, each implementing a `next()` method that returns **one row at a time** to its parent.
-
-```
-ProjectionOperator.next()
+</figure><h2>What Vectorized Execution Means</h2>
+<p>Compression controls <em>how much data</em> must be processed. Vectorized execution controls <em>how efficiently</em> the CPU processes it.</p>
+<p>To understand vectorized execution, it helps to first see what it replaced.</p>
+<h3>The Volcano Model (Row-at-a-Time)</h3>
+<p>The classic database execution model — sometimes called the <strong>Volcano model</strong> or <strong>iterator model</strong> — structures query execution as a tree of operators, each implementing a <code>next()</code> method that returns <strong>one row at a time</strong> to its parent.</p>
+<pre><code>ProjectionOperator.next()
   └─ FilterOperator.next()
        └─ ScanOperator.next()   ← reads one row from disk
-```
-
-When the query engine needs results, it calls `Projection.next()`. Projection calls `Filter.next()`. Filter calls `Scan.next()`, which reads one row. That row bubbles up through the chain: Filter checks the predicate, then Projection selects columns, and the result row is returned. Then the whole process repeats for the next row.
-
-This is elegantly composable — you can chain any operators together — but it has a severe performance cost: **one function call per row, per operator**. For a scan of 100 million rows through 3 operators, that is 300 million virtual function calls. Function call overhead, branch misprediction, and cache thrashing add up quickly.
-
-> **Note:** The Volcano model was designed in the early 1990s when disk I/O dominated query time. Today, analytical workloads keep data in memory, and CPU efficiency is the bottleneck. Row-at-a-time is the wrong granularity.
-
-### The Vectorized Model (Batch-at-a-Time)
-
-**Vectorized execution** changes the unit of work from one row to a **fixed-size batch** — typically 1,024 or 2,048 values — called a **vector** or **chunk**.
-
-```
-ProjectionOperator.next_batch()   ← returns 1024 rows at once
+</code></pre>
+<p>When the query engine needs results, it calls <code>Projection.next()</code>. Projection calls <code>Filter.next()</code>. Filter calls <code>Scan.next()</code>, which reads one row. That row bubbles up through the chain: Filter checks the predicate, then Projection selects columns, and the result row is returned. Then the whole process repeats for the next row.</p>
+<p>This is elegantly composable — you can chain any operators together — but it has a severe performance cost: <strong>one function call per row, per operator</strong>. For a scan of 100 million rows through 3 operators, that is 300 million virtual function calls. Function call overhead, branch misprediction, and cache thrashing add up quickly.</p>
+<blockquote>
+<p><strong>Note:</strong> The Volcano model was designed in the early 1990s when disk I/O dominated query time. Today, analytical workloads keep data in memory, and CPU efficiency is the bottleneck. Row-at-a-time is the wrong granularity.</p>
+</blockquote>
+<h3>The Vectorized Model (Batch-at-a-Time)</h3>
+<p><strong>Vectorized execution</strong> changes the unit of work from one row to a <strong>fixed-size batch</strong> — typically 1,024 or 2,048 values — called a <strong>vector</strong> or <strong>chunk</strong>.</p>
+<pre><code>ProjectionOperator.next_batch()   ← returns 1024 rows at once
   └─ FilterOperator.next_batch()
        └─ ScanOperator.next_batch()   ← reads 1024 rows from disk
-```
-
-Each operator now does real work — processing 1024 values — for every function call. The function-call overhead becomes negligible compared to the data-processing work. Within each operator, the inner loop over the 1024 values is tight enough for the CPU's branch predictor and instruction pipeline to stay warm.
-
-More importantly, modern CPUs include **SIMD instructions** (Single Instruction, Multiple Data) that can operate on 4, 8, or 16 values simultaneously in a single CPU instruction. A tight loop over a vector of integers can be compiled to AVX-512 instructions that process 16 int32 values per clock cycle. The Volcano model's row-at-a-time loop cannot take advantage of SIMD — the work per iteration is too irregular.
-
-| Attribute | Volcano (row-at-a-time) | Vectorized (batch-at-a-time) |
-|---|---|---|
-| **Function calls** | One per row per operator | One per batch per operator |
-| **SIMD utilization** | Very low — irregular per-row work | High — tight inner loops over uniform data |
-| **CPU cache behavior** | Poor — operator state evicted between calls | Good — vector fits in L1/L2 cache |
-| **Code complexity** | Simple | Moderate — operators must handle batch semantics |
-
-### Practical Batch Sizes
-
-The batch size (1,024 is common in DuckDB and Velox) is chosen so that the vector fits entirely in the CPU's **L1 or L2 cache**. An L1 cache is typically 32–64 KB; 1,024 int32 values take 4 KB. Keeping the active data in L1 cache means memory accesses take ~4 cycles instead of ~200 cycles for a main-memory access.
-
-## Why Compression and Vectorization Compound
-
-Compression and vectorized execution are not independent optimizations — they **multiply each other's benefits**.
-
-Consider a columnar table with 1 billion rows of sales data. The `country` column, dictionary-encoded and bit-packed to 8 bits per entry, takes roughly 1 GB. Uncompressed it would take 8–13 GB (as a variable-length string). A 10× compression ratio means:
-
-- **10× more data fits in L3 cache** — the CPU can process data at cache bandwidth (~500 GB/s) instead of memory bandwidth (~50 GB/s).
-- **10× more values fit in each vector** — a 4 KB vector now holds 4,096 compressed values instead of 400 uncompressed strings.
-- **SIMD operates on compressed codes** — integer comparison on 8-bit dictionary codes is faster than string comparison, and SIMD can compare 32 of them per instruction.
-
-The engine can often **skip decompression entirely** for filter predicates: a `WHERE country = 'CA'` translates to `WHERE dict_code = 1`, and the bit-packed integer comparison is faster than the original string comparison.
-
-> **Key insight:** A query that reads 100 GB of uncompressed data might only read 8 GB after columnar compression. Vectorized execution then processes those 8 GB at full SIMD throughput. The combined effect is not additive — it is multiplicative. This is why DuckDB can aggregate a 1-billion-row TPC-H dataset in seconds on a laptop.
-
-## Compression Ratios in Practice
-
-Real-world compression ratios vary by column characteristics:
-
-| Column type | Typical cardinality | Technique | Compression ratio |
-|---|---|---|---|
-| Status / enum (`PENDING`, `PAID`) | 2–10 | Dictionary + bit-pack | 10–40× |
-| Country code | ~250 | Dictionary + 8-bit | 4–13× |
-| Timestamp (sorted) | High, monotonic | Delta + bit-pack | 4–8× |
-| Numeric amounts | High, varied | Bit-pack or generic | 1.5–3× |
-| Free-text strings | Very high | Generic (zstd) | 2–4× |
-
-The sweet spot for both compression and vectorization is **low-cardinality, homogeneous categorical columns** — exactly the kind of columns that dominate dimension tables and fact table foreign keys in analytical schemas.
-
-## Interactive Example: Aggregating Compressed Data
-
-The query below demonstrates the kind of workload that benefits most from columnar compression and vectorized execution. Notice that the `GROUP BY country, product_category` forces the engine to process every row, but the low cardinality of those columns means the data compresses aggressively and the inner-loop comparison is a cheap integer equality check.
-
+</code></pre>
+<p>Each operator now does real work — processing 1024 values — for every function call. The function-call overhead becomes negligible compared to the data-processing work. Within each operator, the inner loop over the 1024 values is tight enough for the CPU&#39;s branch predictor and instruction pipeline to stay warm.</p>
+<p>More importantly, modern CPUs include <strong>SIMD instructions</strong> (Single Instruction, Multiple Data) that can operate on 4, 8, or 16 values simultaneously in a single CPU instruction. A tight loop over a vector of integers can be compiled to AVX-512 instructions that process 16 int32 values per clock cycle. The Volcano model&#39;s row-at-a-time loop cannot take advantage of SIMD — the work per iteration is too irregular.</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Volcano (row-at-a-time)</th>
+<th>Vectorized (batch-at-a-time)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Function calls</strong></td>
+<td>One per row per operator</td>
+<td>One per batch per operator</td>
+</tr>
+<tr>
+<td><strong>SIMD utilization</strong></td>
+<td>Very low — irregular per-row work</td>
+<td>High — tight inner loops over uniform data</td>
+</tr>
+<tr>
+<td><strong>CPU cache behavior</strong></td>
+<td>Poor — operator state evicted between calls</td>
+<td>Good — vector fits in L1/L2 cache</td>
+</tr>
+<tr>
+<td><strong>Code complexity</strong></td>
+<td>Simple</td>
+<td>Moderate — operators must handle batch semantics</td>
+</tr>
+</tbody></table>
+<h3>Practical Batch Sizes</h3>
+<p>The batch size (1,024 is common in DuckDB and Velox) is chosen so that the vector fits entirely in the CPU&#39;s <strong>L1 or L2 cache</strong>. An L1 cache is typically 32–64 KB; 1,024 int32 values take 4 KB. Keeping the active data in L1 cache means memory accesses take ~4 cycles instead of ~200 cycles for a main-memory access.</p>
+<h2>Why Compression and Vectorization Compound</h2>
+<p>Compression and vectorized execution are not independent optimizations — they <strong>multiply each other&#39;s benefits</strong>.</p>
+<p>Consider a columnar table with 1 billion rows of sales data. The <code>country</code> column, dictionary-encoded and bit-packed to 8 bits per entry, takes roughly 1 GB. Uncompressed it would take 8–13 GB (as a variable-length string). A 10× compression ratio means:</p>
+<ul>
+<li><strong>10× more data fits in L3 cache</strong> — the CPU can process data at cache bandwidth (~500 GB/s) instead of memory bandwidth (~50 GB/s).</li>
+<li><strong>10× more values fit in each vector</strong> — a 4 KB vector now holds 4,096 compressed values instead of 400 uncompressed strings.</li>
+<li><strong>SIMD operates on compressed codes</strong> — integer comparison on 8-bit dictionary codes is faster than string comparison, and SIMD can compare 32 of them per instruction.</li>
+</ul>
+<p>The engine can often <strong>skip decompression entirely</strong> for filter predicates: a <code>WHERE country = &#39;CA&#39;</code> translates to <code>WHERE dict_code = 1</code>, and the bit-packed integer comparison is faster than the original string comparison.</p>
+<blockquote>
+<p><strong>Key insight:</strong> A query that reads 100 GB of uncompressed data might only read 8 GB after columnar compression. Vectorized execution then processes those 8 GB at full SIMD throughput. The combined effect is not additive — it is multiplicative. This is why DuckDB can aggregate a 1-billion-row TPC-H dataset in seconds on a laptop.</p>
+</blockquote>
+<h2>Compression Ratios in Practice</h2>
+<p>Real-world compression ratios vary by column characteristics:</p>
+<table>
+<thead>
+<tr>
+<th>Column type</th>
+<th>Typical cardinality</th>
+<th>Technique</th>
+<th>Compression ratio</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Status / enum (<code>PENDING</code>, <code>PAID</code>)</td>
+<td>2–10</td>
+<td>Dictionary + bit-pack</td>
+<td>10–40×</td>
+</tr>
+<tr>
+<td>Country code</td>
+<td>~250</td>
+<td>Dictionary + 8-bit</td>
+<td>4–13×</td>
+</tr>
+<tr>
+<td>Timestamp (sorted)</td>
+<td>High, monotonic</td>
+<td>Delta + bit-pack</td>
+<td>4–8×</td>
+</tr>
+<tr>
+<td>Numeric amounts</td>
+<td>High, varied</td>
+<td>Bit-pack or generic</td>
+<td>1.5–3×</td>
+</tr>
+<tr>
+<td>Free-text strings</td>
+<td>Very high</td>
+<td>Generic (zstd)</td>
+<td>2–4×</td>
+</tr>
+</tbody></table>
+<p>The sweet spot for both compression and vectorization is <strong>low-cardinality, homogeneous categorical columns</strong> — exactly the kind of columns that dominate dimension tables and fact table foreign keys in analytical schemas.</p>
+<h2>Interactive Example: Aggregating Compressed Data</h2>
+<p>The query below demonstrates the kind of workload that benefits most from columnar compression and vectorized execution. Notice that the <code>GROUP BY country, product_category</code> forces the engine to process every row, but the low cardinality of those columns means the data compresses aggressively and the inner-loop comparison is a cheap integer equality check.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Columnar Aggregation Patterns</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, country TEXT, product_category TEXT, amount DECIMAL(10,2), sale_date TEXT); INSERT INTO sales VALUES (1,'US','Electronics',299.99,'2024-01-05'),(2,'US','Electronics',149.50,'2024-01-07'),(3,'US','Clothing',59.99,'2024-01-08'),(4,'CA','Electronics',399.00,'2024-01-09'),(5,'CA','Clothing',89.99,'2024-01-10'),(6,'CA','Clothing',45.00,'2024-01-11'),(7,'US','Food',12.50,'2024-01-12'),(8,'MX','Electronics',199.00,'2024-01-13'),(9,'MX','Food',8.75,'2024-01-14'),(10,'US','Food',22.00,'2024-01-15'),(11,'CA','Electronics',549.00,'2024-01-16'),(12,'US','Clothing',75.50,'2024-01-17');" rows="20">-- GROUP BY aggregate: benefits from low-cardinality dictionary encoding
+    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, country TEXT, product_category TEXT, amount DECIMAL(10,2), sale_date TEXT); INSERT INTO sales VALUES (1,'US','Electronics',299.99,'2024-01-05'),(2,'US','Electronics',149.50,'2024-01-07'),(3,'US','Clothing',59.99,'2024-01-08'),(4,'CA','Electronics',399.00,'2024-01-09'),(5,'CA','Clothing',89.99,'2024-01-10'),(6,'CA','Clothing',45.00,'2024-01-11'),(7,'US','Food',12.50,'2024-01-12'),(8,'MX','Electronics',199.00,'2024-01-13'),(9,'MX','Food',8.75,'2024-01-14'),(10,'US','Food',22.00,'2024-01-15'),(11,'CA','Electronics',549.00,'2024-01-16'),(12,'US','Clothing',75.50,'2024-01-17');" rows="10">-- GROUP BY aggregate: benefits from low-cardinality dictionary encoding
 -- country (3 values) and product_category (3 values) compress ~90%
 SELECT
   country,
@@ -259,21 +241,21 @@ ORDER BY total_revenue DESC;
 -- WHERE product_category = &apos;Electronics&apos;
 -- GROUP BY country ORDER BY 2 DESC;</textarea>
   </div>
+</div><p>In a real columnar engine, the <code>country</code> and <code>product_category</code> columns would be dictionary-encoded at storage time. The aggregation loop runs entirely on integer codes, never touching the original strings. With vectorized execution, the inner <code>GROUP BY</code> loop processes 1,024 rows per iteration using SIMD integer operations — far faster than a row-at-a-time loop comparing raw strings.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li><strong>Columnar data compresses well</strong> because storing homogeneous values in sequence creates statistical regularity: repeated values, monotonic sequences, and small cardinalities.</li>
+<li><strong>RLE</strong> replaces runs of identical values with <code>(value, count)</code> pairs and enables aggregate queries to operate directly on compressed data without decompression.</li>
+<li><strong>Dictionary encoding</strong> maps strings to small integers, enabling fast equality filters and dramatically reducing storage for low-cardinality columns.</li>
+<li><strong>Delta encoding</strong> and <strong>bit-packing</strong> shrink numeric columns by storing only what varies and using only the bits required.</li>
+<li><strong>The Volcano model</strong> (row-at-a-time) incurs millions of function calls and cannot use SIMD; <strong>vectorized execution</strong> amortizes overhead across fixed-size batches (typically 1,024 values) that fit in CPU cache and enable SIMD parallelism.</li>
+<li>Compression and vectorization <strong>multiply each other&#39;s benefits</strong>: compressed data fits more values per cache line, and SIMD operates on compact integer codes faster than on raw strings.</li>
+<li>The combination is why modern analytical engines (DuckDB, Snowflake, BigQuery) can scan billions of rows per second on modest hardware — the CPU spends nearly all its time doing useful arithmetic, not shuffling bytes or dispatching function calls.</li>
+</ul>
+
 </div>
-
-In a real columnar engine, the `country` and `product_category` columns would be dictionary-encoded at storage time. The aggregation loop runs entirely on integer codes, never touching the original strings. With vectorized execution, the inner `GROUP BY` loop processes 1,024 rows per iteration using SIMD integer operations — far faster than a row-at-a-time loop comparing raw strings.
-
-## Key Takeaways
-
-- **Columnar data compresses well** because storing homogeneous values in sequence creates statistical regularity: repeated values, monotonic sequences, and small cardinalities.
-- **RLE** replaces runs of identical values with `(value, count)` pairs and enables aggregate queries to operate directly on compressed data without decompression.
-- **Dictionary encoding** maps strings to small integers, enabling fast equality filters and dramatically reducing storage for low-cardinality columns.
-- **Delta encoding** and **bit-packing** shrink numeric columns by storing only what varies and using only the bits required.
-- **The Volcano model** (row-at-a-time) incurs millions of function calls and cannot use SIMD; **vectorized execution** amortizes overhead across fixed-size batches (typically 1,024 values) that fit in CPU cache and enable SIMD parallelism.
-- Compression and vectorization **multiply each other's benefits**: compressed data fits more values per cache line, and SIMD operates on compact integer codes faster than on raw strings.
-- The combination is why modern analytical engines (DuckDB, Snowflake, BigQuery) can scan billions of rows per second on modest hardware — the CPU spends nearly all its time doing useful arithmetic, not shuffling bytes or dispatching function calls.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="212-columnar-storage.html"><span class="dir">← Previous</span><span class="ttl">Columnar storage</span></a><a class="next" href="214-star-schemas-and-fact-tables.html"><span class="dir">Next →</span><span class="ttl">Star schemas and fact tables</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

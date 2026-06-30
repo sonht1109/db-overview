@@ -5,74 +5,91 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Memory limits and spill to disk — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 8. Joins, Aggregation, and Sorting</p>
   <h1 class="content-title">Memory limits and spill to disk</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="075-external-sort.html"><span class="dir">← Previous</span><span class="ttl">External sort</span></a><a class="next" href="077-join-order-matters.html"><span class="dir">Next →</span><span class="ttl">Join order matters</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every operation you have studied so far — hash joins, sort-merge joins, `GROUP BY`, `ORDER BY` — needs somewhere to hold intermediate data while it works. That "somewhere" is RAM. When the data fits, things are fast. When it does not, the engine has two choices: fail, or find a way to keep going by using disk as overflow storage. This overflow is called **spill to disk**, and understanding it explains why some queries are dramatically slower than others despite looking nearly identical.
-
-## Why Memory Budgets Exist
-
-A database engine serves many queries at once. If every query could grab as much RAM as it wanted, a single heavy `ORDER BY` could starve every other session. So engines enforce a **per-operation memory budget** — a cap on how much RAM one sort, hash table, or aggregate can consume.
-
-| Database | Setting | Default |
-|---|---|---|
-| PostgreSQL | `work_mem` | 4 MB |
-| MySQL | `sort_buffer_size` | 256 KB |
-| SQL Server | Query memory grant | Estimated at plan time |
-| SQLite | Controlled by host application | Varies |
-
-The defaults are intentionally conservative. Multiply the per-operation default by the number of concurrent connections and you get the worst-case memory pressure — 100 connections each using 4 MB of `work_mem` is 400 MB just for sort buffers.
-
-> **Note:** In PostgreSQL, `work_mem` applies *per sort or hash operation*, not per query. A single complex query can have multiple such operations running simultaneously, each consuming up to `work_mem`.
-
-## What Happens When You Exceed the Budget
-
-When intermediate data grows past the memory budget, the engine **spills** the overflow to a temporary file on disk. The exact mechanism depends on the operation:
-
-- **Sort spill:** Sorted runs are written to temp files and merged (the external sort algorithm from the previous page).
-- **Hash join spill:** The build-side hash table is partitioned; partitions that exceed memory are written to disk and processed in batches.
-- **Hash aggregate spill:** Partial aggregation results are flushed to disk and combined in a second pass.
-
-In all cases the query still returns correct results. The penalty is speed, not correctness.
-
-### The Cost Cliff
-
-Spill is not a gentle slowdown — it is often an order-of-magnitude jump in query time. Disk throughput is typically 10–100x lower than memory bandwidth, so operations that cross the spill threshold can jump from milliseconds to seconds.
-
-```
-In-memory hash join:   ~50 ms   (hash table lives entirely in RAM)
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">076-memory-limits-and-spill-to-disk</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 076-memory-limits-and-spill-to-disk.</figcaption>
+</figure>
+<p>Every operation you have studied so far — hash joins, sort-merge joins, <code>GROUP BY</code>, <code>ORDER BY</code> — needs somewhere to hold intermediate data while it works. That &quot;somewhere&quot; is RAM. When the data fits, things are fast. When it does not, the engine has two choices: fail, or find a way to keep going by using disk as overflow storage. This overflow is called <strong>spill to disk</strong>, and understanding it explains why some queries are dramatically slower than others despite looking nearly identical.</p>
+<h2>Why Memory Budgets Exist</h2>
+<p>A database engine serves many queries at once. If every query could grab as much RAM as it wanted, a single heavy <code>ORDER BY</code> could starve every other session. So engines enforce a <strong>per-operation memory budget</strong> — a cap on how much RAM one sort, hash table, or aggregate can consume.</p>
+<table>
+<thead>
+<tr>
+<th>Database</th>
+<th>Setting</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PostgreSQL</td>
+<td><code>work_mem</code></td>
+<td>4 MB</td>
+</tr>
+<tr>
+<td>MySQL</td>
+<td><code>sort_buffer_size</code></td>
+<td>256 KB</td>
+</tr>
+<tr>
+<td>SQL Server</td>
+<td>Query memory grant</td>
+<td>Estimated at plan time</td>
+</tr>
+<tr>
+<td>SQLite</td>
+<td>Controlled by host application</td>
+<td>Varies</td>
+</tr>
+</tbody></table>
+<p>The defaults are intentionally conservative. Multiply the per-operation default by the number of concurrent connections and you get the worst-case memory pressure — 100 connections each using 4 MB of <code>work_mem</code> is 400 MB just for sort buffers.</p>
+<blockquote>
+<p><strong>Note:</strong> In PostgreSQL, <code>work_mem</code> applies <em>per sort or hash operation</em>, not per query. A single complex query can have multiple such operations running simultaneously, each consuming up to <code>work_mem</code>.</p>
+</blockquote>
+<h2>What Happens When You Exceed the Budget</h2>
+<p>When intermediate data grows past the memory budget, the engine <strong>spills</strong> the overflow to a temporary file on disk. The exact mechanism depends on the operation:</p>
+<ul>
+<li><strong>Sort spill:</strong> Sorted runs are written to temp files and merged (the external sort algorithm from the previous page).</li>
+<li><strong>Hash join spill:</strong> The build-side hash table is partitioned; partitions that exceed memory are written to disk and processed in batches.</li>
+<li><strong>Hash aggregate spill:</strong> Partial aggregation results are flushed to disk and combined in a second pass.</li>
+</ul>
+<p>In all cases the query still returns correct results. The penalty is speed, not correctness.</p>
+<h3>The Cost Cliff</h3>
+<p>Spill is not a gentle slowdown — it is often an order-of-magnitude jump in query time. Disk throughput is typically 10–100x lower than memory bandwidth, so operations that cross the spill threshold can jump from milliseconds to seconds.</p>
+<pre><code>In-memory hash join:   ~50 ms   (hash table lives entirely in RAM)
 Spilling hash join:    ~4 s     (writes and reads temp files on disk)
-```
-
-This cliff is worth watching for in production: a query that ran fine when the table had 1 million rows may become painful when it grows to 10 million and pushes the working set past the memory budget.
-
-## Observing Spill in Query Plans
-
-Most databases surface spill information in their execution plans. Look for these signals:
-
-- **PostgreSQL `EXPLAIN (ANALYZE, BUFFERS)`** — shows `Batches: N` on a hash join (more than 1 means spill) and `Sort Method: external merge` on sorts.
-- **SQLite `EXPLAIN QUERY PLAN`** — shows `USE TEMP B-TREE` when a sort or grouping operation needs temporary on-disk storage.
-- **MySQL `EXPLAIN`** — `Using filesort` and `Using temporary` in the `Extra` column signal on-disk temporary work.
-
-The widget below lets you inspect SQLite's plan for an aggregation with an unindexed sort. Run it as-is to see the plan, then try removing the `EXPLAIN QUERY PLAN` line to see the actual results.
-
+</code></pre>
+<p>This cliff is worth watching for in production: a query that ran fine when the table had 1 million rows may become painful when it grows to 10 million and pushes the working set past the memory budget.</p>
+<h2>Observing Spill in Query Plans</h2>
+<p>Most databases surface spill information in their execution plans. Look for these signals:</p>
+<ul>
+<li><strong>PostgreSQL <code>EXPLAIN (ANALYZE, BUFFERS)</code></strong> — shows <code>Batches: N</code> on a hash join (more than 1 means spill) and <code>Sort Method: external merge</code> on sorts.</li>
+<li><strong>SQLite <code>EXPLAIN QUERY PLAN</code></strong> — shows <code>USE TEMP B-TREE</code> when a sort or grouping operation needs temporary on-disk storage.</li>
+<li><strong>MySQL <code>EXPLAIN</code></strong> — <code>Using filesort</code> and <code>Using temporary</code> in the <code>Extra</code> column signal on-disk temporary work.</li>
+</ul>
+<p>The widget below lets you inspect SQLite&#39;s plan for an aggregation with an unindexed sort. Run it as-is to see the plan, then try removing the <code>EXPLAIN QUERY PLAN</code> line to see the actual results.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Spill signals in query plans</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, session_id INTEGER, page TEXT, duration_ms INTEGER); INSERT INTO events VALUES (1,101,'home',320),(2,102,'checkout',840),(3,101,'product',510),(4,103,'home',200),(5,102,'product',670),(6,103,'checkout',1100),(7,101,'checkout',430),(8,104,'home',290),(9,104,'product',750),(10,102,'home',180),(11,105,'product',600),(12,105,'checkout',920),(13,106,'home',410),(14,106,'product',380),(15,107,'checkout',760);" rows="20">-- See how SQLite plans an unindexed GROUP BY + ORDER BY.
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, session_id INTEGER, page TEXT, duration_ms INTEGER); INSERT INTO events VALUES (1,101,'home',320),(2,102,'checkout',840),(3,101,'product',510),(4,103,'home',200),(5,102,'product',670),(6,103,'checkout',1100),(7,101,'checkout',430),(8,104,'home',290),(9,104,'product',750),(10,102,'home',180),(11,105,'product',600),(12,105,'checkout',920),(13,106,'home',410),(14,106,'product',380),(15,107,'checkout',760);" rows="10">-- See how SQLite plans an unindexed GROUP BY + ORDER BY.
 -- 'USE TEMP B-TREE' means it needed a temporary on-disk structure.
 EXPLAIN QUERY PLAN
 SELECT page,
@@ -82,17 +99,11 @@ FROM events
 GROUP BY page
 ORDER BY avg_ms DESC;</textarea>
   </div>
-</div>
-
-## Tuning Strategies
-
-The goal is to keep operations in memory or at least minimize how much spills to disk.
-
-**1. Raise the memory budget per session (carefully).** For a heavy one-off query, raising `work_mem` can eliminate spill entirely. Do it per-session to avoid starving other connections:
-
-```sql
--- PostgreSQL: raise work_mem for this session only
-SET work_mem = '64MB';
+</div><h2>Tuning Strategies</h2>
+<p>The goal is to keep operations in memory or at least minimize how much spills to disk.</p>
+<p><strong>1. Raise the memory budget per session (carefully).</strong> For a heavy one-off query, raising <code>work_mem</code> can eliminate spill entirely. Do it per-session to avoid starving other connections:</p>
+<pre><code class="language-sql">-- PostgreSQL: raise work_mem for this session only
+SET work_mem = &#39;64MB&#39;;
 
 SELECT customer_id, SUM(amount) AS total
 FROM orders
@@ -100,37 +111,31 @@ GROUP BY customer_id
 ORDER BY total DESC;
 
 RESET work_mem;
-```
-
-**2. Add indexes to eliminate sorts.** If an `ORDER BY` matches an index key, the engine reads rows in order directly from the index — no sort phase, no spill possible.
-
-**3. Filter and project early.** The fewer rows and columns that reach a sort or join, the smaller the working set. Select only the columns you need and push `WHERE` conditions as close to the source table as possible.
-
-**4. Pre-aggregate or partition.** For very large aggregations, splitting the work by a natural partition (e.g., by date range or by shard) keeps each sub-query within the memory budget.
-
-The widget below lets you compare a wide-column sort against a narrow-column sort on the same data — fewer columns means a smaller working set.
-
+</code></pre>
+<p><strong>2. Add indexes to eliminate sorts.</strong> If an <code>ORDER BY</code> matches an index key, the engine reads rows in order directly from the index — no sort phase, no spill possible.</p>
+<p><strong>3. Filter and project early.</strong> The fewer rows and columns that reach a sort or join, the smaller the working set. Select only the columns you need and push <code>WHERE</code> conditions as close to the source table as possible.</p>
+<p><strong>4. Pre-aggregate or partition.</strong> For very large aggregations, splitting the work by a natural partition (e.g., by date range or by shard) keeps each sub-query within the memory budget.</p>
+<p>The widget below lets you compare a wide-column sort against a narrow-column sort on the same data — fewer columns means a smaller working set.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Wide vs. narrow working sets</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT, category TEXT, region TEXT, amount REAL, note TEXT); INSERT INTO orders VALUES (1,10,'Widget','Hardware','North',49.99,'first purchase'),(2,11,'Gadget','Electronics','South',129.00,'gift'),(3,10,'Doohickey','Hardware','East',19.50,'reorder'),(4,12,'Widget','Hardware','West',49.99,'bulk'),(5,11,'Widget','Hardware','North',49.99,'reorder'),(6,12,'Gadget','Electronics','South',129.00,'first purchase'),(7,13,'Doohickey','Hardware','East',19.50,'sale'),(8,13,'Gadget','Electronics','West',129.00,'promo'),(9,14,'Widget','Hardware','North',49.99,'standard'),(10,14,'Doohickey','Hardware','South',19.50,'standard');" rows="20">-- Option A: sort all columns (wider working set in memory)
+    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT, category TEXT, region TEXT, amount REAL, note TEXT); INSERT INTO orders VALUES (1,10,'Widget','Hardware','North',49.99,'first purchase'),(2,11,'Gadget','Electronics','South',129.00,'gift'),(3,10,'Doohickey','Hardware','East',19.50,'reorder'),(4,12,'Widget','Hardware','West',49.99,'bulk'),(5,11,'Widget','Hardware','North',49.99,'reorder'),(6,12,'Gadget','Electronics','South',129.00,'first purchase'),(7,13,'Doohickey','Hardware','East',19.50,'sale'),(8,13,'Gadget','Electronics','West',129.00,'promo'),(9,14,'Widget','Hardware','North',49.99,'standard'),(10,14,'Doohickey','Hardware','South',19.50,'standard');" rows="10">-- Option A: sort all columns (wider working set in memory)
 SELECT * FROM orders ORDER BY amount DESC;
 -- Option B: sort only what you need (narrower working set)
 -- SELECT customer_id, amount FROM orders ORDER BY amount DESC;</textarea>
   </div>
+</div><details class="reveal"><summary>Reveal: Why does doubling work_mem sometimes cut query time in half?</summary><div class="reveal-body">A sort that fits in twice the memory may go from two merge passes to one. Each pass reads and writes the entire dataset to disk, so eliminating one pass cuts I/O roughly in half. The relationship is not always that clean — it depends on how many initial sorted runs were produced — but large memory increases often produce disproportionately large speedups because they eliminate entire passes rather than just shrinking them.</div></details><h2>Key Takeaways</h2>
+<ul>
+<li>Engines enforce per-operation <strong>memory budgets</strong> to share RAM fairly across concurrent queries.</li>
+<li>When intermediate data exceeds the budget, the engine <strong>spills to disk</strong> — results remain correct, but I/O cost skyrockets.</li>
+<li>Spill is a <strong>cost cliff</strong>, not a gradual slowdown; watch for it when data volumes grow past a threshold.</li>
+<li>Query plans expose spill through keywords like <code>external merge</code>, <code>Batches &gt; 1</code>, <code>USE TEMP B-TREE</code>, and <code>Using filesort</code>.</li>
+<li>The main remedies are: raise the memory budget per session, add indexes to avoid sorting, filter early, and select only the columns you need.</li>
+</ul>
+
 </div>
-
-<details class="reveal"><summary>Reveal: Why does doubling work_mem sometimes cut query time in half?</summary><div class="reveal-body">A sort that fits in twice the memory may go from two merge passes to one. Each pass reads and writes the entire dataset to disk, so eliminating one pass cuts I/O roughly in half. The relationship is not always that clean — it depends on how many initial sorted runs were produced — but large memory increases often produce disproportionately large speedups because they eliminate entire passes rather than just shrinking them.</div></details>
-
-## Key Takeaways
-
-- Engines enforce per-operation **memory budgets** to share RAM fairly across concurrent queries.
-- When intermediate data exceeds the budget, the engine **spills to disk** — results remain correct, but I/O cost skyrockets.
-- Spill is a **cost cliff**, not a gradual slowdown; watch for it when data volumes grow past a threshold.
-- Query plans expose spill through keywords like `external merge`, `Batches > 1`, `USE TEMP B-TREE`, and `Using filesort`.
-- The main remedies are: raise the memory budget per session, add indexes to avoid sorting, filter early, and select only the columns you need.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="075-external-sort.html"><span class="dir">← Previous</span><span class="ttl">External sort</span></a><a class="next" href="077-join-order-matters.html"><span class="dir">Next →</span><span class="ttl">Join order matters</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

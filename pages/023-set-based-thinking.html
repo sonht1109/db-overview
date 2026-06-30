@@ -5,114 +5,130 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Set-based thinking — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 3. The Relational Model</p>
   <h1 class="content-title">Set-based thinking</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="022-primary-keys-and-foreign-keys.html"><span class="dir">← Previous</span><span class="ttl">Primary keys and foreign keys</span></a><a class="next" href="024-projection-selection-and-join.html"><span class="dir">Next →</span><span class="ttl">Projection, selection, and join</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Most programmers learn to solve problems one item at a time: loop over a list, check each element, do something to it, move on. Relational databases flip that instinct on its head. SQL is built on **set-based thinking** — you describe *what* you want from a whole collection of rows, and the database engine figures out *how* to get it. Embracing this shift is the single biggest mental upgrade for writing fast, clear SQL.
-
-## Rows Are Members of a Set
-
-In mathematics, a **set** is an unordered collection of distinct elements. A database table is close to that idea: it is a collection of rows, and you operate on all the matching rows at once rather than one by one.
-
-When you write:
-
-```sql
-UPDATE accounts SET status = 'inactive' WHERE last_login < '2024-01-01';
-```
-
-You are not looping through rows in your head — you are declaring a condition that selects a subset, and the engine applies the change to every member of that subset in one logical operation. The database might touch thousands of rows; you wrote one statement.
-
-This is the essence of set-based thinking: **express the desired state of a set, not a sequence of steps**.
-
-## The Contrast with Row-by-Row (Cursor) Logic
-
-To make the difference concrete, imagine you want to give every employee in the `engineering` department a 10 % raise.
-
-**Row-by-row approach (procedural pseudocode):**
-
-```
-for each employee:
-    if employee.department == 'engineering':
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(10,10)">
+    <!-- Left: Procedural -->
+    <rect x="0" y="0" width="335" height="185" rx="10" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="167" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#dc2626">🔁 Procedural (one-at-a-time)</text>
+    <rect x="15" y="42" width="305" height="20" rx="4" fill="#fff"/><text x="167" y="56" text-anchor="middle" font-size="9" fill="#5a6678">results = []</text>
+    <rect x="15" y="66" width="305" height="20" rx="4" fill="#fff"/><text x="167" y="80" text-anchor="middle" font-size="9" fill="#5a6678">for row in employees:</text>
+    <rect x="15" y="90" width="305" height="32" rx="4" fill="#fee2e2"/><text x="40" y="104" font-size="9" fill="#dc2626">  if row.dept == 'Engineering':</text>
+    <text x="40" y="116" font-size="9" fill="#dc2626">    results.append(row)</text>
+    <text x="167" y="148" text-anchor="middle" font-size="9" fill="#b91c1c">✗ "How" to iterate — you control the loop</text>
+    <text x="167" y="164" text-anchor="middle" font-size="9" fill="#b91c1c">✗ Harder to parallelise, optimize</text>
+    <!-- Right: Set-based -->
+    <rect x="355" y="0" width="335" height="185" rx="10" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="522" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#16a34a">🎯 Set-Based (all-at-once)</text>
+    <rect x="370" y="42" width="305" height="32" rx="4" fill="#dcfce7"/>
+    <text x="390" y="56" font-size="9" fill="#16a34a">SELECT *</text>
+    <text x="390" y="68" font-size="9" fill="#16a34a">FROM employees</text>
+    <rect x="370" y="78" width="305" height="20" rx="4" fill="#dcfce7"/>
+    <text x="390" y="92" font-size="9" fill="#16a34a">WHERE department = 'Engineering'</text>
+    <text x="370" y="120" font-size="11" fill="#1c2330" font-weight="600">Engine is free to:</text>
+    <text x="380" y="138" font-size="9" fill="#1c2330">✓ Choose join order</text>
+    <text x="380" y="152" font-size="9" fill="#1c2330">✓ Pick best index</text>
+    <text x="380" y="166" font-size="9" fill="#1c2330">✓ Parallelise where possible</text>
+  </g>
+</svg>
+<figcaption>Procedural code says "how" to iterate row by row. SQL says "what" you want — the engine chooses the strategy. This is the essence of declarative set-based thinking.</figcaption>
+</figure>
+<p>Most programmers learn to solve problems one item at a time: loop over a list, check each element, do something to it, move on. Relational databases flip that instinct on its head. SQL is built on <strong>set-based thinking</strong> — you describe <em>what</em> you want from a whole collection of rows, and the database engine figures out <em>how</em> to get it. Embracing this shift is the single biggest mental upgrade for writing fast, clear SQL.</p>
+<h2>Rows Are Members of a Set</h2>
+<p>In mathematics, a <strong>set</strong> is an unordered collection of distinct elements. A database table is close to that idea: it is a collection of rows, and you operate on all the matching rows at once rather than one by one.</p>
+<p>When you write:</p>
+<pre><code class="language-sql">UPDATE accounts SET status = &#39;inactive&#39; WHERE last_login &lt; &#39;2024-01-01&#39;;
+</code></pre>
+<p>You are not looping through rows in your head — you are declaring a condition that selects a subset, and the engine applies the change to every member of that subset in one logical operation. The database might touch thousands of rows; you wrote one statement.</p>
+<p>This is the essence of set-based thinking: <strong>express the desired state of a set, not a sequence of steps</strong>.</p>
+<h2>The Contrast with Row-by-Row (Cursor) Logic</h2>
+<p>To make the difference concrete, imagine you want to give every employee in the <code>engineering</code> department a 10 % raise.</p>
+<p><strong>Row-by-row approach (procedural pseudocode):</strong></p>
+<pre><code>for each employee:
+    if employee.department == &#39;engineering&#39;:
         employee.salary = employee.salary * 1.10
         save(employee)
-```
-
-**Set-based SQL:**
-
-```sql
-UPDATE employees
+</code></pre>
+<p><strong>Set-based SQL:</strong></p>
+<pre><code class="language-sql">UPDATE employees
 SET salary = salary * 1.10
-WHERE department = 'engineering';
-```
-
-The SQL version sends one statement to the engine. The engine applies it to the entire matching set — atomically, and using whatever indexes or parallel strategies it has available. The pseudocode sends N round-trips (or cursor fetches) and gives the engine no opportunity to optimise across rows.
-
-> **Note:** SQL does have cursors for row-by-row processing, but they are a last resort. Experienced database developers reach for them only when a problem genuinely cannot be expressed as a set operation — which is rare.
-
-## Thinking in Filters, Projections, and Joins
-
-Set-based thinking maps naturally onto three operations you will use constantly:
-
-| Operation | What it does | SQL keyword |
-|-----------|-------------|-------------|
-| **Filter** | Narrow the set to rows matching a condition | `WHERE` |
-| **Project** | Select only certain columns from the set | `SELECT col1, col2` |
-| **Join** | Combine two sets by matching rows | `JOIN ... ON` |
-
-Each of these produces a new set — a result set — that you can then filter, project, or join further. The whole query is a pipeline of set transformations.
-
-Try the widget below. The default query filters, then projects. Experiment: remove the `WHERE` clause to see the full set, or add a second condition with `AND`.
-
+WHERE department = &#39;engineering&#39;;
+</code></pre>
+<p>The SQL version sends one statement to the engine. The engine applies it to the entire matching set — atomically, and using whatever indexes or parallel strategies it has available. The pseudocode sends N round-trips (or cursor fetches) and gives the engine no opportunity to optimise across rows.</p>
+<blockquote>
+<p><strong>Note:</strong> SQL does have cursors for row-by-row processing, but they are a last resort. Experienced database developers reach for them only when a problem genuinely cannot be expressed as a set operation — which is rare.</p>
+</blockquote>
+<h2>Thinking in Filters, Projections, and Joins</h2>
+<p>Set-based thinking maps naturally onto three operations you will use constantly:</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>What it does</th>
+<th>SQL keyword</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Filter</strong></td>
+<td>Narrow the set to rows matching a condition</td>
+<td><code>WHERE</code></td>
+</tr>
+<tr>
+<td><strong>Project</strong></td>
+<td>Select only certain columns from the set</td>
+<td><code>SELECT col1, col2</code></td>
+</tr>
+<tr>
+<td><strong>Join</strong></td>
+<td>Combine two sets by matching rows</td>
+<td><code>JOIN ... ON</code></td>
+</tr>
+</tbody></table>
+<p>Each of these produces a new set — a result set — that you can then filter, project, or join further. The whole query is a pipeline of set transformations.</p>
+<p>Try the widget below. The default query filters, then projects. Experiment: remove the <code>WHERE</code> clause to see the full set, or add a second condition with <code>AND</code>.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Filter and project</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Ada Lovelace', 'engineering', 95000); INSERT INTO employees VALUES (2, 'Grace Hopper', 'engineering', 102000); INSERT INTO employees VALUES (3, 'Alan Turing', 'research', 88000); INSERT INTO employees VALUES (4, 'Claude Shannon', 'research', 91000); INSERT INTO employees VALUES (5, 'Barbara Liskov', 'engineering', 110000);" rows="20">-- Filter to engineering, project only name and salary
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Ada Lovelace', 'engineering', 95000); INSERT INTO employees VALUES (2, 'Grace Hopper', 'engineering', 102000); INSERT INTO employees VALUES (3, 'Alan Turing', 'research', 88000); INSERT INTO employees VALUES (4, 'Claude Shannon', 'research', 91000); INSERT INTO employees VALUES (5, 'Barbara Liskov', 'engineering', 110000);" rows="10">-- Filter to engineering, project only name and salary
 SELECT name, salary
 FROM employees
 WHERE department = 'engineering'
 ORDER BY salary DESC;</textarea>
   </div>
-</div>
-
-Now try the set-based `UPDATE` from the earlier example — no loop needed:
-
+</div><p>Now try the set-based <code>UPDATE</code> from the earlier example — no loop needed:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Set-based update</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Ada Lovelace', 'engineering', 95000); INSERT INTO employees VALUES (2, 'Grace Hopper', 'engineering', 102000); INSERT INTO employees VALUES (3, 'Alan Turing', 'research', 88000); INSERT INTO employees VALUES (4, 'Claude Shannon', 'research', 91000); INSERT INTO employees VALUES (5, 'Barbara Liskov', 'engineering', 110000);" rows="20">-- Give everyone in engineering a 10% raise, then check results
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Ada Lovelace', 'engineering', 95000); INSERT INTO employees VALUES (2, 'Grace Hopper', 'engineering', 102000); INSERT INTO employees VALUES (3, 'Alan Turing', 'research', 88000); INSERT INTO employees VALUES (4, 'Claude Shannon', 'research', 91000); INSERT INTO employees VALUES (5, 'Barbara Liskov', 'engineering', 110000);" rows="10">-- Give everyone in engineering a 10% raise, then check results
 UPDATE employees SET salary = salary * 1.10 WHERE department = 'engineering';
 SELECT name, department, salary FROM employees ORDER BY department, name;</textarea>
   </div>
+</div><h2>Why It Matters Beyond Style</h2>
+<p>Set-based queries are not just cleaner — they unlock the engine&#39;s optimizer. When you hand the database a full set operation, it can:</p>
+<ul>
+<li>Choose between a full table scan or an index lookup based on statistics</li>
+<li>Execute in parallel across partitions</li>
+<li>Avoid redundant disk reads by caching pages across rows in the same pass</li>
+</ul>
+<p>A row-by-row cursor forces the engine into a rigid execution path you dictated. A set-based query gives it freedom to find the fastest plan.</p>
+<p>This is why two queries that return identical results can differ in speed by orders of magnitude. The data is the same; what changes is whether you let the optimizer work as intended.</p>
+<blockquote>
+<p><strong>Key insight:</strong> SQL&#39;s declarative nature — saying <em>what</em>, not <em>how</em> — is not a limitation. It is the feature. Set-based thinking is how you write SQL that stays fast as your data grows.</p>
+</blockquote>
+
 </div>
-
-## Why It Matters Beyond Style
-
-Set-based queries are not just cleaner — they unlock the engine's optimizer. When you hand the database a full set operation, it can:
-
-- Choose between a full table scan or an index lookup based on statistics
-- Execute in parallel across partitions
-- Avoid redundant disk reads by caching pages across rows in the same pass
-
-A row-by-row cursor forces the engine into a rigid execution path you dictated. A set-based query gives it freedom to find the fastest plan.
-
-This is why two queries that return identical results can differ in speed by orders of magnitude. The data is the same; what changes is whether you let the optimizer work as intended.
-
-> **Key insight:** SQL's declarative nature — saying *what*, not *how* — is not a limitation. It is the feature. Set-based thinking is how you write SQL that stays fast as your data grows.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="022-primary-keys-and-foreign-keys.html"><span class="dir">← Previous</span><span class="ttl">Primary keys and foreign keys</span></a><a class="next" href="024-projection-selection-and-join.html"><span class="dir">Next →</span><span class="ttl">Projection, selection, and join</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

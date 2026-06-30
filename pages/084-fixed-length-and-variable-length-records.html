@@ -5,80 +5,113 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fixed-length and variable-length records — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Fixed-length and variable-length records</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="083-row-stores-and-column-stores.html"><span class="dir">← Previous</span><span class="ttl">Row stores and column stores</span></a><a class="next" href="085-slotted-pages.html"><span class="dir">Next →</span><span class="ttl">Slotted pages</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every row in a table must eventually live somewhere on disk. How the database engine lays out the bytes for that row is determined by whether its fields have *fixed* or *variable* lengths — a design decision with real consequences for storage efficiency, read speed, and update cost.
-
-## Fixed-Length Records
-
-A **fixed-length record** is one where every field occupies exactly the same number of bytes, regardless of the actual data stored. If a `CHAR(20)` column is declared, the engine always writes 20 bytes — padding with spaces (or zeros) when the actual value is shorter.
-
-| Column | Declared type | Bytes on disk | Example value |
-|---|---|---|---|
-| `employee_id` | `INTEGER` | 4 | `1042` |
-| `department_id` | `INTEGER` | 4 | `7` |
-| `salary` | `REAL` | 8 | `82500.00` |
-| `status_code` | `CHAR(1)` | 1 | `'A'` |
-
-Total record size: **17 bytes, always.** Every record in this table is the same width.
-
-This uniformity is a big win for the storage engine:
-
-- **Random access by row number** — to find record *n*, seek to byte offset `n × 17`. No scanning needed.
-- **Simple updates in place** — a new value for `salary` fits in the same 8 bytes, so the engine overwrites without moving anything.
-- **No metadata overhead** — no need to store lengths or offsets per field.
-
-The cost is wasted space when values are short. A `CHAR(200)` column storing mostly short names wastes hundreds of bytes per row.
-
-## Variable-Length Records
-
-A **variable-length record** contains at least one field whose on-disk size changes with the data — typically columns declared as `VARCHAR(n)`, `TEXT`, or `BLOB`. The engine stores only the bytes actually needed, plus a small amount of bookkeeping so it can find each field.
-
-A common layout stores a **slot directory** (or "record header") at the start of the record: a compact list of `(offset, length)` pairs — one per variable field — followed by the actual data bytes:
-
-```
-[ offset_1 | len_1 | offset_2 | len_2 | ... | data_1 | data_2 | ... ]
-```
-
-For example, storing `name = 'Ali'` and `bio = 'Loves hiking'` might look like:
-
-```
-[ 4 | 3 | 7 | 12 | A | l | i | L | o | v | e | s |   | h | i | k | i | n | g ]
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">084-fixed-length-and-variable-length-records</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 084-fixed-length-and-variable-length-records.</figcaption>
+</figure>
+<p>Every row in a table must eventually live somewhere on disk. How the database engine lays out the bytes for that row is determined by whether its fields have <em>fixed</em> or <em>variable</em> lengths — a design decision with real consequences for storage efficiency, read speed, and update cost.</p>
+<h2>Fixed-Length Records</h2>
+<p>A <strong>fixed-length record</strong> is one where every field occupies exactly the same number of bytes, regardless of the actual data stored. If a <code>CHAR(20)</code> column is declared, the engine always writes 20 bytes — padding with spaces (or zeros) when the actual value is shorter.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Declared type</th>
+<th>Bytes on disk</th>
+<th>Example value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>employee_id</code></td>
+<td><code>INTEGER</code></td>
+<td>4</td>
+<td><code>1042</code></td>
+</tr>
+<tr>
+<td><code>department_id</code></td>
+<td><code>INTEGER</code></td>
+<td>4</td>
+<td><code>7</code></td>
+</tr>
+<tr>
+<td><code>salary</code></td>
+<td><code>REAL</code></td>
+<td>8</td>
+<td><code>82500.00</code></td>
+</tr>
+<tr>
+<td><code>status_code</code></td>
+<td><code>CHAR(1)</code></td>
+<td>1</td>
+<td><code>&#39;A&#39;</code></td>
+</tr>
+</tbody></table>
+<p>Total record size: <strong>17 bytes, always.</strong> Every record in this table is the same width.</p>
+<p>This uniformity is a big win for the storage engine:</p>
+<ul>
+<li><strong>Random access by row number</strong> — to find record <em>n</em>, seek to byte offset <code>n × 17</code>. No scanning needed.</li>
+<li><strong>Simple updates in place</strong> — a new value for <code>salary</code> fits in the same 8 bytes, so the engine overwrites without moving anything.</li>
+<li><strong>No metadata overhead</strong> — no need to store lengths or offsets per field.</li>
+</ul>
+<p>The cost is wasted space when values are short. A <code>CHAR(200)</code> column storing mostly short names wastes hundreds of bytes per row.</p>
+<h2>Variable-Length Records</h2>
+<p>A <strong>variable-length record</strong> contains at least one field whose on-disk size changes with the data — typically columns declared as <code>VARCHAR(n)</code>, <code>TEXT</code>, or <code>BLOB</code>. The engine stores only the bytes actually needed, plus a small amount of bookkeeping so it can find each field.</p>
+<p>A common layout stores a <strong>slot directory</strong> (or &quot;record header&quot;) at the start of the record: a compact list of <code>(offset, length)</code> pairs — one per variable field — followed by the actual data bytes:</p>
+<pre><code>[ offset_1 | len_1 | offset_2 | len_2 | ... | data_1 | data_2 | ... ]
+</code></pre>
+<p>For example, storing <code>name = &#39;Ali&#39;</code> and <code>bio = &#39;Loves hiking&#39;</code> might look like:</p>
+<pre><code>[ 4 | 3 | 7 | 12 | A | l | i | L | o | v | e | s |   | h | i | k | i | n | g ]
   ^offset  ^len  ^offset  ^len   ^---name---^  ^-----------bio-----------^
-```
-
-| Advantage | Trade-off |
-|---|---|
-| Compact storage — short strings use few bytes | Cannot seek to a field by offset alone |
-| Handles unbounded text naturally | Updates that grow a value may force a record to move |
-| Works well for sparse, irregular data | Small per-field header overhead |
-
-> **Note:** Most real engines use a hybrid: fixed-length fields (integers, dates, floats) are stored at known offsets at the start of the record, and variable-length fields are appended after them. This keeps fast access for common numeric fields while still supporting text columns.
-
-## Seeing the Difference in Practice
-
-SQLite stores `TEXT` and `BLOB` columns as variable-length values internally, while `INTEGER` and `REAL` use compact fixed-width encodings. The query below lets you compare storage for a table that mixes both kinds of columns.
-
-Try running the default query, then change the `INSERT` values to very long or very short strings and observe how `length()` changes — that variation is variable-length storage in action.
-
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Advantage</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Compact storage — short strings use few bytes</td>
+<td>Cannot seek to a field by offset alone</td>
+</tr>
+<tr>
+<td>Handles unbounded text naturally</td>
+<td>Updates that grow a value may force a record to move</td>
+</tr>
+<tr>
+<td>Works well for sparse, irregular data</td>
+<td>Small per-field header overhead</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> Most real engines use a hybrid: fixed-length fields (integers, dates, floats) are stored at known offsets at the start of the record, and variable-length fields are appended after them. This keeps fast access for common numeric fields while still supporting text columns.</p>
+</blockquote>
+<h2>Seeing the Difference in Practice</h2>
+<p>SQLite stores <code>TEXT</code> and <code>BLOB</code> columns as variable-length values internally, while <code>INTEGER</code> and <code>REAL</code> use compact fixed-width encodings. The query below lets you compare storage for a table that mixes both kinds of columns.</p>
+<p>Try running the default query, then change the <code>INSERT</code> values to very long or very short strings and observe how <code>length()</code> changes — that variation is variable-length storage in action.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Fixed vs. Variable-Length Fields</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER, department_id INTEGER, salary REAL, name TEXT, bio TEXT); INSERT INTO employees VALUES (1, 3, 72000.0, 'Ali', 'Loves hiking and open-source databases.'); INSERT INTO employees VALUES (2, 1, 95000.0, 'Beatriz', 'Senior engineer. Enjoys distributed systems.'); INSERT INTO employees VALUES (3, 3, 61000.0, 'Cam', 'Intern.'); INSERT INTO employees VALUES (4, 2, 110000.0, 'Dominique', 'Principal architect with 15 years of experience building large-scale data pipelines.');  CREATE TABLE fixed_cols (id INTEGER, department_id INTEGER, salary REAL); INSERT INTO fixed_cols SELECT id, department_id, salary FROM employees;" rows="20">-- Fixed-width columns: id (4B), department_id (4B), salary (8B) = 16B per row, always
+    <textarea data-setup="CREATE TABLE employees (id INTEGER, department_id INTEGER, salary REAL, name TEXT, bio TEXT); INSERT INTO employees VALUES (1, 3, 72000.0, 'Ali', 'Loves hiking and open-source databases.'); INSERT INTO employees VALUES (2, 1, 95000.0, 'Beatriz', 'Senior engineer. Enjoys distributed systems.'); INSERT INTO employees VALUES (3, 3, 61000.0, 'Cam', 'Intern.'); INSERT INTO employees VALUES (4, 2, 110000.0, 'Dominique', 'Principal architect with 15 years of experience building large-scale data pipelines.');  CREATE TABLE fixed_cols (id INTEGER, department_id INTEGER, salary REAL); INSERT INTO fixed_cols SELECT id, department_id, salary FROM employees;" rows="10">-- Fixed-width columns: id (4B), department_id (4B), salary (8B) = 16B per row, always
 -- Variable-width columns: name and bio vary by content
 SELECT
   name,
@@ -90,20 +123,18 @@ SELECT
 FROM employees
 ORDER BY approx_row_bytes;</textarea>
   </div>
+</div><p>Notice that <code>fixed_cols_bytes</code> is identical for every row, while <code>variable_total</code> swings widely. That swing is exactly what the engine&#39;s slot directory has to track at runtime.</p>
+<h2>Why This Matters for Query Performance</h2>
+<p>The record layout affects more than storage size. When the engine scans a table page looking for rows that match a <code>WHERE</code> clause:</p>
+<ul>
+<li>With <strong>fixed-length records</strong>, it can jump directly to any row&#39;s field using arithmetic — no parsing required.</li>
+<li>With <strong>variable-length records</strong>, it must consult the slot directory for each row before it can read a specific field.</li>
+</ul>
+<p>This is one reason why columns used in hot filter conditions (<code>WHERE status = &#39;A&#39;</code>) are often kept as fixed-width types, while free-text columns (<code>bio</code>, <code>notes</code>) are allowed to vary. The trade-off between compactness and access speed shapes table design from the very first <code>CREATE TABLE</code>.</p>
+
 </div>
-
-Notice that `fixed_cols_bytes` is identical for every row, while `variable_total` swings widely. That swing is exactly what the engine's slot directory has to track at runtime.
-
-## Why This Matters for Query Performance
-
-The record layout affects more than storage size. When the engine scans a table page looking for rows that match a `WHERE` clause:
-
-- With **fixed-length records**, it can jump directly to any row's field using arithmetic — no parsing required.
-- With **variable-length records**, it must consult the slot directory for each row before it can read a specific field.
-
-This is one reason why columns used in hot filter conditions (`WHERE status = 'A'`) are often kept as fixed-width types, while free-text columns (`bio`, `notes`) are allowed to vary. The trade-off between compactness and access speed shapes table design from the very first `CREATE TABLE`.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="083-row-stores-and-column-stores.html"><span class="dir">← Previous</span><span class="ttl">Row stores and column stores</span></a><a class="next" href="085-slotted-pages.html"><span class="dir">Next →</span><span class="ttl">Slotted pages</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

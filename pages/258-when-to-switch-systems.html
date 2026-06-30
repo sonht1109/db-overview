@@ -5,55 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>When to switch systems — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VI. Engineering Practice</p>
   <p class="chapter-label">Chapter 26. Choosing a Database</p>
   <h1 class="content-title">When to switch systems</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="257-portability-and-lock-in.html"><span class="dir">← Previous</span><span class="ttl">Portability and lock-in</span></a><a class="next" href="259-a-practical-decision-framework.html"><span class="dir">Next →</span><span class="ttl">A practical decision framework</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-No database lasts forever in the same role. Workloads grow, product requirements shift, team capabilities change, and a system that was the right choice at ten thousand users may be the wrong choice at ten million. Knowing when to switch — and, equally, when the pain is not yet severe enough to justify the disruption — is a skill that saves teams from both premature migrations and from staying far too long with a system that is actively harming them.
-
-## The Cost of Switching Is Always Real
-
-Before exploring the signals that indicate a switch is warranted, it's worth stating clearly: **database migrations are expensive**. A migration that sounds straightforward at the planning stage routinely reveals data quality issues, undetected schema inconsistencies, query patterns that don't translate cleanly, and cutover complexity that requires weeks of parallel operation. Teams that treat migration as a background task or a quick weekend project consistently underestimate the investment.
-
-This is not an argument against switching — it's an argument for having a high bar. The pain of staying must be concretely worse than the pain of migrating.
-
-## Signals That Warrant a Switch
-
-### 1. Performance Has Hit a Structural Ceiling
-
-The most unambiguous signal: you have exhausted the reasonable tuning options (indexes, query optimisation, hardware scaling, read replicas) and the system still cannot meet your latency or throughput requirements. This is a structural ceiling — the database's architecture simply cannot serve your workload efficiently.
-
-Examples of structural ceilings:
-- A relational database serving pure time-series writes at >50K events/second — the row-per-event model and B-tree index overhead make this painful regardless of hardware.
-- A key-value store being asked to serve range queries and aggregates — the hash-based structure physically cannot do this efficiently.
-- A single-node system where the dataset has grown beyond the memory and disk of any single machine.
-
-> **Caution:** Distinguish structural ceilings from tuning problems. Many "the database is too slow" complaints are actually missing indexes, N+1 query patterns, or connection pool misconfiguration — problems that take days to fix, not months to migrate away from.
-
-### 2. The Query Model Has Fundamentally Changed
-
-A product that started as a simple CRUD application may evolve to need full-text search, graph traversal, or analytical aggregations across billions of rows. If these new query types are fundamental to the product — not edge cases — and the current database cannot serve them well, a switch (or an addition) is warranted.
-
-The key question: is the new query type a core user-facing feature or an operational report? Core features justify architectural investment; operational reports often tolerate slower queries.
-
-### 3. Operational Cost Has Become Unsustainable
-
-If maintaining the database is consuming a disproportionate share of engineering time — incident response, complex upgrades, scaling gymnastics, workarounds for fundamental limitations — that operational burden has a measurable opportunity cost. The team is not building product features; they are fighting infrastructure.
-
-This signal is often slow to appear. The cost accumulates gradually: one more workaround, one more migration script, one more three-day incident. The moment it becomes obvious often comes only when someone steps back and measures the cumulative hours.
-
+  <div id="rendered" class="content">
+<p>No database lasts forever in the same role. Workloads grow, product requirements shift, team capabilities change, and a system that was the right choice at ten thousand users may be the wrong choice at ten million. Knowing when to switch — and, equally, when the pain is not yet severe enough to justify the disruption — is a skill that saves teams from both premature migrations and from staying far too long with a system that is actively harming them.</p>
+<h2>The Cost of Switching Is Always Real</h2>
+<p>Before exploring the signals that indicate a switch is warranted, it&#39;s worth stating clearly: <strong>database migrations are expensive</strong>. A migration that sounds straightforward at the planning stage routinely reveals data quality issues, undetected schema inconsistencies, query patterns that don&#39;t translate cleanly, and cutover complexity that requires weeks of parallel operation. Teams that treat migration as a background task or a quick weekend project consistently underestimate the investment.</p>
+<p>This is not an argument against switching — it&#39;s an argument for having a high bar. The pain of staying must be concretely worse than the pain of migrating.</p>
+<h2>Signals That Warrant a Switch</h2>
+<h3>1. Performance Has Hit a Structural Ceiling</h3>
+<p>The most unambiguous signal: you have exhausted the reasonable tuning options (indexes, query optimisation, hardware scaling, read replicas) and the system still cannot meet your latency or throughput requirements. This is a structural ceiling — the database&#39;s architecture simply cannot serve your workload efficiently.</p>
+<p>Examples of structural ceilings:</p>
+<ul>
+<li>A relational database serving pure time-series writes at &gt;50K events/second — the row-per-event model and B-tree index overhead make this painful regardless of hardware.</li>
+<li>A key-value store being asked to serve range queries and aggregates — the hash-based structure physically cannot do this efficiently.</li>
+<li>A single-node system where the dataset has grown beyond the memory and disk of any single machine.</li>
+</ul>
+<blockquote>
+<p><strong>Caution:</strong> Distinguish structural ceilings from tuning problems. Many &quot;the database is too slow&quot; complaints are actually missing indexes, N+1 query patterns, or connection pool misconfiguration — problems that take days to fix, not months to migrate away from.</p>
+</blockquote>
+<h3>2. The Query Model Has Fundamentally Changed</h3>
+<p>A product that started as a simple CRUD application may evolve to need full-text search, graph traversal, or analytical aggregations across billions of rows. If these new query types are fundamental to the product — not edge cases — and the current database cannot serve them well, a switch (or an addition) is warranted.</p>
+<p>The key question: is the new query type a core user-facing feature or an operational report? Core features justify architectural investment; operational reports often tolerate slower queries.</p>
+<h3>3. Operational Cost Has Become Unsustainable</h3>
+<p>If maintaining the database is consuming a disproportionate share of engineering time — incident response, complex upgrades, scaling gymnastics, workarounds for fundamental limitations — that operational burden has a measurable opportunity cost. The team is not building product features; they are fighting infrastructure.</p>
+<p>This signal is often slow to appear. The cost accumulates gradually: one more workaround, one more migration script, one more three-day incident. The moment it becomes obvious often comes only when someone steps back and measures the cumulative hours.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Decision flow for when to switch databases">
   <defs>
@@ -92,35 +74,33 @@ This signal is often slow to appear. The cost accumulates gradually: one more wo
   <text x="480" y="274" text-anchor="middle" font-size="11" fill="var(--muted)">proof of concept → pilot → cutover</text>
 </svg>
 <figcaption>Before deciding to switch, exhaust tuning options; switch only when the pain is structural and measurable, not just frustrating.</figcaption>
-</figure>
-
-## How to Execute a Migration Safely
-
-Once the decision to switch is made, the migration pattern that minimises risk follows a consistent sequence:
-
-1. **Proof of concept with real data.** Before committing, validate that the target database can serve your workload at realistic scale and query patterns. Use a representative subset of production data, not synthetic benchmarks.
-
-2. **Build the new system in parallel.** Run the new database alongside the old one. Write new data to both (dual write), with the old system as the authoritative source.
-
-3. **Backfill historical data.** Migrate historical data to the new system in batches, with validation at each step.
-
-4. **Shadow reads.** Route a percentage of read traffic to the new system and compare results. Surface discrepancies before they affect users.
-
-5. **Cut over reads, then writes.** Switch reads to the new system first; keep the old system warm as a fallback. Once confident, switch writes and retire the old system's primary role.
-
-6. **Keep the old system available for rollback.** Define a rollback point. The old system should remain operational and capable of serving traffic for a defined period (days to weeks) after cutover.
-
-## When NOT to Switch
-
-- **The workload fits but performance is below expectations:** Tune first. An unindexed column or a missing connection pool is not a reason to migrate.
-- **The team wants to use a newer, more interesting technology:** Technical interest is legitimate but is not a workload signal.
-- **A single large query is slow:** Fix the query or add an index. Do not redesign the data layer for one problematic query.
-- **A vendor published a benchmark that makes your database look bad:** Vendor benchmarks use ideal conditions. Your workload is not ideal conditions.
-
+</figure><h2>How to Execute a Migration Safely</h2>
+<p>Once the decision to switch is made, the migration pattern that minimises risk follows a consistent sequence:</p>
+<ol>
+<li><p><strong>Proof of concept with real data.</strong> Before committing, validate that the target database can serve your workload at realistic scale and query patterns. Use a representative subset of production data, not synthetic benchmarks.</p>
+</li>
+<li><p><strong>Build the new system in parallel.</strong> Run the new database alongside the old one. Write new data to both (dual write), with the old system as the authoritative source.</p>
+</li>
+<li><p><strong>Backfill historical data.</strong> Migrate historical data to the new system in batches, with validation at each step.</p>
+</li>
+<li><p><strong>Shadow reads.</strong> Route a percentage of read traffic to the new system and compare results. Surface discrepancies before they affect users.</p>
+</li>
+<li><p><strong>Cut over reads, then writes.</strong> Switch reads to the new system first; keep the old system warm as a fallback. Once confident, switch writes and retire the old system&#39;s primary role.</p>
+</li>
+<li><p><strong>Keep the old system available for rollback.</strong> Define a rollback point. The old system should remain operational and capable of serving traffic for a defined period (days to weeks) after cutover.</p>
+</li>
+</ol>
+<h2>When NOT to Switch</h2>
+<ul>
+<li><strong>The workload fits but performance is below expectations:</strong> Tune first. An unindexed column or a missing connection pool is not a reason to migrate.</li>
+<li><strong>The team wants to use a newer, more interesting technology:</strong> Technical interest is legitimate but is not a workload signal.</li>
+<li><strong>A single large query is slow:</strong> Fix the query or add an index. Do not redesign the data layer for one problematic query.</li>
+<li><strong>A vendor published a benchmark that makes your database look bad:</strong> Vendor benchmarks use ideal conditions. Your workload is not ideal conditions.</li>
+</ul>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Migration Readiness Checklist</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE migration_checklist (category TEXT, item TEXT, completed INTEGER); INSERT INTO migration_checklist VALUES ('Signal','Structural ceiling confirmed (not a tuning problem)',0); INSERT INTO migration_checklist VALUES ('Signal','Pain quantified: ops hours/month or latency impact',0); INSERT INTO migration_checklist VALUES ('Signal','Business cost of staying exceeds migration cost',0); INSERT INTO migration_checklist VALUES ('Preparation','Target DB validated with production-representative data',0); INSERT INTO migration_checklist VALUES ('Preparation','Migration timeline and rollback plan documented',0); INSERT INTO migration_checklist VALUES ('Preparation','Dual-write infrastructure in place',0); INSERT INTO migration_checklist VALUES ('Execution','Historical data backfill complete and validated',0); INSERT INTO migration_checklist VALUES ('Execution','Shadow reads running, discrepancy rate &lt; 0.01%',0); INSERT INTO migration_checklist VALUES ('Execution','Rollback window defined and old system warm',0);" rows="20">-- Track migration readiness (set completed = 1 as items are done)
+    <textarea data-setup="CREATE TABLE migration_checklist (category TEXT, item TEXT, completed INTEGER); INSERT INTO migration_checklist VALUES ('Signal','Structural ceiling confirmed (not a tuning problem)',0); INSERT INTO migration_checklist VALUES ('Signal','Pain quantified: ops hours/month or latency impact',0); INSERT INTO migration_checklist VALUES ('Signal','Business cost of staying exceeds migration cost',0); INSERT INTO migration_checklist VALUES ('Preparation','Target DB validated with production-representative data',0); INSERT INTO migration_checklist VALUES ('Preparation','Migration timeline and rollback plan documented',0); INSERT INTO migration_checklist VALUES ('Preparation','Dual-write infrastructure in place',0); INSERT INTO migration_checklist VALUES ('Execution','Historical data backfill complete and validated',0); INSERT INTO migration_checklist VALUES ('Execution','Shadow reads running, discrepancy rate &lt; 0.01%',0); INSERT INTO migration_checklist VALUES ('Execution','Rollback window defined and old system warm',0);" rows="10">-- Track migration readiness (set completed = 1 as items are done)
 SELECT
   category,
   item,
@@ -131,16 +111,17 @@ ORDER BY category, completed DESC;
 -- SELECT category, SUM(completed) || '/' || COUNT(*) AS progress
 -- FROM migration_checklist GROUP BY category;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li>Database migrations are expensive; the pain of staying must be worse than the pain of migrating.</li>
+<li>Switch when performance has hit a structural ceiling (not a tuning problem), the query model has fundamentally changed, or operational cost is unsustainable.</li>
+<li>Execute migrations through a proof-of-concept, parallel operation, dual writes, shadow reads, and a defined rollback window.</li>
+<li>Resist the urge to switch for novelty, a single slow query, or a competitor&#39;s architecture.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- Database migrations are expensive; the pain of staying must be worse than the pain of migrating.
-- Switch when performance has hit a structural ceiling (not a tuning problem), the query model has fundamentally changed, or operational cost is unsustainable.
-- Execute migrations through a proof-of-concept, parallel operation, dual writes, shadow reads, and a defined rollback window.
-- Resist the urge to switch for novelty, a single slow query, or a competitor's architecture.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="257-portability-and-lock-in.html"><span class="dir">← Previous</span><span class="ttl">Portability and lock-in</span></a><a class="next" href="259-a-practical-decision-framework.html"><span class="dir">Next →</span><span class="ttl">A practical decision framework</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

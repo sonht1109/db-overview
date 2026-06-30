@@ -5,99 +5,130 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What an index really is — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 7. Indexes</p>
   <h1 class="content-title">What an index really is</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="061-why-scanning-everything-is-slow.html"><span class="dir">← Previous</span><span class="ttl">Why scanning everything is slow</span></a><a class="next" href="063-b-tree-indexes.html"><span class="dir">Next →</span><span class="ttl">B-tree indexes</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every time a query filters, sorts, or joins on a column, the database has to find the matching rows. Without any help, the only safe strategy is to read every single row in the table and check each one. That works fine for hundreds of rows. For millions, it becomes the kind of problem that makes engineers get paged at 2 a.m. An index is the structure that makes that problem go away — but only if you understand what it actually is.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#dc2626"/></marker>
+    <marker id="ag" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#16a34a"/></marker>
+  </defs>
+  <g transform="translate(10,10)">
+    <!-- Full Scan -->
+    <rect x="0" y="0" width="330" height="180" rx="10" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="165" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#dc2626">Seq Scan (no index)</text>
+    <text x="165" y="46" text-anchor="middle" font-size="10" fill="#b91c1c">WHERE city = 'Paris'</text>
+    <rect x="15" y="58" width="300" height="18" rx="3" fill="#fee2e2"/><text x="165" y="71" text-anchor="middle" font-size="9" fill="#dc2626">Row 1: Tokyo ✗ — read anyway</text>
+    <rect x="15" y="78" width="300" height="18" rx="3" fill="#fff"/><text x="165" y="91" text-anchor="middle" font-size="9" fill="#1c2330">Row 2: Paris ✓ — keep</text>
+    <rect x="15" y="98" width="300" height="18" rx="3" fill="#fee2e2"/><text x="165" y="111" text-anchor="middle" font-size="9" fill="#dc2626">Row 3: Cairo ✗ — read anyway</text>
+    <rect x="15" y="118" width="300" height="18" rx="3" fill="#fee2e2"/><text x="165" y="131" text-anchor="middle" font-size="9" fill="#dc2626">Row 4: Tokyo ✗ — read anyway</text>
+    <rect x="15" y="138" width="300" height="18" rx="3" fill="#fff"/><text x="165" y="151" text-anchor="middle" font-size="9" fill="#1c2330">Row 5: Paris ✓ — keep</text>
+    <text x="165" y="174" text-anchor="middle" font-size="9" fill="#dc2626">O(n) — reads every row</text>
 
-## The Naive Approach: Full Table Scan
-
-Imagine a `users` table with one million rows. You run:
-
-```sql
-SELECT * FROM users WHERE email = 'alice@example.com';
-```
-
-Without an index, the database engine executes a **full table scan** (also called a sequential scan): it reads every page of the table from disk, examines every row, and returns the ones where `email` matches. For one row out of a million, that is an enormous amount of wasted work.
-
-The cost scales linearly with table size — O(n). Double the rows, double the time.
-
-## What an Index Actually Is
-
-An index is a **separate data structure** maintained by the database engine alongside your table. It stores a subset of the table's data — typically one or more column values — organized in a way that makes searching fast.
-
-The most common form is a **B-tree index** (balanced tree). Conceptually, it looks like this:
-
-```
-         [M]
+    <!-- Index lookup -->
+    <rect x="350" y="0" width="360" height="180" rx="10" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="530" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#16a34a">Index Scan (with index)</text>
+    <!-- Index -->
+    <rect x="365" y="42" width="140" height="90" rx="6" fill="#dcfce7" stroke="#86efac"/>
+    <text x="435" y="60" text-anchor="middle" font-size="9" font-weight="600" fill="#16a34a">city index</text>
+    <text x="375" y="78" font-size="8" fill="#1c2330">Cairo → Row 3</text>
+    <text x="375" y="94" font-size="8" fill="#1c2330">Paris → Row 2,5</text>
+    <text x="375" y="110" font-size="8" fill="#1c2330">Tokyo → Row 1,4</text>
+    <text x="375" y="126" font-size="8" fill="#9aa6b8">(sorted, fast lookup)</text>
+    <!-- Arrow from index to rows -->
+    <line x1="505" y1="70" x2="535" y2="70" stroke="#16a34a" stroke-width="1.5" marker-end="url(#ag)"/>
+    <!-- Rows referenced -->
+    <rect x="540" y="58" width="155" height="18" rx="3" fill="#dcfce7"/><text x="617" y="71" text-anchor="middle" font-size="9" fill="#16a34a">Row 2: Paris ✓</text>
+    <rect x="540" y="84" width="155" height="18" rx="3" fill="#dcfce7"/><text x="617" y="97" text-anchor="middle" font-size="9" fill="#16a34a">Row 5: Paris ✓</text>
+    <text x="530" y="140" text-anchor="middle" font-size="9" fill="#16a34a">O(log n) — only reads matching rows</text>
+    <text x="530" y="158" text-anchor="middle" font-size="9" fill="#5a6678">Skips Tokyo, Cairo — zero wasted I/O</text>
+    <text x="530" y="174" text-anchor="middle" font-size="8" fill="#9aa6b8">B-tree, Hash, GIN, GiST, BRIN…</text>
+  </g>
+</svg>
+<figcaption>Without an index the database scans every row. With one, it jumps directly to matching rows using a sorted, searchable data structure — the index is a shortcut, not magic.</figcaption>
+</figure>
+<p>Every time a query filters, sorts, or joins on a column, the database has to find the matching rows. Without any help, the only safe strategy is to read every single row in the table and check each one. That works fine for hundreds of rows. For millions, it becomes the kind of problem that makes engineers get paged at 2 a.m. An index is the structure that makes that problem go away — but only if you understand what it actually is.</p>
+<h2>The Naive Approach: Full Table Scan</h2>
+<p>Imagine a <code>users</code> table with one million rows. You run:</p>
+<pre><code class="language-sql">SELECT * FROM users WHERE email = &#39;alice@example.com&#39;;
+</code></pre>
+<p>Without an index, the database engine executes a <strong>full table scan</strong> (also called a sequential scan): it reads every page of the table from disk, examines every row, and returns the ones where <code>email</code> matches. For one row out of a million, that is an enormous amount of wasted work.</p>
+<p>The cost scales linearly with table size — O(n). Double the rows, double the time.</p>
+<h2>What an Index Actually Is</h2>
+<p>An index is a <strong>separate data structure</strong> maintained by the database engine alongside your table. It stores a subset of the table&#39;s data — typically one or more column values — organized in a way that makes searching fast.</p>
+<p>The most common form is a <strong>B-tree index</strong> (balanced tree). Conceptually, it looks like this:</p>
+<pre><code>         [M]
         /   \
      [D–L]  [N–Z]
      /   \   /   \
   [D–G][H–L][N–R][S–Z]
    ...  ...  ...  ...
-```
-
-Each leaf node holds the indexed column value paired with a **pointer** (a row identifier) back to the actual row in the table. The tree stays balanced so that any lookup takes at most O(log n) steps — for a million rows, that is roughly 20 comparisons instead of 1,000,000.
-
-> **Note:** An index is not magic — it is a trade-off. The engine must update every index on every `INSERT`, `UPDATE`, and `DELETE`. More indexes means slower writes and more disk space. The win is on reads.
-
-The table itself does not change when you create an index. The index is a parallel structure the optimizer can choose to use — or ignore — depending on the query.
-
-## What the Engine Does With an Index
-
-When a query has a `WHERE` clause on an indexed column, the optimizer weighs two paths:
-
-| Strategy | How it works | When it is chosen |
-|---|---|---|
-| Full table scan | Read all rows sequentially | No usable index, or most rows match anyway |
-| Index scan | Walk the B-tree to find matching row pointers, then fetch those rows | Selective filter — few rows match |
-| Index-only scan | Walk the B-tree; all needed columns are already in the index | All `SELECT`ed columns are in the index |
-
-"Selective" is the key word. If a query for `status = 'active'` matches 95% of the table, a full scan is actually faster — the overhead of bouncing back and forth between the index and the table pages costs more than just reading everything in order.
-
-## Seeing It in Action
-
-The widget below creates a small `orders` table and lets you compare query plans with and without an index. Run the first `EXPLAIN QUERY PLAN` — notice the `SCAN` (full scan). Then uncomment the `CREATE INDEX` line, run it, and re-run the explain query to see it switch to `SEARCH … USING INDEX`.
-
+</code></pre>
+<p>Each leaf node holds the indexed column value paired with a <strong>pointer</strong> (a row identifier) back to the actual row in the table. The tree stays balanced so that any lookup takes at most O(log n) steps — for a million rows, that is roughly 20 comparisons instead of 1,000,000.</p>
+<blockquote>
+<p><strong>Note:</strong> An index is not magic — it is a trade-off. The engine must update every index on every <code>INSERT</code>, <code>UPDATE</code>, and <code>DELETE</code>. More indexes means slower writes and more disk space. The win is on reads.</p>
+</blockquote>
+<p>The table itself does not change when you create an index. The index is a parallel structure the optimizer can choose to use — or ignore — depending on the query.</p>
+<h2>What the Engine Does With an Index</h2>
+<p>When a query has a <code>WHERE</code> clause on an indexed column, the optimizer weighs two paths:</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>How it works</th>
+<th>When it is chosen</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Full table scan</td>
+<td>Read all rows sequentially</td>
+<td>No usable index, or most rows match anyway</td>
+</tr>
+<tr>
+<td>Index scan</td>
+<td>Walk the B-tree to find matching row pointers, then fetch those rows</td>
+<td>Selective filter — few rows match</td>
+</tr>
+<tr>
+<td>Index-only scan</td>
+<td>Walk the B-tree; all needed columns are already in the index</td>
+<td>All <code>SELECT</code>ed columns are in the index</td>
+</tr>
+</tbody></table>
+<p>&quot;Selective&quot; is the key word. If a query for <code>status = &#39;active&#39;</code> matches 95% of the table, a full scan is actually faster — the overhead of bouncing back and forth between the index and the table pages costs more than just reading everything in order.</p>
+<h2>Seeing It in Action</h2>
+<p>The widget below creates a small <code>orders</code> table and lets you compare query plans with and without an index. Run the first <code>EXPLAIN QUERY PLAN</code> — notice the <code>SCAN</code> (full scan). Then uncomment the <code>CREATE INDEX</code> line, run it, and re-run the explain query to see it switch to <code>SEARCH … USING INDEX</code>.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index vs. Full Scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_email TEXT, amount REAL, status TEXT); INSERT INTO orders VALUES (1,'alice@example.com',120.0,'shipped'),(2,'bob@example.com',45.0,'pending'),(3,'alice@example.com',300.0,'shipped'),(4,'carol@example.com',88.0,'shipped'),(5,'bob@example.com',210.0,'pending'),(6,'alice@example.com',55.0,'shipped'),(7,'dan@example.com',400.0,'shipped'),(8,'carol@example.com',30.0,'pending');" rows="20">-- Step 1: see the plan WITHOUT an index (expect SCAN)
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_email TEXT, amount REAL, status TEXT); INSERT INTO orders VALUES (1,'alice@example.com',120.0,'shipped'),(2,'bob@example.com',45.0,'pending'),(3,'alice@example.com',300.0,'shipped'),(4,'carol@example.com',88.0,'shipped'),(5,'bob@example.com',210.0,'pending'),(6,'alice@example.com',55.0,'shipped'),(7,'dan@example.com',400.0,'shipped'),(8,'carol@example.com',30.0,'pending');" rows="10">-- Step 1: see the plan WITHOUT an index (expect SCAN)
 EXPLAIN QUERY PLAN
 SELECT * FROM orders WHERE customer_email = 'alice@example.com';
 -- Step 2: create an index, then re-run the EXPLAIN above
 -- CREATE INDEX idx_orders_email ON orders(customer_email);</textarea>
   </div>
+</div><p>After adding the index you should see the plan change from <code>SCAN orders</code> to <code>SEARCH orders USING INDEX idx_orders_email</code>. The data returned is identical — the index only changes <em>how</em> the engine finds the rows, not <em>which</em> rows it returns.</p>
+<h2>The Key Mental Model</h2>
+<p>Think of a database index exactly like a book&#39;s index: the book&#39;s content (your table data) does not move, but there is a sorted list at the back that tells you exactly which pages contain the term you are looking for. You go straight to those pages instead of reading cover to cover.</p>
+<p>Three things to remember as you move forward:</p>
+<ol>
+<li><strong>An index is a separate structure</strong> — it mirrors part of your table data in a search-friendly layout.</li>
+<li><strong>The optimizer chooses whether to use it</strong> — writing a query that <em>could</em> use an index does not guarantee it will.</li>
+<li><strong>Indexes cost something</strong> — write overhead and storage are real; you add them deliberately, not by default.</li>
+</ol>
+<p>The next pages cover the most important index types (B-tree, hash, partial, composite) and the rules that govern when the optimizer actually reaches for them.</p>
+
 </div>
-
-After adding the index you should see the plan change from `SCAN orders` to `SEARCH orders USING INDEX idx_orders_email`. The data returned is identical — the index only changes *how* the engine finds the rows, not *which* rows it returns.
-
-## The Key Mental Model
-
-Think of a database index exactly like a book's index: the book's content (your table data) does not move, but there is a sorted list at the back that tells you exactly which pages contain the term you are looking for. You go straight to those pages instead of reading cover to cover.
-
-Three things to remember as you move forward:
-
-1. **An index is a separate structure** — it mirrors part of your table data in a search-friendly layout.
-2. **The optimizer chooses whether to use it** — writing a query that *could* use an index does not guarantee it will.
-3. **Indexes cost something** — write overhead and storage are real; you add them deliberately, not by default.
-
-The next pages cover the most important index types (B-tree, hash, partial, composite) and the rules that govern when the optimizer actually reaches for them.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="061-why-scanning-everything-is-slow.html"><span class="dir">← Previous</span><span class="ttl">Why scanning everything is slow</span></a><a class="next" href="063-b-tree-indexes.html"><span class="dir">Next →</span><span class="ttl">B-tree indexes</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

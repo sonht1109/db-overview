@@ -5,50 +5,71 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Questions to ask before choosing — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VI. Engineering Practice</p>
   <p class="chapter-label">Chapter 26. Choosing a Database</p>
   <h1 class="content-title">Questions to ask before choosing</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="251-start-from-workload-not-fashion.html"><span class="dir">← Previous</span><span class="ttl">Start from workload, not fashion</span></a><a class="next" href="253-one-database-or-many.html"><span class="dir">Next →</span><span class="ttl">One database or many</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Picking a database without a structured evaluation is like buying a house by looking only at the photos. The listing is designed to show the best angles. The questions you ask — about the neighbourhood, the plumbing, the neighbours — are what surface the real trade-offs. The same discipline applies when evaluating databases: a short checklist of pointed questions cuts through vendor marketing and reveals whether a system actually fits your situation.
-
-## The Seven Questions
-
-### 1. What is the primary access pattern?
-
-This is the most important question. Access patterns map almost directly to database categories:
-
-| Pattern | Example | Strong fit |
-|---|---|---|
-| Exact key lookup | `GET session:user:42` | Key-value store |
-| Range scan on ordered key | All orders from Jan–Mar | B-tree index, wide-column |
-| Flexible ad-hoc queries | "All users in France who bought X" | Relational |
-| Deeply nested documents | User profiles with variable fields | Document store |
-| Relationship traversal | Friends of friends | Graph database |
-| Time-bucketed aggregates | Avg CPU per minute for 30 days | Time-series database |
-| Large analytical scans | Revenue by region, cohort analysis | Columnar / data warehouse |
-
-A single product often has multiple access patterns — which is a reason to consider multiple specialized stores, or a reason to pick one system that handles the dominant pattern well and tolerates the rest.
-
-### 2. What are the read/write characteristics?
-
-- **Read-heavy (>90% reads):** Optimise for read latency; caching, read replicas, and columnar layouts all help.
-- **Write-heavy:** LSM-tree engines (RocksDB, Cassandra, ScyllaDB) are optimised for high-throughput sequential writes. B-tree engines struggle above ~10K writes/second on a single node.
-- **Mixed, transactional:** Relational databases with row-level locking are designed for this balance.
-
-### 3. What is the consistency requirement?
-
+  <div id="rendered" class="content">
+<p>Picking a database without a structured evaluation is like buying a house by looking only at the photos. The listing is designed to show the best angles. The questions you ask — about the neighbourhood, the plumbing, the neighbours — are what surface the real trade-offs. The same discipline applies when evaluating databases: a short checklist of pointed questions cuts through vendor marketing and reveals whether a system actually fits your situation.</p>
+<h2>The Seven Questions</h2>
+<h3>1. What is the primary access pattern?</h3>
+<p>This is the most important question. Access patterns map almost directly to database categories:</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Example</th>
+<th>Strong fit</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Exact key lookup</td>
+<td><code>GET session:user:42</code></td>
+<td>Key-value store</td>
+</tr>
+<tr>
+<td>Range scan on ordered key</td>
+<td>All orders from Jan–Mar</td>
+<td>B-tree index, wide-column</td>
+</tr>
+<tr>
+<td>Flexible ad-hoc queries</td>
+<td>&quot;All users in France who bought X&quot;</td>
+<td>Relational</td>
+</tr>
+<tr>
+<td>Deeply nested documents</td>
+<td>User profiles with variable fields</td>
+<td>Document store</td>
+</tr>
+<tr>
+<td>Relationship traversal</td>
+<td>Friends of friends</td>
+<td>Graph database</td>
+</tr>
+<tr>
+<td>Time-bucketed aggregates</td>
+<td>Avg CPU per minute for 30 days</td>
+<td>Time-series database</td>
+</tr>
+<tr>
+<td>Large analytical scans</td>
+<td>Revenue by region, cohort analysis</td>
+<td>Columnar / data warehouse</td>
+</tr>
+</tbody></table>
+<p>A single product often has multiple access patterns — which is a reason to consider multiple specialized stores, or a reason to pick one system that handles the dominant pattern well and tolerates the rest.</p>
+<h3>2. What are the read/write characteristics?</h3>
+<ul>
+<li><strong>Read-heavy (&gt;90% reads):</strong> Optimise for read latency; caching, read replicas, and columnar layouts all help.</li>
+<li><strong>Write-heavy:</strong> LSM-tree engines (RocksDB, Cassandra, ScyllaDB) are optimised for high-throughput sequential writes. B-tree engines struggle above ~10K writes/second on a single node.</li>
+<li><strong>Mixed, transactional:</strong> Relational databases with row-level locking are designed for this balance.</li>
+</ul>
+<h3>3. What is the consistency requirement?</h3>
 <figure class="diagram">
 <svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Consistency spectrum from strong to eventual with example systems">
   <defs>
@@ -81,46 +102,34 @@ A single product often has multiple access patterns — which is a reason to con
   <text x="60" y="192" text-anchor="start" font-size="11" fill="var(--muted)">higher availability / lower latency →</text>
 </svg>
 <figcaption>Consistency is a spectrum. Stronger guarantees typically cost latency or availability; eventual consistency trades correctness risk for throughput.</figcaption>
-</figure>
-
-Transactions and bank balances demand strong consistency. Social media "like" counts can tolerate eventual consistency — being off by one for a few seconds is invisible to users. Knowing which camp your data falls into eliminates entire categories of databases.
-
-### 4. How large is the dataset, and how fast is it growing?
-
-- **Fits in RAM (< ~100 GB):** In-memory stores like Redis are viable and extremely fast.
-- **Fits on one machine (< ~10 TB):** A well-tuned single-node relational or document database handles this comfortably.
-- **Requires horizontal sharding (> 10 TB, or > ~50K writes/s):** You need a distributed database. This adds significant operational complexity and consistency trade-offs.
-
-Growth rate matters as much as current size. A dataset that doubles every six months will cross the sharding threshold in a predictable timeline; design for it early, or plan the migration path explicitly.
-
-### 5. What are the latency and throughput targets?
-
-Be specific. "Fast" is not a target. These numbers drive hardware sizing and architecture:
-
-```
-p50 read latency target:  _____ ms
+</figure><p>Transactions and bank balances demand strong consistency. Social media &quot;like&quot; counts can tolerate eventual consistency — being off by one for a few seconds is invisible to users. Knowing which camp your data falls into eliminates entire categories of databases.</p>
+<h3>4. How large is the dataset, and how fast is it growing?</h3>
+<ul>
+<li><strong>Fits in RAM (&lt; ~100 GB):</strong> In-memory stores like Redis are viable and extremely fast.</li>
+<li><strong>Fits on one machine (&lt; ~10 TB):</strong> A well-tuned single-node relational or document database handles this comfortably.</li>
+<li><strong>Requires horizontal sharding (&gt; 10 TB, or &gt; ~50K writes/s):</strong> You need a distributed database. This adds significant operational complexity and consistency trade-offs.</li>
+</ul>
+<p>Growth rate matters as much as current size. A dataset that doubles every six months will cross the sharding threshold in a predictable timeline; design for it early, or plan the migration path explicitly.</p>
+<h3>5. What are the latency and throughput targets?</h3>
+<p>Be specific. &quot;Fast&quot; is not a target. These numbers drive hardware sizing and architecture:</p>
+<pre><code>p50 read latency target:  _____ ms
 p99 read latency target:  _____ ms
 peak read throughput:     _____ req/s
 peak write throughput:    _____ req/s
 acceptable downtime/year: _____ minutes (maps to SLA %)
-```
-
-### 6. What is the team's operational expertise?
-
-A database that is theoretically optimal but that nobody on the team understands is a reliability risk. Every specialised database brings its own operational burden: backup strategy, monitoring, cluster management, failure modes, and upgrade path. PostgreSQL has two decades of documentation and community knowledge. A newer distributed database may be superior on paper and a nightmare to operate with a three-person team.
-
-> **Honest question:** If this database wakes you up at 3 am, does your team know how to diagnose and recover from failure?
-
-### 7. What are the schema evolution requirements?
-
-Relational databases require schema migrations — adding a column, renaming a field, changing a type all require a planned migration step. For a stable, well-understood domain this is fine; the schema enforces correctness. For a product where the data model changes every sprint, the overhead is real. Document databases that allow schemaless writes trade that migration overhead for the risk of inconsistent data shapes across documents over time.
-
-## Assembling the Checklist
-
+</code></pre>
+<h3>6. What is the team&#39;s operational expertise?</h3>
+<p>A database that is theoretically optimal but that nobody on the team understands is a reliability risk. Every specialised database brings its own operational burden: backup strategy, monitoring, cluster management, failure modes, and upgrade path. PostgreSQL has two decades of documentation and community knowledge. A newer distributed database may be superior on paper and a nightmare to operate with a three-person team.</p>
+<blockquote>
+<p><strong>Honest question:</strong> If this database wakes you up at 3 am, does your team know how to diagnose and recover from failure?</p>
+</blockquote>
+<h3>7. What are the schema evolution requirements?</h3>
+<p>Relational databases require schema migrations — adding a column, renaming a field, changing a type all require a planned migration step. For a stable, well-understood domain this is fine; the schema enforces correctness. For a product where the data model changes every sprint, the overhead is real. Document databases that allow schemaless writes trade that migration overhead for the risk of inconsistent data shapes across documents over time.</p>
+<h2>Assembling the Checklist</h2>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Database Evaluation Scoring</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE evaluation (criterion TEXT, weight INTEGER, pg_score INTEGER, mongo_score INTEGER, cassandra_score INTEGER); INSERT INTO evaluation VALUES ('Access pattern fit',5,4,4,2); INSERT INTO evaluation VALUES ('Consistency guarantees',4,5,3,2); INSERT INTO evaluation VALUES ('Write throughput',3,3,3,5); INSERT INTO evaluation VALUES ('Operational simplicity',4,5,3,2); INSERT INTO evaluation VALUES ('Query flexibility',3,5,4,1); INSERT INTO evaluation VALUES ('Schema evolution ease',2,3,5,3); INSERT INTO evaluation VALUES ('Team expertise',5,5,2,1);" rows="20">-- Weighted scoring across candidate databases (1-5 scale)
+    <textarea data-setup="CREATE TABLE evaluation (criterion TEXT, weight INTEGER, pg_score INTEGER, mongo_score INTEGER, cassandra_score INTEGER); INSERT INTO evaluation VALUES ('Access pattern fit',5,4,4,2); INSERT INTO evaluation VALUES ('Consistency guarantees',4,5,3,2); INSERT INTO evaluation VALUES ('Write throughput',3,3,3,5); INSERT INTO evaluation VALUES ('Operational simplicity',4,5,3,2); INSERT INTO evaluation VALUES ('Query flexibility',3,5,4,1); INSERT INTO evaluation VALUES ('Schema evolution ease',2,3,5,3); INSERT INTO evaluation VALUES ('Team expertise',5,5,2,1);" rows="10">-- Weighted scoring across candidate databases (1-5 scale)
 SELECT
   criterion,
   weight,
@@ -139,16 +148,17 @@ ORDER BY weight DESC;
 --   SUM(cassandra_score * weight) AS cassandra_total
 -- FROM evaluation;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li>Seven questions cover the essential evaluation surface: access pattern, read/write balance, consistency, dataset size, latency targets, team expertise, and schema evolution needs.</li>
+<li>Consistency and access pattern together eliminate most candidates quickly.</li>
+<li>Operational complexity is a real cost — the best database for a given workload is not necessarily the best database for a given team.</li>
+<li>Write the answers to these questions down before looking at any benchmark or product page.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- Seven questions cover the essential evaluation surface: access pattern, read/write balance, consistency, dataset size, latency targets, team expertise, and schema evolution needs.
-- Consistency and access pattern together eliminate most candidates quickly.
-- Operational complexity is a real cost — the best database for a given workload is not necessarily the best database for a given team.
-- Write the answers to these questions down before looking at any benchmark or product page.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="251-start-from-workload-not-fashion.html"><span class="dir">← Previous</span><span class="ttl">Start from workload, not fashion</span></a><a class="next" href="253-one-database-or-many.html"><span class="dir">Next →</span><span class="ttl">One database or many</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

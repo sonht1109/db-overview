@@ -5,65 +5,102 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JSON as a data model — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part V. Database Families</p>
   <p class="chapter-label">Chapter 19. Document Databases</p>
   <h1 class="content-title">JSON as a data model</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="179-design-patterns.html"><span class="dir">← Previous</span><span class="ttl">Design patterns</span></a><a class="next" href="182-flexible-schema.html"><span class="dir">Next →</span><span class="ttl">Flexible schema</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-JSON — JavaScript Object Notation — started life as a lightweight wire format for sending data between a browser and a server. It turned out to be such a natural way to describe a real-world record that the database world adopted it as a **primary data model**. Understanding JSON as a data model means understanding both *why it resonates* and *what it costs*.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(10,10)">
+    <!-- JSON document -->
+    <rect x="0" y="0" width="330" height="165" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="165" y="25" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">📄 Document (JSON)</text>
+    <rect x="12" y="35" width="306" height="120" rx="6" fill="#f9fafb"/>
+    <text x="22" y="52" font-size="9" fill="#1c2330" font-family="monospace">{</text>
+    <text x="28" y="68" font-size="9" fill="#1c2330" font-family="monospace">"_id": "abc123",</text>
+    <text x="28" y="84" font-size="9" fill="#1c2330" font-family="monospace">"name": "Alice",</text>
+    <text x="28" y="100" font-size="9" fill="#1c2330" font-family="monospace">"address": {                  ← nested!</text>
+    <text x="34" y="116" font-size="9" fill="#1c2330" font-family="monospace">"city": "Paris",</text>
+    <text x="34" y="132" font-size="9" fill="#1c2330" font-family="monospace">"zip": "75001"</text>
+    <text x="28" y="148" font-size="9" fill="#1c2330" font-family="monospace">},</text>
 
-## What JSON Actually Is
-
-JSON has exactly six value types:
-
-| Type | Example |
-|---|---|
-| String | `"Bangkok"` |
-| Number | `42`, `3.14` |
-| Boolean | `true`, `false` |
-| Null | `null` |
-| Array | `["read", "write", "admin"]` |
-| Object | `{"city": "Bangkok", "zip": "10110"}` |
-
-Objects and arrays can nest arbitrarily deep. That single rule — *nesting is allowed* — is what makes JSON expressive enough to represent almost any real-world entity without splitting it across multiple tables.
-
-```json
-{
-  "id": "usr-8821",
-  "name": "Priya Kapoor",
-  "email": "priya@example.com",
-  "address": {
-    "street": "12 Sukhumvit Rd",
-    "city": "Bangkok",
-    "country": "TH"
+    <!-- Features -->
+    <rect x="350" y="0" width="360" height="165" rx="10" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="530" y="25" text-anchor="middle" font-size="13" font-weight="700" fill="#16a34a">Key Properties</text>
+    <rect x="362" y="38" width="336" height="28" rx="6" fill="#dcfce7"/>
+    <text x="530" y="56" text-anchor="middle" font-size="10" fill="#1c2330">✓ Nested objects &amp; arrays — rich structure</text>
+    <rect x="362" y="72" width="336" height="28" rx="6" fill="#dcfce7"/>
+    <text x="530" y="90" text-anchor="middle" font-size="10" fill="#1c2330">✓ Schema-flexible — different docs, different shapes</text>
+    <rect x="362" y="106" width="336" height="28" rx="6" fill="#fef3c7"/>
+    <text x="530" y="124" text-anchor="middle" font-size="10" fill="#1c2330">⚠ No joins — embed or reference manually</text>
+    <rect x="362" y="140" width="336" height="28" rx="6" fill="#fef3c7"/>
+    <text x="530" y="158" text-anchor="middle" font-size="10" fill="#1c2330">⚠ Updates may rewrite entire document</text>
+  </g>
+</svg>
+<figcaption>JSON stores a complete record as a single self-contained document with nested structure. Great for flexibility; less so for cross-document relationships.</figcaption>
+</figure>
+<p>JSON — JavaScript Object Notation — started life as a lightweight wire format for sending data between a browser and a server. It turned out to be such a natural way to describe a real-world record that the database world adopted it as a <strong>primary data model</strong>. Understanding JSON as a data model means understanding both <em>why it resonates</em> and <em>what it costs</em>.</p>
+<h2>What JSON Actually Is</h2>
+<p>JSON has exactly six value types:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>String</td>
+<td><code>&quot;Bangkok&quot;</code></td>
+</tr>
+<tr>
+<td>Number</td>
+<td><code>42</code>, <code>3.14</code></td>
+</tr>
+<tr>
+<td>Boolean</td>
+<td><code>true</code>, <code>false</code></td>
+</tr>
+<tr>
+<td>Null</td>
+<td><code>null</code></td>
+</tr>
+<tr>
+<td>Array</td>
+<td><code>[&quot;read&quot;, &quot;write&quot;, &quot;admin&quot;]</code></td>
+</tr>
+<tr>
+<td>Object</td>
+<td><code>{&quot;city&quot;: &quot;Bangkok&quot;, &quot;zip&quot;: &quot;10110&quot;}</code></td>
+</tr>
+</tbody></table>
+<p>Objects and arrays can nest arbitrarily deep. That single rule — <em>nesting is allowed</em> — is what makes JSON expressive enough to represent almost any real-world entity without splitting it across multiple tables.</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;usr-8821&quot;,
+  &quot;name&quot;: &quot;Priya Kapoor&quot;,
+  &quot;email&quot;: &quot;priya@example.com&quot;,
+  &quot;address&quot;: {
+    &quot;street&quot;: &quot;12 Sukhumvit Rd&quot;,
+    &quot;city&quot;: &quot;Bangkok&quot;,
+    &quot;country&quot;: &quot;TH&quot;
   },
-  "roles": ["editor", "reviewer"],
-  "metadata": {
-    "created_at": "2024-01-15",
-    "last_login": "2025-06-20"
+  &quot;roles&quot;: [&quot;editor&quot;, &quot;reviewer&quot;],
+  &quot;metadata&quot;: {
+    &quot;created_at&quot;: &quot;2024-01-15&quot;,
+    &quot;last_login&quot;: &quot;2025-06-20&quot;
   }
 }
-```
-
-All the information about Priya lives in one **document** — no joins required to load it. This is the core promise of the document model.
-
-## How JSON Differs from the Relational Row
-
-In a relational table every row must conform to the same fixed schema. Adding a new field means an `ALTER TABLE` migration, and absent values turn into `NULL` columns that waste space and complicate logic.
-
-A JSON document has no such contract. Two documents in the same collection can look completely different:
-
+</code></pre>
+<p>All the information about Priya lives in one <strong>document</strong> — no joins required to load it. This is the core promise of the document model.</p>
+<h2>How JSON Differs from the Relational Row</h2>
+<p>In a relational table every row must conform to the same fixed schema. Adding a new field means an <code>ALTER TABLE</code> migration, and absent values turn into <code>NULL</code> columns that waste space and complicate logic.</p>
+<p>A JSON document has no such contract. Two documents in the same collection can look completely different:</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Comparison of a relational table (fixed columns) versus a document collection (variable fields per document)">
   <!-- Left panel: relational table -->
@@ -89,84 +126,60 @@ A JSON document has no such contract. Two documents in the same collection can l
   <text x="245" y="112" font-size="11" fill="var(--text)">editor</text>
   <!-- NULL annotation -->
   <text x="155" y="158" text-anchor="middle" font-size="12" fill="var(--text)" fill-opacity="0.7">Every row shares the same columns.</text>
-  <text x="155" y="175" text-anchor="middle" font-size="12" fill="var(--text)" fill-opacity="0.7">Absent values become NULL.</text>
-
-  <!-- Right panel: document collection -->
+  <text x="155" y="175" text-anchor="middle" font-size="12" fill="var(--text)" fill-opacity="0.7">Absent values become NULL.</text>  <!-- Right panel: document collection -->
   <rect x="340" y="10" width="290" height="290" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
-  <text x="485" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Document Collection</text>
-
-  <!-- Doc 1 box -->
+  <text x="485" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Document Collection</text>  <!-- Doc 1 box -->
   <rect x="354" y="46" width="262" height="78" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="366" y="64" font-size="11" fill="var(--accent)" font-weight="bold">Document 1</text>
   <text x="366" y="80" font-size="11" fill="var(--text)">"id": "001"</text>
   <text x="366" y="95" font-size="11" fill="var(--text)">"name": "Priya"</text>
-  <text x="366" y="110" font-size="11" fill="var(--text)">"address": { "city": "Bangkok" }</text>
-
-  <!-- Doc 2 box -->
+  <text x="366" y="110" font-size="11" fill="var(--text)">"address": { "city": "Bangkok" }</text>  <!-- Doc 2 box -->
   <rect x="354" y="140" width="262" height="78" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="366" y="158" font-size="11" fill="var(--accent)" font-weight="bold">Document 2</text>
   <text x="366" y="174" font-size="11" fill="var(--text)">"id": "002"</text>
   <text x="366" y="189" font-size="11" fill="var(--text)">"name": "Leo"</text>
-  <text x="366" y="204" font-size="11" fill="var(--text)">"roles": ["editor"]</text>
-
-  <text x="485" y="248" text-anchor="middle" font-size="12" fill="var(--text)" fill-opacity="0.7">Each document carries its own shape.</text>
+  <text x="366" y="204" font-size="11" fill="var(--text)">"roles": ["editor"]</text><p>  <text x="485" y="248" text-anchor="middle" font-size="12" fill="var(--text)" fill-opacity="0.7">Each document carries its own shape.</text>
   <text x="485" y="265" text-anchor="middle" font-size="12" fill="var(--text)" fill-opacity="0.7">No NULL filler for absent fields.</text>
-</svg>
+</svg></p>
 <figcaption>Relational rows share a fixed schema; JSON documents carry only the fields they need.</figcaption>
-</figure>
-
-## Nested Objects vs. Joins
-
-The deepest practical difference is how related data is stored. In a relational model, an order and its line items live in separate tables linked by a foreign key — you retrieve them together with a `JOIN`. In the document model, the line items are *embedded* inside the order document:
-
-```json
-{
-  "order_id": "ORD-5512",
-  "customer": "usr-8821",
-  "items": [
-    { "sku": "NB-001", "qty": 2, "unit_price": 2.99 },
-    { "sku": "LP-042", "qty": 1, "unit_price": 999.00 }
+</figure><h2>Nested Objects vs. Joins</h2>
+<p>The deepest practical difference is how related data is stored. In a relational model, an order and its line items live in separate tables linked by a foreign key — you retrieve them together with a <code>JOIN</code>. In the document model, the line items are <em>embedded</em> inside the order document:</p>
+<pre><code class="language-json">{
+  &quot;order_id&quot;: &quot;ORD-5512&quot;,
+  &quot;customer&quot;: &quot;usr-8821&quot;,
+  &quot;items&quot;: [
+    { &quot;sku&quot;: &quot;NB-001&quot;, &quot;qty&quot;: 2, &quot;unit_price&quot;: 2.99 },
+    { &quot;sku&quot;: &quot;LP-042&quot;, &quot;qty&quot;: 1, &quot;unit_price&quot;: 999.00 }
   ],
-  "total": 1004.98
+  &quot;total&quot;: 1004.98
 }
-```
-
-Fetching the full order is one read — no join. This is extremely efficient for **document-centric access patterns**: you almost always want the whole thing, and you rarely need to query deeply into the embedded arrays from the outside.
-
-> **Note:** Embedding has limits. If you embed too much — for example, storing all comments inside a blog post document — the document grows unboundedly and updates become expensive. The general rule: embed data that is *owned* by the parent and always retrieved with it; reference data that has its own identity or is shared across documents.
-
-## The Schema Flexibility Trade-off
-
-Schema flexibility is real and useful — you can add a new field to one document without touching any others. But it shifts the enforcement burden from the database to your application code. Without discipline:
-
-- Documents in the same collection drift into inconsistent shapes.
-- A typo like `"emial"` instead of `"email"` silently stores bad data.
-- Queries that assume a field exists will silently miss documents that lack it.
-
-Most document databases now offer **optional schema validation** (MongoDB's JSON Schema, Firestore's security rules). Many teams adopt these after their first painful inconsistency bug.
-
-<details class="reveal"><summary>Reveal: When should you embed vs. reference a sub-document?</summary><div class="reveal-body">Embed when: (1) the sub-data is owned by the parent and has no independent existence, (2) you always need the sub-data when you load the parent, and (3) the sub-data is bounded in size (e.g., a fixed list of tags, not an ever-growing history). Reference (store only an ID) when: the sub-entity is shared across many parents (e.g., a product referenced by thousands of orders), the sub-data grows unboundedly (e.g., user activity logs), or you need to query the sub-entity independently.</div></details>
-
-## Querying JSON: Paths and Filters
-
-Document databases expose a query language built around **field paths** — dotted notation that drills into nested objects. For example, in MongoDB you would write:
-
-```js
-// Find all orders where the first item's SKU is NB-001
-db.orders.find({ "items.0.sku": "NB-001" })
+</code></pre>
+<p>Fetching the full order is one read — no join. This is extremely efficient for <strong>document-centric access patterns</strong>: you almost always want the whole thing, and you rarely need to query deeply into the embedded arrays from the outside.</p>
+<blockquote>
+<p><strong>Note:</strong> Embedding has limits. If you embed too much — for example, storing all comments inside a blog post document — the document grows unboundedly and updates become expensive. The general rule: embed data that is <em>owned</em> by the parent and always retrieved with it; reference data that has its own identity or is shared across documents.</p>
+</blockquote>
+<h2>The Schema Flexibility Trade-off</h2>
+<p>Schema flexibility is real and useful — you can add a new field to one document without touching any others. But it shifts the enforcement burden from the database to your application code. Without discipline:</p>
+<ul>
+<li>Documents in the same collection drift into inconsistent shapes.</li>
+<li>A typo like <code>&quot;emial&quot;</code> instead of <code>&quot;email&quot;</code> silently stores bad data.</li>
+<li>Queries that assume a field exists will silently miss documents that lack it.</li>
+</ul>
+<p>Most document databases now offer <strong>optional schema validation</strong> (MongoDB&#39;s JSON Schema, Firestore&#39;s security rules). Many teams adopt these after their first painful inconsistency bug.</p>
+<details class="reveal"><summary>Reveal: When should you embed vs. reference a sub-document?</summary><div class="reveal-body">Embed when: (1) the sub-data is owned by the parent and has no independent existence, (2) you always need the sub-data when you load the parent, and (3) the sub-data is bounded in size (e.g., a fixed list of tags, not an ever-growing history). Reference (store only an ID) when: the sub-entity is shared across many parents (e.g., a product referenced by thousands of orders), the sub-data grows unboundedly (e.g., user activity logs), or you need to query the sub-entity independently.</div></details><h2>Querying JSON: Paths and Filters</h2>
+<p>Document databases expose a query language built around <strong>field paths</strong> — dotted notation that drills into nested objects. For example, in MongoDB you would write:</p>
+<pre><code class="language-js">// Find all orders where the first item&#39;s SKU is NB-001
+db.orders.find({ &quot;items.0.sku&quot;: &quot;NB-001&quot; })
 
 // Find orders whose total exceeds 500
 db.orders.find({ total: { $gt: 500 } })
-```
-
-Even relational databases have adopted JSON path syntax. SQLite's `json_extract()` and PostgreSQL's `->` / `->>` operators let you query into JSON columns with similar path expressions. Try it yourself below.
-
-Run this query to extract and filter fields stored as JSON text in SQLite:
-
+</code></pre>
+<p>Even relational databases have adopted JSON path syntax. SQLite&#39;s <code>json_extract()</code> and PostgreSQL&#39;s <code>-&gt;</code> / <code>-&gt;&gt;</code> operators let you query into JSON columns with similar path expressions. Try it yourself below.</p>
+<p>Run this query to extract and filter fields stored as JSON text in SQLite:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Querying JSON fields</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO orders VALUES ('ORD-5512', '{&quot;customer&quot;:&quot;usr-8821&quot;,&quot;total&quot;:1004.98,&quot;items&quot;:[{&quot;sku&quot;:&quot;NB-001&quot;,&quot;qty&quot;:2},{&quot;sku&quot;:&quot;LP-042&quot;,&quot;qty&quot;:1}]}'); INSERT INTO orders VALUES ('ORD-5513', '{&quot;customer&quot;:&quot;usr-0042&quot;,&quot;total&quot;:5.98,&quot;items&quot;:[{&quot;sku&quot;:&quot;NB-001&quot;,&quot;qty&quot;:2}]}'); INSERT INTO orders VALUES ('ORD-5514', '{&quot;customer&quot;:&quot;usr-8821&quot;,&quot;total&quot;:299.00,&quot;items&quot;:[{&quot;sku&quot;:&quot;TB-009&quot;,&quot;qty&quot;:1}]}');" rows="20">-- Extract nested fields and filter by total > 100
+    <textarea data-setup="CREATE TABLE orders (order_id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO orders VALUES ('ORD-5512', '{&quot;customer&quot;:&quot;usr-8821&quot;,&quot;total&quot;:1004.98,&quot;items&quot;:[{&quot;sku&quot;:&quot;NB-001&quot;,&quot;qty&quot;:2},{&quot;sku&quot;:&quot;LP-042&quot;,&quot;qty&quot;:1}]}'); INSERT INTO orders VALUES ('ORD-5513', '{&quot;customer&quot;:&quot;usr-0042&quot;,&quot;total&quot;:5.98,&quot;items&quot;:[{&quot;sku&quot;:&quot;NB-001&quot;,&quot;qty&quot;:2}]}'); INSERT INTO orders VALUES ('ORD-5514', '{&quot;customer&quot;:&quot;usr-8821&quot;,&quot;total&quot;:299.00,&quot;items&quot;:[{&quot;sku&quot;:&quot;TB-009&quot;,&quot;qty&quot;:1}]}');" rows="10">-- Extract nested fields and filter by total > 100
 SELECT
   order_id,
   json_extract(doc, '$.customer')       AS customer,
@@ -176,11 +189,11 @@ FROM orders
 WHERE CAST(json_extract(doc, '$.total') AS REAL) > 100
 ORDER BY total DESC;</textarea>
   </div>
+</div><p>Try changing the threshold (<code>&gt; 100</code>) or extracting a different path like <code>$.items[1].sku</code>. Notice that when an index is out of range, <code>json_extract</code> returns <code>NULL</code> — the document model&#39;s version of a missing column.</p>
+
 </div>
-
-Try changing the threshold (`> 100`) or extracting a different path like `$.items[1].sku`. Notice that when an index is out of range, `json_extract` returns `NULL` — the document model's version of a missing column.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="179-design-patterns.html"><span class="dir">← Previous</span><span class="ttl">Design patterns</span></a><a class="next" href="182-flexible-schema.html"><span class="dir">Next →</span><span class="ttl">Flexible schema</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

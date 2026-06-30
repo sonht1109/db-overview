@@ -5,47 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Build vs buy — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VI. Engineering Practice</p>
   <p class="chapter-label">Chapter 26. Choosing a Database</p>
   <h1 class="content-title">Build vs buy</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="253-one-database-or-many.html"><span class="dir">← Previous</span><span class="ttl">One database or many</span></a><a class="next" href="255-managed-vs-self-hosted.html"><span class="dir">Next →</span><span class="ttl">Managed vs self-hosted</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every database-adjacent decision eventually surfaces this question: should we build it ourselves or adopt an existing system? The question is rarely about databases themselves — you almost never build a storage engine from scratch — but it appears constantly at a higher level. Should you build a custom caching layer or adopt Redis? Should you build an analytics pipeline or use a managed data warehouse? Should you write a full-text search service or deploy Elasticsearch? The reasoning framework is the same regardless of the specific technology.
-
-## What "Build" Actually Means
-
-"Build" rarely means writing a database engine from scratch. More commonly it means:
-
-- Building a custom abstraction on top of a general-purpose store (e.g., a time-series schema on top of PostgreSQL)
-- Writing bespoke pipeline code instead of adopting a CDC or ETL framework
-- Implementing your own full-text search instead of integrating Elasticsearch or Typesense
-- Building a custom in-memory cache instead of deploying Redis
-
-The real question is: **are the off-the-shelf solutions a worse fit for your workload than the solution your team would build with the time and resources available?**
-
-## The Build Bias Is Almost Always Wrong
-
-Building has obvious appeal: perfect control, no vendor dependency, exactly the features you need. But the costs are consistently underestimated:
-
-**Initial investment:** The prototype is fast; production-ready is slow. A robust system needs failure handling, monitoring, backup, recovery, replication, performance tuning, and documentation. An experienced team building a reliable cache from scratch in front of a production database is committing months of engineering time.
-
-**Maintenance is forever.** The team that builds a system is implicitly committing to maintain it indefinitely. Bugs emerge. Schema requirements change. Load characteristics shift. Every hour spent keeping the bespoke system alive is an hour not spent on product features.
-
-**Expertise asymmetry.** The engineering team at Redis, Cassandra, or PostgreSQL has spent years solving the hard problems of your domain — durability, consistency, performance under load, graceful degradation. Unless your specific requirements are truly unusual, they have almost certainly already solved the problem you are about to attempt.
-
-> **Rule of thumb:** If a battle-tested open-source system solves 80% of your need, adopt it. Spend engineering time integrating, configuring, and operating it — not reimplementing it.
-
+  <div id="rendered" class="content">
+<p>Every database-adjacent decision eventually surfaces this question: should we build it ourselves or adopt an existing system? The question is rarely about databases themselves — you almost never build a storage engine from scratch — but it appears constantly at a higher level. Should you build a custom caching layer or adopt Redis? Should you build an analytics pipeline or use a managed data warehouse? Should you write a full-text search service or deploy Elasticsearch? The reasoning framework is the same regardless of the specific technology.</p>
+<h2>What &quot;Build&quot; Actually Means</h2>
+<p>&quot;Build&quot; rarely means writing a database engine from scratch. More commonly it means:</p>
+<ul>
+<li>Building a custom abstraction on top of a general-purpose store (e.g., a time-series schema on top of PostgreSQL)</li>
+<li>Writing bespoke pipeline code instead of adopting a CDC or ETL framework</li>
+<li>Implementing your own full-text search instead of integrating Elasticsearch or Typesense</li>
+<li>Building a custom in-memory cache instead of deploying Redis</li>
+</ul>
+<p>The real question is: <strong>are the off-the-shelf solutions a worse fit for your workload than the solution your team would build with the time and resources available?</strong></p>
+<h2>The Build Bias Is Almost Always Wrong</h2>
+<p>Building has obvious appeal: perfect control, no vendor dependency, exactly the features you need. But the costs are consistently underestimated:</p>
+<p><strong>Initial investment:</strong> The prototype is fast; production-ready is slow. A robust system needs failure handling, monitoring, backup, recovery, replication, performance tuning, and documentation. An experienced team building a reliable cache from scratch in front of a production database is committing months of engineering time.</p>
+<p><strong>Maintenance is forever.</strong> The team that builds a system is implicitly committing to maintain it indefinitely. Bugs emerge. Schema requirements change. Load characteristics shift. Every hour spent keeping the bespoke system alive is an hour not spent on product features.</p>
+<p><strong>Expertise asymmetry.</strong> The engineering team at Redis, Cassandra, or PostgreSQL has spent years solving the hard problems of your domain — durability, consistency, performance under load, graceful degradation. Unless your specific requirements are truly unusual, they have almost certainly already solved the problem you are about to attempt.</p>
+<blockquote>
+<p><strong>Rule of thumb:</strong> If a battle-tested open-source system solves 80% of your need, adopt it. Spend engineering time integrating, configuring, and operating it — not reimplementing it.</p>
+</blockquote>
 <figure class="diagram">
 <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Build vs buy decision matrix showing cost and fit factors">
   <defs>
@@ -57,72 +43,79 @@ Building has obvious appeal: perfect control, no vendor dependency, exactly the 
   <line x1="80" y1="220" x2="580" y2="220" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
   <line x1="80" y1="220" x2="80" y2="30" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
   <text x="580" y="240" text-anchor="end" font-size="12" fill="var(--muted)">Requirement uniqueness →</text>
-  <text x="60" y="40" text-anchor="middle" font-size="12" fill="var(--muted)" transform="rotate(-90 60 125)">Team capacity →</text>
-
-  <!-- Quadrant labels -->
-  <text x="180" y="80" text-anchor="middle" font-size="12" fill="var(--muted)">Buy + extend</text>
-  <text x="180" y="96" text-anchor="middle" font-size="11" fill="var(--muted)">(plugin/config)</text>
-
-  <text x="460" y="80" text-anchor="middle" font-size="12" fill="var(--accent)" font-weight="600">Consider building</text>
-  <text x="460" y="96" text-anchor="middle" font-size="11" fill="var(--muted)">(unique + well-staffed)</text>
-
-  <text x="180" y="170" text-anchor="middle" font-size="12" fill="var(--accent)" font-weight="600">Buy</text>
-  <text x="180" y="186" text-anchor="middle" font-size="11" fill="var(--muted)">(common need, small team)</text>
-
-  <text x="460" y="170" text-anchor="middle" font-size="12" fill="var(--muted)">Buy + contribute</text>
-  <text x="460" y="186" text-anchor="middle" font-size="11" fill="var(--muted)">(or hire expertise)</text>
-
+  <text x="60" y="40" text-anchor="middle" font-size="12" fill="var(--muted)" transform="rotate(-90 60 125)">Team capacity →</text>  <!-- Quadrant labels -->
+<p>  <text x="180" y="80" text-anchor="middle" font-size="12" fill="var(--muted)">Buy + extend</text>
+  <text x="180" y="96" text-anchor="middle" font-size="11" fill="var(--muted)">(plugin/config)</text></p>
+<p>  <text x="460" y="80" text-anchor="middle" font-size="12" fill="var(--accent)" font-weight="600">Consider building</text>
+  <text x="460" y="96" text-anchor="middle" font-size="11" fill="var(--muted)">(unique + well-staffed)</text></p>
+<p>  <text x="180" y="170" text-anchor="middle" font-size="12" fill="var(--accent)" font-weight="600">Buy</text>
+  <text x="180" y="186" text-anchor="middle" font-size="11" fill="var(--muted)">(common need, small team)</text></p>
+<p>  <text x="460" y="170" text-anchor="middle" font-size="12" fill="var(--muted)">Buy + contribute</text>
+  <text x="460" y="186" text-anchor="middle" font-size="11" fill="var(--muted)">(or hire expertise)</text></p>
   <!-- Grid lines -->
   <line x1="330" y1="30" x2="330" y2="220" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
   <line x1="80" y1="125" x2="580" y2="125" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
 </svg>
 <figcaption>The build decision is driven by two axes: how unique your requirement is, and whether your team has capacity to build and maintain the system long-term.</figcaption>
-</figure>
-
-## When Build Is the Right Answer
-
-Building makes sense when all three of the following are true:
-
-1. **The requirement is genuinely unique.** No existing system handles your workload's specific combination of constraints — access pattern, latency, consistency, or data model — without significant workarounds.
-2. **The team has the expertise and capacity.** Not just to build the initial version, but to maintain it through production incidents, scaling events, and personnel turnover.
-3. **The strategic value is high.** The system is a core competitive differentiator, not supporting infrastructure. A payment company's fraud-detection model is strategic; its session cache is not.
-
-A real example: Google built Bigtable and Spanner because their workloads (global web indexing, worldwide advertising auctions) were genuinely unprecedented at the time. Most companies building internal tools are not in that position.
-
-## The Hybrid Path: Adopt and Extend
-
-Most real decisions are not binary. The practical options:
-
-| Path | When to use |
-|---|---|
-| **Adopt as-is** | Standard workload, off-the-shelf fits 90%+ |
-| **Adopt and configure** | Fit is 80%; custom schemas, indexes, and query patterns close the gap |
-| **Adopt and extend** | Open-source system; you contribute plugins or patches |
-| **Adopt with an abstraction layer** | Isolate the vendor behind a thin interface; swap later if needed |
-| **Build from scratch** | Unique requirements + team capacity + strategic value |
-
-The abstraction layer deserves emphasis. Even when adopting a battle-tested system, wrapping the database client in a thin interface (`SessionStore`, `MetricsWriter`) makes the vendor choice reversible and makes testing easier.
-
-## Open Source vs Commercial
-
-Both "buy" paths — open source and commercial — have different trade-off profiles:
-
-**Open source (PostgreSQL, Redis, Cassandra):**
-- No license cost; operational and hosting costs remain
-- You are responsible for upgrades, patches, and incident response
-- Community support; quality varies by community size
-- Full access to source code; bugs can be fixed upstream or forked
-
-**Commercial / managed (AWS RDS, Snowflake, MongoDB Atlas):**
-- License or consumption cost; operational burden transferred
-- Vendor responsible for patching, upgrades, backups
-- Vendor support SLA; quality varies by tier
-- Lock-in risk: proprietary features may be hard to migrate away from
-
+</figure><h2>When Build Is the Right Answer</h2>
+<p>Building makes sense when all three of the following are true:</p>
+<ol>
+<li><strong>The requirement is genuinely unique.</strong> No existing system handles your workload&#39;s specific combination of constraints — access pattern, latency, consistency, or data model — without significant workarounds.</li>
+<li><strong>The team has the expertise and capacity.</strong> Not just to build the initial version, but to maintain it through production incidents, scaling events, and personnel turnover.</li>
+<li><strong>The strategic value is high.</strong> The system is a core competitive differentiator, not supporting infrastructure. A payment company&#39;s fraud-detection model is strategic; its session cache is not.</li>
+</ol>
+<p>A real example: Google built Bigtable and Spanner because their workloads (global web indexing, worldwide advertising auctions) were genuinely unprecedented at the time. Most companies building internal tools are not in that position.</p>
+<h2>The Hybrid Path: Adopt and Extend</h2>
+<p>Most real decisions are not binary. The practical options:</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Adopt as-is</strong></td>
+<td>Standard workload, off-the-shelf fits 90%+</td>
+</tr>
+<tr>
+<td><strong>Adopt and configure</strong></td>
+<td>Fit is 80%; custom schemas, indexes, and query patterns close the gap</td>
+</tr>
+<tr>
+<td><strong>Adopt and extend</strong></td>
+<td>Open-source system; you contribute plugins or patches</td>
+</tr>
+<tr>
+<td><strong>Adopt with an abstraction layer</strong></td>
+<td>Isolate the vendor behind a thin interface; swap later if needed</td>
+</tr>
+<tr>
+<td><strong>Build from scratch</strong></td>
+<td>Unique requirements + team capacity + strategic value</td>
+</tr>
+</tbody></table>
+<p>The abstraction layer deserves emphasis. Even when adopting a battle-tested system, wrapping the database client in a thin interface (<code>SessionStore</code>, <code>MetricsWriter</code>) makes the vendor choice reversible and makes testing easier.</p>
+<h2>Open Source vs Commercial</h2>
+<p>Both &quot;buy&quot; paths — open source and commercial — have different trade-off profiles:</p>
+<p><strong>Open source (PostgreSQL, Redis, Cassandra):</strong></p>
+<ul>
+<li>No license cost; operational and hosting costs remain</li>
+<li>You are responsible for upgrades, patches, and incident response</li>
+<li>Community support; quality varies by community size</li>
+<li>Full access to source code; bugs can be fixed upstream or forked</li>
+</ul>
+<p><strong>Commercial / managed (AWS RDS, Snowflake, MongoDB Atlas):</strong></p>
+<ul>
+<li>License or consumption cost; operational burden transferred</li>
+<li>Vendor responsible for patching, upgrades, backups</li>
+<li>Vendor support SLA; quality varies by tier</li>
+<li>Lock-in risk: proprietary features may be hard to migrate away from</li>
+</ul>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Build vs Buy Cost Model</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE cost_model (option TEXT, initial_eng_weeks INTEGER, monthly_eng_hours REAL, monthly_infra_usd REAL, license_monthly_usd REAL); INSERT INTO cost_model VALUES ('Build custom cache',16,20,200,0); INSERT INTO cost_model VALUES ('Self-host Redis',2,4,200,0); INSERT INTO cost_model VALUES ('Managed Redis (ElastiCache)',1,1,300,0); INSERT INTO cost_model VALUES ('Build custom search',32,30,300,0); INSERT INTO cost_model VALUES ('Self-host Elasticsearch',3,8,400,0);" rows="20">-- Compare 12-month total cost (assume $150/hr blended eng cost)
+    <textarea data-setup="CREATE TABLE cost_model (option TEXT, initial_eng_weeks INTEGER, monthly_eng_hours REAL, monthly_infra_usd REAL, license_monthly_usd REAL); INSERT INTO cost_model VALUES ('Build custom cache',16,20,200,0); INSERT INTO cost_model VALUES ('Self-host Redis',2,4,200,0); INSERT INTO cost_model VALUES ('Managed Redis (ElastiCache)',1,1,300,0); INSERT INTO cost_model VALUES ('Build custom search',32,30,300,0); INSERT INTO cost_model VALUES ('Self-host Elasticsearch',3,8,400,0);" rows="10">-- Compare 12-month total cost (assume $150/hr blended eng cost)
 SELECT
   option,
   initial_eng_weeks * 40 * 150 AS initial_eng_cost_usd,
@@ -138,16 +131,17 @@ SELECT
 FROM cost_model
 ORDER BY total_12mo_usd;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li>Build almost never means writing a storage engine; it means reimplementing something an off-the-shelf system already provides.</li>
+<li>The true cost of building includes not just initial development but perpetual maintenance.</li>
+<li>Build only when requirements are genuinely unique, the team has capacity, and the system provides strategic differentiation.</li>
+<li>The hybrid path — adopt with a thin abstraction layer — gives flexibility without the full cost of building from scratch.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- Build almost never means writing a storage engine; it means reimplementing something an off-the-shelf system already provides.
-- The true cost of building includes not just initial development but perpetual maintenance.
-- Build only when requirements are genuinely unique, the team has capacity, and the system provides strategic differentiation.
-- The hybrid path — adopt with a thin abstraction layer — gives flexibility without the full cost of building from scratch.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="253-one-database-or-many.html"><span class="dir">← Previous</span><span class="ttl">One database or many</span></a><a class="next" href="255-managed-vs-self-hosted.html"><span class="dir">Next →</span><span class="ttl">Managed vs self-hosted</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

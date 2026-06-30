@@ -5,66 +5,76 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How to benchmark correctly — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VII. Building Understanding</p>
   <p class="chapter-label">Chapter 30. Where to Go Next</p>
   <h1 class="content-title">How to benchmark correctly</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="292-how-to-study-a-real-engine.html"><span class="dir">← Previous</span><span class="ttl">How to study a real engine</span></a><a class="next" href="294-open-source-databases-to-explore.html"><span class="dir">Next →</span><span class="ttl">Open source databases to explore</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Benchmarking is one of the most frequently misunderstood activities in database engineering. It looks simple — run a workload, measure throughput, compare numbers — but nearly every benchmark published on a blog or in a vendor white paper contains at least one methodological flaw that invalidates the conclusion. This page explains how to design and execute a benchmark that actually tells you something true.
-
-## Why Most Benchmarks Lie
-
-The failure modes are consistent:
-
-- **Wrong workload** — a read-heavy benchmark favors systems with large caches; a write-heavy benchmark favors LSM-trees. If your production workload is mixed, neither tells you the truth.
-- **No warm-up** — the first minutes of a run show cold-start latency, not steady-state performance. Results from the first 30 seconds are almost always misleading.
-- **Comparing apples to oranges** — measuring a fully-durable system (sync writes, `fsync` on commit) against a system with durability off (`innodb_flush_log_at_trx_commit=0`) is not a fair comparison.
-- **Single-threaded numbers** — databases are concurrent systems. A single-connection benchmark misses contention, lock waits, and parallel query effects entirely.
-- **Ignoring tail latency** — reporting average latency hides the p99 and p999 that real users experience. A system with a 5 ms average but a 2 s p99 is unusable for interactive applications.
-- **Measuring the wrong thing** — measuring throughput when you care about latency, or vice versa.
-
-## The Benchmark Design Checklist
-
-Before running a single query, answer these questions:
-
-| Question | Why it matters |
-|---|---|
-| What is my production workload? | Everything else follows from this |
-| What hardware will I use? | Results don't transfer across hardware generations |
-| Are all systems configured equivalently? | Same durability guarantees, same memory, same parallelism |
-| What is my warm-up period? | Buffer pools and page caches need to fill |
-| Will I measure throughput, latency, or both? | They require different measurement approaches |
-| How many runs? | Single-run variance can be 10–30%; run at least 3–5 |
-| What are the percentiles I care about? | p50, p95, p99, p999 |
-
-## Configuring for Equivalence
-
-The most common source of invalid comparisons is **mismatched durability settings**. Always check:
-
-- **PostgreSQL:** `synchronous_commit`, `fsync`, `wal_sync_method`
-- **MySQL/InnoDB:** `innodb_flush_log_at_trx_commit` (0/1/2), `sync_binlog`
-- **SQLite:** `PRAGMA journal_mode`, `PRAGMA synchronous`
-- **RocksDB:** `sync` flag on `WriteOptions`, `wal_dir`
-
-A system running with `synchronous=OFF` will appear dramatically faster than one with `synchronous=FULL`, but they offer different crash-recovery guarantees. Compare only configurations that offer the same durability.
-
-## Measuring Latency Correctly
-
-Latency histograms should be collected at the **client**, not the server. Server-side timing misses network round trips and queuing delay that your application actually experiences.
-
-Use **coordinated omission** correction (a concept from Gil Tene's work on HdrHistogram). If you send one request per second and a request takes 2 seconds, the *next* request was already overdue — a naive timer would show only the 2-second request as slow, but the next request was also effectively slow. Tools like `wrk2` and the `hdrhistogram` library handle this correctly.
-
+  <div id="rendered" class="content">
+<p>Benchmarking is one of the most frequently misunderstood activities in database engineering. It looks simple — run a workload, measure throughput, compare numbers — but nearly every benchmark published on a blog or in a vendor white paper contains at least one methodological flaw that invalidates the conclusion. This page explains how to design and execute a benchmark that actually tells you something true.</p>
+<h2>Why Most Benchmarks Lie</h2>
+<p>The failure modes are consistent:</p>
+<ul>
+<li><strong>Wrong workload</strong> — a read-heavy benchmark favors systems with large caches; a write-heavy benchmark favors LSM-trees. If your production workload is mixed, neither tells you the truth.</li>
+<li><strong>No warm-up</strong> — the first minutes of a run show cold-start latency, not steady-state performance. Results from the first 30 seconds are almost always misleading.</li>
+<li><strong>Comparing apples to oranges</strong> — measuring a fully-durable system (sync writes, <code>fsync</code> on commit) against a system with durability off (<code>innodb_flush_log_at_trx_commit=0</code>) is not a fair comparison.</li>
+<li><strong>Single-threaded numbers</strong> — databases are concurrent systems. A single-connection benchmark misses contention, lock waits, and parallel query effects entirely.</li>
+<li><strong>Ignoring tail latency</strong> — reporting average latency hides the p99 and p999 that real users experience. A system with a 5 ms average but a 2 s p99 is unusable for interactive applications.</li>
+<li><strong>Measuring the wrong thing</strong> — measuring throughput when you care about latency, or vice versa.</li>
+</ul>
+<h2>The Benchmark Design Checklist</h2>
+<p>Before running a single query, answer these questions:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>What is my production workload?</td>
+<td>Everything else follows from this</td>
+</tr>
+<tr>
+<td>What hardware will I use?</td>
+<td>Results don&#39;t transfer across hardware generations</td>
+</tr>
+<tr>
+<td>Are all systems configured equivalently?</td>
+<td>Same durability guarantees, same memory, same parallelism</td>
+</tr>
+<tr>
+<td>What is my warm-up period?</td>
+<td>Buffer pools and page caches need to fill</td>
+</tr>
+<tr>
+<td>Will I measure throughput, latency, or both?</td>
+<td>They require different measurement approaches</td>
+</tr>
+<tr>
+<td>How many runs?</td>
+<td>Single-run variance can be 10–30%; run at least 3–5</td>
+</tr>
+<tr>
+<td>What are the percentiles I care about?</td>
+<td>p50, p95, p99, p999</td>
+</tr>
+</tbody></table>
+<h2>Configuring for Equivalence</h2>
+<p>The most common source of invalid comparisons is <strong>mismatched durability settings</strong>. Always check:</p>
+<ul>
+<li><strong>PostgreSQL:</strong> <code>synchronous_commit</code>, <code>fsync</code>, <code>wal_sync_method</code></li>
+<li><strong>MySQL/InnoDB:</strong> <code>innodb_flush_log_at_trx_commit</code> (0/1/2), <code>sync_binlog</code></li>
+<li><strong>SQLite:</strong> <code>PRAGMA journal_mode</code>, <code>PRAGMA synchronous</code></li>
+<li><strong>RocksDB:</strong> <code>sync</code> flag on <code>WriteOptions</code>, <code>wal_dir</code></li>
+</ul>
+<p>A system running with <code>synchronous=OFF</code> will appear dramatically faster than one with <code>synchronous=FULL</code>, but they offer different crash-recovery guarantees. Compare only configurations that offer the same durability.</p>
+<h2>Measuring Latency Correctly</h2>
+<p>Latency histograms should be collected at the <strong>client</strong>, not the server. Server-side timing misses network round trips and queuing delay that your application actually experiences.</p>
+<p>Use <strong>coordinated omission</strong> correction (a concept from Gil Tene&#39;s work on HdrHistogram). If you send one request per second and a request takes 2 seconds, the <em>next</em> request was already overdue — a naive timer would show only the 2-second request as slow, but the next request was also effectively slow. Tools like <code>wrk2</code> and the <code>hdrhistogram</code> library handle this correctly.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Latency percentile distribution: the gap between median and p99 and p999 grows dramatically, showing why average is misleading">
   <defs>
@@ -109,31 +119,56 @@ Use **coordinated omission** correction (a concept from Gil Tene's work on HdrHi
   <text x="320" y="20" text-anchor="middle" font-size="12" fill="var(--text)">Latency percentiles (log scale) — average hides the tail</text>
 </svg>
 <figcaption>Tail latency grows dramatically: a system with a 5 ms average can have a 1-second p99.9. Report percentiles, not averages.</figcaption>
-</figure>
-
-## Standard Benchmark Suites
-
-Rather than inventing your own workload, start with an established benchmark and customize it:
-
-| Benchmark | Models | What it tests |
-|---|---|---|
-| **TPC-C** | Warehouse/order transactions | OLTP with conflicts, high contention |
-| **TPC-H** | Analytical queries | OLAP, complex joins, aggregations |
-| **YCSB** | Key-value / NoSQL workloads | Configurable read/write/scan mix |
-| **Sysbench** | MySQL/PostgreSQL OLTP | Point reads, inserts, indexed ranges |
-| **pgbench** | PostgreSQL built-in | TPC-B-like; easy to customize |
-| **HammerDB** | Multi-database | TPC-C and TPC-H across engines |
-
-> **Note:** Standard benchmarks test standard workloads. If your production queries are unusual — large batch inserts, heavy JSON processing, complex window functions — you must supplement with custom queries that reflect what you actually run.
-
-## Interactive Exercise
-
-The following widget simulates benchmark bookkeeping: storing raw latency samples and computing percentiles. This is the kind of result table you should produce from any benchmark run.
-
+</figure><h2>Standard Benchmark Suites</h2>
+<p>Rather than inventing your own workload, start with an established benchmark and customize it:</p>
+<table>
+<thead>
+<tr>
+<th>Benchmark</th>
+<th>Models</th>
+<th>What it tests</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>TPC-C</strong></td>
+<td>Warehouse/order transactions</td>
+<td>OLTP with conflicts, high contention</td>
+</tr>
+<tr>
+<td><strong>TPC-H</strong></td>
+<td>Analytical queries</td>
+<td>OLAP, complex joins, aggregations</td>
+</tr>
+<tr>
+<td><strong>YCSB</strong></td>
+<td>Key-value / NoSQL workloads</td>
+<td>Configurable read/write/scan mix</td>
+</tr>
+<tr>
+<td><strong>Sysbench</strong></td>
+<td>MySQL/PostgreSQL OLTP</td>
+<td>Point reads, inserts, indexed ranges</td>
+</tr>
+<tr>
+<td><strong>pgbench</strong></td>
+<td>PostgreSQL built-in</td>
+<td>TPC-B-like; easy to customize</td>
+</tr>
+<tr>
+<td><strong>HammerDB</strong></td>
+<td>Multi-database</td>
+<td>TPC-C and TPC-H across engines</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> Standard benchmarks test standard workloads. If your production queries are unusual — large batch inserts, heavy JSON processing, complex window functions — you must supplement with custom queries that reflect what you actually run.</p>
+</blockquote>
+<h2>Interactive Exercise</h2>
+<p>The following widget simulates benchmark bookkeeping: storing raw latency samples and computing percentiles. This is the kind of result table you should produce from any benchmark run.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Benchmark Analysis</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE latency_samples (run_id INTEGER, latency_ms REAL); INSERT INTO latency_samples VALUES (1,1.2),(1,1.5),(1,1.8),(1,2.1),(1,2.3),(1,2.5),(1,2.8),(1,3.1),(1,3.5),(1,4.2),(1,5.1),(1,6.3),(1,8.1),(1,12.4),(1,45.2),(1,120.0),(1,1100.0),(1,8000.0); INSERT INTO latency_samples VALUES (2,0.9),(2,1.1),(2,1.3),(2,1.6),(2,1.9),(2,2.2),(2,2.6),(2,3.0),(2,3.8),(2,4.5),(2,5.8),(2,7.2),(2,9.9),(2,15.1),(2,38.0),(2,95.0),(2,820.0),(2,5500.0);" rows="20">-- Compute summary statistics per run
+    <textarea data-setup="CREATE TABLE latency_samples (run_id INTEGER, latency_ms REAL); INSERT INTO latency_samples VALUES (1,1.2),(1,1.5),(1,1.8),(1,2.1),(1,2.3),(1,2.5),(1,2.8),(1,3.1),(1,3.5),(1,4.2),(1,5.1),(1,6.3),(1,8.1),(1,12.4),(1,45.2),(1,120.0),(1,1100.0),(1,8000.0); INSERT INTO latency_samples VALUES (2,0.9),(2,1.1),(2,1.3),(2,1.6),(2,1.9),(2,2.2),(2,2.6),(2,3.0),(2,3.8),(2,4.5),(2,5.8),(2,7.2),(2,9.9),(2,15.1),(2,38.0),(2,95.0),(2,820.0),(2,5500.0);" rows="10">-- Compute summary statistics per run
 -- (SQLite lacks a built-in percentile function; we approximate with ORDER BY + LIMIT)
 SELECT
   run_id,
@@ -146,32 +181,31 @@ GROUP BY run_id;
 -- Note: to get p99 properly, sort and pick the 99th percentile row.
 -- Try: SELECT latency_ms FROM latency_samples WHERE run_id=1 ORDER BY latency_ms LIMIT 1 OFFSET 17;</textarea>
   </div>
+</div><h2>Reporting Results</h2>
+<p>A benchmark report should include:</p>
+<ol>
+<li><strong>Hardware spec</strong> — CPU model, RAM, storage type (NVMe / SSD / HDD), network</li>
+<li><strong>Software versions</strong> — exact version strings, not just &quot;PostgreSQL 16&quot;</li>
+<li><strong>Configuration diff</strong> — every non-default setting</li>
+<li><strong>Workload description</strong> — read/write ratio, data size, concurrency, key distribution</li>
+<li><strong>Warm-up period</strong> — how long before you started recording</li>
+<li><strong>Number of runs</strong> — and whether you report min, max, or median across runs</li>
+<li><strong>Percentile table</strong> — p50, p95, p99, p999, max for latency</li>
+<li><strong>Throughput over time</strong> — a time series showing stability (or the lack of it)</li>
+</ol>
+<p>Results that omit any of these should be treated as incomplete.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Most published benchmarks are invalid — mismatched durability, no warm-up, single-threaded, or wrong workload.</li>
+<li>Always match durability settings when comparing systems.</li>
+<li>Measure latency percentiles (p99, p999), not averages.</li>
+<li>Use established benchmark suites as a starting point, then add workload-specific queries.</li>
+<li>Report hardware, software versions, configuration, and number of runs alongside every result.</li>
+</ul>
+
 </div>
-
-## Reporting Results
-
-A benchmark report should include:
-
-1. **Hardware spec** — CPU model, RAM, storage type (NVMe / SSD / HDD), network
-2. **Software versions** — exact version strings, not just "PostgreSQL 16"
-3. **Configuration diff** — every non-default setting
-4. **Workload description** — read/write ratio, data size, concurrency, key distribution
-5. **Warm-up period** — how long before you started recording
-6. **Number of runs** — and whether you report min, max, or median across runs
-7. **Percentile table** — p50, p95, p99, p999, max for latency
-8. **Throughput over time** — a time series showing stability (or the lack of it)
-
-Results that omit any of these should be treated as incomplete.
-
-## Key Takeaways
-
-- Most published benchmarks are invalid — mismatched durability, no warm-up, single-threaded, or wrong workload.
-- Always match durability settings when comparing systems.
-- Measure latency percentiles (p99, p999), not averages.
-- Use established benchmark suites as a starting point, then add workload-specific queries.
-- Report hardware, software versions, configuration, and number of runs alongside every result.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="292-how-to-study-a-real-engine.html"><span class="dir">← Previous</span><span class="ttl">How to study a real engine</span></a><a class="next" href="294-open-source-databases-to-explore.html"><span class="dir">Next →</span><span class="ttl">Open source databases to explore</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

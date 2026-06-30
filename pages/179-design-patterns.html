@@ -5,49 +5,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Design patterns — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part V. Database Families</p>
   <p class="chapter-label">Chapter 18. Key-Value Databases</p>
   <h1 class="content-title">Design patterns</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="178-real-world-examples.html"><span class="dir">← Previous</span><span class="ttl">Real-world examples</span></a><a class="next" href="181-json-as-a-data-model.html"><span class="dir">Next →</span><span class="ttl">JSON as a data model</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Key-value stores are deceptively simple — a key maps to a value, full stop. But that simplicity is exactly what makes them fast, and experienced engineers have developed a handful of recurring **design patterns** that extract surprising power from this primitive. Understanding these patterns tells you both *when* to reach for a key-value store and *how* to structure your data inside one.
-
-## Pattern 1: Key Namespacing
-
-Because a key-value store is one flat namespace, you need a convention to group related keys. The standard approach is **hierarchical prefixes** separated by a delimiter (`:` or `/` are most common).
-
-| Key | Value | Purpose |
-|---|---|---|
-| `session:user:4291` | `{"token":"abc","exp":1719000000}` | User session |
-| `cache:page:homepage` | `<rendered HTML>` | Page cache |
-| `rate:ip:203.0.113.42` | `47` | Request counter |
-| `lock:order:9988` | `worker-3` | Distributed lock |
-
-This lets a single store serve multiple concerns while keeping keys predictable and debuggable. You can scan all keys matching `session:*` to find active sessions, or delete `cache:*` to flush the cache layer — most key-value stores support prefix scans or pattern matching for exactly this.
-
-> **Note:** Namespacing is a convention enforced by your application, not the database. The store treats `session:user:4291` as an opaque string; it has no idea the `:` means anything. Document your key schema the same way you document a table schema.
-
-## Pattern 2: TTL-Based Expiry
-
-Key-value stores almost always support setting a **time-to-live (TTL)** on a key. After the TTL expires the key is automatically deleted — no background job, no cron, no manual cleanup.
-
-This single feature powers three extremely common use cases:
-
-- **Session storage** — set TTL to the session idle timeout; the session evicts itself when the user goes away.
-- **Caching** — set TTL to how stale you can tolerate. The next miss regenerates the value and resets the clock.
-- **Rate limiting** — store a request counter keyed on `rate:{user_id}` with a TTL of one minute. Increment on each request; reject if the counter exceeds the limit. The key self-resets each window.
-
+  <div id="rendered" class="content">
+<p>Key-value stores are deceptively simple — a key maps to a value, full stop. But that simplicity is exactly what makes them fast, and experienced engineers have developed a handful of recurring <strong>design patterns</strong> that extract surprising power from this primitive. Understanding these patterns tells you both <em>when</em> to reach for a key-value store and <em>how</em> to structure your data inside one.</p>
+<h2>Pattern 1: Key Namespacing</h2>
+<p>Because a key-value store is one flat namespace, you need a convention to group related keys. The standard approach is <strong>hierarchical prefixes</strong> separated by a delimiter (<code>:</code> or <code>/</code> are most common).</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>session:user:4291</code></td>
+<td><code>{&quot;token&quot;:&quot;abc&quot;,&quot;exp&quot;:1719000000}</code></td>
+<td>User session</td>
+</tr>
+<tr>
+<td><code>cache:page:homepage</code></td>
+<td><code>&lt;rendered HTML&gt;</code></td>
+<td>Page cache</td>
+</tr>
+<tr>
+<td><code>rate:ip:203.0.113.42</code></td>
+<td><code>47</code></td>
+<td>Request counter</td>
+</tr>
+<tr>
+<td><code>lock:order:9988</code></td>
+<td><code>worker-3</code></td>
+<td>Distributed lock</td>
+</tr>
+</tbody></table>
+<p>This lets a single store serve multiple concerns while keeping keys predictable and debuggable. You can scan all keys matching <code>session:*</code> to find active sessions, or delete <code>cache:*</code> to flush the cache layer — most key-value stores support prefix scans or pattern matching for exactly this.</p>
+<blockquote>
+<p><strong>Note:</strong> Namespacing is a convention enforced by your application, not the database. The store treats <code>session:user:4291</code> as an opaque string; it has no idea the <code>:</code> means anything. Document your key schema the same way you document a table schema.</p>
+</blockquote>
+<h2>Pattern 2: TTL-Based Expiry</h2>
+<p>Key-value stores almost always support setting a <strong>time-to-live (TTL)</strong> on a key. After the TTL expires the key is automatically deleted — no background job, no cron, no manual cleanup.</p>
+<p>This single feature powers three extremely common use cases:</p>
+<ul>
+<li><strong>Session storage</strong> — set TTL to the session idle timeout; the session evicts itself when the user goes away.</li>
+<li><strong>Caching</strong> — set TTL to how stale you can tolerate. The next miss regenerates the value and resets the clock.</li>
+<li><strong>Rate limiting</strong> — store a request counter keyed on <code>rate:{user_id}</code> with a TTL of one minute. Increment on each request; reject if the counter exceeds the limit. The key self-resets each window.</li>
+</ul>
 <figure class="diagram">
 <svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TTL key lifecycle: write sets TTL, reads succeed while alive, key auto-deletes on expiry">
   <!-- Timeline bar -->
@@ -79,20 +89,14 @@ This single feature powers three extremely common use cases:
   <text x="320" y="200" text-anchor="middle" font-size="12" fill="var(--text)" opacity="0.7">Time</text>
 </svg>
 <figcaption>A key lives from write until its TTL fires. Reads after expiry get a cache miss; the application regenerates and re-writes the value.</figcaption>
-</figure>
-
-## Pattern 3: Counter and Accumulator Keys
-
-Incrementing a counter looks trivial, but doing it safely under concurrent load is not. Key-value stores expose an **atomic increment** operation (`INCR` in Redis, `update_item` with `ADD` in DynamoDB) that reads and writes the counter in a single, indivisible step — no read-modify-write race condition.
-
-Common uses: page-view counts, API call quotas, inventory quantities (decrement on purchase), vote tallies.
-
-Try it below. The `rate_limit` table simulates a simple counter store — each INSERT represents an incoming request, and the query checks whether any key has exceeded its limit.
-
+</figure><h2>Pattern 3: Counter and Accumulator Keys</h2>
+<p>Incrementing a counter looks trivial, but doing it safely under concurrent load is not. Key-value stores expose an <strong>atomic increment</strong> operation (<code>INCR</code> in Redis, <code>update_item</code> with <code>ADD</code> in DynamoDB) that reads and writes the counter in a single, indivisible step — no read-modify-write race condition.</p>
+<p>Common uses: page-view counts, API call quotas, inventory quantities (decrement on purchase), vote tallies.</p>
+<p>Try it below. The <code>rate_limit</code> table simulates a simple counter store — each INSERT represents an incoming request, and the query checks whether any key has exceeded its limit.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Rate-limit counter pattern</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv (k TEXT PRIMARY KEY, v INTEGER NOT NULL DEFAULT 0); INSERT INTO kv VALUES ('rate:user:101', 3); INSERT INTO kv VALUES ('rate:user:202', 12); INSERT INTO kv VALUES ('rate:user:303', 7); INSERT INTO kv VALUES ('rate:user:404', 0);" rows="20">-- Simulate incrementing user 101's counter, then check who is over the limit (threshold = 10)
+    <textarea data-setup="CREATE TABLE kv (k TEXT PRIMARY KEY, v INTEGER NOT NULL DEFAULT 0); INSERT INTO kv VALUES ('rate:user:101', 3); INSERT INTO kv VALUES ('rate:user:202', 12); INSERT INTO kv VALUES ('rate:user:303', 7); INSERT INTO kv VALUES ('rate:user:404', 0);" rows="10">-- Simulate incrementing user 101's counter, then check who is over the limit (threshold = 10)
 UPDATE kv SET v = v + 1 WHERE k = 'rate:user:101';
 SELECT k AS user_key,
        v AS request_count,
@@ -100,25 +104,19 @@ SELECT k AS user_key,
 FROM kv
 ORDER BY v DESC;</textarea>
   </div>
-</div>
-
-## Pattern 4: Fan-Out and Aggregation Keys
-
-Sometimes you want to read multiple related values together. Rather than fetching hundreds of individual keys, engineers **pre-aggregate** into a single key whose value is a small JSON blob or list — a pattern called **fan-out on write**.
-
-A social media feed is the classic example. Instead of computing "all posts from accounts Alice follows" at read time (expensive), each new post is *written* into every follower's feed key. A read is then a single key lookup.
-
-```
-feed:user:4291  →  ["post:88","post:74","post:31", ...]   (pre-computed list)
-```
-
-The trade-off: writes become heavier (one post → many writes), but reads stay O(1). This is only sensible when reads vastly outnumber writes and follower counts stay bounded.
-
-> **Note:** Fan-out breaks down for celebrities or accounts with millions of followers — writing one post to 10 million feed keys in real time is impractical. Real systems use a hybrid: pre-compute feeds for ordinary users, compute on-the-fly for high-follower accounts.
-
+</div><h2>Pattern 4: Fan-Out and Aggregation Keys</h2>
+<p>Sometimes you want to read multiple related values together. Rather than fetching hundreds of individual keys, engineers <strong>pre-aggregate</strong> into a single key whose value is a small JSON blob or list — a pattern called <strong>fan-out on write</strong>.</p>
+<p>A social media feed is the classic example. Instead of computing &quot;all posts from accounts Alice follows&quot; at read time (expensive), each new post is <em>written</em> into every follower&#39;s feed key. A read is then a single key lookup.</p>
+<pre><code>feed:user:4291  →  [&quot;post:88&quot;,&quot;post:74&quot;,&quot;post:31&quot;, ...]   (pre-computed list)
+</code></pre>
+<p>The trade-off: writes become heavier (one post → many writes), but reads stay O(1). This is only sensible when reads vastly outnumber writes and follower counts stay bounded.</p>
+<blockquote>
+<p><strong>Note:</strong> Fan-out breaks down for celebrities or accounts with millions of followers — writing one post to 10 million feed keys in real time is impractical. Real systems use a hybrid: pre-compute feeds for ordinary users, compute on-the-fly for high-follower accounts.</p>
+</blockquote>
 <details class="reveal"><summary>Reveal: Why not just store everything in one big key?</summary><div class="reveal-body">A single monolithic key becomes a bottleneck: every reader contends for the same lock, the value grows unbounded, and a single write can invalidate everything. Splitting data across many fine-grained keys distributes load across the cluster and lets TTLs be set independently per logical unit. The art is finding the right granularity — too coarse and you lose parallelism; too fine and you need too many round-trips to assemble a response.</div></details>
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="178-real-world-examples.html"><span class="dir">← Previous</span><span class="ttl">Real-world examples</span></a><a class="next" href="181-json-as-a-data-model.html"><span class="dir">Next →</span><span class="ttl">JSON as a data model</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

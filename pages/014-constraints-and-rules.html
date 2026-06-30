@@ -5,43 +5,93 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Constraints and rules — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 2. How Data Is Organized</p>
   <h1 class="content-title">Constraints and rules</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="013-keys-and-identifiers.html"><span class="dir">← Previous</span><span class="ttl">Keys and identifiers</span></a><a class="next" href="015-null-and-missing-values.html"><span class="dir">Next →</span><span class="ttl">NULL and missing values</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-A database without rules is just a pile of data waiting to become a mess. Constraints are the rules you bake into the schema itself — enforced automatically by the database engine every time data is inserted, updated, or deleted. Instead of writing defensive code in every application that touches your data, you define the rules once and let the engine guard them forever.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(20,10)">
+    <rect x="0" y="0" width="160" height="140" rx="10" fill="#fef3c7" stroke="#f59e0b" filter="url(#sh)"/>
+    <text x="80" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#d97706">NOT NULL</text>
+    <text x="80" y="44" font-size="9" fill="#5a6678">Column can't be empty</text>
+    <text x="80" y="70" text-anchor="middle" font-size="9" fill="#d97706">name TEXT NOT NULL</text>
+    <line x1="15" y1="80" x2="145" y2="80" stroke="#fde68a"/>
+    <text x="80" y="96" font-size="9" fill="#d97706">email TEXT NOT NULL</text>
+    <text x="80" y="112" font-size="9" fill="#d97706">UNIQUE(email)</text>
 
-## The Core Constraints
+    <rect x="180" y="0" width="160" height="140" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="260" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#2f6df6">CHECK</text>
+    <text x="260" y="44" font-size="9" fill="#5a6678">Custom validation rule</text>
+    <text x="260" y="70" text-anchor="middle" font-size="9" fill="#2f6df6">salary > 0</text>
+    <line x1="195" y1="80" x2="325" y2="80" stroke="#bfdbfe"/>
+    <text x="260" y="96" font-size="9" fill="#2f6df6">age >= 18</text>
+    <text x="260" y="112" font-size="9" fill="#2f6df6">status IN ('A','I')</text>
 
-Every major relational database supports a standard set of constraints. Here are the ones you will encounter constantly.
+    <rect x="360" y="0" width="160" height="140" rx="10" fill="#dcfce7" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="440" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">FOREIGN KEY</text>
+    <text x="440" y="44" font-size="9" fill="#5a6678">Must reference existing PK</text>
+    <text x="440" y="70" text-anchor="middle" font-size="9" fill="#16a34a">dept_id INT</text>
+    <line x1="375" y1="80" x2="505" y2="80" stroke="#bbf7d0"/>
+    <text x="440" y="96" font-size="9" fill="#16a34a">REFERENCES dept(id)</text>
+    <text x="440" y="112" font-size="9" fill="#16a34a">ON DELETE CASCADE</text>
 
-| Constraint | What it enforces |
-|---|---|
-| `NOT NULL` | The column must always have a value — `NULL` is rejected |
-| `UNIQUE` | No two rows may share the same value in this column (or column group) |
-| `PRIMARY KEY` | `NOT NULL` + `UNIQUE` combined; identifies each row unambiguously |
-| `FOREIGN KEY` | A value in this column must exist in a referenced column of another table |
-| `CHECK` | A boolean expression that every row must satisfy |
-| `DEFAULT` | Supplies a value automatically when none is provided |
-
-### Primary and foreign keys working together
-
-A **primary key** is the anchor of a table — it uniquely names every row. A **foreign key** in another table points back to that anchor, creating a *referential link* between the two. The database will refuse to insert a foreign key value that has no matching primary key, and (depending on configuration) will refuse to delete a primary key row while child rows still reference it.
-
-```sql
-CREATE TABLE departments (
+    <rect x="540" y="0" width="160" height="140" rx="10" fill="#ede9fe" stroke="#a78bfa" filter="url(#sh)"/>
+    <text x="620" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#7c3aed">DEFAULT</text>
+    <text x="620" y="44" font-size="9" fill="#5a6678">Value when omitted</text>
+    <text x="620" y="70" text-anchor="middle" font-size="9" fill="#7c3aed">created_at TIMESTAMP</text>
+    <line x1="555" y1="80" x2="685" y2="80" stroke="#ddd6fe"/>
+    <text x="620" y="96" font-size="9" fill="#7c3aed">DEFAULT NOW()</text>
+    <text x="620" y="112" font-size="9" fill="#7c3aed">active BOOLEAN</text>
+    <text x="620" y="126" font-size="9" fill="#7c3aed">DEFAULT TRUE</text>
+  </g>
+</svg>
+<figcaption>Four constraint types: NOT NULL (required), CHECK (custom rules), FOREIGN KEY (referential integrity), and DEFAULT (fallback values). All enforced by the engine.</figcaption>
+</figure>
+<p>A database without rules is just a pile of data waiting to become a mess. Constraints are the rules you bake into the schema itself — enforced automatically by the database engine every time data is inserted, updated, or deleted. Instead of writing defensive code in every application that touches your data, you define the rules once and let the engine guard them forever.</p>
+<h2>The Core Constraints</h2>
+<p>Every major relational database supports a standard set of constraints. Here are the ones you will encounter constantly.</p>
+<table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>What it enforces</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NOT NULL</code></td>
+<td>The column must always have a value — <code>NULL</code> is rejected</td>
+</tr>
+<tr>
+<td><code>UNIQUE</code></td>
+<td>No two rows may share the same value in this column (or column group)</td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY</code></td>
+<td><code>NOT NULL</code> + <code>UNIQUE</code> combined; identifies each row unambiguously</td>
+</tr>
+<tr>
+<td><code>FOREIGN KEY</code></td>
+<td>A value in this column must exist in a referenced column of another table</td>
+</tr>
+<tr>
+<td><code>CHECK</code></td>
+<td>A boolean expression that every row must satisfy</td>
+</tr>
+<tr>
+<td><code>DEFAULT</code></td>
+<td>Supplies a value automatically when none is provided</td>
+</tr>
+</tbody></table>
+<h3>Primary and foreign keys working together</h3>
+<p>A <strong>primary key</strong> is the anchor of a table — it uniquely names every row. A <strong>foreign key</strong> in another table points back to that anchor, creating a <em>referential link</em> between the two. The database will refuse to insert a foreign key value that has no matching primary key, and (depending on configuration) will refuse to delete a primary key row while child rows still reference it.</p>
+<pre><code class="language-sql">CREATE TABLE departments (
     id   INTEGER PRIMARY KEY,
     name TEXT NOT NULL UNIQUE
 );
@@ -52,33 +102,26 @@ CREATE TABLE employees (
     department_id INTEGER NOT NULL
         REFERENCES departments(id)   -- foreign key
 );
-```
-
-If you try `INSERT INTO employees VALUES (1, 'Alice', 99)` when no department with `id = 99` exists, the database rejects it immediately — the constraint fires before the row is written.
-
-### CHECK constraints
-
-`CHECK` lets you express any rule that can be written as a SQL expression. Common uses: enforcing a range, restricting a column to a known set of values, or requiring that one column's value relates sensibly to another's.
-
-```sql
-CREATE TABLE products (
+</code></pre>
+<p>If you try <code>INSERT INTO employees VALUES (1, &#39;Alice&#39;, 99)</code> when no department with <code>id = 99</code> exists, the database rejects it immediately — the constraint fires before the row is written.</p>
+<h3>CHECK constraints</h3>
+<p><code>CHECK</code> lets you express any rule that can be written as a SQL expression. Common uses: enforcing a range, restricting a column to a known set of values, or requiring that one column&#39;s value relates sensibly to another&#39;s.</p>
+<pre><code class="language-sql">CREATE TABLE products (
     id       INTEGER PRIMARY KEY,
     name     TEXT    NOT NULL,
-    price    REAL    NOT NULL CHECK (price >= 0),
-    status   TEXT    NOT NULL CHECK (status IN ('active', 'discontinued', 'draft'))
+    price    REAL    NOT NULL CHECK (price &gt;= 0),
+    status   TEXT    NOT NULL CHECK (status IN (&#39;active&#39;, &#39;discontinued&#39;, &#39;draft&#39;))
 );
-```
-
-> **Note:** SQLite enforces `CHECK` constraints on `INSERT` and `UPDATE`, but does not enforce foreign keys by default — you must run `PRAGMA foreign_keys = ON;` at the start of each connection.
-
-## Seeing Constraints Fail in Real Time
-
-The best way to understand constraints is to violate them and watch the engine push back. The widget below creates a small `orders` table with several constraints in place. Try running each of the commented statements to see exactly which constraint fires.
-
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> SQLite enforces <code>CHECK</code> constraints on <code>INSERT</code> and <code>UPDATE</code>, but does not enforce foreign keys by default — you must run <code>PRAGMA foreign_keys = ON;</code> at the start of each connection.</p>
+</blockquote>
+<h2>Seeing Constraints Fail in Real Time</h2>
+<p>The best way to understand constraints is to violate them and watch the engine push back. The widget below creates a small <code>orders</code> table with several constraints in place. Try running each of the commented statements to see exactly which constraint fires.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Constraints in action</span></div>
   <div class="widget-body">
-    <textarea data-setup="PRAGMA foreign_keys = ON; CREATE TABLE customers (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), amount REAL NOT NULL CHECK (amount  rows="20"> 0), status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'shipped', 'cancelled'))); INSERT INTO customers VALUES (1, 'alice@example.com'); INSERT INTO customers VALUES (2, 'bob@example.com'); INSERT INTO orders VALUES (1, 1, 49.99, 'pending'); INSERT INTO orders VALUES (2, 2, 12.50, 'shipped');">-- Succeeds: valid data
+    <textarea data-setup="PRAGMA foreign_keys = ON; CREATE TABLE customers (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), amount REAL NOT NULL CHECK (amount  rows="10"> 0), status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'shipped', 'cancelled'))); INSERT INTO customers VALUES (1, 'alice@example.com'); INSERT INTO customers VALUES (2, 'bob@example.com'); INSERT INTO orders VALUES (1, 1, 49.99, 'pending'); INSERT INTO orders VALUES (2, 2, 12.50, 'shipped');">-- Succeeds: valid data
 SELECT * FROM orders;
 -- Try these one at a time to see each constraint fire:
 -- Violates CHECK (amount must be > 0):
@@ -90,21 +133,18 @@ SELECT * FROM orders;
 -- Violates UNIQUE on email:
 -- INSERT INTO customers VALUES (3, 'alice@example.com');</textarea>
   </div>
+</div><p>Uncomment one statement at a time, re-run, and read the error message the engine returns. Notice that the engine tells you <em>which</em> constraint was violated, not just that something went wrong.</p>
+<h2>Why Define Rules in the Schema?</h2>
+<p>You might wonder: why not just validate data in the application layer? The short answer is that applications come and go — the database often outlives several generations of software. Rules in the schema are enforced by <em>every</em> client unconditionally: the web app, the admin script, the data-import tool, and the junior developer poking around in a SQL shell.</p>
+<p>Constraints also let the engine make smarter decisions. A <code>PRIMARY KEY</code> tells the engine it can build an efficient index for lookups. A <code>NOT NULL</code> column can be stored more compactly. Rules are not just about correctness — they are information the engine uses to optimize.</p>
+<blockquote>
+<p><strong>Key idea:</strong> Constraints shift data-quality guarantees from &quot;every application must remember to check&quot; to &quot;the database makes it impossible to forget.&quot;</p>
+</blockquote>
+<p>The next topic explores how the schema itself is defined and changed over time — a process called schema migration.</p>
+
 </div>
-
-Uncomment one statement at a time, re-run, and read the error message the engine returns. Notice that the engine tells you *which* constraint was violated, not just that something went wrong.
-
-## Why Define Rules in the Schema?
-
-You might wonder: why not just validate data in the application layer? The short answer is that applications come and go — the database often outlives several generations of software. Rules in the schema are enforced by *every* client unconditionally: the web app, the admin script, the data-import tool, and the junior developer poking around in a SQL shell.
-
-Constraints also let the engine make smarter decisions. A `PRIMARY KEY` tells the engine it can build an efficient index for lookups. A `NOT NULL` column can be stored more compactly. Rules are not just about correctness — they are information the engine uses to optimize.
-
-> **Key idea:** Constraints shift data-quality guarantees from "every application must remember to check" to "the database makes it impossible to forget."
-
-The next topic explores how the schema itself is defined and changed over time — a process called schema migration.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="013-keys-and-identifiers.html"><span class="dir">← Previous</span><span class="ttl">Keys and identifiers</span></a><a class="next" href="015-null-and-missing-values.html"><span class="dir">Next →</span><span class="ttl">NULL and missing values</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

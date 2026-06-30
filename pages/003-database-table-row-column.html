@@ -5,86 +5,167 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Database, table, row, column — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 1. What a Database System Is</p>
   <h1 class="content-title">Database, table, row, column</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="002-database-vs-file-storage.html"><span class="dir">← Previous</span><span class="ttl">Database vs file storage</span></a><a class="next" href="004-queries-transactions-and-schemas.html"><span class="dir">Next →</span><span class="ttl">Queries, transactions, and schemas</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every database system organizes data around four concepts that show up everywhere: the **database**, the **table**, the **row**, and the **column**. Master these four and you have the mental model that underlies almost every query you will ever write.
-
-## The Building Blocks
-
-Think of a **database** as a named container — a single file or a managed set of files that holds related data together. A business might have one database for its product catalog and a separate one for its HR records. Keeping them apart prevents unrelated data from mixing and makes access control simpler.
-
-Inside a database you have **tables**. A table is a two-dimensional structure: rows going down, columns going across — exactly like a spreadsheet tab, but with stricter rules. Every table has a fixed set of columns declared upfront, and every row must conform to that structure.
-
-| Concept | Analogy | Holds |
-|---------|---------|-------|
-| Database | A filing cabinet | One or more tables |
-| Table | A drawer with labeled slots | Rows that share the same columns |
-| Row | A single filled-in form | One record's worth of data |
-| Column | A field on the form | One attribute, same type in every row |
-
-A **column** (also called a *field* or *attribute*) describes one property of the thing you are tracking. Each column has a **data type** — `INTEGER`, `TEXT`, `REAL`, `DATE`, etc. — that tells the database what values are allowed. Declaring types upfront catches mistakes early: you cannot accidentally store the word "hello" in a column meant for prices.
-
-A **row** (also called a *record* or *tuple*) is one complete entry in the table. If the table is `employees`, each row is one employee. Rows do not have a guaranteed order unless you ask for one with `ORDER BY`.
-
-## A Concrete Example
-
-Imagine you are building a small bookshop app. You might start with a single table called `books`:
-
-| id | title | author | price |
-|----|-------|--------|-------|
-| 1 | The Pragmatic Programmer | Hunt & Thomas | 49.95 |
-| 2 | Designing Data-Intensive Applications | Kleppmann | 54.99 |
-| 3 | Database Internals | Petrov | 44.99 |
-
-- The **database** might be named `bookshop`.
-- The **table** is `books`.
-- Each horizontal line of data is a **row** — one book.
-- `id`, `title`, `author`, and `price` are the four **columns**.
-
-Notice that `id` is an integer, `title` and `author` are text, and `price` is a decimal number. Those type distinctions matter: the database will refuse to store a price like `"free"` if the column is declared as `REAL`.
-
-> **Note:** The `id` column here acts as a *primary key* — a value that uniquely identifies each row. Primary keys are introduced in a later chapter, but you will see them in almost every real table.
-
-## Try It Live
-
-The widget below creates the `books` table, inserts the three rows above, and runs a simple `SELECT`. Edit the query and hit **Run** to explore.
-
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+  </defs>
+  <g transform="translate(15,12)">
+    <!-- Database -->
+    <rect x="0" y="0" width="690" height="195" rx="12" fill="#e8f0ff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">DATABASE (company_db)</text>
+    <line x1="345" y1="34" x2="345" y2="42" stroke="#2f6df6" stroke-width="1.5"/>
+    <!-- Tables -->
+    <rect x="15" y="48" width="210" height="135" rx="8" fill="#fff" stroke="#93c5fd"/>
+    <text x="120" y="72" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2330">TABLE: employees</text>
+    <line x1="30" y1="82" x2="210" y2="82" stroke="#e2e6ec"/>
+    <text x="35" y="102" font-size="10" fill="#2f6df6" font-weight="600">columns</text>
+    <text x="35" y="120" font-size="10" fill="#5a6678">id (INTEGER)</text>
+    <text x="35" y="136" font-size="10" fill="#5a6678">name (TEXT)</text>
+    <text x="35" y="152" font-size="10" fill="#5a6678">dept (TEXT)</text>
+    <text x="35" y="168" font-size="10" fill="#5a6678">salary (INTEGER)</text>
+    <!-- Rows (in employees) -->
+    <line x1="155" y1="92" x2="155" y2="172" stroke="#d1d5db" stroke-dasharray="4,3"/>
+    <text x="180" y="105" font-size="9" fill="#5a6678">rows ↓</text>
+    <text x="180" y="120" font-size="9" fill="#9aa6b8">1 | Ada | Eng...</text>
+    <text x="180" y="136" font-size="9" fill="#9aa6b8">2 | Grace | Eng...</text>
+    <text x="180" y="152" font-size="9" fill="#9aa6b8">3 | Alan | Res...</text>
+    <text x="180" y="168" font-size="9" fill="#9aa6b8">...</text>
+    <!-- Second table -->
+    <rect x="240" y="48" width="210" height="135" rx="8" fill="#fff" stroke="#93c5fd"/>
+    <text x="345" y="72" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2330">TABLE: departments</text>
+    <line x1="255" y1="82" x2="435" y2="82" stroke="#e2e6ec"/>
+    <text x="260" y="102" font-size="10" fill="#2f6df6" font-weight="600">columns</text>
+    <text x="260" y="120" font-size="10" fill="#5a6678">id (INT PRIMARY KEY)</text>
+    <text x="260" y="136" font-size="10" fill="#5a6678">name (TEXT)</text>
+    <text x="260" y="152" font-size="10" fill="#5a6678">budget (INTEGER)</text>
+    <line x1="370" y1="92" x2="370" y2="170" stroke="#d1d5db" stroke-dasharray="4,3"/>
+    <text x="395" y="115" font-size="9" fill="#5a6678">rows ↓</text>
+    <text x="395" y="130" font-size="9" fill="#9aa6b8">1 | Engineering</text>
+    <text x="395" y="146" font-size="9" fill="#9aa6b8">2 | Research</text>
+    <text x="395" y="162" font-size="9" fill="#9aa6b8">3 | Marketing</text>
+    <!-- Third table -->
+    <rect x="465" y="48" width="210" height="135" rx="8" fill="#fff" stroke="#93c5fd"/>
+    <text x="570" y="72" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2330">TABLE: projects</text>
+    <line x1="480" y1="82" x2="660" y2="82" stroke="#e2e6ec"/>
+    <text x="485" y="102" font-size="10" fill="#2f6df6" font-weight="600">columns</text>
+    <text x="485" y="120" font-size="10" fill="#5a6678">id (INT)</text>
+    <text x="485" y="136" font-size="10" fill="#5a6678">title (TEXT)</text>
+    <text x="485" y="152" font-size="10" fill="#5a6678">dept_id (INT FK)</text>
+    <line x1="595" y1="92" x2="595" y2="170" stroke="#d1d5db" stroke-dasharray="4,3"/>
+    <text x="620" y="125" font-size="9" fill="#5a6678">rows ↓</text>
+    <text x="620" y="142" font-size="9" fill="#9aa6b8">1 | Compiler...</text>
+    <text x="620" y="158" font-size="9" fill="#9aa6b8">2 | AI Paper...</text>
+  </g>
+</svg>
+<figcaption>A database is a container of tables; each table has columns (the schema) and rows (the records). Columns define the shape; rows hold the data.</figcaption>
+</figure>
+<p>Every database system organizes data around four concepts that show up everywhere: the <strong>database</strong>, the <strong>table</strong>, the <strong>row</strong>, and the <strong>column</strong>. Master these four and you have the mental model that underlies almost every query you will ever write.</p>
+<h2>The Building Blocks</h2>
+<p>Think of a <strong>database</strong> as a named container — a single file or a managed set of files that holds related data together. A business might have one database for its product catalog and a separate one for its HR records. Keeping them apart prevents unrelated data from mixing and makes access control simpler.</p>
+<p>Inside a database you have <strong>tables</strong>. A table is a two-dimensional structure: rows going down, columns going across — exactly like a spreadsheet tab, but with stricter rules. Every table has a fixed set of columns declared upfront, and every row must conform to that structure.</p>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Analogy</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Database</td>
+<td>A filing cabinet</td>
+<td>One or more tables</td>
+</tr>
+<tr>
+<td>Table</td>
+<td>A drawer with labeled slots</td>
+<td>Rows that share the same columns</td>
+</tr>
+<tr>
+<td>Row</td>
+<td>A single filled-in form</td>
+<td>One record&#39;s worth of data</td>
+</tr>
+<tr>
+<td>Column</td>
+<td>A field on the form</td>
+<td>One attribute, same type in every row</td>
+</tr>
+</tbody></table>
+<p>A <strong>column</strong> (also called a <em>field</em> or <em>attribute</em>) describes one property of the thing you are tracking. Each column has a <strong>data type</strong> — <code>INTEGER</code>, <code>TEXT</code>, <code>REAL</code>, <code>DATE</code>, etc. — that tells the database what values are allowed. Declaring types upfront catches mistakes early: you cannot accidentally store the word &quot;hello&quot; in a column meant for prices.</p>
+<p>A <strong>row</strong> (also called a <em>record</em> or <em>tuple</em>) is one complete entry in the table. If the table is <code>employees</code>, each row is one employee. Rows do not have a guaranteed order unless you ask for one with <code>ORDER BY</code>.</p>
+<h2>A Concrete Example</h2>
+<p>Imagine you are building a small bookshop app. You might start with a single table called <code>books</code>:</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>title</th>
+<th>author</th>
+<th>price</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>The Pragmatic Programmer</td>
+<td>Hunt &amp; Thomas</td>
+<td>49.95</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Designing Data-Intensive Applications</td>
+<td>Kleppmann</td>
+<td>54.99</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Database Internals</td>
+<td>Petrov</td>
+<td>44.99</td>
+</tr>
+</tbody></table>
+<ul>
+<li>The <strong>database</strong> might be named <code>bookshop</code>.</li>
+<li>The <strong>table</strong> is <code>books</code>.</li>
+<li>Each horizontal line of data is a <strong>row</strong> — one book.</li>
+<li><code>id</code>, <code>title</code>, <code>author</code>, and <code>price</code> are the four <strong>columns</strong>.</li>
+</ul>
+<p>Notice that <code>id</code> is an integer, <code>title</code> and <code>author</code> are text, and <code>price</code> is a decimal number. Those type distinctions matter: the database will refuse to store a price like <code>&quot;free&quot;</code> if the column is declared as <code>REAL</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> The <code>id</code> column here acts as a <em>primary key</em> — a value that uniquely identifies each row. Primary keys are introduced in a later chapter, but you will see them in almost every real table.</p>
+</blockquote>
+<h2>Try It Live</h2>
+<p>The widget below creates the <code>books</code> table, inserts the three rows above, and runs a simple <code>SELECT</code>. Edit the query and hit <strong>Run</strong> to explore.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Books table basics</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT, author TEXT, price REAL); INSERT INTO books VALUES (1, 'The Pragmatic Programmer', 'Hunt & Thomas', 49.95); INSERT INTO books VALUES (2, 'Designing Data-Intensive Applications', 'Kleppmann', 54.99); INSERT INTO books VALUES (3, 'Database Internals', 'Petrov', 44.99);" rows="20">SELECT id, title, price
+    <textarea data-setup="CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT, author TEXT, price REAL); INSERT INTO books VALUES (1, 'The Pragmatic Programmer', 'Hunt & Thomas', 49.95); INSERT INTO books VALUES (2, 'Designing Data-Intensive Applications', 'Kleppmann', 54.99); INSERT INTO books VALUES (3, 'Database Internals', 'Petrov', 44.99);" rows="10">SELECT id, title, price
 FROM books
 ORDER BY price ASC;</textarea>
   </div>
+</div><p>Try changing <code>ORDER BY price ASC</code> to <code>ORDER BY title ASC</code>, or add a <code>WHERE price &lt; 50</code> clause to filter rows. Each experiment reinforces the relationship between columns (the structure) and rows (the data).</p>
+<h2>Why the Separation Matters</h2>
+<p>Splitting data into tables, rows, and columns is not bureaucracy for its own sake. It enables three things that scale:</p>
+<ol>
+<li><strong>Consistency</strong> — the column definition enforces the same shape for every row. You never get a customer record with a missing phone-number field and another with two.</li>
+<li><strong>Efficient retrieval</strong> — the database can skip straight to the columns you need instead of scanning unstructured blobs of text.</li>
+<li><strong>Relationships</strong> — columns in one table can reference rows in another (via foreign keys), letting you link customers to orders, orders to products, and so on — without duplicating data.</li>
+</ol>
+<p>These four concepts — database, table, row, column — are the grammar of every SQL statement you will write. Every <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, and <code>DELETE</code> is just a way of reading or changing rows in tables.</p>
+
 </div>
-
-Try changing `ORDER BY price ASC` to `ORDER BY title ASC`, or add a `WHERE price < 50` clause to filter rows. Each experiment reinforces the relationship between columns (the structure) and rows (the data).
-
-## Why the Separation Matters
-
-Splitting data into tables, rows, and columns is not bureaucracy for its own sake. It enables three things that scale:
-
-1. **Consistency** — the column definition enforces the same shape for every row. You never get a customer record with a missing phone-number field and another with two.
-2. **Efficient retrieval** — the database can skip straight to the columns you need instead of scanning unstructured blobs of text.
-3. **Relationships** — columns in one table can reference rows in another (via foreign keys), letting you link customers to orders, orders to products, and so on — without duplicating data.
-
-These four concepts — database, table, row, column — are the grammar of every SQL statement you will write. Every `SELECT`, `INSERT`, `UPDATE`, and `DELETE` is just a way of reading or changing rows in tables.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="002-database-vs-file-storage.html"><span class="dir">← Previous</span><span class="ttl">Database vs file storage</span></a><a class="next" href="004-queries-transactions-and-schemas.html"><span class="dir">Next →</span><span class="ttl">Queries, transactions, and schemas</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

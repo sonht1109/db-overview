@@ -5,32 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Naming tables and columns — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 4. Schemas and Data Modeling</p>
   <h1 class="content-title">Naming tables and columns</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="035-derived-data-and-computed-columns.html"><span class="dir">← Previous</span><span class="ttl">Derived data and computed columns</span></a><a class="next" href="037-avoiding-duplication.html"><span class="dir">Next →</span><span class="ttl">Avoiding duplication</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-The names you give your tables and columns are part of your schema's public contract. Every query, every piece of application code, and every teammate who reads your SQL will use those names constantly. Good naming makes the structure self-explanatory; bad naming forces everyone to consult external documentation just to understand what a column holds.
-
-## The Core Rules
-
-Most SQL engines are case-insensitive for identifiers, but follow these principles regardless of the database you use:
-
-**Use lowercase with underscores (snake_case).** Mixed case is technically allowed, but many engines fold identifiers to lowercase internally, and inconsistent casing causes subtle bugs. Snake_case is the dominant convention in SQL communities.
-
-```sql
--- Preferred
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <rect x="0" y="0" width="340" height="140" rx="10" fill="#f0fdf4" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="170" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a">✅ Good</text>
+    <line x1="15" y1="36" x2="325" y2="36" stroke="#bbf7d0"/>
+    <text x="25" y="58" font-size="9" fill="#1c2330">Tables: employees, orders, line_items</text>
+    <text x="25" y="76" font-size="9" fill="#1c2330">PK: id (or table_id for clarity)</text>
+    <text x="25" y="94" font-size="9" fill="#1c2330">FK: customer_id, order_id</text>
+    <text x="25" y="112" font-size="9" fill="#1c2330">Singular names, snake_case</text>
+    <text x="25" y="130" font-size="9" fill="#5a6678">timestamps: created_at, updated_at</text>
+    <rect x="360" y="0" width="340" height="140" rx="10" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="530" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#dc2626">❌ Avoid</text>
+    <line x1="375" y1="36" x2="685" y2="36" stroke="#fca5a5"/>
+    <text x="385" y="58" font-size="9" fill="#1c2330">tbl_employees, EmployeeData</text>
+    <text x="385" y="76" font-size="9" fill="#1c2330">Ambiguous: id (on every table)</text>
+    <text x="385" y="94" font-size="9" fill="#1c2330">Reserved words: order, group, user</text>
+    <text x="385" y="112" font-size="9" fill="#1c2330">Plurals on tables (inconsistent)</text>
+    <text x="385" y="130" font-size="9" fill="#5a6678">Abbreviations: cust_addr vs customer_address</text>
+  </g>
+</svg>
+<figcaption>Consistent naming: singular table names, snake_case, descriptive FK names (customer_id not just id), and timestamps following a pattern (created_at/updated_at).</figcaption>
+</figure>
+<p>The names you give your tables and columns are part of your schema&#39;s public contract. Every query, every piece of application code, and every teammate who reads your SQL will use those names constantly. Good naming makes the structure self-explanatory; bad naming forces everyone to consult external documentation just to understand what a column holds.</p>
+<h2>The Core Rules</h2>
+<p>Most SQL engines are case-insensitive for identifiers, but follow these principles regardless of the database you use:</p>
+<p><strong>Use lowercase with underscores (snake_case).</strong> Mixed case is technically allowed, but many engines fold identifiers to lowercase internally, and inconsistent casing causes subtle bugs. Snake_case is the dominant convention in SQL communities.</p>
+<pre><code class="language-sql">-- Preferred
 CREATE TABLE order_items (
     id          INTEGER PRIMARY KEY,
     order_id    INTEGER NOT NULL,
@@ -43,50 +55,81 @@ CREATE TABLE OrderItems (
     orderId   INTEGER NOT NULL,
     unitPrice REAL    NOT NULL
 );
-```
-
-**Name tables as plural nouns.** A table is a collection of things, so `customers`, `orders`, and `products` read naturally: "this table holds many customers." Some teams use singular names (`customer`, `order`) — consistency matters more than which convention you pick, but plural is more common in practice.
-
-**Name columns as singular noun phrases.** A column holds one value per row: `email`, `created_at`, `unit_price`. Reserve plural names for columns that genuinely store lists — which, in a normalized schema, is rare.
-
-**Be specific, not generic.** A column named `name` is ambiguous in any table other than the most obvious. Prefer `customer_name`, `product_name`, or `category_name`. Similarly, `id` alone is fine for a table's own primary key, but a foreign key pointing to `customers.id` should be named `customer_id` — the reference target is implied by the suffix.
-
-## Naming Foreign Keys and Join Columns
-
-Foreign key columns follow a simple pattern: `<referenced_table_singular>_id`. This convention makes relationships visible in the schema itself without needing a diagram.
-
-| Column name | What it means |
-|-------------|---------------|
-| `customer_id` | Foreign key to `customers.id` |
-| `product_id` | Foreign key to `products.id` |
-| `created_by` | Foreign key to `users.id` (role-based alias — acceptable when the role matters) |
-
-> **Note:** When you have two foreign keys to the same table — for example, `sender_id` and `recipient_id` both referencing `users.id` — use role-based names instead of repeating `user_id`. Role clarity beats mechanical consistency here.
-
-## Timestamps, Booleans, and Other Common Columns
-
-A few column types have community-standard naming patterns that signal their purpose instantly:
-
-| Purpose | Preferred name(s) | Avoid |
-|---------|------------------|-------|
-| Row creation time | `created_at` | `date`, `timestamp`, `when` |
-| Last update time | `updated_at` | `modified`, `last_update` |
-| Soft-delete flag | `deleted_at` (NULL = active) | `is_deleted`, `active` |
-| Boolean flag | `is_active`, `has_verified_email` | `active` (adjective, not a noun) |
-| Display order | `position`, `sort_order` | `order` (reserved word in SQL!) |
-
-The `is_` and `has_` prefixes make boolean columns read like true/false questions — a reader can immediately infer the domain of values.
-
-> **Note:** Avoid names that are SQL reserved words: `order`, `group`, `select`, `table`, `value`. If you use them as identifiers, you must quote them everywhere — a maintenance headache. Most engines will let you do it; you just should not.
-
-## See It in Practice
-
-The widget below shows a small e-commerce schema with carefully named tables and columns. Run the default query, then try renaming a column alias in the `SELECT` list to see how name clarity affects readability.
-
+</code></pre>
+<p><strong>Name tables as plural nouns.</strong> A table is a collection of things, so <code>customers</code>, <code>orders</code>, and <code>products</code> read naturally: &quot;this table holds many customers.&quot; Some teams use singular names (<code>customer</code>, <code>order</code>) — consistency matters more than which convention you pick, but plural is more common in practice.</p>
+<p><strong>Name columns as singular noun phrases.</strong> A column holds one value per row: <code>email</code>, <code>created_at</code>, <code>unit_price</code>. Reserve plural names for columns that genuinely store lists — which, in a normalized schema, is rare.</p>
+<p><strong>Be specific, not generic.</strong> A column named <code>name</code> is ambiguous in any table other than the most obvious. Prefer <code>customer_name</code>, <code>product_name</code>, or <code>category_name</code>. Similarly, <code>id</code> alone is fine for a table&#39;s own primary key, but a foreign key pointing to <code>customers.id</code> should be named <code>customer_id</code> — the reference target is implied by the suffix.</p>
+<h2>Naming Foreign Keys and Join Columns</h2>
+<p>Foreign key columns follow a simple pattern: <code>&lt;referenced_table_singular&gt;_id</code>. This convention makes relationships visible in the schema itself without needing a diagram.</p>
+<table>
+<thead>
+<tr>
+<th>Column name</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>customer_id</code></td>
+<td>Foreign key to <code>customers.id</code></td>
+</tr>
+<tr>
+<td><code>product_id</code></td>
+<td>Foreign key to <code>products.id</code></td>
+</tr>
+<tr>
+<td><code>created_by</code></td>
+<td>Foreign key to <code>users.id</code> (role-based alias — acceptable when the role matters)</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> When you have two foreign keys to the same table — for example, <code>sender_id</code> and <code>recipient_id</code> both referencing <code>users.id</code> — use role-based names instead of repeating <code>user_id</code>. Role clarity beats mechanical consistency here.</p>
+</blockquote>
+<h2>Timestamps, Booleans, and Other Common Columns</h2>
+<p>A few column types have community-standard naming patterns that signal their purpose instantly:</p>
+<table>
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Preferred name(s)</th>
+<th>Avoid</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Row creation time</td>
+<td><code>created_at</code></td>
+<td><code>date</code>, <code>timestamp</code>, <code>when</code></td>
+</tr>
+<tr>
+<td>Last update time</td>
+<td><code>updated_at</code></td>
+<td><code>modified</code>, <code>last_update</code></td>
+</tr>
+<tr>
+<td>Soft-delete flag</td>
+<td><code>deleted_at</code> (NULL = active)</td>
+<td><code>is_deleted</code>, <code>active</code></td>
+</tr>
+<tr>
+<td>Boolean flag</td>
+<td><code>is_active</code>, <code>has_verified_email</code></td>
+<td><code>active</code> (adjective, not a noun)</td>
+</tr>
+<tr>
+<td>Display order</td>
+<td><code>position</code>, <code>sort_order</code></td>
+<td><code>order</code> (reserved word in SQL!)</td>
+</tr>
+</tbody></table>
+<p>The <code>is_</code> and <code>has_</code> prefixes make boolean columns read like true/false questions — a reader can immediately infer the domain of values.</p>
+<blockquote>
+<p><strong>Note:</strong> Avoid names that are SQL reserved words: <code>order</code>, <code>group</code>, <code>select</code>, <code>table</code>, <code>value</code>. If you use them as identifiers, you must quote them everywhere — a maintenance headache. Most engines will let you do it; you just should not.</p>
+</blockquote>
+<h2>See It in Practice</h2>
+<p>The widget below shows a small e-commerce schema with carefully named tables and columns. Run the default query, then try renaming a column alias in the <code>SELECT</code> list to see how name clarity affects readability.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Naming conventions</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, full_name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL); CREATE TABLE products (id INTEGER PRIMARY KEY, product_name TEXT NOT NULL, unit_price REAL NOT NULL CHECK (unit_price  rows="20">= 0), is_available INTEGER NOT NULL DEFAULT 1); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), placed_at TEXT NOT NULL); CREATE TABLE order_items (id INTEGER PRIMARY KEY, order_id INTEGER NOT NULL REFERENCES orders(id), product_id INTEGER NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL DEFAULT 1); INSERT INTO customers VALUES (1, 'Alice Wong', 'alice@example.com', '2024-01-10'), (2, 'Bob Patel', 'bob@example.com', '2024-03-05'); INSERT INTO products VALUES (1, 'Wireless Keyboard', 59.99, 1), (2, 'USB-C Hub', 34.99, 1), (3, 'Laptop Stand', 29.99, 0); INSERT INTO orders VALUES (1, 1, '2024-06-01'), (2, 2, '2024-06-15'); INSERT INTO order_items VALUES (1, 1, 1, 1), (2, 1, 2, 2), (3, 2, 3, 1);">-- Notice how the column names make the JOIN readable without comments
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, full_name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL); CREATE TABLE products (id INTEGER PRIMARY KEY, product_name TEXT NOT NULL, unit_price REAL NOT NULL CHECK (unit_price  rows="10">= 0), is_available INTEGER NOT NULL DEFAULT 1); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), placed_at TEXT NOT NULL); CREATE TABLE order_items (id INTEGER PRIMARY KEY, order_id INTEGER NOT NULL REFERENCES orders(id), product_id INTEGER NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL DEFAULT 1); INSERT INTO customers VALUES (1, 'Alice Wong', 'alice@example.com', '2024-01-10'), (2, 'Bob Patel', 'bob@example.com', '2024-03-05'); INSERT INTO products VALUES (1, 'Wireless Keyboard', 59.99, 1), (2, 'USB-C Hub', 34.99, 1), (3, 'Laptop Stand', 29.99, 0); INSERT INTO orders VALUES (1, 1, '2024-06-01'), (2, 2, '2024-06-15'); INSERT INTO order_items VALUES (1, 1, 1, 1), (2, 1, 2, 2), (3, 2, 3, 1);">-- Notice how the column names make the JOIN readable without comments
 SELECT
   c.full_name      AS customer,
   p.product_name   AS product,
@@ -99,19 +142,18 @@ JOIN customers c ON c.id = o.customer_id
 JOIN products  p ON p.id = oi.product_id
 ORDER BY c.full_name, p.product_name;</textarea>
   </div>
+</div><h2>When to Break the Rules</h2>
+<p>Conventions exist to serve communication — not the other way around. There are legitimate reasons to deviate:</p>
+<ul>
+<li>A <strong>legacy schema</strong> you are extending may already use a different convention. Match the existing style rather than mixing two conventions in the same database.</li>
+<li><strong>Abbreviations</strong> are acceptable when the full word is genuinely unwieldy and the abbreviation is universally understood in your domain (<code>qty</code> for quantity, <code>amt</code> for amount).</li>
+<li><strong>Domain language</strong> should win over generic naming. If the business universally says &quot;SKU&quot; and not &quot;product_code&quot;, name the column <code>sku</code>.</li>
+</ul>
+<p>The underlying goal is always the same: a reader unfamiliar with your codebase should be able to look at a table definition and understand what each column holds without asking anyone.</p>
+
 </div>
-
-## When to Break the Rules
-
-Conventions exist to serve communication — not the other way around. There are legitimate reasons to deviate:
-
-- A **legacy schema** you are extending may already use a different convention. Match the existing style rather than mixing two conventions in the same database.
-- **Abbreviations** are acceptable when the full word is genuinely unwieldy and the abbreviation is universally understood in your domain (`qty` for quantity, `amt` for amount).
-- **Domain language** should win over generic naming. If the business universally says "SKU" and not "product_code", name the column `sku`.
-
-The underlying goal is always the same: a reader unfamiliar with your codebase should be able to look at a table definition and understand what each column holds without asking anyone.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="035-derived-data-and-computed-columns.html"><span class="dir">← Previous</span><span class="ttl">Derived data and computed columns</span></a><a class="next" href="037-avoiding-duplication.html"><span class="dir">Next →</span><span class="ttl">Avoiding duplication</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

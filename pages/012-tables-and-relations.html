@@ -5,81 +5,90 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tables and relations — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 2. How Data Is Organized</p>
   <h1 class="content-title">Tables and relations</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="011-logical-structure-vs-physical-structure.html"><span class="dir">← Previous</span><span class="ttl">Logical structure vs physical structure</span></a><a class="next" href="013-keys-and-identifiers.html"><span class="dir">Next →</span><span class="ttl">Keys and identifiers</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-At the heart of a relational database is a deceptively simple idea: store everything in **tables**. Each table represents one kind of thing — customers, orders, products — and the power comes from linking those tables together. This chapter unpacks that structure and explains why it matters for every query you will ever write.
-
-## Anatomy of a Table
-
-A table is a grid of **rows** and **columns** — you have already seen the terms. The important details are the rules that govern it:
-
-| Term | What it means |
-|---|---|
-| **Column** (field) | One attribute of the entity — its name, data type, and constraints are fixed for every row |
-| **Row** (record / tuple) | One instance of the entity — the actual data |
-| **Cell** | The intersection of a column and a row; holds exactly one value |
-| **Primary key** | A column (or combination) whose value is unique per row and never NULL — it is the row's identity |
-
-A column's **data type** is a hard contract. If a column is declared `INTEGER`, the database rejects text values. This strictness is a feature: it catches bad data at write time rather than at 3 a.m. when a report breaks.
-
-```sql
-CREATE TABLE products (
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 180" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,12)">
+    <rect x="0" y="0" width="690" height="155" rx="10" fill="#e8f0ff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">Relation = Table (mathematical set of tuples)</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#bfdbfe"/>
+    <rect x="15" y="50" width="660" height="28" rx="4" fill="#fff"/><text x="345" y="69" text-anchor="middle" font-size="10" fill="#1c2330">Attributes (columns): id | name | dept | salary — the heading</text>
+    <rect x="15" y="82" width="660" height="28" rx="4" fill="#fff"/><text x="345" y="101" text-anchor="middle" font-size="10" fill="#1c2330">Tuples (rows): {1,Ada,Eng,95k} {2,Grace,Eng,105k} {3,Alan,Res,98k} — the body</text>
+    <text x="345" y="134" text-anchor="middle" font-size="9" fill="#5a6678">No duplicate tuples · No inherent row order · All tuples share the same heading</text>
+    <text x="345" y="150" text-anchor="middle" font-size="8" fill="#9aa6b8">Degree = # of attributes | Cardinality = # of tuples</text>
+  </g>
+</svg>
+<figcaption>A table is a relation: a set of tuples sharing the same heading. No duplicate rows, no implicit order — pure set semantics.</figcaption>
+</figure>
+<p>At the heart of a relational database is a deceptively simple idea: store everything in <strong>tables</strong>. Each table represents one kind of thing — customers, orders, products — and the power comes from linking those tables together. This chapter unpacks that structure and explains why it matters for every query you will ever write.</p>
+<h2>Anatomy of a Table</h2>
+<p>A table is a grid of <strong>rows</strong> and <strong>columns</strong> — you have already seen the terms. The important details are the rules that govern it:</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Column</strong> (field)</td>
+<td>One attribute of the entity — its name, data type, and constraints are fixed for every row</td>
+</tr>
+<tr>
+<td><strong>Row</strong> (record / tuple)</td>
+<td>One instance of the entity — the actual data</td>
+</tr>
+<tr>
+<td><strong>Cell</strong></td>
+<td>The intersection of a column and a row; holds exactly one value</td>
+</tr>
+<tr>
+<td><strong>Primary key</strong></td>
+<td>A column (or combination) whose value is unique per row and never NULL — it is the row&#39;s identity</td>
+</tr>
+</tbody></table>
+<p>A column&#39;s <strong>data type</strong> is a hard contract. If a column is declared <code>INTEGER</code>, the database rejects text values. This strictness is a feature: it catches bad data at write time rather than at 3 a.m. when a report breaks.</p>
+<pre><code class="language-sql">CREATE TABLE products (
   product_id  INTEGER PRIMARY KEY,
   name        TEXT    NOT NULL,
-  price_cents INTEGER NOT NULL CHECK (price_cents >= 0),
+  price_cents INTEGER NOT NULL CHECK (price_cents &gt;= 0),
   in_stock    INTEGER NOT NULL DEFAULT 1   -- 1 = true, 0 = false
 );
-```
-
-Notice `NOT NULL`, `CHECK`, and `DEFAULT` — these are **constraints**, rules the engine enforces on every insert and update so you never have to police them in application code.
-
-## Relations: Linking Tables Together
-
-"Relational" does not mean rows are related to each other inside a table. It means tables are related to *each other* through shared values — specifically through **foreign keys**.
-
-A foreign key in one table points to the primary key of another table. The database engine enforces that the value you write actually exists in the referenced table (this is called **referential integrity**).
-
-```sql
-CREATE TABLE orders (
+</code></pre>
+<p>Notice <code>NOT NULL</code>, <code>CHECK</code>, and <code>DEFAULT</code> — these are <strong>constraints</strong>, rules the engine enforces on every insert and update so you never have to police them in application code.</p>
+<h2>Relations: Linking Tables Together</h2>
+<p>&quot;Relational&quot; does not mean rows are related to each other inside a table. It means tables are related to <em>each other</em> through shared values — specifically through <strong>foreign keys</strong>.</p>
+<p>A foreign key in one table points to the primary key of another table. The database engine enforces that the value you write actually exists in the referenced table (this is called <strong>referential integrity</strong>).</p>
+<pre><code class="language-sql">CREATE TABLE orders (
   order_id   INTEGER PRIMARY KEY,
   customer   TEXT    NOT NULL,
   product_id INTEGER NOT NULL REFERENCES products(product_id),
-  quantity   INTEGER NOT NULL CHECK (quantity > 0)
+  quantity   INTEGER NOT NULL CHECK (quantity &gt; 0)
 );
-```
-
-Here `orders.product_id` must match a value in `products.product_id`. You cannot create an order for a product that does not exist; you cannot delete a product that has orders. The engine says no.
-
-### The three common relationship types
-
-- **One-to-many** — one product appears in many order rows. This is the most common relationship and is implemented with a foreign key on the "many" side.
-- **Many-to-many** — a student enrolls in many courses, a course has many students. Needs a **junction table** (`enrollments`) with two foreign keys.
-- **One-to-one** — rarer; used to split a wide table or store optional detail (e.g., a `user_profiles` table that extends `users`).
-
-## Querying Across Tables with JOIN
-
-Once data lives in separate tables you retrieve it together using a `JOIN`. A `JOIN` matches rows from two tables on a shared column — typically a foreign key to primary key pairing.
-
-Try this widget. It creates a small `products` and `orders` table, seeds them, then runs a JOIN. Edit the query to filter by product or calculate a total — the database is all yours.
-
+</code></pre>
+<p>Here <code>orders.product_id</code> must match a value in <code>products.product_id</code>. You cannot create an order for a product that does not exist; you cannot delete a product that has orders. The engine says no.</p>
+<h3>The three common relationship types</h3>
+<ul>
+<li><strong>One-to-many</strong> — one product appears in many order rows. This is the most common relationship and is implemented with a foreign key on the &quot;many&quot; side.</li>
+<li><strong>Many-to-many</strong> — a student enrolls in many courses, a course has many students. Needs a <strong>junction table</strong> (<code>enrollments</code>) with two foreign keys.</li>
+<li><strong>One-to-one</strong> — rarer; used to split a wide table or store optional detail (e.g., a <code>user_profiles</code> table that extends <code>users</code>).</li>
+</ul>
+<h2>Querying Across Tables with JOIN</h2>
+<p>Once data lives in separate tables you retrieve it together using a <code>JOIN</code>. A <code>JOIN</code> matches rows from two tables on a shared column — typically a foreign key to primary key pairing.</p>
+<p>Try this widget. It creates a small <code>products</code> and <code>orders</code> table, seeds them, then runs a JOIN. Edit the query to filter by product or calculate a total — the database is all yours.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Tables &amp; Relations</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (product_id INTEGER PRIMARY KEY, name TEXT NOT NULL, price_cents INTEGER NOT NULL); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT NOT NULL, product_id INTEGER NOT NULL REFERENCES products(product_id), quantity INTEGER NOT NULL); INSERT INTO products VALUES (1, 'Notebook', 299), (2, 'Pen', 99), (3, 'Ruler', 149); INSERT INTO orders VALUES (1, 'Alice', 1, 3), (2, 'Bob', 2, 10), (3, 'Alice', 3, 2), (4, 'Bob', 1, 1);" rows="20">SELECT
+    <textarea data-setup="CREATE TABLE products (product_id INTEGER PRIMARY KEY, name TEXT NOT NULL, price_cents INTEGER NOT NULL); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT NOT NULL, product_id INTEGER NOT NULL REFERENCES products(product_id), quantity INTEGER NOT NULL); INSERT INTO products VALUES (1, 'Notebook', 299), (2, 'Pen', 99), (3, 'Ruler', 149); INSERT INTO orders VALUES (1, 'Alice', 1, 3), (2, 'Bob', 2, 10), (3, 'Alice', 3, 2), (4, 'Bob', 1, 1);" rows="10">SELECT
   o.order_id,
   o.customer,
   p.name        AS product,
@@ -90,17 +99,16 @@ FROM orders AS o
 JOIN products AS p ON o.product_id = p.product_id
 ORDER BY o.order_id;</textarea>
   </div>
+</div><blockquote>
+<p><strong>Note:</strong> A <code>JOIN</code> without a <code>WHERE</code> or <code>ON</code> condition would pair every row in one table with every row in the other — a <strong>Cartesian product</strong> — producing nonsense results. Always specify the matching column.</p>
+</blockquote>
+<h2>Why This Design Matters</h2>
+<p>Splitting data into related tables rather than one giant flat file is the core of <strong>normalization</strong> — eliminating redundancy. In the example above, a product&#39;s name and price live in exactly one row. If you need to update the price, you change one cell; every order that references it automatically reflects the new value. In a flat file you would hunt down every duplicate and hope you caught them all.</p>
+<p>Tables and relations are the vocabulary of relational databases. Everything else — indexes, transactions, query plans — is built on top of this foundation.</p>
+
 </div>
-
-> **Note:** A `JOIN` without a `WHERE` or `ON` condition would pair every row in one table with every row in the other — a **Cartesian product** — producing nonsense results. Always specify the matching column.
-
-## Why This Design Matters
-
-Splitting data into related tables rather than one giant flat file is the core of **normalization** — eliminating redundancy. In the example above, a product's name and price live in exactly one row. If you need to update the price, you change one cell; every order that references it automatically reflects the new value. In a flat file you would hunt down every duplicate and hope you caught them all.
-
-Tables and relations are the vocabulary of relational databases. Everything else — indexes, transactions, query plans — is built on top of this foundation.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="011-logical-structure-vs-physical-structure.html"><span class="dir">← Previous</span><span class="ttl">Logical structure vs physical structure</span></a><a class="next" href="013-keys-and-identifiers.html"><span class="dir">Next →</span><span class="ttl">Keys and identifiers</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

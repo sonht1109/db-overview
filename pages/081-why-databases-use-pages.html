@@ -5,45 +5,63 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Why databases use pages — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Why databases use pages</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="079-practical-query-tuning.html"><span class="dir">← Previous</span><span class="ttl">Practical query tuning</span></a><a class="next" href="082-heap-files-and-page-layouts.html"><span class="dir">Next →</span><span class="ttl">Heap files and page layouts</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every database stores its data somewhere on disk. But it does not write raw bytes one row at a time — instead, the storage engine groups data into fixed-size chunks called **pages** (sometimes called *blocks*). Understanding why pages exist unlocks almost everything else about how databases read, write, index, and cache data.
-
-## The Physics of Disk I/O
-
-Hard drives and SSDs do not let you fetch a single byte in isolation. The operating system and the hardware both transfer data in minimum-sized chunks aligned to disk sectors. Asking for one byte means reading an entire sector (typically 512 bytes) or filesystem block (typically 4 KB) anyway.
-
-Database designers turned this constraint into an advantage: if you are paying the I/O cost of a large chunk regardless, you should pack as many useful bytes into that chunk as possible. A database **page** is usually 8 KB (PostgreSQL's default), 16 KB (MySQL InnoDB's default), or a power-of-two size you choose at creation time. SQLite defaults to 4 KB.
-
-| Database | Default page size |
-|---|---|
-| SQLite | 4 KB |
-| PostgreSQL | 8 KB |
-| MySQL (InnoDB) | 16 KB |
-| SQL Server | 8 KB |
-
-> **Note:** "Page" (database term) and "page" (OS virtual-memory term) are different things. In database literature, "page" always means a fixed-size storage unit on disk and in the buffer pool.
-
-## What Lives Inside a Page
-
-A page is not a raw dump of rows. It has structure: a small **header** that records the page type, a checksum for corruption detection, and bookkeeping for the storage engine; then a **slot array** that points to where each record starts; and finally the **records** themselves.
-
-```
-┌─────────────────────────────────────────┐
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">081-why-databases-use-pages</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 081-why-databases-use-pages.</figcaption>
+</figure>
+<p>Every database stores its data somewhere on disk. But it does not write raw bytes one row at a time — instead, the storage engine groups data into fixed-size chunks called <strong>pages</strong> (sometimes called <em>blocks</em>). Understanding why pages exist unlocks almost everything else about how databases read, write, index, and cache data.</p>
+<h2>The Physics of Disk I/O</h2>
+<p>Hard drives and SSDs do not let you fetch a single byte in isolation. The operating system and the hardware both transfer data in minimum-sized chunks aligned to disk sectors. Asking for one byte means reading an entire sector (typically 512 bytes) or filesystem block (typically 4 KB) anyway.</p>
+<p>Database designers turned this constraint into an advantage: if you are paying the I/O cost of a large chunk regardless, you should pack as many useful bytes into that chunk as possible. A database <strong>page</strong> is usually 8 KB (PostgreSQL&#39;s default), 16 KB (MySQL InnoDB&#39;s default), or a power-of-two size you choose at creation time. SQLite defaults to 4 KB.</p>
+<table>
+<thead>
+<tr>
+<th>Database</th>
+<th>Default page size</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SQLite</td>
+<td>4 KB</td>
+</tr>
+<tr>
+<td>PostgreSQL</td>
+<td>8 KB</td>
+</tr>
+<tr>
+<td>MySQL (InnoDB)</td>
+<td>16 KB</td>
+</tr>
+<tr>
+<td>SQL Server</td>
+<td>8 KB</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> &quot;Page&quot; (database term) and &quot;page&quot; (OS virtual-memory term) are different things. In database literature, &quot;page&quot; always means a fixed-size storage unit on disk and in the buffer pool.</p>
+</blockquote>
+<h2>What Lives Inside a Page</h2>
+<p>A page is not a raw dump of rows. It has structure: a small <strong>header</strong> that records the page type, a checksum for corruption detection, and bookkeeping for the storage engine; then a <strong>slot array</strong> that points to where each record starts; and finally the <strong>records</strong> themselves.</p>
+<pre><code>┌─────────────────────────────────────────┐
 │  Page header (type, LSN, checksum, …)   │
 ├─────────────────────────────────────────┤
 │  Slot array  [offset₁, offset₂, …]      │
@@ -52,34 +70,22 @@ A page is not a raw dump of rows. It has structure: a small **header** that reco
 ├─────────────────────────────────────────┤
 │  Records (packed from the bottom up)    │
 └─────────────────────────────────────────┘
-```
-
-The slot array grows downward from the top; records grow upward from the bottom. Inserts are cheap until the free space in the middle is exhausted — at that point the page is *full* and the engine must find another page or split this one.
-
-A single page can hold many rows. At 8 KB with a 200-byte average row, one page holds roughly 40 rows. That means one disk read can fetch 40 rows simultaneously — a massive win over fetching rows one at a time.
-
-## Pages as the Unit of Caching
-
-The real payoff comes in memory. Databases maintain a **buffer pool** (also called the buffer cache): a region of RAM where recently-used pages live. When a query needs a row, the engine checks the buffer pool first. If the page is already there, no disk I/O happens at all — the data is served from RAM at nanosecond speed instead of millisecond disk speed.
-
-Because the page is the unit of transfer, this caching works naturally: load one page, cache the whole page, serve every subsequent access to any row on that page from RAM. A hot table that fits in the buffer pool is effectively an in-memory table.
-
-This also explains why query performance often "falls off a cliff" once a working set grows larger than the buffer pool: pages start getting evicted before they are reused, and every access goes back to disk.
-
-## Pages as the Unit of Locking and Transactions
-
-Pages matter beyond I/O. Many storage engines acquire page-level latches when reading or writing, ensuring that two threads do not corrupt the same page simultaneously. Write-ahead logging (WAL) records changes page by page. When the engine needs to roll back a transaction or recover from a crash, it replays or undoes changes at page granularity.
-
-In short, the page is the fundamental atom of the storage layer — the thing that gets read, written, cached, locked, logged, and recovered as one indivisible unit.
-
----
-
-Try the widget below to see page-size reasoning in action. The query counts how many rows of different sizes would fit on a single 4 KB page (leaving 100 bytes for the page header and slot overhead per row).
-
+</code></pre>
+<p>The slot array grows downward from the top; records grow upward from the bottom. Inserts are cheap until the free space in the middle is exhausted — at that point the page is <em>full</em> and the engine must find another page or split this one.</p>
+<p>A single page can hold many rows. At 8 KB with a 200-byte average row, one page holds roughly 40 rows. That means one disk read can fetch 40 rows simultaneously — a massive win over fetching rows one at a time.</p>
+<h2>Pages as the Unit of Caching</h2>
+<p>The real payoff comes in memory. Databases maintain a <strong>buffer pool</strong> (also called the buffer cache): a region of RAM where recently-used pages live. When a query needs a row, the engine checks the buffer pool first. If the page is already there, no disk I/O happens at all — the data is served from RAM at nanosecond speed instead of millisecond disk speed.</p>
+<p>Because the page is the unit of transfer, this caching works naturally: load one page, cache the whole page, serve every subsequent access to any row on that page from RAM. A hot table that fits in the buffer pool is effectively an in-memory table.</p>
+<p>This also explains why query performance often &quot;falls off a cliff&quot; once a working set grows larger than the buffer pool: pages start getting evicted before they are reused, and every access goes back to disk.</p>
+<h2>Pages as the Unit of Locking and Transactions</h2>
+<p>Pages matter beyond I/O. Many storage engines acquire page-level latches when reading or writing, ensuring that two threads do not corrupt the same page simultaneously. Write-ahead logging (WAL) records changes page by page. When the engine needs to roll back a transaction or recover from a crash, it replays or undoes changes at page granularity.</p>
+<p>In short, the page is the fundamental atom of the storage layer — the thing that gets read, written, cached, locked, logged, and recovered as one indivisible unit.</p>
+<hr>
+<p>Try the widget below to see page-size reasoning in action. The query counts how many rows of different sizes would fit on a single 4 KB page (leaving 100 bytes for the page header and slot overhead per row).</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Rows per page calculator</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE row_sizes (label TEXT, row_bytes INTEGER); INSERT INTO row_sizes VALUES ('Tiny row (50 B)', 50), ('Small row (200 B)', 200), ('Medium row (500 B)', 500), ('Large row (1 000 B)', 1000), ('Near-page row (3 000 B)', 3000);" rows="20">-- How many rows fit on a 4 KB page?
+    <textarea data-setup="CREATE TABLE row_sizes (label TEXT, row_bytes INTEGER); INSERT INTO row_sizes VALUES ('Tiny row (50 B)', 50), ('Small row (200 B)', 200), ('Medium row (500 B)', 500), ('Large row (1 000 B)', 1000), ('Near-page row (3 000 B)', 3000);" rows="10">-- How many rows fit on a 4 KB page?
 -- We assume 100 bytes overhead per row (slot entry + alignment).
 SELECT
     label,
@@ -89,11 +95,11 @@ SELECT
 FROM row_sizes
 ORDER BY row_bytes;</textarea>
   </div>
+</div><p>Change the page sizes in the query (try <code>16384</code> for MySQL&#39;s default 16 KB) or add a row size that matches a table you are designing. Notice how a wide row can drop a page down to just one or two records — a strong signal to reconsider your schema or choose a larger page size.</p>
+
 </div>
-
-Change the page sizes in the query (try `16384` for MySQL's default 16 KB) or add a row size that matches a table you are designing. Notice how a wide row can drop a page down to just one or two records — a strong signal to reconsider your schema or choose a larger page size.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="079-practical-query-tuning.html"><span class="dir">← Previous</span><span class="ttl">Practical query tuning</span></a><a class="next" href="082-heap-files-and-page-layouts.html"><span class="dir">Next →</span><span class="ttl">Heap files and page layouts</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

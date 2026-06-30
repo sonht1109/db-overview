@@ -5,103 +5,117 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Keys and identifiers — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 2. How Data Is Organized</p>
   <h1 class="content-title">Keys and identifiers</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="012-tables-and-relations.html"><span class="dir">← Previous</span><span class="ttl">Tables and relations</span></a><a class="next" href="014-constraints-and-rules.html"><span class="dir">Next →</span><span class="ttl">Constraints and rules</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every table needs a way to tell rows apart. Without that, you cannot reliably update a single record, link two tables together, or enforce that the same thing is not stored twice. **Keys** solve this — they are the identifiers that give every row a unique, stable address.
-
-## Primary Keys: One Row, One Identity
-
-A **primary key** is a column (or combination of columns) whose value uniquely identifies each row in a table. The database enforces two rules automatically:
-
-- **Uniqueness** — no two rows may share the same primary key value.
-- **Not null** — a primary key must always have a value; it cannot be left blank.
-
-```sql
-CREATE TABLE customers (
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <rect x="0" y="0" width="220" height="140" rx="10" fill="#e8f0ff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="110" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#2f6df6">Natural Key</text>
+    <text x="110" y="48" font-size="9" fill="#5a6678">email, SSN, ISBN</text>
+    <line x1="15" y1="58" x2="205" y2="58" stroke="#bfdbfe"/>
+    <text x="110" y="76" font-size="9" fill="#1c2330">✓ Meaningful</text>
+    <text x="110" y="92" font-size="9" fill="#dc2626">✗ Can change</text>
+    <text x="110" y="108" font-size="9" fill="#dc2626">✗ May not be unique</text>
+    <rect x="250" y="0" width="220" height="140" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2" filter="url(#sh)"/>
+    <text x="360" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a">Surrogate Key</text>
+    <text x="360" y="48" font-size="9" fill="#5a6678">id SERIAL, UUID</text>
+    <line x1="265" y1="58" x2="455" y2="58" stroke="#bbf7d0"/>
+    <text x="360" y="76" font-size="9" fill="#16a34a">✓ Never changes</text>
+    <text x="360" y="92" font-size="9" fill="#16a34a">✓ Always unique</text>
+    <text x="360" y="108" font-size="9" fill="#5a6678">✗ No business meaning</text>
+    <rect x="500" y="10" width="200" height="110" rx="8" fill="#fef3c7" stroke="#f59e0b" filter="url(#sh)"/>
+    <text x="600" y="40" text-anchor="middle" font-size="11" font-weight="700" fill="#d97706">Composite Key</text>
+    <text x="600" y="60" font-size="9" fill="#5a6678">(user_id, role_id)</text>
+    <text x="600" y="80" font-size="9" fill="#5a6678">(order_id, line_no)</text>
+    <text x="600" y="100" font-size="9" fill="#5a6678">Multiple columns together</text>
+  </g>
+</svg>
+<figcaption>Keys uniquely identify rows. Natural keys come from the domain; surrogate keys are synthetic and immutable. Choose surrogates for stability.</figcaption>
+</figure>
+<p>Every table needs a way to tell rows apart. Without that, you cannot reliably update a single record, link two tables together, or enforce that the same thing is not stored twice. <strong>Keys</strong> solve this — they are the identifiers that give every row a unique, stable address.</p>
+<h2>Primary Keys: One Row, One Identity</h2>
+<p>A <strong>primary key</strong> is a column (or combination of columns) whose value uniquely identifies each row in a table. The database enforces two rules automatically:</p>
+<ul>
+<li><strong>Uniqueness</strong> — no two rows may share the same primary key value.</li>
+<li><strong>Not null</strong> — a primary key must always have a value; it cannot be left blank.</li>
+</ul>
+<pre><code class="language-sql">CREATE TABLE customers (
     customer_id INTEGER PRIMARY KEY,
     name        TEXT NOT NULL,
     email       TEXT NOT NULL
 );
-```
-
-Here `customer_id` is the primary key. If you try to insert two rows with `customer_id = 7`, the database rejects the second one immediately — no application-level check needed.
-
-### Natural vs. Surrogate Keys
-
-There are two schools of thought on what to use as a primary key:
-
-| Type | What it is | Example | Trade-off |
-|---|---|---|---|
-| **Natural key** | A real-world value that is already unique | Email address, ISBN, passport number | Meaningful, but can change or be longer than needed |
-| **Surrogate key** | A system-generated value with no business meaning | Auto-incrementing integer, UUID | Stable and compact, but opaque |
-
-Most production tables use surrogate keys — typically an auto-incrementing integer (`INTEGER PRIMARY KEY` in SQLite auto-increments) or a UUID — because natural identifiers change more than people expect. An email address seems permanent until a customer asks to change it.
-
-> **Note:** In SQLite, declaring a column as `INTEGER PRIMARY KEY` automatically makes it an alias for the internal `rowid`, giving you auto-increment behavior with no extra syntax.
-
-## Foreign Keys: Linking Tables Together
-
-A **foreign key** is a column whose value must match an existing primary key in another table. It is how relationships are expressed in a relational database.
-
-```sql
-CREATE TABLE orders (
+</code></pre>
+<p>Here <code>customer_id</code> is the primary key. If you try to insert two rows with <code>customer_id = 7</code>, the database rejects the second one immediately — no application-level check needed.</p>
+<h3>Natural vs. Surrogate Keys</h3>
+<p>There are two schools of thought on what to use as a primary key:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>What it is</th>
+<th>Example</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Natural key</strong></td>
+<td>A real-world value that is already unique</td>
+<td>Email address, ISBN, passport number</td>
+<td>Meaningful, but can change or be longer than needed</td>
+</tr>
+<tr>
+<td><strong>Surrogate key</strong></td>
+<td>A system-generated value with no business meaning</td>
+<td>Auto-incrementing integer, UUID</td>
+<td>Stable and compact, but opaque</td>
+</tr>
+</tbody></table>
+<p>Most production tables use surrogate keys — typically an auto-incrementing integer (<code>INTEGER PRIMARY KEY</code> in SQLite auto-increments) or a UUID — because natural identifiers change more than people expect. An email address seems permanent until a customer asks to change it.</p>
+<blockquote>
+<p><strong>Note:</strong> In SQLite, declaring a column as <code>INTEGER PRIMARY KEY</code> automatically makes it an alias for the internal <code>rowid</code>, giving you auto-increment behavior with no extra syntax.</p>
+</blockquote>
+<h2>Foreign Keys: Linking Tables Together</h2>
+<p>A <strong>foreign key</strong> is a column whose value must match an existing primary key in another table. It is how relationships are expressed in a relational database.</p>
+<pre><code class="language-sql">CREATE TABLE orders (
     order_id    INTEGER PRIMARY KEY,
     customer_id INTEGER NOT NULL,
     placed_at   TEXT NOT NULL,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
 );
-```
-
-The `FOREIGN KEY` constraint tells the database: "every `customer_id` in `orders` must exist in `customers`." Trying to insert an order for a customer that does not exist fails. Trying to delete a customer who still has orders also fails — unless you have configured cascading rules.
-
-This constraint is what prevents **orphan records** — orders pointing at customers who no longer exist.
-
-## Composite Keys and Unique Constraints
-
-Sometimes no single column uniquely identifies a row, but a combination of columns does. A **composite primary key** uses two or more columns together.
-
-```sql
-CREATE TABLE course_enrollments (
+</code></pre>
+<p>The <code>FOREIGN KEY</code> constraint tells the database: &quot;every <code>customer_id</code> in <code>orders</code> must exist in <code>customers</code>.&quot; Trying to insert an order for a customer that does not exist fails. Trying to delete a customer who still has orders also fails — unless you have configured cascading rules.</p>
+<p>This constraint is what prevents <strong>orphan records</strong> — orders pointing at customers who no longer exist.</p>
+<h2>Composite Keys and Unique Constraints</h2>
+<p>Sometimes no single column uniquely identifies a row, but a combination of columns does. A <strong>composite primary key</strong> uses two or more columns together.</p>
+<pre><code class="language-sql">CREATE TABLE course_enrollments (
     student_id INTEGER NOT NULL,
     course_id  INTEGER NOT NULL,
     enrolled_at TEXT NOT NULL,
     PRIMARY KEY (student_id, course_id)
 );
-```
-
-A student can enroll in many courses, and a course can have many students — but the pair `(student_id, course_id)` must be unique. Attempting to enroll the same student in the same course twice is rejected.
-
-A **UNIQUE constraint** is a softer version: it enforces uniqueness without making the column the primary key. This is useful for things like email addresses that should not repeat but are not the main identifier.
-
-```sql
-CREATE TABLE users (
+</code></pre>
+<p>A student can enroll in many courses, and a course can have many students — but the pair <code>(student_id, course_id)</code> must be unique. Attempting to enroll the same student in the same course twice is rejected.</p>
+<p>A <strong>UNIQUE constraint</strong> is a softer version: it enforces uniqueness without making the column the primary key. This is useful for things like email addresses that should not repeat but are not the main identifier.</p>
+<pre><code class="language-sql">CREATE TABLE users (
     user_id INTEGER PRIMARY KEY,
     email   TEXT NOT NULL UNIQUE
 );
-```
-
-## Try It Live
-
-The widget below sets up a small `customers` and `orders` schema and seeds a few rows. Run the query to see how a join uses the primary/foreign key relationship to connect the two tables. Then try inserting an order with a `customer_id` that does not exist and observe what happens.
-
+</code></pre>
+<h2>Try It Live</h2>
+<p>The widget below sets up a small <code>customers</code> and <code>orders</code> schema and seeds a few rows. Run the query to see how a join uses the primary/foreign key relationship to connect the two tables. Then try inserting an order with a <code>customer_id</code> that does not exist and observe what happens.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Keys in action</span></div>
   <div class="widget-body">
-    <textarea data-setup="PRAGMA foreign_keys = ON; CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, FOREIGN KEY (customer_id) REFERENCES customers(customer_id)); INSERT INTO customers VALUES (1, 'Alice', 'alice@example.com'); INSERT INTO customers VALUES (2, 'Bob', 'bob@example.com'); INSERT INTO orders VALUES (101, 1, 49.95); INSERT INTO orders VALUES (102, 1, 12.00); INSERT INTO orders VALUES (103, 2, 89.50);" rows="20">SELECT
+    <textarea data-setup="PRAGMA foreign_keys = ON; CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, FOREIGN KEY (customer_id) REFERENCES customers(customer_id)); INSERT INTO customers VALUES (1, 'Alice', 'alice@example.com'); INSERT INTO customers VALUES (2, 'Bob', 'bob@example.com'); INSERT INTO orders VALUES (101, 1, 49.95); INSERT INTO orders VALUES (102, 1, 12.00); INSERT INTO orders VALUES (103, 2, 89.50);" rows="10">SELECT
   c.customer_id,
   c.name,
   o.order_id,
@@ -110,26 +124,21 @@ FROM customers AS c
 JOIN orders AS o ON c.customer_id = o.customer_id
 ORDER BY c.name, o.order_id;</textarea>
   </div>
+</div><p>To test the foreign key constraint, try adding this statement after the <code>SELECT</code>:</p>
+<pre><code class="language-sql">INSERT INTO orders VALUES (999, 42, 100.00);
+</code></pre>
+<p>Customer 42 does not exist, so SQLite (with <code>PRAGMA foreign_keys = ON</code>) will reject the insert.</p>
+<h2>Why Keys Matter Beyond Correctness</h2>
+<p>Keys do more than prevent bad data. They are the foundation of two other critical database features:</p>
+<ul>
+<li><strong>Indexes</strong> — the database automatically creates an index on the primary key, making lookups by that column fast even across millions of rows. Foreign key columns are good candidates for manual indexes too.</li>
+<li><strong>Joins</strong> — every <code>JOIN</code> in SQL works by matching values across tables. Without a reliable primary/foreign key relationship, joins produce ambiguous or incorrect results.</li>
+</ul>
+<p>A well-chosen key strategy is one of the earliest and most consequential design decisions you make when building a schema. Get it right early — changing primary keys in a live system is painful.</p>
+
 </div>
-
-To test the foreign key constraint, try adding this statement after the `SELECT`:
-
-```sql
-INSERT INTO orders VALUES (999, 42, 100.00);
-```
-
-Customer 42 does not exist, so SQLite (with `PRAGMA foreign_keys = ON`) will reject the insert.
-
-## Why Keys Matter Beyond Correctness
-
-Keys do more than prevent bad data. They are the foundation of two other critical database features:
-
-- **Indexes** — the database automatically creates an index on the primary key, making lookups by that column fast even across millions of rows. Foreign key columns are good candidates for manual indexes too.
-- **Joins** — every `JOIN` in SQL works by matching values across tables. Without a reliable primary/foreign key relationship, joins produce ambiguous or incorrect results.
-
-A well-chosen key strategy is one of the earliest and most consequential design decisions you make when building a schema. Get it right early — changing primary keys in a live system is painful.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="012-tables-and-relations.html"><span class="dir">← Previous</span><span class="ttl">Tables and relations</span></a><a class="next" href="014-constraints-and-rules.html"><span class="dir">Next →</span><span class="ttl">Constraints and rules</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

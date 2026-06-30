@@ -61,14 +61,6 @@ body {
 }
 .home-link:hover { color: var(--accent); }
 
-.toggle-btn {
-  border: 1px solid var(--border); background: var(--surface);
-  color: var(--text); padding: 7px 14px; border-radius: 999px;
-  font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--sans);
-  transition: all .15s ease;
-}
-.toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
-
 .eyebrow { color: var(--accent); font-weight: 700; font-size: 13px;
   letter-spacing: .04em; text-transform: uppercase; margin: 28px 0 6px; }
 .chapter-label { color: var(--muted); font-size: 15px; font-weight: 600; margin: 0 0 4px; }
@@ -104,16 +96,6 @@ h1.content-title { font-size: 33px; line-height: 1.2; margin: 4px 0 24px; letter
   border: 1px solid var(--border); background: var(--surface-2); }
 .callout.tip { border-left: 4px solid var(--ok); }
 .callout.warn { border-left: 4px solid var(--warn); }
-
-/* ---------- Raw markdown view ---------- */
-#raw { display: none; }
-#raw pre {
-  white-space: pre-wrap; word-break: break-word; background: var(--code-bg);
-  border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;
-  font-family: var(--mono); font-size: 13.5px; line-height: 1.6;
-}
-body.show-raw #rendered { display: none; }
-body.show-raw #raw { display: block; }
 
 /* ---------- Interactive widgets ---------- */
 .widget {

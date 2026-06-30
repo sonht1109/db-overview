@@ -5,52 +5,109 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Normalized and denormalized data — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 2. How Data Is Organized</p>
   <h1 class="content-title">Normalized and denormalized data</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="016-data-types-and-domains.html"><span class="dir">← Previous</span><span class="ttl">Data types and domains</span></a><a class="next" href="018-documents-graphs-and-key-value-shapes.html"><span class="dir">Next →</span><span class="ttl">Documents, graphs, and key-value shapes</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When you store the same fact in multiple places, you invite trouble: update it in one row and forget the others, and your database starts disagreeing with itself. **Normalization** is the practice of organizing data to eliminate that redundancy. **Denormalization** is the deliberate decision to reintroduce some redundancy for the sake of read performance. Both are tools — understanding when to use each is one of the most practical skills in database design.
-
-## The Problem Normalization Solves
-
-Imagine a single table that tracks every order a customer has ever placed:
-
-| order_id | customer_name | customer_email      | product    | price |
-|----------|--------------|---------------------|------------|-------|
-| 1        | Alice Wong   | alice@example.com   | Headphones | 79.99 |
-| 2        | Alice Wong   | alice@example.com   | USB Cable  |  9.99 |
-| 3        | Bob Patel    | bob@example.com     | Keyboard   | 49.99 |
-
-Alice's email appears twice. If she changes it, you must update every row — miss one, and your data is inconsistent. This is called an **update anomaly**. There are also **insertion anomalies** (you can't record a customer until they place an order) and **deletion anomalies** (deleting the last order erases the customer record entirely).
-
-Normalization fixes these by splitting the table so each fact lives in exactly one place.
-
-## Normal Forms: The Key Ideas
-
-Normalization is defined in levels called **normal forms** (1NF, 2NF, 3NF, and beyond). In practice, reaching **Third Normal Form (3NF)** is the standard target for transactional databases.
-
-| Normal Form | Rule (simplified) |
-|-------------|-------------------|
-| 1NF | Every cell holds one atomic value; no repeating groups |
-| 2NF | 1NF + every non-key column depends on the *whole* primary key |
-| 3NF | 2NF + no non-key column depends on another non-key column |
-
-For the orders example, a 3NF design separates customers from orders:
-
-```sql
--- Customers: each email stored once
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <!-- Normalized -->
+  <rect x="5" y="5" width="345" height="180" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="2" filter="url(#sh)"/>
+  <text x="177" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="#16a34a">Normalized (no duplication)</text>
+  <rect x="15" y="42" width="155" height="72" rx="6" fill="#dcfce7"/>
+  <text x="92" y="60" font-size="10" font-weight="600" fill="#16a34a">orders</text>
+  <text x="92" y="76" font-size="9" fill="#1c2330">id | customer_id | total</text>
+  <text x="92" y="92" font-size="8" fill="#5a6678">1  | 10 | 42.50</text>
+  <text x="92" y="104" font-size="8" fill="#5a6678">2  | 20 | 18.00</text>
+  <rect x="180" y="42" width="155" height="72" rx="6" fill="#dcfce7"/>
+  <text x="257" y="60" font-size="10" font-weight="600" fill="#16a34a">customers</text>
+  <text x="257" y="76" font-size="9" fill="#1c2330">id | name</text>
+  <text x="257" y="92" font-size="8" fill="#5a6678">10 | Alice</text>
+  <text x="257" y="104" font-size="8" fill="#5a6678">20 | Bob</text>
+  <line x1="170" y1="60" x2="180" y2="60" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="177" y="130" text-anchor="middle" font-size="9" fill="#16a34a">✓ No redundancy</text>
+  <text x="177" y="146" text-anchor="middle" font-size="9" fill="#16a34a">✓ Single source of truth</text>
+  <text x="177" y="162" text-anchor="middle" font-size="9" fill="#5a6678">✗ More JOINs for reads</text>
+  <!-- Denormalized -->
+  <rect x="370" y="5" width="345" height="180" rx="10" fill="#fef3c7" stroke="#fbbf24" stroke-width="2" filter="url(#sh)"/>
+  <text x="542" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="#d97706">Denormalized (duplication)</text>
+  <rect x="380" y="42" width="325" height="52" rx="6" fill="#fef9c3"/>
+  <text x="542" y="60" font-size="10" font-weight="600" fill="#d97706">order_details (merged)</text>
+  <text x="542" y="76" font-size="9" fill="#1c2330">id | customer_id | customer_name | total</text>
+  <text x="542" y="90" font-size="8" fill="#5a6678">1  | 10 | Alice | 42.50</text>
+  <text x="542" y="130" text-anchor="middle" font-size="9" fill="#d97706">✓ Faster reads (no JOIN)</text>
+  <text x="542" y="146" text-anchor="middle" font-size="9" fill="#d97706">✗ Redundancy: Alice stored N times</text>
+  <text x="542" y="162" text-anchor="middle" font-size="9" fill="#d97706">✗ Update anomaly risk</text>
+</svg>
+<figcaption>Normalized design splits facts apart to eliminate redundancy. Denormalization deliberately duplicates for read performance — a deliberate tradeoff, not a mistake.</figcaption>
+</figure>
+<p>When you store the same fact in multiple places, you invite trouble: update it in one row and forget the others, and your database starts disagreeing with itself. <strong>Normalization</strong> is the practice of organizing data to eliminate that redundancy. <strong>Denormalization</strong> is the deliberate decision to reintroduce some redundancy for the sake of read performance. Both are tools — understanding when to use each is one of the most practical skills in database design.</p>
+<h2>The Problem Normalization Solves</h2>
+<p>Imagine a single table that tracks every order a customer has ever placed:</p>
+<table>
+<thead>
+<tr>
+<th>order_id</th>
+<th>customer_name</th>
+<th>customer_email</th>
+<th>product</th>
+<th>price</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Alice Wong</td>
+<td><a href="mailto:alice@example.com">alice@example.com</a></td>
+<td>Headphones</td>
+<td>79.99</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Alice Wong</td>
+<td><a href="mailto:alice@example.com">alice@example.com</a></td>
+<td>USB Cable</td>
+<td>9.99</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Bob Patel</td>
+<td><a href="mailto:bob@example.com">bob@example.com</a></td>
+<td>Keyboard</td>
+<td>49.99</td>
+</tr>
+</tbody></table>
+<p>Alice&#39;s email appears twice. If she changes it, you must update every row — miss one, and your data is inconsistent. This is called an <strong>update anomaly</strong>. There are also <strong>insertion anomalies</strong> (you can&#39;t record a customer until they place an order) and <strong>deletion anomalies</strong> (deleting the last order erases the customer record entirely).</p>
+<p>Normalization fixes these by splitting the table so each fact lives in exactly one place.</p>
+<h2>Normal Forms: The Key Ideas</h2>
+<p>Normalization is defined in levels called <strong>normal forms</strong> (1NF, 2NF, 3NF, and beyond). In practice, reaching <strong>Third Normal Form (3NF)</strong> is the standard target for transactional databases.</p>
+<table>
+<thead>
+<tr>
+<th>Normal Form</th>
+<th>Rule (simplified)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1NF</td>
+<td>Every cell holds one atomic value; no repeating groups</td>
+</tr>
+<tr>
+<td>2NF</td>
+<td>1NF + every non-key column depends on the <em>whole</em> primary key</td>
+</tr>
+<tr>
+<td>3NF</td>
+<td>2NF + no non-key column depends on another non-key column</td>
+</tr>
+</tbody></table>
+<p>For the orders example, a 3NF design separates customers from orders:</p>
+<pre><code class="language-sql">-- Customers: each email stored once
 CREATE TABLE customers (
   id    INTEGER PRIMARY KEY,
   name  TEXT NOT NULL,
@@ -64,30 +121,21 @@ CREATE TABLE orders (
   product     TEXT NOT NULL,
   price       REAL NOT NULL
 );
-```
-
-Now Alice's email exists in exactly one row. Change it once, and every order automatically reflects the update.
-
-Try the widget below. Run the default query, then modify Alice's email and see that both her orders pick up the change through the join.
-
+</code></pre>
+<p>Now Alice&#39;s email exists in exactly one row. Change it once, and every order automatically reflects the update.</p>
+<p>Try the widget below. Run the default query, then modify Alice&#39;s email and see that both her orders pick up the change through the join.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Normalized design</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT NOT NULL, price REAL NOT NULL); INSERT INTO customers VALUES (1, 'Alice Wong', 'alice@example.com'); INSERT INTO customers VALUES (2, 'Bob Patel', 'bob@example.com'); INSERT INTO orders VALUES (1, 1, 'Headphones', 79.99); INSERT INTO orders VALUES (2, 1, 'USB Cable', 9.99); INSERT INTO orders VALUES (3, 2, 'Keyboard', 49.99);" rows="20">-- See all orders with customer details via a join
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT NOT NULL, price REAL NOT NULL); INSERT INTO customers VALUES (1, 'Alice Wong', 'alice@example.com'); INSERT INTO customers VALUES (2, 'Bob Patel', 'bob@example.com'); INSERT INTO orders VALUES (1, 1, 'Headphones', 79.99); INSERT INTO orders VALUES (2, 1, 'USB Cable', 9.99); INSERT INTO orders VALUES (3, 2, 'Keyboard', 49.99);" rows="10">-- See all orders with customer details via a join
 SELECT o.id AS order_id, c.name, c.email, o.product, o.price
 FROM orders o
 JOIN customers c ON c.id = o.customer_id;</textarea>
   </div>
-</div>
-
-## When Denormalization Makes Sense
-
-Normalization is great for writes, but reads can suffer. Every time you need the customer's name alongside an order, you must perform a JOIN — and joins across large tables are expensive.
-
-**Denormalization** trades storage and write complexity for faster reads. A reporting table might intentionally store `customer_name` directly on the order row so a dashboard query never needs a join:
-
-```sql
--- Denormalized orders table (for read-heavy analytics)
+</div><h2>When Denormalization Makes Sense</h2>
+<p>Normalization is great for writes, but reads can suffer. Every time you need the customer&#39;s name alongside an order, you must perform a JOIN — and joins across large tables are expensive.</p>
+<p><strong>Denormalization</strong> trades storage and write complexity for faster reads. A reporting table might intentionally store <code>customer_name</code> directly on the order row so a dashboard query never needs a join:</p>
+<pre><code class="language-sql">-- Denormalized orders table (for read-heavy analytics)
 CREATE TABLE orders_flat (
   order_id      INTEGER PRIMARY KEY,
   customer_name TEXT,
@@ -95,36 +143,55 @@ CREATE TABLE orders_flat (
   product       TEXT,
   price         REAL
 );
-```
-
-This pattern is common in **data warehouses** and **analytical (OLAP) workloads**, where data is loaded in bulk and queried heavily but updated rarely.
-
-The widget below lets you compare query complexity. Notice how the flat table needs no join:
-
+</code></pre>
+<p>This pattern is common in <strong>data warehouses</strong> and <strong>analytical (OLAP) workloads</strong>, where data is loaded in bulk and queried heavily but updated rarely.</p>
+<p>The widget below lets you compare query complexity. Notice how the flat table needs no join:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Denormalized flat table</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders_flat (order_id INTEGER PRIMARY KEY, customer_name TEXT, customer_email TEXT, product TEXT, price REAL); INSERT INTO orders_flat VALUES (1, 'Alice Wong', 'alice@example.com', 'Headphones', 79.99); INSERT INTO orders_flat VALUES (2, 'Alice Wong', 'alice@example.com', 'USB Cable', 9.99); INSERT INTO orders_flat VALUES (3, 'Bob Patel', 'bob@example.com', 'Keyboard', 49.99);" rows="20">-- No JOIN needed — name is right on the row
+    <textarea data-setup="CREATE TABLE orders_flat (order_id INTEGER PRIMARY KEY, customer_name TEXT, customer_email TEXT, product TEXT, price REAL); INSERT INTO orders_flat VALUES (1, 'Alice Wong', 'alice@example.com', 'Headphones', 79.99); INSERT INTO orders_flat VALUES (2, 'Alice Wong', 'alice@example.com', 'USB Cable', 9.99); INSERT INTO orders_flat VALUES (3, 'Bob Patel', 'bob@example.com', 'Keyboard', 49.99);" rows="10">-- No JOIN needed — name is right on the row
 SELECT customer_name, SUM(price) AS total_spent
 FROM orders_flat
 GROUP BY customer_name;</textarea>
   </div>
+</div><blockquote>
+<p><strong>Note:</strong> In a denormalized table, updating Alice&#39;s email requires touching every order row she has. That&#39;s acceptable in a warehouse loaded nightly from a source-of-truth system — but would be a maintenance nightmare in a live transactional database.</p>
+</blockquote>
+<h2>Choosing the Right Approach</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Normalized</th>
+<th>Denormalized</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Best for</strong></td>
+<td>Transactional apps (OLTP)</td>
+<td>Analytics, reporting (OLAP)</td>
+</tr>
+<tr>
+<td><strong>Update cost</strong></td>
+<td>Low — change once</td>
+<td>High — change many rows</td>
+</tr>
+<tr>
+<td><strong>Read cost</strong></td>
+<td>Higher — requires joins</td>
+<td>Low — single table scan</td>
+</tr>
+<tr>
+<td><strong>Data integrity</strong></td>
+<td>Strong</td>
+<td>Relies on ETL discipline</td>
+</tr>
+</tbody></table>
+<p>Most real systems use both: a normalized operational database feeding a denormalized data warehouse or read replica. The key insight is that normalization is not an absolute law — it is a default that you deviate from consciously, with a clear reason.</p>
+
 </div>
-
-> **Note:** In a denormalized table, updating Alice's email requires touching every order row she has. That's acceptable in a warehouse loaded nightly from a source-of-truth system — but would be a maintenance nightmare in a live transactional database.
-
-## Choosing the Right Approach
-
-| | Normalized | Denormalized |
-|-|-----------|--------------|
-| **Best for** | Transactional apps (OLTP) | Analytics, reporting (OLAP) |
-| **Update cost** | Low — change once | High — change many rows |
-| **Read cost** | Higher — requires joins | Low — single table scan |
-| **Data integrity** | Strong | Relies on ETL discipline |
-
-Most real systems use both: a normalized operational database feeding a denormalized data warehouse or read replica. The key insight is that normalization is not an absolute law — it is a default that you deviate from consciously, with a clear reason.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="016-data-types-and-domains.html"><span class="dir">← Previous</span><span class="ttl">Data types and domains</span></a><a class="next" href="018-documents-graphs-and-key-value-shapes.html"><span class="dir">Next →</span><span class="ttl">Documents, graphs, and key-value shapes</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

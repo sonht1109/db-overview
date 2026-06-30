@@ -5,129 +5,146 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Filtering rows with WHERE — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 5. A Gentle Introduction to SQL</p>
   <h1 class="content-title">Filtering rows with WHERE</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="042-select-insert-update-delete.html"><span class="dir">← Previous</span><span class="ttl">SELECT, INSERT, UPDATE, DELETE</span></a><a class="next" href="044-sorting-with-order-by.html"><span class="dir">Next →</span><span class="ttl">Sorting with ORDER BY</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every table you work with will have more rows than you want at any given moment. The `WHERE` clause is how you tell the database which rows to keep. It is the most frequently used part of a `SELECT` statement and the foundation for almost everything else in SQL.
-
-## The Basic Shape
-
-A `WHERE` clause sits between the `FROM` clause and any sorting or grouping you might add. The database evaluates the condition for every row in the table and returns only the rows where it is true.
-
-```sql
-SELECT column1, column2
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 180" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <rect x="0" y="0" width="690" height="155" rx="10" fill="#fff" stroke="#e2e6ec" filter="url(#sh)"/>
+    <text x="345" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#1c2330">SELECT … FROM employees WHERE …</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <!-- Operators -->
+    <rect x="15" y="48" width="220" height="28" rx="6" fill="#e8f0ff"/>
+    <text x="125" y="66" text-anchor="middle" font-size="10" fill="#2f6df6">=, <>, <, >, <=, >=</text>
+    <rect x="245" y="48" width="220" height="28" rx="6" fill="#dcfce7"/>
+    <text x="355" y="66" text-anchor="middle" font-size="10" fill="#16a34a">BETWEEN, IN, LIKE, IS NULL</text>
+    <rect x="475" y="48" width="200" height="28" rx="6" fill="#fef3c7"/>
+    <text x="575" y="66" text-anchor="middle" font-size="10" fill="#d97706">AND, OR, NOT</text>
+    <!-- Examples -->
+    <rect x="15" y="86" width="660" height="22" rx="4" fill="#f9fafb"/>
+    <text x="345" y="101" text-anchor="middle" font-size="9" fill="#5a6678">WHERE salary > 80000 AND department = 'Engineering'</text>
+    <rect x="15" y="112" width="660" height="22" rx="4" fill="#f9fafb"/>
+    <text x="345" y="127" text-anchor="middle" font-size="9" fill="#5a6678">WHERE name LIKE 'A%' OR department IN ('Sales', 'Marketing')</text>
+    <rect x="15" y="138" width="660" height="22" rx="4" fill="#f9fafb"/>
+    <text x="345" y="153" text-anchor="middle" font-size="9" fill="#5a6678">AND has precedence over OR — use parentheses to be explicit</text>
+  </g>
+</svg>
+<figcaption>WHERE filters rows before aggregation and sorting. Combine conditions with AND/OR; use parentheses for clarity since AND binds tighter than OR.</figcaption>
+</figure>
+<p>Every table you work with will have more rows than you want at any given moment. The <code>WHERE</code> clause is how you tell the database which rows to keep. It is the most frequently used part of a <code>SELECT</code> statement and the foundation for almost everything else in SQL.</p>
+<h2>The Basic Shape</h2>
+<p>A <code>WHERE</code> clause sits between the <code>FROM</code> clause and any sorting or grouping you might add. The database evaluates the condition for every row in the table and returns only the rows where it is true.</p>
+<pre><code class="language-sql">SELECT column1, column2
 FROM table_name
 WHERE condition;
-```
-
-The condition is a **predicate** — an expression that evaluates to true, false, or NULL for each row. Rows where the predicate is true pass through; all others are discarded.
-
-### Comparison Operators
-
-The most common predicates use the standard comparison operators:
-
-| Operator | Meaning | Example |
-|----------|---------|---------|
-| `=` | Equal to | `status = 'active'` |
-| `<>` or `!=` | Not equal to | `status <> 'deleted'` |
-| `<` | Less than | `price < 10.00` |
-| `>` | Greater than | `age > 18` |
-| `<=` | Less than or equal | `score <= 100` |
-| `>=` | Greater than or equal | `quantity >= 1` |
-
-> **Note:** SQL uses a single `=` for equality tests, not `==`. This trips up programmers coming from most other languages.
-
-## Combining Conditions with AND, OR, NOT
-
-You can combine multiple predicates using logical operators. `AND` requires both sides to be true; `OR` requires at least one side to be true; `NOT` inverts the result.
-
-```sql
--- Rows where both conditions are true
-SELECT * FROM orders WHERE amount > 100 AND status = 'shipped';
+</code></pre>
+<p>The condition is a <strong>predicate</strong> — an expression that evaluates to true, false, or NULL for each row. Rows where the predicate is true pass through; all others are discarded.</p>
+<h3>Comparison Operators</h3>
+<p>The most common predicates use the standard comparison operators:</p>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>=</code></td>
+<td>Equal to</td>
+<td><code>status = &#39;active&#39;</code></td>
+</tr>
+<tr>
+<td><code>&lt;&gt;</code> or <code>!=</code></td>
+<td>Not equal to</td>
+<td><code>status &lt;&gt; &#39;deleted&#39;</code></td>
+</tr>
+<tr>
+<td><code>&lt;</code></td>
+<td>Less than</td>
+<td><code>price &lt; 10.00</code></td>
+</tr>
+<tr>
+<td><code>&gt;</code></td>
+<td>Greater than</td>
+<td><code>age &gt; 18</code></td>
+</tr>
+<tr>
+<td><code>&lt;=</code></td>
+<td>Less than or equal</td>
+<td><code>score &lt;= 100</code></td>
+</tr>
+<tr>
+<td><code>&gt;=</code></td>
+<td>Greater than or equal</td>
+<td><code>quantity &gt;= 1</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> SQL uses a single <code>=</code> for equality tests, not <code>==</code>. This trips up programmers coming from most other languages.</p>
+</blockquote>
+<h2>Combining Conditions with AND, OR, NOT</h2>
+<p>You can combine multiple predicates using logical operators. <code>AND</code> requires both sides to be true; <code>OR</code> requires at least one side to be true; <code>NOT</code> inverts the result.</p>
+<pre><code class="language-sql">-- Rows where both conditions are true
+SELECT * FROM orders WHERE amount &gt; 100 AND status = &#39;shipped&#39;;
 
 -- Rows where either condition is true
-SELECT * FROM products WHERE category = 'Books' OR category = 'Music';
+SELECT * FROM products WHERE category = &#39;Books&#39; OR category = &#39;Music&#39;;
 
 -- Rows where the condition is false
 SELECT * FROM users WHERE NOT is_suspended;
-```
-
-When you mix `AND` and `OR` in the same clause, use parentheses to make your intent explicit. `AND` binds more tightly than `OR` by default, which can produce surprising results if you rely on precedence alone.
-
-```sql
--- Means: shipped orders over $100 OR any cancelled order
+</code></pre>
+<p>When you mix <code>AND</code> and <code>OR</code> in the same clause, use parentheses to make your intent explicit. <code>AND</code> binds more tightly than <code>OR</code> by default, which can produce surprising results if you rely on precedence alone.</p>
+<pre><code class="language-sql">-- Means: shipped orders over $100 OR any cancelled order
 SELECT * FROM orders
-WHERE amount > 100 AND status = 'shipped'
-   OR status = 'cancelled';
+WHERE amount &gt; 100 AND status = &#39;shipped&#39;
+   OR status = &#39;cancelled&#39;;
 
 -- Parentheses make it unambiguous
 SELECT * FROM orders
-WHERE (amount > 100 OR status = 'cancelled')
+WHERE (amount &gt; 100 OR status = &#39;cancelled&#39;)
   AND customer_id = 42;
-```
-
-## Handy Shorthand Predicates
-
-SQL provides several operators that keep common patterns concise.
-
-**`BETWEEN`** tests whether a value falls within an inclusive range:
-
-```sql
-SELECT * FROM products WHERE price BETWEEN 10 AND 50;
--- Equivalent to: price >= 10 AND price <= 50
-```
-
-**`IN`** tests membership in a list of values:
-
-```sql
-SELECT * FROM orders WHERE status IN ('pending', 'processing', 'shipped');
--- Equivalent to: status = 'pending' OR status = 'processing' OR status = 'shipped'
-```
-
-**`LIKE`** matches text patterns. The `%` wildcard matches any sequence of characters; `_` matches exactly one character:
-
-```sql
-SELECT * FROM customers WHERE email LIKE '%@example.com';
-SELECT * FROM products WHERE sku LIKE 'BOOK-___';
-```
-
-**`IS NULL` / `IS NOT NULL`** tests for missing values. You cannot use `= NULL` — NULL is never equal to anything, including itself. Always use `IS NULL`:
-
-```sql
-SELECT * FROM orders WHERE shipped_at IS NULL;  -- unshipped orders
-```
-
-## Try It Yourself
-
-The widget below has a small `orders` table. The default query finds all paid orders over $50. Try modifying it — use `IN` to filter by multiple statuses, try `BETWEEN` on the amount, or find orders where `note` is `NULL`.
-
+</code></pre>
+<h2>Handy Shorthand Predicates</h2>
+<p>SQL provides several operators that keep common patterns concise.</p>
+<p><strong><code>BETWEEN</code></strong> tests whether a value falls within an inclusive range:</p>
+<pre><code class="language-sql">SELECT * FROM products WHERE price BETWEEN 10 AND 50;
+-- Equivalent to: price &gt;= 10 AND price &lt;= 50
+</code></pre>
+<p><strong><code>IN</code></strong> tests membership in a list of values:</p>
+<pre><code class="language-sql">SELECT * FROM orders WHERE status IN (&#39;pending&#39;, &#39;processing&#39;, &#39;shipped&#39;);
+-- Equivalent to: status = &#39;pending&#39; OR status = &#39;processing&#39; OR status = &#39;shipped&#39;
+</code></pre>
+<p><strong><code>LIKE</code></strong> matches text patterns. The <code>%</code> wildcard matches any sequence of characters; <code>_</code> matches exactly one character:</p>
+<pre><code class="language-sql">SELECT * FROM customers WHERE email LIKE &#39;%@example.com&#39;;
+SELECT * FROM products WHERE sku LIKE &#39;BOOK-___&#39;;
+</code></pre>
+<p><strong><code>IS NULL</code> / <code>IS NOT NULL</code></strong> tests for missing values. You cannot use <code>= NULL</code> — NULL is never equal to anything, including itself. Always use <code>IS NULL</code>:</p>
+<pre><code class="language-sql">SELECT * FROM orders WHERE shipped_at IS NULL;  -- unshipped orders
+</code></pre>
+<h2>Try It Yourself</h2>
+<p>The widget below has a small <code>orders</code> table. The default query finds all paid orders over $50. Try modifying it — use <code>IN</code> to filter by multiple statuses, try <code>BETWEEN</code> on the amount, or find orders where <code>note</code> is <code>NULL</code>.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · WHERE Filters</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT NOT NULL, amount REAL NOT NULL, status TEXT NOT NULL, note TEXT); INSERT INTO orders VALUES (1, 'Alice', 120.00, 'paid', NULL); INSERT INTO orders VALUES (2, 'Bob', 45.50, 'pending', 'Rush delivery'); INSERT INTO orders VALUES (3, 'Carol', 200.00, 'paid', 'Gift wrap'); INSERT INTO orders VALUES (4, 'David', 75.00, 'cancelled', NULL); INSERT INTO orders VALUES (5, 'Elena', 15.00, 'paid', NULL); INSERT INTO orders VALUES (6, 'Frank', 90.00, 'pending', NULL); INSERT INTO orders VALUES (7, 'Grace', 310.00, 'paid', 'Corporate account');" rows="20">SELECT id, customer, amount, status
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT NOT NULL, amount REAL NOT NULL, status TEXT NOT NULL, note TEXT); INSERT INTO orders VALUES (1, 'Alice', 120.00, 'paid', NULL); INSERT INTO orders VALUES (2, 'Bob', 45.50, 'pending', 'Rush delivery'); INSERT INTO orders VALUES (3, 'Carol', 200.00, 'paid', 'Gift wrap'); INSERT INTO orders VALUES (4, 'David', 75.00, 'cancelled', NULL); INSERT INTO orders VALUES (5, 'Elena', 15.00, 'paid', NULL); INSERT INTO orders VALUES (6, 'Frank', 90.00, 'pending', NULL); INSERT INTO orders VALUES (7, 'Grace', 310.00, 'paid', 'Corporate account');" rows="10">SELECT id, customer, amount, status
 FROM orders
 WHERE status = 'paid'
   AND amount > 50
 ORDER BY amount DESC;</textarea>
   </div>
+</div><details class="reveal"><summary>Reveal: Why does WHERE note = NULL return no rows?</summary><div class="reveal-body">NULL represents an unknown value. In SQL, any comparison with NULL — including <code>NULL = NULL</code> — evaluates to NULL, not true. The database discards rows where the predicate is NULL just as it discards rows where the predicate is false. To test for NULL, always use <code>IS NULL</code> or <code>IS NOT NULL</code>. This behavior follows directly from the three-valued logic (true / false / unknown) that underlies SQL's handling of missing data.</div></details>
 </div>
-
-<details class="reveal"><summary>Reveal: Why does WHERE note = NULL return no rows?</summary><div class="reveal-body">NULL represents an unknown value. In SQL, any comparison with NULL — including <code>NULL = NULL</code> — evaluates to NULL, not true. The database discards rows where the predicate is NULL just as it discards rows where the predicate is false. To test for NULL, always use <code>IS NULL</code> or <code>IS NOT NULL</code>. This behavior follows directly from the three-valued logic (true / false / unknown) that underlies SQL's handling of missing data.</div></details>
-
-</script>
+  <nav class="pagenav"><a class="prev" href="042-select-insert-update-delete.html"><span class="dir">← Previous</span><span class="ttl">SELECT, INSERT, UPDATE, DELETE</span></a><a class="next" href="044-sorting-with-order-by.html"><span class="dir">Next →</span><span class="ttl">Sorting with ORDER BY</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

@@ -5,98 +5,92 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Subqueries and common table expressions — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 5. A Gentle Introduction to SQL</p>
   <h1 class="content-title">Subqueries and common table expressions</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="047-joining-tables.html"><span class="dir">← Previous</span><span class="ttl">Joining tables</span></a><a class="next" href="049-reading-sql-as-a-data-flow.html"><span class="dir">Next →</span><span class="ttl">Reading SQL as a data flow</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Sometimes a single `SELECT` is not enough to answer a question. You might need to filter rows based on the result of another query, or break a complex problem into named steps before combining them. SQL gives you two tools for this: **subqueries** (queries nested inside another query) and **common table expressions**, or **CTEs** (named temporary result sets defined before the main query). Both let you compose queries from smaller, reusable pieces.
-
-## Subqueries
-
-A subquery is a `SELECT` statement nested inside another SQL statement, wrapped in parentheses. It runs first, and its result is used by the outer query.
-
-**Scalar subquery** — returns a single value and can appear anywhere an expression is valid:
-
-```sql
-SELECT name, salary
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <rect x="0" y="0" width="330" height="140" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="165" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#2f6df6">Subquery</text>
+    <text x="165" y="48" font-size="9" fill="#5a6678">Nested SELECT inside another query</text>
+    <line x1="15" y1="56" x2="315" y2="56" stroke="#bfdbfe"/>
+    <text x="25" y="80" font-size="8" fill="#1c2330">WHERE salary ></text>
+    <text x="25" y="96" font-size="8" fill="#1c2330">(SELECT AVG(salary) FROM emp)</text>
+    <text x="165" y="125" text-anchor="middle" font-size="9" fill="#5a6678">Inline, can be hard to read</text>
+    <rect x="350" y="0" width="340" height="140" rx="10" fill="#dcfce7" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="520" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a">CTE (WITH clause)</text>
+    <text x="520" y="48" font-size="9" fill="#5a6678">WITH name AS (SELECT …)</text>
+    <line x1="365" y1="56" x2="675" y2="56" stroke="#bbf7d0"/>
+    <text x="375" y="80" font-size="8" fill="#1c2330">WITH high_earners AS (</text>
+    <text x="385" y="96" font-size="8" fill="#1c2330">SELECT * FROM emp WHERE sal > 100k</text>
+    <text x="375" y="112" font-size="8" fill="#1c2330">) SELECT dept, COUNT(*) FROM high_earners…</text>
+    <text x="520" y="125" text-anchor="middle" font-size="9" fill="#5a6678">Readable, reusable, recursive option</text>
+  </g>
+</svg>
+<figcaption>Subqueries nest SELECT inside another statement. CTEs (WITH ... AS) name the sub-result for reuse — cleaner, more readable, and support recursion.</figcaption>
+</figure>
+<p>Sometimes a single <code>SELECT</code> is not enough to answer a question. You might need to filter rows based on the result of another query, or break a complex problem into named steps before combining them. SQL gives you two tools for this: <strong>subqueries</strong> (queries nested inside another query) and <strong>common table expressions</strong>, or <strong>CTEs</strong> (named temporary result sets defined before the main query). Both let you compose queries from smaller, reusable pieces.</p>
+<h2>Subqueries</h2>
+<p>A subquery is a <code>SELECT</code> statement nested inside another SQL statement, wrapped in parentheses. It runs first, and its result is used by the outer query.</p>
+<p><strong>Scalar subquery</strong> — returns a single value and can appear anywhere an expression is valid:</p>
+<pre><code class="language-sql">SELECT name, salary
 FROM employees
-WHERE salary > (SELECT AVG(salary) FROM employees);
-```
-
-**IN subquery** — returns a set of values for membership testing:
-
-```sql
-SELECT name
+WHERE salary &gt; (SELECT AVG(salary) FROM employees);
+</code></pre>
+<p><strong>IN subquery</strong> — returns a set of values for membership testing:</p>
+<pre><code class="language-sql">SELECT name
 FROM employees
-WHERE department_id IN (SELECT id FROM departments WHERE location = 'Berlin');
-```
-
-**Correlated subquery** — references columns from the outer query, so it re-executes once per outer row. Useful but can be slow on large tables:
-
-```sql
-SELECT name, salary
+WHERE department_id IN (SELECT id FROM departments WHERE location = &#39;Berlin&#39;);
+</code></pre>
+<p><strong>Correlated subquery</strong> — references columns from the outer query, so it re-executes once per outer row. Useful but can be slow on large tables:</p>
+<pre><code class="language-sql">SELECT name, salary
 FROM employees e
 WHERE salary = (
   SELECT MAX(salary)
   FROM employees
   WHERE department_id = e.department_id
 );
-```
-
-> **Note:** Correlated subqueries are powerful but carry a performance cost. If you see one in production code, check whether a join or window function can replace it.
-
-Try the widget below. It seeds a small `employees` table and runs a subquery to find everyone earning above the average salary. Edit the `WHERE` clause to experiment.
-
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Correlated subqueries are powerful but carry a performance cost. If you see one in production code, check whether a join or window function can replace it.</p>
+</blockquote>
+<p>Try the widget below. It seeds a small <code>employees</code> table and runs a subquery to find everyone earning above the average salary. Edit the <code>WHERE</code> clause to experiment.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Subqueries</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT, location TEXT); INSERT INTO departments VALUES (1, 'Engineering', 'Berlin'), (2, 'Sales', 'Paris'), (3, 'HR', 'Berlin'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 90000), (2, 'Bob', 1, 75000), (3, 'Carol', 2, 68000), (4, 'Dave', 2, 82000), (5, 'Eve', 3, 71000), (6, 'Frank', 3, 65000);" rows="20">SELECT name, salary
+    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT, location TEXT); INSERT INTO departments VALUES (1, 'Engineering', 'Berlin'), (2, 'Sales', 'Paris'), (3, 'HR', 'Berlin'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 90000), (2, 'Bob', 1, 75000), (3, 'Carol', 2, 68000), (4, 'Dave', 2, 82000), (5, 'Eve', 3, 71000), (6, 'Frank', 3, 65000);" rows="10">SELECT name, salary
 FROM employees
 WHERE salary > (SELECT AVG(salary) FROM employees)
 ORDER BY salary DESC;</textarea>
   </div>
-</div>
-
-## Common Table Expressions (CTEs)
-
-A CTE defines a named result set at the top of a query using the `WITH` keyword. You can then reference that name as if it were a table. CTEs make long queries dramatically easier to read and debug.
-
-```sql
-WITH berlin_departments AS (
+</div><h2>Common Table Expressions (CTEs)</h2>
+<p>A CTE defines a named result set at the top of a query using the <code>WITH</code> keyword. You can then reference that name as if it were a table. CTEs make long queries dramatically easier to read and debug.</p>
+<pre><code class="language-sql">WITH berlin_departments AS (
   SELECT id
   FROM departments
-  WHERE location = 'Berlin'
+  WHERE location = &#39;Berlin&#39;
 ),
 high_earners AS (
   SELECT name, salary, department_id
   FROM employees
-  WHERE salary > 75000
+  WHERE salary &gt; 75000
 )
 SELECT h.name, h.salary, d.id AS dept_id
 FROM high_earners h
 JOIN berlin_departments d ON h.department_id = d.id;
-```
-
-Each CTE block is separated by a comma. The main `SELECT` follows after the last one. You can reference an earlier CTE inside a later one, which is how you build step-by-step transformations.
-
-### Recursive CTEs
-
-SQLite (and standard SQL) supports **recursive CTEs**, which let a CTE reference itself. This is the standard way to walk hierarchical data like org charts or bill-of-materials trees.
-
-```sql
-WITH RECURSIVE org AS (
+</code></pre>
+<p>Each CTE block is separated by a comma. The main <code>SELECT</code> follows after the last one. You can reference an earlier CTE inside a later one, which is how you build step-by-step transformations.</p>
+<h3>Recursive CTEs</h3>
+<p>SQLite (and standard SQL) supports <strong>recursive CTEs</strong>, which let a CTE reference itself. This is the standard way to walk hierarchical data like org charts or bill-of-materials trees.</p>
+<pre><code class="language-sql">WITH RECURSIVE org AS (
   -- anchor: start at the CEO (no manager)
   SELECT id, name, manager_id, 0 AS depth
   FROM staff
@@ -110,28 +104,43 @@ WITH RECURSIVE org AS (
   JOIN org ON s.manager_id = org.id
 )
 SELECT depth, name FROM org ORDER BY depth, name;
-```
-
-The engine alternates between the anchor query and the recursive step until no new rows are produced.
-
-## Subquery vs CTE — When to Use Which
-
-| Situation | Better choice |
-|---|---|
-| Simple one-off filter or scalar value | Inline subquery |
-| Same derived table referenced more than once | CTE |
-| Multi-step transformation you want to name and read top-down | CTE |
-| Walking a hierarchy or graph | Recursive CTE |
-| Correlated per-row calculation | Correlated subquery (or window function) |
-
-Neither tool is inherently faster than the other — most modern query optimizers treat them equivalently. The real benefit of CTEs is **readability**: they let you give meaningful names to intermediate steps, which makes queries far easier to review and maintain.
-
-Try rewriting the subquery from the first widget as a CTE in the box below:
-
+</code></pre>
+<p>The engine alternates between the anchor query and the recursive step until no new rows are produced.</p>
+<h2>Subquery vs CTE — When to Use Which</h2>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Better choice</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Simple one-off filter or scalar value</td>
+<td>Inline subquery</td>
+</tr>
+<tr>
+<td>Same derived table referenced more than once</td>
+<td>CTE</td>
+</tr>
+<tr>
+<td>Multi-step transformation you want to name and read top-down</td>
+<td>CTE</td>
+</tr>
+<tr>
+<td>Walking a hierarchy or graph</td>
+<td>Recursive CTE</td>
+</tr>
+<tr>
+<td>Correlated per-row calculation</td>
+<td>Correlated subquery (or window function)</td>
+</tr>
+</tbody></table>
+<p>Neither tool is inherently faster than the other — most modern query optimizers treat them equivalently. The real benefit of CTEs is <strong>readability</strong>: they let you give meaningful names to intermediate steps, which makes queries far easier to review and maintain.</p>
+<p>Try rewriting the subquery from the first widget as a CTE in the box below:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · CTEs</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT, location TEXT); INSERT INTO departments VALUES (1, 'Engineering', 'Berlin'), (2, 'Sales', 'Paris'), (3, 'HR', 'Berlin'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 90000), (2, 'Bob', 1, 75000), (3, 'Carol', 2, 68000), (4, 'Dave', 2, 82000), (5, 'Eve', 3, 71000), (6, 'Frank', 3, 65000);" rows="20">WITH avg_salary AS (
+    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT, location TEXT); INSERT INTO departments VALUES (1, 'Engineering', 'Berlin'), (2, 'Sales', 'Paris'), (3, 'HR', 'Berlin'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 90000), (2, 'Bob', 1, 75000), (3, 'Carol', 2, 68000), (4, 'Dave', 2, 82000), (5, 'Eve', 3, 71000), (6, 'Frank', 3, 65000);" rows="10">WITH avg_salary AS (
   SELECT AVG(salary) AS mean FROM employees
 ),
 berlin_depts AS (
@@ -144,8 +153,9 @@ WHERE e.salary > (SELECT mean FROM avg_salary)
 ORDER BY e.salary DESC;</textarea>
   </div>
 </div>
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="047-joining-tables.html"><span class="dir">← Previous</span><span class="ttl">Joining tables</span></a><a class="next" href="049-reading-sql-as-a-data-flow.html"><span class="dir">Next →</span><span class="ttl">Reading SQL as a data flow</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

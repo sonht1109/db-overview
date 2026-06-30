@@ -5,92 +5,138 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Relations, tuples, and attributes — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 3. The Relational Model</p>
   <h1 class="content-title">Relations, tuples, and attributes</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="019-choosing-the-right-model.html"><span class="dir">← Previous</span><span class="ttl">Choosing the right model</span></a><a class="next" href="022-primary-keys-and-foreign-keys.html"><span class="dir">Next →</span><span class="ttl">Primary keys and foreign keys</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-The relational model gives databases a precise mathematical foundation. Instead of talking loosely about "tables" and "rows," it defines exactly what structure data must have and what operations are valid on it. Those definitions all start with three words: **relation**, **tuple**, and **attribute**.
-
-## What Is a Relation?
-
-A **relation** is the formal name for what most people call a table. The word comes from set theory — a relation is a *set of tuples*, where every tuple shares the same structure.
-
-Two properties follow directly from that definition:
-
-1. **No duplicate tuples.** Because a relation is a set, every row must be unique.
-2. **No ordering.** Sets have no inherent order, so rows have no "first" or "last" position. Any ordering you see in a query result is imposed by the query itself, not stored in the relation.
-
-These aren't just theoretical niceties. They're the reason the relational model can guarantee consistent, predictable results: you're always reasoning about a *set*, not a list.
-
-## Tuples and Attributes
-
-Each row in a relation is called a **tuple**. A tuple is a fixed-length, ordered collection of values — one value per **attribute**.
-
-An **attribute** is a named column with a declared **domain** (the set of allowed values). The domain can be as broad as "any text string" or as narrow as "an integer between 1 and 100." Every value in a tuple must belong to its attribute's domain.
-
-Put together:
-
-| Term | Everyday word | What it means precisely |
-|------|--------------|--------------------------|
-| Relation | Table | A set of tuples with a common structure |
-| Tuple | Row | One element of a relation; a fixed set of named values |
-| Attribute | Column | A named component of a tuple with a declared domain |
-| Domain | Data type + constraints | The complete set of valid values for an attribute |
-
-### A Concrete Example
-
-Consider a relation called `employee`:
-
-| employee_id | name       | department | salary  |
-|-------------|------------|------------|---------|
-| 1           | Ada        | Engineering| 95000   |
-| 2           | Brian      | Marketing  | 72000   |
-| 3           | Carmen     | Engineering| 105000  |
-
-This relation has **4 attributes** (`employee_id`, `name`, `department`, `salary`) and **3 tuples**. The domain of `salary` might be "positive integers"; the domain of `department` might be restricted to a known list of department names. Any attempt to insert a tuple with a value outside those domains is rejected.
-
-> **Note:** In formal relational theory, an attribute's position inside a tuple does not matter — what matters is the attribute *name*. This means you should never rely on column order in production SQL; always name your columns explicitly.
-
-## Exploring Relations with SQL
-
-SQL is the language that lets you work with relations. `CREATE TABLE` defines the relation's name, attributes, and domains; `INSERT` adds tuples; `SELECT` retrieves them.
-
-Try running the query below. It retrieves all tuples from a small `employee` relation. Then try modifying the `WHERE` clause to filter by department or salary.
-
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" style="max-width:680px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(10,10)">
+    <!-- Relation box (outer) -->
+    <rect x="0" y="0" width="660" height="175" rx="12" fill="#e8f0ff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="330" y="28" text-anchor="middle" font-size="15" font-weight="800" fill="#2f6df6">RELATION: employees</text>
+    <text x="330" y="45" text-anchor="middle" font-size="10" fill="#5a6678">A set of tuples with the same heading</text>
+    <!-- Heading (attributes) -->
+    <rect x="20" y="58" width="620" height="28" rx="4" fill="#bfdbfe"/>
+    <text x="330" y="77" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">ATTRIBUTES (heading): id | name | department | salary</text>
+    <!-- Tuples (body) -->
+    <rect x="20" y="94" width="620" height="22" rx="3" fill="#fff" stroke="#e2e6ec"/>
+    <text x="330" y="109" text-anchor="middle" font-size="10" fill="#1c2330">Tuple₁: 1 | Ada | Engineering | 95000</text>
+    <rect x="20" y="120" width="620" height="22" rx="3" fill="#f9fafb" stroke="#e2e6ec"/>
+    <text x="330" y="135" text-anchor="middle" font-size="10" fill="#1c2330">Tuple₂: 2 | Grace | Engineering | 105000</text>
+    <rect x="20" y="146" width="620" height="22" rx="3" fill="#fff" stroke="#e2e6ec"/>
+    <text x="330" y="161" text-anchor="middle" font-size="10" fill="#1c2330">Tuple₃: 3 | Alan | Research | 98000</text>
+    <!-- Annotation -->
+    <text x="640" y="84" font-size="9" fill="#9aa6b8">n-tuple</text>
+    <text x="640" y="105" font-size="9" fill="#9aa6b8">cardinality</text>
+    <text x="640" y="126" font-size="9" fill="#9aa6b8">= |R|</text>
+  </g>
+</svg>
+<figcaption>A relation has a heading (the set of attributes) and a body (the set of tuples). Cardinality = number of tuples; degree = number of attributes.</figcaption>
+</figure>
+<p>The relational model gives databases a precise mathematical foundation. Instead of talking loosely about &quot;tables&quot; and &quot;rows,&quot; it defines exactly what structure data must have and what operations are valid on it. Those definitions all start with three words: <strong>relation</strong>, <strong>tuple</strong>, and <strong>attribute</strong>.</p>
+<h2>What Is a Relation?</h2>
+<p>A <strong>relation</strong> is the formal name for what most people call a table. The word comes from set theory — a relation is a <em>set of tuples</em>, where every tuple shares the same structure.</p>
+<p>Two properties follow directly from that definition:</p>
+<ol>
+<li><strong>No duplicate tuples.</strong> Because a relation is a set, every row must be unique.</li>
+<li><strong>No ordering.</strong> Sets have no inherent order, so rows have no &quot;first&quot; or &quot;last&quot; position. Any ordering you see in a query result is imposed by the query itself, not stored in the relation.</li>
+</ol>
+<p>These aren&#39;t just theoretical niceties. They&#39;re the reason the relational model can guarantee consistent, predictable results: you&#39;re always reasoning about a <em>set</em>, not a list.</p>
+<h2>Tuples and Attributes</h2>
+<p>Each row in a relation is called a <strong>tuple</strong>. A tuple is a fixed-length, ordered collection of values — one value per <strong>attribute</strong>.</p>
+<p>An <strong>attribute</strong> is a named column with a declared <strong>domain</strong> (the set of allowed values). The domain can be as broad as &quot;any text string&quot; or as narrow as &quot;an integer between 1 and 100.&quot; Every value in a tuple must belong to its attribute&#39;s domain.</p>
+<p>Put together:</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Everyday word</th>
+<th>What it means precisely</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Relation</td>
+<td>Table</td>
+<td>A set of tuples with a common structure</td>
+</tr>
+<tr>
+<td>Tuple</td>
+<td>Row</td>
+<td>One element of a relation; a fixed set of named values</td>
+</tr>
+<tr>
+<td>Attribute</td>
+<td>Column</td>
+<td>A named component of a tuple with a declared domain</td>
+</tr>
+<tr>
+<td>Domain</td>
+<td>Data type + constraints</td>
+<td>The complete set of valid values for an attribute</td>
+</tr>
+</tbody></table>
+<h3>A Concrete Example</h3>
+<p>Consider a relation called <code>employee</code>:</p>
+<table>
+<thead>
+<tr>
+<th>employee_id</th>
+<th>name</th>
+<th>department</th>
+<th>salary</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Ada</td>
+<td>Engineering</td>
+<td>95000</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Brian</td>
+<td>Marketing</td>
+<td>72000</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Carmen</td>
+<td>Engineering</td>
+<td>105000</td>
+</tr>
+</tbody></table>
+<p>This relation has <strong>4 attributes</strong> (<code>employee_id</code>, <code>name</code>, <code>department</code>, <code>salary</code>) and <strong>3 tuples</strong>. The domain of <code>salary</code> might be &quot;positive integers&quot;; the domain of <code>department</code> might be restricted to a known list of department names. Any attempt to insert a tuple with a value outside those domains is rejected.</p>
+<blockquote>
+<p><strong>Note:</strong> In formal relational theory, an attribute&#39;s position inside a tuple does not matter — what matters is the attribute <em>name</em>. This means you should never rely on column order in production SQL; always name your columns explicitly.</p>
+</blockquote>
+<h2>Exploring Relations with SQL</h2>
+<p>SQL is the language that lets you work with relations. <code>CREATE TABLE</code> defines the relation&#39;s name, attributes, and domains; <code>INSERT</code> adds tuples; <code>SELECT</code> retrieves them.</p>
+<p>Try running the query below. It retrieves all tuples from a small <code>employee</code> relation. Then try modifying the <code>WHERE</code> clause to filter by department or salary.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Relations &amp; Tuples</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employee (employee_id INTEGER PRIMARY KEY, name TEXT NOT NULL, department TEXT NOT NULL, salary INTEGER NOT NULL); INSERT INTO employee VALUES (1, 'Ada', 'Engineering', 95000); INSERT INTO employee VALUES (2, 'Brian', 'Marketing', 72000); INSERT INTO employee VALUES (3, 'Carmen', 'Engineering', 105000); INSERT INTO employee VALUES (4, 'David', 'Marketing', 68000);" rows="20">SELECT * FROM employee
+    <textarea data-setup="CREATE TABLE employee (employee_id INTEGER PRIMARY KEY, name TEXT NOT NULL, department TEXT NOT NULL, salary INTEGER NOT NULL); INSERT INTO employee VALUES (1, 'Ada', 'Engineering', 95000); INSERT INTO employee VALUES (2, 'Brian', 'Marketing', 72000); INSERT INTO employee VALUES (3, 'Carmen', 'Engineering', 105000); INSERT INTO employee VALUES (4, 'David', 'Marketing', 68000);" rows="10">SELECT * FROM employee
 WHERE department = 'Engineering';</textarea>
   </div>
-</div>
-
-Notice that the result is itself a relation — a new set of tuples derived from the original. This is a core idea: relational operations always take relations as input and produce relations as output, so you can chain them together.
-
-## Relation Schema vs. Relation Instance
-
-One last distinction worth locking in: the **schema** of a relation is its *structure* — the name, the list of attributes, and their domains. The **instance** (or *extension*) is the actual set of tuples in the relation at a specific moment in time.
-
-- **Schema** (stable): `employee(employee_id: INT, name: TEXT, department: TEXT, salary: INT)`
-- **Instance** (changes with inserts/updates/deletes): the four rows above
-
-The schema rarely changes; the instance changes every time data is modified. When database engineers talk about "designing a schema," they're deciding which relations to define and what attributes each one should have — the structure that will hold the data, independent of any particular data values.
-
+</div><p>Notice that the result is itself a relation — a new set of tuples derived from the original. This is a core idea: relational operations always take relations as input and produce relations as output, so you can chain them together.</p>
+<h2>Relation Schema vs. Relation Instance</h2>
+<p>One last distinction worth locking in: the <strong>schema</strong> of a relation is its <em>structure</em> — the name, the list of attributes, and their domains. The <strong>instance</strong> (or <em>extension</em>) is the actual set of tuples in the relation at a specific moment in time.</p>
+<ul>
+<li><strong>Schema</strong> (stable): <code>employee(employee_id: INT, name: TEXT, department: TEXT, salary: INT)</code></li>
+<li><strong>Instance</strong> (changes with inserts/updates/deletes): the four rows above</li>
+</ul>
+<p>The schema rarely changes; the instance changes every time data is modified. When database engineers talk about &quot;designing a schema,&quot; they&#39;re deciding which relations to define and what attributes each one should have — the structure that will hold the data, independent of any particular data values.</p>
 <details class="reveal"><summary>Reveal: Can two tuples in a relation have the same values for every attribute?</summary><div class="reveal-body">No. A relation is formally a <em>set</em>, and sets do not allow duplicate elements. If two proposed tuples are identical across every attribute, they are the same tuple and only one is stored. In practice, SQL databases enforce this through a <strong>primary key</strong> — a constraint that guarantees at least one attribute (or combination of attributes) is unique per tuple. Without a primary key, some SQL engines will allow duplicate rows, which means the table is technically not a true relation in the formal sense.</div></details>
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="019-choosing-the-right-model.html"><span class="dir">← Previous</span><span class="ttl">Choosing the right model</span></a><a class="next" href="022-primary-keys-and-foreign-keys.html"><span class="dir">Next →</span><span class="ttl">Primary keys and foreign keys</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

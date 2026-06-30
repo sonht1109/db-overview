@@ -5,68 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How to read database papers — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VII. Building Understanding</p>
   <p class="chapter-label">Chapter 30. Where to Go Next</p>
   <h1 class="content-title">How to read database papers</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="289-what-to-believe-instead.html"><span class="dir">← Previous</span><span class="ttl">What to believe instead</span></a><a class="next" href="292-how-to-study-a-real-engine.html"><span class="dir">Next →</span><span class="ttl">How to study a real engine</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Academic database papers are one of the highest-leverage ways to level up — original system papers contain design rationale that no textbook captures. But reading them cold is frustrating: they assume background knowledge, bury the key insight in section 4, and use notation borrowed from five different fields. This page gives you a practical method for extracting value from any systems paper without getting lost.
-
-## Why Papers Matter
-
-Most database features you use every day were described first in a paper: B-trees (Bayer & McCreight, 1972), MVCC (Reed, 1978), Raft (Ongaro & Ousterhout, 2014), the LSM-tree (O'Neil et al., 1996), Spanner's TrueTime (Corbett et al., 2012). Engineering blogs and docs explain *what* a system does; papers explain *why it was built that way* and what trade-offs were consciously accepted.
-
-Reading papers also trains you to spot marketing claims. When a vendor says "10x faster," a practitioner who has read benchmarking papers asks: compared to what? on what workload? with what hardware? Papers answer those questions rigorously.
-
-## The Three-Pass Method
-
-The most reliable approach is the **three-pass method** described by Keshav (2007). Each pass has a specific goal; you stop if the paper doesn't deserve the next pass.
-
-### Pass 1 — The Five-Minute Skim (5–10 min)
-
-Read only:
-- Title, abstract, and introduction
-- Section and subsection headings
-- Conclusion
-- Figures and their captions (every one)
-- Any explicit "contributions" list
-
-**Goal:** Answer three questions — (1) What category of problem does this address? (2) What is the claimed contribution? (3) Is this paper worth reading fully?
-
-After pass 1 you should be able to explain the paper in two sentences.
-
-### Pass 2 — Careful Reading (1–2 hours)
-
-Read the full paper but **skip proofs**. Focus on:
-- Problem definition and motivation
-- System design and key algorithms
-- Evaluation methodology (workload, hardware, baselines)
-- Figures and tables — read every axis label
-
-**Annotate as you go.** Mark anything you don't understand with a question mark; you'll resolve it in pass 3 or accept it as background to fill in later. Note every claim the evaluation does *not* validate — those are the paper's blind spots.
-
-After pass 2 you should be able to sketch the system architecture and explain the main trade-offs.
-
-### Pass 3 — Virtual Re-implementation (4–8 hours)
-
-Re-read with one goal: could you reproduce this system? Examine every design decision:
-- Why did they choose this data structure over alternatives?
-- What assumptions does the design break under?
-- What would you change?
-
-This pass is optional for most papers; reserve it for the ones that directly affect your work.
-
+  <div id="rendered" class="content">
+<p>Academic database papers are one of the highest-leverage ways to level up — original system papers contain design rationale that no textbook captures. But reading them cold is frustrating: they assume background knowledge, bury the key insight in section 4, and use notation borrowed from five different fields. This page gives you a practical method for extracting value from any systems paper without getting lost.</p>
+<h2>Why Papers Matter</h2>
+<p>Most database features you use every day were described first in a paper: B-trees (Bayer &amp; McCreight, 1972), MVCC (Reed, 1978), Raft (Ongaro &amp; Ousterhout, 2014), the LSM-tree (O&#39;Neil et al., 1996), Spanner&#39;s TrueTime (Corbett et al., 2012). Engineering blogs and docs explain <em>what</em> a system does; papers explain <em>why it was built that way</em> and what trade-offs were consciously accepted.</p>
+<p>Reading papers also trains you to spot marketing claims. When a vendor says &quot;10x faster,&quot; a practitioner who has read benchmarking papers asks: compared to what? on what workload? with what hardware? Papers answer those questions rigorously.</p>
+<h2>The Three-Pass Method</h2>
+<p>The most reliable approach is the <strong>three-pass method</strong> described by Keshav (2007). Each pass has a specific goal; you stop if the paper doesn&#39;t deserve the next pass.</p>
+<h3>Pass 1 — The Five-Minute Skim (5–10 min)</h3>
+<p>Read only:</p>
+<ul>
+<li>Title, abstract, and introduction</li>
+<li>Section and subsection headings</li>
+<li>Conclusion</li>
+<li>Figures and their captions (every one)</li>
+<li>Any explicit &quot;contributions&quot; list</li>
+</ul>
+<p><strong>Goal:</strong> Answer three questions — (1) What category of problem does this address? (2) What is the claimed contribution? (3) Is this paper worth reading fully?</p>
+<p>After pass 1 you should be able to explain the paper in two sentences.</p>
+<h3>Pass 2 — Careful Reading (1–2 hours)</h3>
+<p>Read the full paper but <strong>skip proofs</strong>. Focus on:</p>
+<ul>
+<li>Problem definition and motivation</li>
+<li>System design and key algorithms</li>
+<li>Evaluation methodology (workload, hardware, baselines)</li>
+<li>Figures and tables — read every axis label</li>
+</ul>
+<p><strong>Annotate as you go.</strong> Mark anything you don&#39;t understand with a question mark; you&#39;ll resolve it in pass 3 or accept it as background to fill in later. Note every claim the evaluation does <em>not</em> validate — those are the paper&#39;s blind spots.</p>
+<p>After pass 2 you should be able to sketch the system architecture and explain the main trade-offs.</p>
+<h3>Pass 3 — Virtual Re-implementation (4–8 hours)</h3>
+<p>Re-read with one goal: could you reproduce this system? Examine every design decision:</p>
+<ul>
+<li>Why did they choose this data structure over alternatives?</li>
+<li>What assumptions does the design break under?</li>
+<li>What would you change?</li>
+</ul>
+<p>This pass is optional for most papers; reserve it for the ones that directly affect your work.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three-pass reading method: Pass 1 skim titles and abstracts, Pass 2 full reading with annotations, Pass 3 virtual re-implementation">
   <defs>
@@ -104,65 +86,108 @@ This pass is optional for most papers; reserve it for the ones that directly aff
   <text x="540" y="152" text-anchor="middle" font-size="11" fill="var(--muted)">→ could you build it?</text>
 </svg>
 <figcaption>The three-pass method: each pass deepens understanding and gates whether the next is worth it.</figcaption>
-</figure>
+</figure><h2>Reading the Evaluation Section</h2>
+<p>The evaluation section is where most readers skim — and where the most important information lives. Ask these questions for every experiment:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>What is the baseline?</td>
+<td>&quot;10x faster than X&quot; only means something if X is the right comparison</td>
+</tr>
+<tr>
+<td>What hardware?</td>
+<td>NVMe results don&#39;t transfer to spinning disk</td>
+</tr>
+<tr>
+<td>What data distribution?</td>
+<td>Uniform random is rarely realistic</td>
+</tr>
+<tr>
+<td>What transaction mix?</td>
+<td>Read-heavy vs. write-heavy changes every conclusion</td>
+</tr>
+<tr>
+<td>Error bars / confidence intervals?</td>
+<td>Single-run numbers are meaningless</td>
+</tr>
+<tr>
+<td>Is the code available?</td>
+<td>Reproducibility check</td>
+</tr>
+</tbody></table>
+<p>If the baseline is weak, the hardware is exotic, or the workload is synthetic in a way that favors the paper&#39;s design, treat the results with skepticism — but still read the design sections, which are often valid regardless.</p>
+<h2>Essential Reading Lists</h2>
+<h3>Foundational Papers (Read These First)</h3>
+<table>
+<thead>
+<tr>
+<th>Paper</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&quot;A Relational Model of Data&quot; — Codd (1970)</td>
+<td>Where SQL and relational algebra come from</td>
+</tr>
+<tr>
+<td>&quot;The Design and Implementation of a Log-Structured File System&quot; — Rosenblum &amp; Ousterhout (1992)</td>
+<td>Foundation of LSM-trees and modern write-optimized storage</td>
+</tr>
+<tr>
+<td>&quot;ARIES: A Transaction Recovery Method&quot; — Mohan et al. (1992)</td>
+<td>How almost every relational DB does recovery</td>
+</tr>
+<tr>
+<td>&quot;The Log is the Database&quot; — Helland (2019)</td>
+<td>Modern perspective on logs and event sourcing</td>
+</tr>
+<tr>
+<td>&quot;Bigtable&quot; — Chang et al. (2006)</td>
+<td>Column-family stores, SSTable layout</td>
+</tr>
+<tr>
+<td>&quot;Dynamo: Amazon&#39;s Highly Available Key-Value Store&quot; — DeCandia et al. (2007)</td>
+<td>Consistent hashing, eventual consistency, vector clocks</td>
+</tr>
+<tr>
+<td>&quot;In Search of an Understandable Consensus Algorithm (Raft)&quot; — Ongaro &amp; Ousterhout (2014)</td>
+<td>The most readable distributed consensus paper</td>
+</tr>
+<tr>
+<td>&quot;Spanner: Google&#39;s Globally Distributed Database&quot; — Corbett et al. (2012)</td>
+<td>TrueTime, external consistency, NewSQL</td>
+</tr>
+</tbody></table>
+<h3>Where to Find Papers</h3>
+<ul>
+<li><strong>ACM Digital Library</strong> — SIGMOD, VLDB, OSDI, SOSP (requires access, but many authors post PDFs)</li>
+<li><strong>VLDB Endowment</strong> — <code>vldb.org/pvldb</code> — open access proceedings</li>
+<li><strong>arXiv cs.DB</strong> — preprints, often the fastest way to read new work</li>
+<li><strong>The Morning Paper</strong> — Adrian Colyer&#39;s daily paper summaries (archived at <code>blog.acolyer.org</code>)</li>
+<li><strong>Papers We Love</strong> — curated reading lists at <code>paperswelove.org</code></li>
+<li><strong>Google Scholar</strong> — search by title, find citing papers to trace influence</li>
+</ul>
+<h2>Practical Tips</h2>
+<p><strong>Start with the system papers, not the theory papers.</strong> Papers describing a real deployed system (Bigtable, Spanner, DynamoDB, Cassandra, CockroachDB) are the most accessible and highest-leverage starting point. Theory papers (query optimization algorithms, formal concurrency proofs) require more background and are better read after you have a mental model of the system.</p>
+<p><strong>Follow citations backward and forward.</strong> When a paper cites work you haven&#39;t read, that&#39;s a gap worth closing. When a paper is heavily cited, Google Scholar&#39;s &quot;cited by&quot; list shows you what came next — often more important than the original.</p>
+<p><strong>Keep a reading log.</strong> A simple table with: paper title, date read, one-paragraph summary, and one question it raised. Reviewing it monthly shows you how your mental model is developing.</p>
+<p><strong>Read with a peer.</strong> Even one other person who reads the same paper dramatically improves comprehension. Explaining what you understood forces you to identify what you didn&#39;t.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Use the three-pass method: skim first, then read carefully, then re-implement mentally only for papers you deeply need.</li>
+<li>The evaluation section is where critical thinking pays off — question the baseline, hardware, and workload.</li>
+<li>Start with deployed-system papers (Bigtable, Dynamo, Raft, Spanner) before theoretical ones.</li>
+<li>A reading log and a reading partner compound your investment over time.</li>
+</ul>
 
-## Reading the Evaluation Section
-
-The evaluation section is where most readers skim — and where the most important information lives. Ask these questions for every experiment:
-
-| Question | Why it matters |
-|---|---|
-| What is the baseline? | "10x faster than X" only means something if X is the right comparison |
-| What hardware? | NVMe results don't transfer to spinning disk |
-| What data distribution? | Uniform random is rarely realistic |
-| What transaction mix? | Read-heavy vs. write-heavy changes every conclusion |
-| Error bars / confidence intervals? | Single-run numbers are meaningless |
-| Is the code available? | Reproducibility check |
-
-If the baseline is weak, the hardware is exotic, or the workload is synthetic in a way that favors the paper's design, treat the results with skepticism — but still read the design sections, which are often valid regardless.
-
-## Essential Reading Lists
-
-### Foundational Papers (Read These First)
-
-| Paper | Why |
-|---|---|
-| "A Relational Model of Data" — Codd (1970) | Where SQL and relational algebra come from |
-| "The Design and Implementation of a Log-Structured File System" — Rosenblum & Ousterhout (1992) | Foundation of LSM-trees and modern write-optimized storage |
-| "ARIES: A Transaction Recovery Method" — Mohan et al. (1992) | How almost every relational DB does recovery |
-| "The Log is the Database" — Helland (2019) | Modern perspective on logs and event sourcing |
-| "Bigtable" — Chang et al. (2006) | Column-family stores, SSTable layout |
-| "Dynamo: Amazon's Highly Available Key-Value Store" — DeCandia et al. (2007) | Consistent hashing, eventual consistency, vector clocks |
-| "In Search of an Understandable Consensus Algorithm (Raft)" — Ongaro & Ousterhout (2014) | The most readable distributed consensus paper |
-| "Spanner: Google's Globally Distributed Database" — Corbett et al. (2012) | TrueTime, external consistency, NewSQL |
-
-### Where to Find Papers
-
-- **ACM Digital Library** — SIGMOD, VLDB, OSDI, SOSP (requires access, but many authors post PDFs)
-- **VLDB Endowment** — `vldb.org/pvldb` — open access proceedings
-- **arXiv cs.DB** — preprints, often the fastest way to read new work
-- **The Morning Paper** — Adrian Colyer's daily paper summaries (archived at `blog.acolyer.org`)
-- **Papers We Love** — curated reading lists at `paperswelove.org`
-- **Google Scholar** — search by title, find citing papers to trace influence
-
-## Practical Tips
-
-**Start with the system papers, not the theory papers.** Papers describing a real deployed system (Bigtable, Spanner, DynamoDB, Cassandra, CockroachDB) are the most accessible and highest-leverage starting point. Theory papers (query optimization algorithms, formal concurrency proofs) require more background and are better read after you have a mental model of the system.
-
-**Follow citations backward and forward.** When a paper cites work you haven't read, that's a gap worth closing. When a paper is heavily cited, Google Scholar's "cited by" list shows you what came next — often more important than the original.
-
-**Keep a reading log.** A simple table with: paper title, date read, one-paragraph summary, and one question it raised. Reviewing it monthly shows you how your mental model is developing.
-
-**Read with a peer.** Even one other person who reads the same paper dramatically improves comprehension. Explaining what you understood forces you to identify what you didn't.
-
-## Key Takeaways
-
-- Use the three-pass method: skim first, then read carefully, then re-implement mentally only for papers you deeply need.
-- The evaluation section is where critical thinking pays off — question the baseline, hardware, and workload.
-- Start with deployed-system papers (Bigtable, Dynamo, Raft, Spanner) before theoretical ones.
-- A reading log and a reading partner compound your investment over time.
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="289-what-to-believe-instead.html"><span class="dir">← Previous</span><span class="ttl">What to believe instead</span></a><a class="next" href="292-how-to-study-a-real-engine.html"><span class="dir">Next →</span><span class="ttl">How to study a real engine</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

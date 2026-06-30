@@ -1,51 +1,10 @@
 /* Shared runtime for every DB-learning page.
  * Responsibilities:
- *   1. Render the embedded markdown (#page-md) into #rendered using marked.
- *   2. Mirror the raw markdown into #raw for the HTML <-> Markdown toggle.
- *   3. Wire the toggle button and remember the choice.
- *   4. Mount interactive widgets after render:
- *        - [data-widget="sql"]   real in-browser SQLite (sql.js, lazy-loaded)
- *        - <details class="reveal"> just uses native disclosure (no JS needed)
+ *   1. Mount interactive SQL widgets after page load (sql.js)
+ *   2. Mount other interactive widgets as needed
  */
 (function () {
   "use strict";
-
-  function renderMarkdown() {
-    var src = document.getElementById("page-md");
-    if (!src) return;
-    var md = src.textContent.replace(/^\n/, "");
-    // raw view
-    var rawPre = document.querySelector("#raw pre");
-    if (rawPre) rawPre.textContent = md;
-    // rendered view
-    var target = document.getElementById("rendered");
-    if (target && window.marked) {
-      marked.setOptions({ gfm: true, breaks: false, headerIds: true, mangle: false });
-      target.innerHTML = marked.parse(md);
-      mountWidgets(target);
-    }
-  }
-
-  function setupToggle() {
-    var btn = document.getElementById("toggle");
-    if (!btn) return;
-    var KEY = "db-view-mode";
-    function apply(mode) {
-      if (mode === "raw") {
-        document.body.classList.add("show-raw");
-        btn.textContent = "View rendered ↩";
-      } else {
-        document.body.classList.remove("show-raw");
-        btn.textContent = "View markdown </>";
-      }
-    }
-    apply(localStorage.getItem(KEY) || "rendered");
-    btn.addEventListener("click", function () {
-      var raw = !document.body.classList.contains("show-raw");
-      localStorage.setItem(KEY, raw ? "raw" : "rendered");
-      apply(raw ? "raw" : "rendered");
-    });
-  }
 
   /* ---------------- Interactive SQL widget (sql.js) ---------------- */
   var sqlReady = null;
@@ -75,7 +34,7 @@
       box.innerHTML = '<span class="muted">Query ran successfully — no rows returned.</span>';
       return;
     }
-    var r = res[res.length - 1]; // show last statement's result set
+    var r = res[res.length - 1];
     var html = "<table><thead><tr>";
     r.columns.forEach(function (c) { html += "<th>" + esc(c) + "</th>"; });
     html += "</tr></thead><tbody>";
@@ -129,18 +88,13 @@
     });
   }
 
-  function mountWidgets(root) {
-    root.querySelectorAll('[data-widget="sql"]').forEach(mountSql);
-  }
-
-  function init() {
-    renderMarkdown();
-    setupToggle();
+  function mountWidgets() {
+    document.querySelectorAll('[data-widget="sql"]').forEach(mountSql);
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", mountWidgets);
   } else {
-    init();
+    mountWidgets();
   }
 })();

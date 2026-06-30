@@ -5,42 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A search index as a database system — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VII. Building Understanding</p>
   <p class="chapter-label">Chapter 28. Case Studies</p>
   <h1 class="content-title">A search index as a database system</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="275-a-time-series-metrics-database.html"><span class="dir">← Previous</span><span class="ttl">A time-series metrics database</span></a><a class="next" href="277-a-multi-tenant-saas-schema.html"><span class="dir">Next →</span><span class="ttl">A multi-tenant SaaS schema</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When users type "cheap bluetooth headphones under $50," they expect results ranked by relevance — not rows that match an exact string. That capability requires a fundamentally different data structure from a B-tree index: an **inverted index** that maps each word to the documents containing it, with scoring information attached. This case study explains how search indexes work as databases in their own right and how you can simulate the core concepts in SQL.
-
-## The Inverted Index
-
-A relational index answers "which rows have column = value?" An inverted index answers "which documents contain this word, and how prominently?" The data structure looks like a dictionary:
-
-```
-"bluetooth" → [(doc:12, tf:3, pos:[5,22,41]), (doc:47, tf:1, pos:[3]), ...]
-"headphone"  → [(doc:12, tf:5, pos:[1,8,15,29,44]), ...]
-"cheap"      → [(doc:7, tf:2, pos:[0,6]), (doc:12, tf:1, pos:[18]), ...]
-```
-
-`tf` is **term frequency** — how many times the word appears in that document. Combined with **IDF** (inverse document frequency — how rare the word is across all documents), you get TF-IDF: the classic relevance score.
-
-## Schema: Search Index in SQL
-
-SQLite includes **FTS5** (full-text search), which builds an inverted index internally. This schema shows how to use it alongside a main documents table:
-
-```sql
--- The canonical document store
+  <div id="rendered" class="content">
+<p>When users type &quot;cheap bluetooth headphones under $50,&quot; they expect results ranked by relevance — not rows that match an exact string. That capability requires a fundamentally different data structure from a B-tree index: an <strong>inverted index</strong> that maps each word to the documents containing it, with scoring information attached. This case study explains how search indexes work as databases in their own right and how you can simulate the core concepts in SQL.</p>
+<h2>The Inverted Index</h2>
+<p>A relational index answers &quot;which rows have column = value?&quot; An inverted index answers &quot;which documents contain this word, and how prominently?&quot; The data structure looks like a dictionary:</p>
+<pre><code>&quot;bluetooth&quot; → [(doc:12, tf:3, pos:[5,22,41]), (doc:47, tf:1, pos:[3]), ...]
+&quot;headphone&quot;  → [(doc:12, tf:5, pos:[1,8,15,29,44]), ...]
+&quot;cheap&quot;      → [(doc:7, tf:2, pos:[0,6]), (doc:12, tf:1, pos:[18]), ...]
+</code></pre>
+<p><code>tf</code> is <strong>term frequency</strong> — how many times the word appears in that document. Combined with <strong>IDF</strong> (inverse document frequency — how rare the word is across all documents), you get TF-IDF: the classic relevance score.</p>
+<h2>Schema: Search Index in SQL</h2>
+<p>SQLite includes <strong>FTS5</strong> (full-text search), which builds an inverted index internally. This schema shows how to use it alongside a main documents table:</p>
+<pre><code class="language-sql">-- The canonical document store
 CREATE TABLE documents (
   id          INTEGER PRIMARY KEY,
   title       TEXT NOT NULL,
@@ -51,12 +35,12 @@ CREATE TABLE documents (
   category    TEXT
 );
 
--- FTS5 virtual table (SQLite's full-text search)
+-- FTS5 virtual table (SQLite&#39;s full-text search)
 CREATE VIRTUAL TABLE doc_search USING fts5(
   title,
   body,
-  content='documents',
-  content_rowid='id'
+  content=&#39;documents&#39;,
+  content_rowid=&#39;id&#39;
 );
 
 -- Keep FTS index in sync with the documents table
@@ -67,17 +51,16 @@ END;
 
 CREATE TRIGGER doc_au AFTER UPDATE ON documents BEGIN
   INSERT INTO doc_search(doc_search, rowid, title, body)
-  VALUES ('delete', old.id, old.title, old.body);
+  VALUES (&#39;delete&#39;, old.id, old.title, old.body);
   INSERT INTO doc_search(rowid, title, body)
   VALUES (new.id, new.title, new.body);
 END;
 
 CREATE TRIGGER doc_ad AFTER DELETE ON documents BEGIN
   INSERT INTO doc_search(doc_search, rowid, title, body)
-  VALUES ('delete', old.id, old.title, old.body);
+  VALUES (&#39;delete&#39;, old.id, old.title, old.body);
 END;
-```
-
+</code></pre>
 <figure class="diagram">
 <svg viewBox="0 0 700 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Search index architecture: documents table feeds an inverted index (FTS5); queries hit the index and retrieve ranked document IDs, then fetch details from documents">
   <defs>
@@ -87,9 +70,7 @@ END;
     <marker id="arr2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
       <path d="M0,0 L0,6 L9,3 z" fill="var(--muted)"/>
     </marker>
-  </defs>
-
-  <!-- documents -->
+  </defs>  <!-- documents -->
   <rect x="10" y="80" width="170" height="120" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <rect x="10" y="80" width="170" height="26" rx="6" fill="var(--accent)" opacity="0.2"/>
   <text x="95" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">documents</text>
@@ -97,9 +78,7 @@ END;
   <text x="24" y="138" font-size="11" fill="var(--text)">title, body</text>
   <text x="24" y="154" font-size="11" fill="var(--text)">url, category</text>
   <text x="24" y="170" font-size="11" fill="var(--text)">published_at</text>
-  <text x="24" y="186" font-size="11" fill="var(--text)">author_id</text>
-
-  <!-- FTS5 inverted index -->
+  <text x="24" y="186" font-size="11" fill="var(--text)">author_id</text>  <!-- FTS5 inverted index -->
   <rect x="260" y="60" width="190" height="150" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <rect x="260" y="60" width="190" height="26" rx="6" fill="var(--accent)" opacity="0.3"/>
   <text x="355" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">doc_search (FTS5)</text>
@@ -109,17 +88,13 @@ END;
   <text x="274" y="152" font-size="11" fill="var(--muted)">"wireless"  → [12,47,91]</text>
   <text x="274" y="170" font-size="11" fill="var(--muted)">+ TF scores, positions</text>
   <text x="274" y="186" font-size="10" fill="var(--muted)">content='documents'</text>
-  <text x="274" y="200" font-size="10" fill="var(--muted)">(content table = documents)</text>
-
-  <!-- Query -->
+  <text x="274" y="200" font-size="10" fill="var(--muted)">(content table = documents)</text>  <!-- Query -->
   <rect x="510" y="100" width="170" height="80" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <rect x="510" y="100" width="170" height="26" rx="6" fill="var(--accent)" opacity="0.15"/>
   <text x="595" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">Query</text>
   <text x="524" y="142" font-size="11" fill="var(--text)">&quot;bluetooth headphone&quot;</text>
   <text x="524" y="158" font-size="11" fill="var(--text)">→ ranked doc IDs</text>
-  <text x="524" y="172" font-size="11" fill="var(--text)">→ fetch from documents</text>
-
-  <!-- Arrows -->
+  <text x="524" y="172" font-size="11" fill="var(--text)">→ fetch from documents</text>  <!-- Arrows -->
   <line x1="180" y1="140" x2="258" y2="140" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr2)"/>
   <text x="213" y="133" text-anchor="middle" font-size="10" fill="var(--muted)">INSERT trigger</text>
   <line x1="510" y1="145" x2="452" y2="145" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
@@ -128,54 +103,76 @@ END;
   <text x="390" y="258" text-anchor="middle" font-size="10" fill="var(--muted)">fetch full doc by ID</text>
 </svg>
 <figcaption>Search query flow: terms are looked up in the FTS5 inverted index to produce ranked document IDs, then full document details are fetched from the canonical table.</figcaption>
-</figure>
-
-## Relevance Ranking
-
-SQLite FTS5 returns results in arbitrary order by default. To rank by relevance, use the built-in `bm25()` function, which computes the BM25 score (an industry-standard improvement over TF-IDF):
-
-```sql
-SELECT d.id, d.title, bm25(doc_search) AS score
+</figure><h2>Relevance Ranking</h2>
+<p>SQLite FTS5 returns results in arbitrary order by default. To rank by relevance, use the built-in <code>bm25()</code> function, which computes the BM25 score (an industry-standard improvement over TF-IDF):</p>
+<pre><code class="language-sql">SELECT d.id, d.title, bm25(doc_search) AS score
 FROM doc_search
 JOIN documents d ON d.id = doc_search.rowid
-WHERE doc_search MATCH 'bluetooth headphone'
+WHERE doc_search MATCH &#39;bluetooth headphone&#39;
 ORDER BY score;
 -- Note: bm25() returns negative scores; ORDER BY score = most relevant first
-```
-
-> **Note:** BM25 (Best Match 25) accounts for document length — a document that mentions "bluetooth" 5 times is not necessarily 5× more relevant than one that mentions it once, especially if it's a much longer document. BM25 normalizes for document length.
-
-## Faceted Search and Filtering
-
-Pure text search often needs **faceting**: "show me all results for 'headphone', then let me filter by category or price range." This is a hybrid query — FTS for relevance, then a join to the documents table for attribute filtering:
-
-```sql
-SELECT d.id, d.title, d.category, bm25(doc_search) AS score
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> BM25 (Best Match 25) accounts for document length — a document that mentions &quot;bluetooth&quot; 5 times is not necessarily 5× more relevant than one that mentions it once, especially if it&#39;s a much longer document. BM25 normalizes for document length.</p>
+</blockquote>
+<h2>Faceted Search and Filtering</h2>
+<p>Pure text search often needs <strong>faceting</strong>: &quot;show me all results for &#39;headphone&#39;, then let me filter by category or price range.&quot; This is a hybrid query — FTS for relevance, then a join to the documents table for attribute filtering:</p>
+<pre><code class="language-sql">SELECT d.id, d.title, d.category, bm25(doc_search) AS score
 FROM doc_search
 JOIN documents d ON d.id = doc_search.rowid
-WHERE doc_search MATCH 'headphone'
-  AND d.category = 'electronics'
-  AND d.published_at >= strftime('%s','now','-30 days')
+WHERE doc_search MATCH &#39;headphone&#39;
+  AND d.category = &#39;electronics&#39;
+  AND d.published_at &gt;= strftime(&#39;%s&#39;,&#39;now&#39;,&#39;-30 days&#39;)
 ORDER BY score
 LIMIT 20;
-```
-
-Indexes on `documents(category)` and `documents(published_at)` speed up the filter side.
-
-## Dedicated Search Engines vs. SQL
-
-| Capability | SQLite FTS5 | Elasticsearch / Typesense |
-|---|---|---|
-| Full-text search | Yes | Yes |
-| BM25 ranking | Yes | Yes, tunable |
-| Fuzzy / typo tolerance | Limited | Yes |
-| Synonym expansion | No | Yes |
-| Distributed sharding | No | Yes |
-| Vector (semantic) search | No | Yes (in modern versions) |
-| Operational simplicity | Very high | Moderate |
-
-SQLite FTS5 is excellent for applications with up to a few million documents on a single node. Beyond that, or when you need typo tolerance, semantic search, or horizontal scaling, a dedicated search engine is the right tool.
-
+</code></pre>
+<p>Indexes on <code>documents(category)</code> and <code>documents(published_at)</code> speed up the filter side.</p>
+<h2>Dedicated Search Engines vs. SQL</h2>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>SQLite FTS5</th>
+<th>Elasticsearch / Typesense</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Full-text search</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>BM25 ranking</td>
+<td>Yes</td>
+<td>Yes, tunable</td>
+</tr>
+<tr>
+<td>Fuzzy / typo tolerance</td>
+<td>Limited</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Synonym expansion</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Distributed sharding</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Vector (semantic) search</td>
+<td>No</td>
+<td>Yes (in modern versions)</td>
+</tr>
+<tr>
+<td>Operational simplicity</td>
+<td>Very high</td>
+<td>Moderate</td>
+</tr>
+</tbody></table>
+<p>SQLite FTS5 is excellent for applications with up to a few million documents on a single node. Beyond that, or when you need typo tolerance, semantic search, or horizontal scaling, a dedicated search engine is the right tool.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Full-Text Search</span></div>
   <div class="widget-body">
@@ -187,7 +184,7 @@ INSERT INTO documents VALUES (2,'Budget Audio Guide','Finding cheap affordable h
 INSERT INTO documents VALUES (3,'Remote Work Setup','Our top picks for microphones cameras and accessories for working from home.','/guides/remote-work','productivity',1700200000);
 INSERT INTO documents VALUES (4,'Wireless Earbuds 2024','The best wireless bluetooth earbuds for running and gym workouts.','/reviews/earbuds-2024','electronics',1700300000);
 INSERT INTO doc_search(rowid, title, body) SELECT id, title, body FROM documents;
-" rows="20">-- Full-text search: rank by BM25 relevance
+" rows="10">-- Full-text search: rank by BM25 relevance
 SELECT d.id, d.title, d.category,
        ROUND(bm25(doc_search), 4) AS bm25_score
 FROM doc_search
@@ -202,17 +199,18 @@ ORDER BY bm25_score;
 --   AND d.category = 'electronics'
 -- ORDER BY score;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li>An <strong>inverted index</strong> maps terms to document lists with frequency scores — the opposite data structure from a B-tree row index.</li>
+<li><strong>BM25</strong> is the standard relevance ranking algorithm; SQLite FTS5 provides it out of the box.</li>
+<li><strong>Triggers</strong> keep the FTS index synchronized with the canonical documents table automatically.</li>
+<li><strong>Hybrid queries</strong> (FTS + attribute filters) combine the inverted index with regular B-tree indexes for faceted search.</li>
+<li>SQLite FTS5 covers single-node use cases well; Elasticsearch, Typesense, or Meilisearch add typo tolerance, synonyms, and horizontal scale.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- An **inverted index** maps terms to document lists with frequency scores — the opposite data structure from a B-tree row index.
-- **BM25** is the standard relevance ranking algorithm; SQLite FTS5 provides it out of the box.
-- **Triggers** keep the FTS index synchronized with the canonical documents table automatically.
-- **Hybrid queries** (FTS + attribute filters) combine the inverted index with regular B-tree indexes for faceted search.
-- SQLite FTS5 covers single-node use cases well; Elasticsearch, Typesense, or Meilisearch add typo tolerance, synonyms, and horizontal scale.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="275-a-time-series-metrics-database.html"><span class="dir">← Previous</span><span class="ttl">A time-series metrics database</span></a><a class="next" href="277-a-multi-tenant-saas-schema.html"><span class="dir">Next →</span><span class="ttl">A multi-tenant SaaS schema</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

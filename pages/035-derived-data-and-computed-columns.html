@@ -5,54 +5,66 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Derived data and computed columns — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 4. Schemas and Data Modeling</p>
   <h1 class="content-title">Derived data and computed columns</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="034-lookup-tables-and-enums.html"><span class="dir">← Previous</span><span class="ttl">Lookup tables and enums</span></a><a class="next" href="036-naming-tables-and-columns.html"><span class="dir">Next →</span><span class="ttl">Naming tables and columns</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Sometimes the data you need is not stored directly — it is calculated from data that is already there. A customer's age follows from their birth date. A line item's total follows from unit price times quantity. You could compute these values in your application every time, or you could let the database handle it. **Derived data** is any value produced by transforming or combining stored values. **Computed columns** (also called generated columns) are the database feature that bakes that derivation directly into the schema.
-
-## Deriving Values in Queries
-
-The simplest form of derived data is a column expression in a `SELECT` statement. Nothing is stored; the database computes it on the fly each time the query runs.
-
-```sql
-SELECT
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 160" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <rect x="0" y="0" width="220" height="130" rx="10" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="110" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#dc2626">Stored (bad for derived)</text>
+    <text x="110" y="50" font-size="9" fill="#5a6678">total = price * qty</text>
+    <line x1="15" y1="60" x2="195" y2="60" stroke="#fca5a5"/>
+    <text x="110" y="78" font-size="9" fill="#dc2626">✗ Stale if price changes</text>
+    <text x="110" y="94" font-size="9" fill="#dc2626">✗ Duplication risk</text>
+    <rect x="250" y="0" width="220" height="130" rx="10" fill="#f0fdf4" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="360" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">Generated Column</text>
+    <text x="360" y="50" font-size="9" fill="#5a6678">GENERATED ALWAYS AS</text>
+    <line x1="265" y1="60" x2="455" y2="60" stroke="#86efac"/>
+    <text x="360" y="78" font-size="9" fill="#16a34a">total DECIMAL</text>
+    <text x="360" y="94" font-size="9" fill="#16a34a">GENERATED ALWAYS AS</text>
+    <text x="360" y="112" font-size="9" fill="#16a34a">(price * qty) STORED</text>
+    <rect x="500" y="10" width="200" height="110" rx="8" fill="#fef3c7" stroke="#f59e0b" filter="url(#sh)"/>
+    <text x="600" y="40" text-anchor="middle" font-size="11" font-weight="700" fill="#d97706">View / Query-time</text>
+    <text x="600" y="60" font-size="9" fill="#5a6678">SELECT price * qty</text>
+    <text x="600" y="76" font-size="9" fill="#5a6678">AS total FROM orders</text>
+    <text x="600" y="96" font-size="9" fill="#5a6678">✓ Always correct</text>
+    <text x="600" y="112" font-size="9" fill="#5a6678">✓ Computed on read</text>
+  </g>
+</svg>
+<figcaption>Derived values (like total = price × qty) shouldn't be stored as regular columns — they drift. Use generated columns, views, or compute at query time.</figcaption>
+</figure>
+<p>Sometimes the data you need is not stored directly — it is calculated from data that is already there. A customer&#39;s age follows from their birth date. A line item&#39;s total follows from unit price times quantity. You could compute these values in your application every time, or you could let the database handle it. <strong>Derived data</strong> is any value produced by transforming or combining stored values. <strong>Computed columns</strong> (also called generated columns) are the database feature that bakes that derivation directly into the schema.</p>
+<h2>Deriving Values in Queries</h2>
+<p>The simplest form of derived data is a column expression in a <code>SELECT</code> statement. Nothing is stored; the database computes it on the fly each time the query runs.</p>
+<pre><code class="language-sql">SELECT
   product,
   quantity,
   unit_price,
   quantity * unit_price AS line_total
 FROM order_items;
-```
-
-`line_total` does not exist in the table. The database evaluates the expression row by row and hands back the result. You can filter, sort, and aggregate on it just like a real column:
-
-```sql
-SELECT product, quantity * unit_price AS line_total
+</code></pre>
+<p><code>line_total</code> does not exist in the table. The database evaluates the expression row by row and hands back the result. You can filter, sort, and aggregate on it just like a real column:</p>
+<pre><code class="language-sql">SELECT product, quantity * unit_price AS line_total
 FROM order_items
-WHERE quantity * unit_price > 50
+WHERE quantity * unit_price &gt; 50
 ORDER BY line_total DESC;
-```
-
-> **Note:** Repeating the expression in `WHERE` and `ORDER BY` is required in standard SQL because those clauses are evaluated before `SELECT`. Some databases let you reuse the alias in `ORDER BY`, but SQLite does too — try it in the widget below.
-
-Try the widget to see derived columns in action. Edit the query to add a column that shows a 10 % discount amount.
-
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Repeating the expression in <code>WHERE</code> and <code>ORDER BY</code> is required in standard SQL because those clauses are evaluated before <code>SELECT</code>. Some databases let you reuse the alias in <code>ORDER BY</code>, but SQLite does too — try it in the widget below.</p>
+</blockquote>
+<p>Try the widget to see derived columns in action. Edit the query to add a column that shows a 10 % discount amount.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Derived columns in SELECT</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE order_items (id INTEGER PRIMARY KEY, product TEXT NOT NULL, quantity INTEGER NOT NULL, unit_price REAL NOT NULL); INSERT INTO order_items VALUES (1, 'Headphones', 2, 39.99); INSERT INTO order_items VALUES (2, 'USB Cable', 5, 4.99); INSERT INTO order_items VALUES (3, 'Keyboard', 1, 89.00); INSERT INTO order_items VALUES (4, 'Mouse', 3, 24.50);" rows="20">SELECT
+    <textarea data-setup="CREATE TABLE order_items (id INTEGER PRIMARY KEY, product TEXT NOT NULL, quantity INTEGER NOT NULL, unit_price REAL NOT NULL); INSERT INTO order_items VALUES (1, 'Headphones', 2, 39.99); INSERT INTO order_items VALUES (2, 'USB Cable', 5, 4.99); INSERT INTO order_items VALUES (3, 'Keyboard', 1, 89.00); INSERT INTO order_items VALUES (4, 'Mouse', 3, 24.50);" rows="10">SELECT
   product,
   quantity,
   unit_price,
@@ -61,39 +73,44 @@ Try the widget to see derived columns in action. Edit the query to add a column 
 FROM order_items
 ORDER BY line_total DESC;</textarea>
   </div>
-</div>
-
-## Generated (Computed) Columns
-
-Inline expressions work well, but they scatter the same formula across many queries. If the formula changes, you must hunt down every copy. **Generated columns** solve this by defining the expression once, in the table definition. The database then makes it available as a regular column.
-
-SQLite (version 3.31+), PostgreSQL, MySQL, and SQL Server all support generated columns, though the syntax differs slightly. In SQLite:
-
-```sql
-CREATE TABLE order_items (
+</div><h2>Generated (Computed) Columns</h2>
+<p>Inline expressions work well, but they scatter the same formula across many queries. If the formula changes, you must hunt down every copy. <strong>Generated columns</strong> solve this by defining the expression once, in the table definition. The database then makes it available as a regular column.</p>
+<p>SQLite (version 3.31+), PostgreSQL, MySQL, and SQL Server all support generated columns, though the syntax differs slightly. In SQLite:</p>
+<pre><code class="language-sql">CREATE TABLE order_items (
   id         INTEGER PRIMARY KEY,
   product    TEXT    NOT NULL,
   quantity   INTEGER NOT NULL,
   unit_price REAL    NOT NULL,
   line_total REAL    GENERATED ALWAYS AS (quantity * unit_price) VIRTUAL
 );
-```
-
-Now any query can just write `SELECT line_total FROM order_items` — no formula needed at the call site.
-
-### Virtual vs. Stored
-
-Generated columns come in two flavors:
-
-| Kind | How it works | Disk space | Can be indexed? |
-|------|-------------|-----------|----------------|
-| **Virtual** | Recomputed on every read | No extra space | Limited support |
-| **Stored** | Computed on insert/update, persisted to disk | Uses space | Yes, in most engines |
-
-Use **stored** when you query the column frequently and want to index it. Use **virtual** when storage is tight and the expression is cheap to recompute.
-
-```sql
--- Stored generated column (persisted to disk)
+</code></pre>
+<p>Now any query can just write <code>SELECT line_total FROM order_items</code> — no formula needed at the call site.</p>
+<h3>Virtual vs. Stored</h3>
+<p>Generated columns come in two flavors:</p>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>How it works</th>
+<th>Disk space</th>
+<th>Can be indexed?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Virtual</strong></td>
+<td>Recomputed on every read</td>
+<td>No extra space</td>
+<td>Limited support</td>
+</tr>
+<tr>
+<td><strong>Stored</strong></td>
+<td>Computed on insert/update, persisted to disk</td>
+<td>Uses space</td>
+<td>Yes, in most engines</td>
+</tr>
+</tbody></table>
+<p>Use <strong>stored</strong> when you query the column frequently and want to index it. Use <strong>virtual</strong> when storage is tight and the expression is cheap to recompute.</p>
+<pre><code class="language-sql">-- Stored generated column (persisted to disk)
 CREATE TABLE order_items (
   id         INTEGER PRIMARY KEY,
   product    TEXT    NOT NULL,
@@ -101,28 +118,21 @@ CREATE TABLE order_items (
   unit_price REAL    NOT NULL,
   line_total REAL    GENERATED ALWAYS AS (quantity * unit_price) STORED
 );
-```
-
-The widget below creates a table with a generated column. Try inserting a new row — notice you do not supply `line_total`; the database fills it in automatically.
-
+</code></pre>
+<p>The widget below creates a table with a generated column. Try inserting a new row — notice you do not supply <code>line_total</code>; the database fills it in automatically.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Generated column</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE order_items (id INTEGER PRIMARY KEY, product TEXT NOT NULL, quantity INTEGER NOT NULL, unit_price REAL NOT NULL, line_total REAL GENERATED ALWAYS AS (quantity * unit_price) VIRTUAL); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (1, 'Headphones', 2, 39.99); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (2, 'USB Cable', 5, 4.99); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (3, 'Keyboard', 1, 89.00);" rows="20">-- line_total is computed automatically
+    <textarea data-setup="CREATE TABLE order_items (id INTEGER PRIMARY KEY, product TEXT NOT NULL, quantity INTEGER NOT NULL, unit_price REAL NOT NULL, line_total REAL GENERATED ALWAYS AS (quantity * unit_price) VIRTUAL); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (1, 'Headphones', 2, 39.99); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (2, 'USB Cable', 5, 4.99); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (3, 'Keyboard', 1, 89.00);" rows="10">-- line_total is computed automatically
 SELECT product, quantity, unit_price, line_total
 FROM order_items;
 -- Try inserting a new row and re-running:
 -- INSERT INTO order_items (id, product, quantity, unit_price)
 -- VALUES (4, 'Mouse', 3, 24.50);</textarea>
   </div>
-</div>
-
-## Views as Reusable Derived Data
-
-When derived data spans multiple tables or involves complex expressions, a **view** is often a better fit than a generated column. A view is a named, saved query that looks like a table to any query that uses it.
-
-```sql
-CREATE VIEW order_summary AS
+</div><h2>Views as Reusable Derived Data</h2>
+<p>When derived data spans multiple tables or involves complex expressions, a <strong>view</strong> is often a better fit than a generated column. A view is a named, saved query that looks like a table to any query that uses it.</p>
+<pre><code class="language-sql">CREATE VIEW order_summary AS
 SELECT
   oi.id,
   oi.product,
@@ -130,24 +140,41 @@ SELECT
   c.name                              AS customer
 FROM order_items oi
 JOIN customers c ON c.id = oi.customer_id;
-```
+</code></pre>
+<p>Queries can now do <code>SELECT * FROM order_summary WHERE line_total &gt; 50</code> without knowing the underlying join. The derivation lives in one place, and callers stay simple.</p>
+<blockquote>
+<p><strong>Note:</strong> Standard views in most databases are not stored on disk — they re-run the underlying query each time. <strong>Materialized views</strong> (available in PostgreSQL and others) do persist the result for faster reads, at the cost of needing periodic refresh. SQLite does not support materialized views natively.</p>
+</blockquote>
+<h2>When to Use Each Approach</h2>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Best when…</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Inline expression in <code>SELECT</code></td>
+<td>Ad-hoc queries; formula used once</td>
+</tr>
+<tr>
+<td>Generated column (virtual)</td>
+<td>Formula used often; storage is precious</td>
+</tr>
+<tr>
+<td>Generated column (stored)</td>
+<td>Formula queried heavily and needs an index</td>
+</tr>
+<tr>
+<td>View</td>
+<td>Formula spans tables or is reused across many queries</td>
+</tr>
+</tbody></table>
+<p>The guiding principle is the same as normalization: define each fact in one place. If <code>line_total</code> is always <code>quantity * unit_price</code>, encode that relationship in the schema rather than scattering the formula through application code and queries.</p>
 
-Queries can now do `SELECT * FROM order_summary WHERE line_total > 50` without knowing the underlying join. The derivation lives in one place, and callers stay simple.
-
-> **Note:** Standard views in most databases are not stored on disk — they re-run the underlying query each time. **Materialized views** (available in PostgreSQL and others) do persist the result for faster reads, at the cost of needing periodic refresh. SQLite does not support materialized views natively.
-
-## When to Use Each Approach
-
-| Approach | Best when… |
-|----------|-----------|
-| Inline expression in `SELECT` | Ad-hoc queries; formula used once |
-| Generated column (virtual) | Formula used often; storage is precious |
-| Generated column (stored) | Formula queried heavily and needs an index |
-| View | Formula spans tables or is reused across many queries |
-
-The guiding principle is the same as normalization: define each fact in one place. If `line_total` is always `quantity * unit_price`, encode that relationship in the schema rather than scattering the formula through application code and queries.
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="034-lookup-tables-and-enums.html"><span class="dir">← Previous</span><span class="ttl">Lookup tables and enums</span></a><a class="next" href="036-naming-tables-and-columns.html"><span class="dir">Next →</span><span class="ttl">Naming tables and columns</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

@@ -5,38 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hot partitions — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part IV. Distributed Systems</p>
   <p class="chapter-label">Chapter 14. From One Machine to Many</p>
   <h1 class="content-title">Hot partitions</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="136-rebalancing-data.html"><span class="dir">← Previous</span><span class="ttl">Rebalancing data</span></a><a class="next" href="138-failure-becomes-normal.html"><span class="dir">Next →</span><span class="ttl">Failure becomes normal</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When you shard a database, the goal is to spread work evenly across nodes. But data and traffic are rarely uniform. Some keys attract vastly more reads and writes than others, and the shard that holds those keys ends up doing the lion's share of the work. This is a **hot partition** (also called a **hot shard**) — and it's one of the most common performance traps in distributed databases.
-
-## What Makes a Partition Hot?
-
-A partition gets hot when a disproportionate fraction of requests land on it. The cause is almost always a skewed **shard key** — one whose distribution in real traffic doesn't match the distribution of key values.
-
-Three classic patterns:
-
-| Pattern | Example | Why it's hot |
-|---|---|---|
-| **Celebrity / viral row** | A tweet from a pop star; a Reddit post on the front page | Millions of reads on a single `post_id` or `user_id` |
-| **Monotonic key** | `order_id` auto-increment, date-range sharding | All new writes go to the latest shard; older shards sit idle |
-| **Low-cardinality shard key** | Sharding by `country_code` with 80% of users in one country | One shard is permanently overloaded by design |
-
-The monotonic-key case deserves emphasis: if you range-shard by a timestamp or an auto-incrementing ID, *every new write* hits the same shard. The "last" shard becomes a sequential bottleneck no matter how many shards you add.
-
+  <div id="rendered" class="content">
+<p>When you shard a database, the goal is to spread work evenly across nodes. But data and traffic are rarely uniform. Some keys attract vastly more reads and writes than others, and the shard that holds those keys ends up doing the lion&#39;s share of the work. This is a <strong>hot partition</strong> (also called a <strong>hot shard</strong>) — and it&#39;s one of the most common performance traps in distributed databases.</p>
+<h2>What Makes a Partition Hot?</h2>
+<p>A partition gets hot when a disproportionate fraction of requests land on it. The cause is almost always a skewed <strong>shard key</strong> — one whose distribution in real traffic doesn&#39;t match the distribution of key values.</p>
+<p>Three classic patterns:</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Example</th>
+<th>Why it&#39;s hot</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Celebrity / viral row</strong></td>
+<td>A tweet from a pop star; a Reddit post on the front page</td>
+<td>Millions of reads on a single <code>post_id</code> or <code>user_id</code></td>
+</tr>
+<tr>
+<td><strong>Monotonic key</strong></td>
+<td><code>order_id</code> auto-increment, date-range sharding</td>
+<td>All new writes go to the latest shard; older shards sit idle</td>
+</tr>
+<tr>
+<td><strong>Low-cardinality shard key</strong></td>
+<td>Sharding by <code>country_code</code> with 80% of users in one country</td>
+<td>One shard is permanently overloaded by design</td>
+</tr>
+</tbody></table>
+<p>The monotonic-key case deserves emphasis: if you range-shard by a timestamp or an auto-incrementing ID, <em>every new write</em> hits the same shard. The &quot;last&quot; shard becomes a sequential bottleneck no matter how many shards you add.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three shards receiving traffic: shard C is overloaded (hot) while shards A and B are mostly idle">
   <defs>
@@ -46,104 +52,71 @@ The monotonic-key case deserves emphasis: if you range-shard by a timestamp or a
     <marker id="arr-c" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
     </marker>
-  </defs>
-
-  <!-- Router box -->
+  </defs>  <!-- Router box -->
   <rect x="240" y="10" width="160" height="44" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="320" y="30" text-anchor="middle" font-size="14" fill="var(--text)" font-weight="bold">Query Router</text>
-  <text x="320" y="47" text-anchor="middle" font-size="11" fill="var(--text)">inspects shard key</text>
-
-  <!-- Arrows from router to shards -->
+  <text x="320" y="47" text-anchor="middle" font-size="11" fill="var(--text)">inspects shard key</text>  <!-- Arrows from router to shards -->
   <!-- To Shard A (thin — low traffic) -->
   <line x1="255" y1="54" x2="110" y2="140" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr-c)"/>
   <!-- To Shard B (thin — low traffic) -->
   <line x1="300" y1="54" x2="320" y2="140" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr-c)"/>
   <!-- To Shard C (thick — hot) -->
-  <line x1="370" y1="54" x2="530" y2="140" stroke="var(--accent)" stroke-width="5" marker-end="url(#arr-h)"/>
-
-  <!-- Shard A -->
+  <line x1="370" y1="54" x2="530" y2="140" stroke="var(--accent)" stroke-width="5" marker-end="url(#arr-h)"/>  <!-- Shard A -->
   <rect x="30" y="140" width="160" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="110" y="167" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="bold">Shard A</text>
-  <text x="110" y="185" text-anchor="middle" font-size="11" fill="var(--text)">~5% of traffic</text>
-
-  <!-- Shard B -->
+  <text x="110" y="185" text-anchor="middle" font-size="11" fill="var(--text)">~5% of traffic</text>  <!-- Shard B -->
   <rect x="240" y="140" width="160" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="320" y="167" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="bold">Shard B</text>
-  <text x="320" y="185" text-anchor="middle" font-size="11" fill="var(--text)">~10% of traffic</text>
-
-  <!-- Shard C (hot) -->
+  <text x="320" y="185" text-anchor="middle" font-size="11" fill="var(--text)">~10% of traffic</text>  <!-- Shard C (hot) -->
   <rect x="450" y="140" width="160" height="60" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="3"/>
   <text x="530" y="162" text-anchor="middle" font-size="13" fill="var(--accent)" font-weight="bold">Shard C  HOT</text>
   <text x="530" y="180" text-anchor="middle" font-size="11" fill="var(--accent)">~85% of traffic</text>
   <!-- Flame-like indicator -->
-  <text x="530" y="198" text-anchor="middle" font-size="13" fill="var(--accent)">CPU: 97%  Queue: full</text>
-
-  <!-- Incoming request arrows to router -->
-  <line x1="320" y1="0" x2="320" y2="9" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr-c)"/>
-
-  <!-- Labels -->
-  <text x="110" y="230" text-anchor="middle" font-size="11" fill="var(--text)">idle capacity</text>
+  <text x="530" y="198" text-anchor="middle" font-size="13" fill="var(--accent)">CPU: 97%  Queue: full</text>  <!-- Incoming request arrows to router -->
+  <line x1="320" y1="0" x2="320" y2="9" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr-c)"/>  <!-- Labels -->
+<p>  <text x="110" y="230" text-anchor="middle" font-size="11" fill="var(--text)">idle capacity</text>
   <text x="320" y="230" text-anchor="middle" font-size="11" fill="var(--text)">idle capacity</text>
-  <text x="530" y="230" text-anchor="middle" font-size="11" fill="var(--accent)">overloaded</text>
-
-  <text x="320" y="270" text-anchor="middle" font-size="12" fill="var(--text)">Adding more shards won't help — new shards just sit empty.</text>
-</svg>
+  <text x="530" y="230" text-anchor="middle" font-size="11" fill="var(--accent)">overloaded</text></p>
+<p>  <text x="320" y="270" text-anchor="middle" font-size="12" fill="var(--text)">Adding more shards won&#39;t help — new shards just sit empty.</text>
+</svg></p>
 <figcaption>A hot partition absorbs most traffic while other shards sit idle. Adding shards doesn't fix skew — it only dilutes the cool ones further.</figcaption>
-</figure>
-
-## Diagnosing a Hot Partition
-
-Hot partitions announce themselves through symptoms that look like general overload but are actually localized:
-
-- One node pegs CPU or disk I/O while others are under-utilized.
-- Query latency spikes on a specific key range, not system-wide.
-- Write queues or lock waits accumulate on one shard only.
-
-Most distributed databases expose per-shard metrics. In systems like Cassandra or DynamoDB you can see partition-level read/write units; in PostgreSQL-based sharding setups (like Citus), you can query shard statistics directly.
-
-## How to Fix a Hot Partition
-
-There's no single cure — the right fix depends on whether traffic is skewed on reads, writes, or both.
-
-### Add a Random Suffix (Write Skew)
-
-For write-heavy hot keys, **shard key salting** spreads one logical key across multiple physical partitions. Instead of writing everything for `user_id = 42` to one shard, you append a random suffix (0–N) and distribute writes:
-
-```sql
--- Conceptual: write to one of 4 sub-shards at random
+</figure><h2>Diagnosing a Hot Partition</h2>
+<p>Hot partitions announce themselves through symptoms that look like general overload but are actually localized:</p>
+<ul>
+<li>One node pegs CPU or disk I/O while others are under-utilized.</li>
+<li>Query latency spikes on a specific key range, not system-wide.</li>
+<li>Write queues or lock waits accumulate on one shard only.</li>
+</ul>
+<p>Most distributed databases expose per-shard metrics. In systems like Cassandra or DynamoDB you can see partition-level read/write units; in PostgreSQL-based sharding setups (like Citus), you can query shard statistics directly.</p>
+<h2>How to Fix a Hot Partition</h2>
+<p>There&#39;s no single cure — the right fix depends on whether traffic is skewed on reads, writes, or both.</p>
+<h3>Add a Random Suffix (Write Skew)</h3>
+<p>For write-heavy hot keys, <strong>shard key salting</strong> spreads one logical key across multiple physical partitions. Instead of writing everything for <code>user_id = 42</code> to one shard, you append a random suffix (0–N) and distribute writes:</p>
+<pre><code class="language-sql">-- Conceptual: write to one of 4 sub-shards at random
 INSERT INTO events (partition_key, user_id, event_type, ts)
 VALUES (
-  '42_' || (ABS(RANDOM()) % 4),  -- e.g. '42_2'
+  &#39;42_&#39; || (ABS(RANDOM()) % 4),  -- e.g. &#39;42_2&#39;
   42,
-  'page_view',
+  &#39;page_view&#39;,
   CURRENT_TIMESTAMP
 );
-```
-
-The downside: reads must now query all N sub-shards and merge results. This trades write scalability for read complexity.
-
-### Cache Hot Keys (Read Skew)
-
-When a handful of rows are read by everyone (a trending post, a product on sale), add an **application-level cache** (Redis, Memcached) in front of the database. The shard never sees the bulk of reads.
-
-### Re-shard with a Better Key
-
-If the root cause is a poor shard key choice, the real fix is to pick a different one — typically a **hash** of the key rather than a range. Hash sharding scatters keys pseudo-randomly, so no single shard accumulates sequential writes or popular key ranges.
-
-> **Note:** Re-sharding live data is expensive — it means migrating rows between nodes without downtime. This is why choosing a good shard key up front is so important. Many teams treat shard key selection as an architectural decision that's very difficult to undo.
-
-### Use a Time-Based Expiry Strategy
-
-For time-series or event data, some databases use **time-bucketed partitions**: instead of keeping all recent writes on the "last" shard, new partitions are pre-created and rotated on a schedule. InfluxDB, TimescaleDB, and AWS DynamoDB time-series patterns all use variants of this idea.
-
----
-
-The widget below lets you explore key skew in a small dataset. Notice how `user_id % 3` (hash sharding) distributes rows evenly, while sorting by a `created_at` timestamp reveals how monotonic writes would pile onto the latest partition.
-
+</code></pre>
+<p>The downside: reads must now query all N sub-shards and merge results. This trades write scalability for read complexity.</p>
+<h3>Cache Hot Keys (Read Skew)</h3>
+<p>When a handful of rows are read by everyone (a trending post, a product on sale), add an <strong>application-level cache</strong> (Redis, Memcached) in front of the database. The shard never sees the bulk of reads.</p>
+<h3>Re-shard with a Better Key</h3>
+<p>If the root cause is a poor shard key choice, the real fix is to pick a different one — typically a <strong>hash</strong> of the key rather than a range. Hash sharding scatters keys pseudo-randomly, so no single shard accumulates sequential writes or popular key ranges.</p>
+<blockquote>
+<p><strong>Note:</strong> Re-sharding live data is expensive — it means migrating rows between nodes without downtime. This is why choosing a good shard key up front is so important. Many teams treat shard key selection as an architectural decision that&#39;s very difficult to undo.</p>
+</blockquote>
+<h3>Use a Time-Based Expiry Strategy</h3>
+<p>For time-series or event data, some databases use <strong>time-bucketed partitions</strong>: instead of keeping all recent writes on the &quot;last&quot; shard, new partitions are pre-created and rotated on a schedule. InfluxDB, TimescaleDB, and AWS DynamoDB time-series patterns all use variants of this idea.</p>
+<hr>
+<p>The widget below lets you explore key skew in a small dataset. Notice how <code>user_id % 3</code> (hash sharding) distributes rows evenly, while sorting by a <code>created_at</code> timestamp reveals how monotonic writes would pile onto the latest partition.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating hot partitions</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, user_id INTEGER, event_type TEXT, created_at TEXT); INSERT INTO events VALUES (1,  999, 'view', '2024-06-01 00:01'); INSERT INTO events VALUES (2,  999, 'view', '2024-06-01 00:02'); INSERT INTO events VALUES (3,  999, 'like', '2024-06-01 00:03'); INSERT INTO events VALUES (4,  999, 'share','2024-06-01 00:04'); INSERT INTO events VALUES (5,  999, 'view', '2024-06-01 00:05'); INSERT INTO events VALUES (6,  999, 'view', '2024-06-01 00:06'); INSERT INTO events VALUES (7,    1, 'view', '2024-06-01 00:07'); INSERT INTO events VALUES (8,    2, 'view', '2024-06-01 00:08'); INSERT INTO events VALUES (9,    3, 'view', '2024-06-01 00:09'); INSERT INTO events VALUES (10,   4, 'view', '2024-06-01 00:10'); INSERT INTO events VALUES (11,   5, 'view', '2024-06-01 00:11'); INSERT INTO events VALUES (12, 999, 'view', '2024-06-01 00:12');" rows="20">-- Which logical shard does each event land on (hash by user_id mod 4)?
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, user_id INTEGER, event_type TEXT, created_at TEXT); INSERT INTO events VALUES (1,  999, 'view', '2024-06-01 00:01'); INSERT INTO events VALUES (2,  999, 'view', '2024-06-01 00:02'); INSERT INTO events VALUES (3,  999, 'like', '2024-06-01 00:03'); INSERT INTO events VALUES (4,  999, 'share','2024-06-01 00:04'); INSERT INTO events VALUES (5,  999, 'view', '2024-06-01 00:05'); INSERT INTO events VALUES (6,  999, 'view', '2024-06-01 00:06'); INSERT INTO events VALUES (7,    1, 'view', '2024-06-01 00:07'); INSERT INTO events VALUES (8,    2, 'view', '2024-06-01 00:08'); INSERT INTO events VALUES (9,    3, 'view', '2024-06-01 00:09'); INSERT INTO events VALUES (10,   4, 'view', '2024-06-01 00:10'); INSERT INTO events VALUES (11,   5, 'view', '2024-06-01 00:11'); INSERT INTO events VALUES (12, 999, 'view', '2024-06-01 00:12');" rows="10">-- Which logical shard does each event land on (hash by user_id mod 4)?
 -- Notice user_id 999 dominates one shard.
 SELECT
   user_id,
@@ -155,11 +128,11 @@ ORDER BY shard_id, user_id;
 -- Try: change % 4 to a different number of shards.
 -- Does adding more shards help when one user_id generates most traffic?</textarea>
   </div>
+</div><p>The query makes the skew visible: user 999 owns nearly all events, so one shard absorbs most requests regardless of how many shards you add. That&#39;s the essence of the hot partition problem — it&#39;s a data distribution issue, not a capacity issue.</p>
+
 </div>
-
-The query makes the skew visible: user 999 owns nearly all events, so one shard absorbs most requests regardless of how many shards you add. That's the essence of the hot partition problem — it's a data distribution issue, not a capacity issue.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="136-rebalancing-data.html"><span class="dir">← Previous</span><span class="ttl">Rebalancing data</span></a><a class="next" href="138-failure-becomes-normal.html"><span class="dir">Next →</span><span class="ttl">Failure becomes normal</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

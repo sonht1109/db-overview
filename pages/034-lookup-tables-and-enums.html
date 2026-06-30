@@ -5,119 +5,141 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lookup tables and enums — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 4. Schemas and Data Modeling</p>
   <h1 class="content-title">Lookup tables and enums</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="033-one-to-one-one-to-many-many-to-many.html"><span class="dir">← Previous</span><span class="ttl">One-to-one, one-to-many, many-to-many</span></a><a class="next" href="035-derived-data-and-computed-columns.html"><span class="dir">Next →</span><span class="ttl">Derived data and computed columns</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When a column can only hold one of a fixed set of values — status, category, priority, colour — you have two main tools: a **lookup table** (also called a reference table or code table) and an **enum type**. Both constrain what goes in the column, but they trade flexibility against simplicity in different ways. Choosing the right one is a recurring design decision you'll face on almost every schema.
-
-## The Problem They Both Solve
-
-Suppose you're storing orders. Each order has a status: `pending`, `shipped`, `delivered`, or `cancelled`. If you store that as a plain `VARCHAR`, nothing stops a developer from inserting `'Shippped'` or `'in transit'`. Queries that filter by status become fragile because you can't be sure which spellings exist in production.
-
-You want the database itself to reject invalid values — not your application code, which can be bypassed or can crash.
-
-## Lookup Tables
-
-A lookup table is an ordinary table whose only job is to hold the valid values for a domain. Other tables reference it with a foreign key.
-
-```sql
-CREATE TABLE order_status (
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <rect x="0" y="0" width="330" height="140" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="165" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#2f6df6">Lookup Table (recommended)</text>
+    <rect x="15" y="40" width="140" height="40" rx="6" fill="#fff"/><text x="85" y="58" font-size="9" fill="#1c2330">orders</text><text x="85" y="73" font-size="8" fill="#5a6678">status_id FK</text>
+    <rect x="170" y="40" width="145" height="40" rx="6" fill="#fff"/><text x="242" y="58" font-size="9" fill="#1c2330">order_statuses</text><text x="242" y="73" font-size="8" fill="#5a6678">id PK | name</text>
+    <line x1="155" y1="60" x2="170" y2="60" stroke="#2f6df6"/>
+    <text x="165" y="105" font-size="9" fill="#16a34a">✓ Add new statuses without migration</text>
+    <text x="165" y="121" font-size="9" fill="#16a34a">✓ Referential integrity enforced by FK</text>
+    <rect x="350" y="0" width="330" height="140" rx="10" fill="#fef3c7" stroke="#f59e0b" filter="url(#sh)"/>
+    <text x="515" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#d97706">ENUM / CHECK (when appropriate)</text>
+    <rect x="365" y="40" width="300" height="40" rx="6" fill="#fff"/>
+    <text x="515" y="58" text-anchor="middle" font-size="9" fill="#1c2330">status TEXT CHECK (status IN ('pending','shipped'))</text>
+    <text x="515" y="105" font-size="9" fill="#d97706">⚠ Adding values requires ALTER TABLE</text>
+    <text x="515" y="121" font-size="9" fill="#d97706">✓ OK for truly fixed, small sets (e.g., yes/no)</text>
+  </g>
+</svg>
+<figcaption>Lookup tables are preferred for dynamic lists — they let you add values via INSERT, not ALTER TABLE. ENUMs/CHECK constraints are fine for truly immutable small sets.</figcaption>
+</figure>
+<p>When a column can only hold one of a fixed set of values — status, category, priority, colour — you have two main tools: a <strong>lookup table</strong> (also called a reference table or code table) and an <strong>enum type</strong>. Both constrain what goes in the column, but they trade flexibility against simplicity in different ways. Choosing the right one is a recurring design decision you&#39;ll face on almost every schema.</p>
+<h2>The Problem They Both Solve</h2>
+<p>Suppose you&#39;re storing orders. Each order has a status: <code>pending</code>, <code>shipped</code>, <code>delivered</code>, or <code>cancelled</code>. If you store that as a plain <code>VARCHAR</code>, nothing stops a developer from inserting <code>&#39;Shippped&#39;</code> or <code>&#39;in transit&#39;</code>. Queries that filter by status become fragile because you can&#39;t be sure which spellings exist in production.</p>
+<p>You want the database itself to reject invalid values — not your application code, which can be bypassed or can crash.</p>
+<h2>Lookup Tables</h2>
+<p>A lookup table is an ordinary table whose only job is to hold the valid values for a domain. Other tables reference it with a foreign key.</p>
+<pre><code class="language-sql">CREATE TABLE order_status (
   code TEXT PRIMARY KEY,
   label TEXT NOT NULL,
   sort_order INTEGER NOT NULL
 );
 
 INSERT INTO order_status VALUES
-  ('pending',   'Pending',   1),
-  ('shipped',   'Shipped',   2),
-  ('delivered', 'Delivered', 3),
-  ('cancelled', 'Cancelled', 4);
+  (&#39;pending&#39;,   &#39;Pending&#39;,   1),
+  (&#39;shipped&#39;,   &#39;Shipped&#39;,   2),
+  (&#39;delivered&#39;, &#39;Delivered&#39;, 3),
+  (&#39;cancelled&#39;, &#39;Cancelled&#39;, 4);
 
 CREATE TABLE orders (
   id          INTEGER PRIMARY KEY,
   customer    TEXT NOT NULL,
   status_code TEXT NOT NULL REFERENCES order_status(code)
 );
-```
-
-The foreign key constraint makes it impossible to insert an order with `status_code = 'Shippped'` — the database refuses it. Better still, the lookup table can carry extra columns: a display label, a sort order, a description, an "is terminal state" flag, or whatever your application needs. Adding a new status is a single `INSERT`; no schema migration required.
-
-> **Note:** Lookup tables work in every database engine — SQLite, PostgreSQL, MySQL, SQL Server — because they use nothing more exotic than a foreign key. That portability is a real advantage.
-
-Try it below. The `INSERT` into `orders` with a bad status will fail; fix the status code to see a successful insert, then query the join.
-
+</code></pre>
+<p>The foreign key constraint makes it impossible to insert an order with <code>status_code = &#39;Shippped&#39;</code> — the database refuses it. Better still, the lookup table can carry extra columns: a display label, a sort order, a description, an &quot;is terminal state&quot; flag, or whatever your application needs. Adding a new status is a single <code>INSERT</code>; no schema migration required.</p>
+<blockquote>
+<p><strong>Note:</strong> Lookup tables work in every database engine — SQLite, PostgreSQL, MySQL, SQL Server — because they use nothing more exotic than a foreign key. That portability is a real advantage.</p>
+</blockquote>
+<p>Try it below. The <code>INSERT</code> into <code>orders</code> with a bad status will fail; fix the status code to see a successful insert, then query the join.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Lookup tables</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE order_status (code TEXT PRIMARY KEY, label TEXT NOT NULL, sort_order INTEGER NOT NULL); INSERT INTO order_status VALUES ('pending','Pending',1),('shipped','Shipped',2),('delivered','Delivered',3),('cancelled','Cancelled',4); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT NOT NULL, status_code TEXT NOT NULL REFERENCES order_status(code)); INSERT INTO orders VALUES (1,'Alice','shipped'),(2,'Bob','pending'),(3,'Carol','delivered');" rows="20">-- Try changing 'pending' to 'Shippped' to see the FK reject it.
+    <textarea data-setup="CREATE TABLE order_status (code TEXT PRIMARY KEY, label TEXT NOT NULL, sort_order INTEGER NOT NULL); INSERT INTO order_status VALUES ('pending','Pending',1),('shipped','Shipped',2),('delivered','Delivered',3),('cancelled','Cancelled',4); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT NOT NULL, status_code TEXT NOT NULL REFERENCES order_status(code)); INSERT INTO orders VALUES (1,'Alice','shipped'),(2,'Bob','pending'),(3,'Carol','delivered');" rows="10">-- Try changing 'pending' to 'Shippped' to see the FK reject it.
 -- Then restore a valid status and run the join below.
 SELECT o.id, o.customer, s.label AS status
 FROM orders o
 JOIN order_status s ON s.code = o.status_code
 ORDER BY s.sort_order, o.id;</textarea>
   </div>
-</div>
-
-## Enums
-
-Some databases offer a native **enum type** that bakes the allowed values directly into the column definition:
-
-```sql
--- PostgreSQL syntax (not available in SQLite)
-CREATE TYPE order_status AS ENUM ('pending', 'shipped', 'delivered', 'cancelled');
+</div><h2>Enums</h2>
+<p>Some databases offer a native <strong>enum type</strong> that bakes the allowed values directly into the column definition:</p>
+<pre><code class="language-sql">-- PostgreSQL syntax (not available in SQLite)
+CREATE TYPE order_status AS ENUM (&#39;pending&#39;, &#39;shipped&#39;, &#39;delivered&#39;, &#39;cancelled&#39;);
 
 CREATE TABLE orders (
   id       SERIAL PRIMARY KEY,
   customer TEXT NOT NULL,
   status   order_status NOT NULL
 );
-```
-
-SQLite has no native enum, but you can approximate it with a `CHECK` constraint:
-
-```sql
-CREATE TABLE orders (
+</code></pre>
+<p>SQLite has no native enum, but you can approximate it with a <code>CHECK</code> constraint:</p>
+<pre><code class="language-sql">CREATE TABLE orders (
   id       INTEGER PRIMARY KEY,
   customer TEXT NOT NULL,
-  status   TEXT NOT NULL CHECK (status IN ('pending','shipped','delivered','cancelled'))
+  status   TEXT NOT NULL CHECK (status IN (&#39;pending&#39;,&#39;shipped&#39;,&#39;delivered&#39;,&#39;cancelled&#39;))
 );
-```
+</code></pre>
+<p>Enums are compact and self-documenting — the schema itself tells you every valid value. They&#39;re a good fit when the set of values is small and genuinely stable (think: compass directions, coin sides, boolean-like states).</p>
+<h3>Lookup Table vs. Enum — A Quick Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Lookup table</th>
+<th>Enum / CHECK</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Adding a new value</td>
+<td><code>INSERT</code> — no migration</td>
+<td><code>ALTER TYPE</code> or schema change</td>
+</tr>
+<tr>
+<td>Extra metadata per value</td>
+<td>Easy (add columns)</td>
+<td>Not possible</td>
+</tr>
+<tr>
+<td>Portability</td>
+<td>Any SQL database</td>
+<td>Varies by engine</td>
+</tr>
+<tr>
+<td>Schema self-documents values</td>
+<td>No (query the table)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Storage overhead</td>
+<td>Small extra table</td>
+<td>Minimal</td>
+</tr>
+</tbody></table>
+<p>The rule of thumb most teams use: if the list will grow or needs metadata, use a lookup table. If the values are truly fixed and you want them visible in the schema, use an enum or CHECK constraint.</p>
+<h2>Practical Tips</h2>
+<ul>
+<li><strong>Always enforce at the database layer.</strong> Application-level validation alone is not enough; migrations, bulk loads, and direct SQL access bypass it.</li>
+<li><strong>Name lookup tables clearly.</strong> Suffixes like <code>_type</code>, <code>_status</code>, or <code>_category</code> signal their role: <code>payment_method</code>, <code>ticket_priority</code>.</li>
+<li><strong>Seed lookup tables in your migrations.</strong> Treat the rows as schema, not data — they should be part of your version-controlled migration scripts.</li>
+<li><strong>Avoid numeric codes without a label column.</strong> <code>status = 3</code> is opaque; <code>status_code = &#39;delivered&#39;</code> is readable in every query result and log line.</li>
+</ul>
 
-Enums are compact and self-documenting — the schema itself tells you every valid value. They're a good fit when the set of values is small and genuinely stable (think: compass directions, coin sides, boolean-like states).
-
-### Lookup Table vs. Enum — A Quick Comparison
-
-| Concern | Lookup table | Enum / CHECK |
-|---|---|---|
-| Adding a new value | `INSERT` — no migration | `ALTER TYPE` or schema change |
-| Extra metadata per value | Easy (add columns) | Not possible |
-| Portability | Any SQL database | Varies by engine |
-| Schema self-documents values | No (query the table) | Yes |
-| Storage overhead | Small extra table | Minimal |
-
-The rule of thumb most teams use: if the list will grow or needs metadata, use a lookup table. If the values are truly fixed and you want them visible in the schema, use an enum or CHECK constraint.
-
-## Practical Tips
-
-- **Always enforce at the database layer.** Application-level validation alone is not enough; migrations, bulk loads, and direct SQL access bypass it.
-- **Name lookup tables clearly.** Suffixes like `_type`, `_status`, or `_category` signal their role: `payment_method`, `ticket_priority`.
-- **Seed lookup tables in your migrations.** Treat the rows as schema, not data — they should be part of your version-controlled migration scripts.
-- **Avoid numeric codes without a label column.** `status = 3` is opaque; `status_code = 'delivered'` is readable in every query result and log line.
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="033-one-to-one-one-to-many-many-to-many.html"><span class="dir">← Previous</span><span class="ttl">One-to-one, one-to-many, many-to-many</span></a><a class="next" href="035-derived-data-and-computed-columns.html"><span class="dir">Next →</span><span class="ttl">Derived data and computed columns</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

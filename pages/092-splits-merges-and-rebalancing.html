@@ -5,44 +5,62 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Splits, merges, and rebalancing — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 10. Trees, Logs, and Internal Structures</p>
   <h1 class="content-title">Splits, merges, and rebalancing</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="091-b-tree-structure-in-detail.html"><span class="dir">← Previous</span><span class="ttl">B-tree structure in detail</span></a><a class="next" href="093-write-ahead-logging-basics.html"><span class="dir">Next →</span><span class="ttl">Write-ahead logging basics</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-B-tree indexes look elegant in diagrams, but the real database takes a constant beating of inserts, updates, and deletes. Every write can break the tree's balance. The engine fixes this automatically through **splits**, **merges**, and **rebalancing** — understanding them explains why index performance holds up over time, and why it sometimes quietly degrades.
-
-## The Problem: Pages Fill Up (and Empty Out)
-
-A B-tree stores keys in fixed-size pages. Each page holds some maximum number of keys. Two things go wrong over time:
-
-- **Overflow:** An insert targets a page that is already full.
-- **Underflow:** A delete leaves a page nearly empty, wasting I/O and space.
-
-The B-tree invariant says every non-root node must be at least half full. Splits handle overflow; merges handle underflow; rebalancing is the lighter-weight middle path when a full split or merge is not strictly necessary.
-
-## Splits: When a Page Is Full
-
-When an insert arrives at a leaf page that has no room, the engine performs a **page split**:
-
-1. Allocate a new sibling page.
-2. Move roughly half the keys from the full page into the new page.
-3. Promote the **middle key** up to the parent as a separator.
-4. Update the parent's child pointers to include the new page.
-
-```
-Before split (page full, inserting 35):
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <!-- Before split -->
+    <rect x="0" y="0" width="220" height="55" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="110" y="22" text-anchor="middle" font-size="10" font-weight="700" fill="#2f6df6">Full Page (before)</text>
+    <text x="110" y="40" text-anchor="middle" font-size="9" fill="#5a6678">[10|20|30|40|50|60|70]</text>
+    <text x="110" y="54" text-anchor="middle" font-size="8" fill="#dc2626">No room for 35!</text>
+    <!-- Arrow -->
+    <text x="240" y="30" font-size="16" fill="#5a6678">→</text>
+    <!-- After split -->
+    <rect x="270" y="-5" width="220" height="48" rx="8" fill="#dcfce7" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="380" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">After split</text>
+    <text x="380" y="32" text-anchor="middle" font-size="8" fill="#5a6678">[10|20|30]</text>
+    <rect x="270" y="50" width="220" height="48" rx="8" fill="#dcfce7" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="380" y="70" text-anchor="middle" font-size="10" fill="#16a34a">[40|50|60|70]</text>
+    <text x="380" y="88" text-anchor="middle" font-size="8" fill="#5a6678">35 inserted to 2nd page</text>
+    <!-- Internal node grows -->
+    <rect x="520" y="20" width="180" height="50" rx="8" fill="#fef3c7" stroke="#f59e0b" filter="url(#sh)"/>
+    <text x="610" y="38" text-anchor="middle" font-size="10" font-weight="700" fill="#d97706">Internal node</text>
+    <text x="610" y="56" text-anchor="middle" font-size="9" fill="#5a6678">Adds key 40 → splits further up</text>
+    <!-- Bottom note -->
+    <rect x="0" y="120" width="700" height="35" rx="6" fill="#f0fdf4"/>
+    <text x="350" y="138" text-anchor="middle" font-size="9" fill="#16a34a">Splits happen bottom-up · Pages fill to ~70% after split (fill factor) · Deletes → merges reclaim space · Auto-rebalancing maintains O(log n)</text>
+    <text x="350" y="152" text-anchor="middle" font-size="8" fill="#5a6678">Bulk loading presorted data avoids splits entirely → much faster than row-at-a-time inserts</text>
+  </g>
+</svg>
+<figcaption>When a B-tree page fills up, it splits into two half-full pages. The parent gets a new separator key. This cascades upward — keeping the tree balanced automatically.</figcaption>
+</figure>
+<p>B-tree indexes look elegant in diagrams, but the real database takes a constant beating of inserts, updates, and deletes. Every write can break the tree&#39;s balance. The engine fixes this automatically through <strong>splits</strong>, <strong>merges</strong>, and <strong>rebalancing</strong> — understanding them explains why index performance holds up over time, and why it sometimes quietly degrades.</p>
+<h2>The Problem: Pages Fill Up (and Empty Out)</h2>
+<p>A B-tree stores keys in fixed-size pages. Each page holds some maximum number of keys. Two things go wrong over time:</p>
+<ul>
+<li><strong>Overflow:</strong> An insert targets a page that is already full.</li>
+<li><strong>Underflow:</strong> A delete leaves a page nearly empty, wasting I/O and space.</li>
+</ul>
+<p>The B-tree invariant says every non-root node must be at least half full. Splits handle overflow; merges handle underflow; rebalancing is the lighter-weight middle path when a full split or merge is not strictly necessary.</p>
+<h2>Splits: When a Page Is Full</h2>
+<p>When an insert arrives at a leaf page that has no room, the engine performs a <strong>page split</strong>:</p>
+<ol>
+<li>Allocate a new sibling page.</li>
+<li>Move roughly half the keys from the full page into the new page.</li>
+<li>Promote the <strong>middle key</strong> up to the parent as a separator.</li>
+<li>Update the parent&#39;s child pointers to include the new page.</li>
+</ol>
+<pre><code>Before split (page full, inserting 35):
 Parent:  [ 20 | 50 ]
           /    |    \
         ...  [22|28|33|38]  ...   ← leaf full
@@ -51,23 +69,19 @@ After split:
 Parent:  [ 20 | 33 | 50 ]        ← 33 promoted
           /    |     |    \
         ...  [22|28]  [35|38]  ...
-```
-
-The promotion can cascade: if the parent is also full, it splits too, pushing a key further up. In the worst case this chain reaches the root, which splits into two children and a new root is created — the only moment the tree grows taller.
-
-> **Note:** Splits require writing at least two pages (the original and the new sibling) plus the parent. For safety, the engine journals these writes before applying them so a crash mid-split does not corrupt the tree. That is one reason WAL and B-trees are inseparable in practice.
-
-## Merges: When a Page Is Too Empty
-
-When a delete leaves a page below the minimum fill threshold (usually 50%), the engine looks at the adjacent sibling:
-
-- **If the sibling has extra keys to spare**, borrow one key from the sibling and adjust the separator in the parent. This is the "rebalance" or "rotate" case — cheaper than a full merge.
-- **If the sibling is also near-minimum**, merging is the only option: pull all keys from one sibling into the other, and delete the now-empty page plus its separator from the parent.
-
-Deleting a separator from the parent can trigger another underflow, so merges can also cascade upward — shrinking the tree's height when the root is left with a single child.
-
-```
-Before merge (leaf [7] underflows after delete):
+</code></pre>
+<p>The promotion can cascade: if the parent is also full, it splits too, pushing a key further up. In the worst case this chain reaches the root, which splits into two children and a new root is created — the only moment the tree grows taller.</p>
+<blockquote>
+<p><strong>Note:</strong> Splits require writing at least two pages (the original and the new sibling) plus the parent. For safety, the engine journals these writes before applying them so a crash mid-split does not corrupt the tree. That is one reason WAL and B-trees are inseparable in practice.</p>
+</blockquote>
+<h2>Merges: When a Page Is Too Empty</h2>
+<p>When a delete leaves a page below the minimum fill threshold (usually 50%), the engine looks at the adjacent sibling:</p>
+<ul>
+<li><strong>If the sibling has extra keys to spare</strong>, borrow one key from the sibling and adjust the separator in the parent. This is the &quot;rebalance&quot; or &quot;rotate&quot; case — cheaper than a full merge.</li>
+<li><strong>If the sibling is also near-minimum</strong>, merging is the only option: pull all keys from one sibling into the other, and delete the now-empty page plus its separator from the parent.</li>
+</ul>
+<p>Deleting a separator from the parent can trigger another underflow, so merges can also cascade upward — shrinking the tree&#39;s height when the root is left with a single child.</p>
+<pre><code>Before merge (leaf [7] underflows after delete):
 Parent:  [ 10 ]
           /    \
         [7]    [12|15]
@@ -75,29 +89,45 @@ Parent:  [ 10 ]
 After merge:
 Parent:  (root dissolves, tree shrinks)
          [7|12|15]            ← single root leaf
-```
-
-## Rebalancing Without a Split or Merge
-
-A full split or merge touches at least three pages and always modifies the parent. Many engines try a cheaper fix first: **redistribution** (also called rotation). If a sibling page has slack, the engine shuffles one or two keys across the boundary and updates only the separator in the parent — no new pages allocated, no pages freed.
-
-| Situation | Engine action | Pages written |
-|---|---|---|
-| Page full, sibling has slack | Redistribute (rotate) | 2 leaves + parent |
-| Page full, sibling also full | Split | New page + original + parent |
-| Page underflows, sibling has slack | Redistribute (rotate) | 2 leaves + parent |
-| Page underflows, sibling also minimal | Merge | 1 page freed + parent |
-
-Production engines prefer redistribution when possible because it keeps pages fuller on average, reducing tree height and improving cache hit rates.
-
-## Observing the Effect in SQLite
-
-You cannot watch splits happen directly, but you can see their footprint. The widget below builds a small table, then compares page usage before and after a bulk insert that forces the index to grow. Try adding more rows to push more splits.
-
+</code></pre>
+<h2>Rebalancing Without a Split or Merge</h2>
+<p>A full split or merge touches at least three pages and always modifies the parent. Many engines try a cheaper fix first: <strong>redistribution</strong> (also called rotation). If a sibling page has slack, the engine shuffles one or two keys across the boundary and updates only the separator in the parent — no new pages allocated, no pages freed.</p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Engine action</th>
+<th>Pages written</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Page full, sibling has slack</td>
+<td>Redistribute (rotate)</td>
+<td>2 leaves + parent</td>
+</tr>
+<tr>
+<td>Page full, sibling also full</td>
+<td>Split</td>
+<td>New page + original + parent</td>
+</tr>
+<tr>
+<td>Page underflows, sibling has slack</td>
+<td>Redistribute (rotate)</td>
+<td>2 leaves + parent</td>
+</tr>
+<tr>
+<td>Page underflows, sibling also minimal</td>
+<td>Merge</td>
+<td>1 page freed + parent</td>
+</tr>
+</tbody></table>
+<p>Production engines prefer redistribution when possible because it keeps pages fuller on average, reducing tree height and improving cache hit rates.</p>
+<h2>Observing the Effect in SQLite</h2>
+<p>You cannot watch splits happen directly, but you can see their footprint. The widget below builds a small table, then compares page usage before and after a bulk insert that forces the index to grow. Try adding more rows to push more splits.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index page growth</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, amount REAL); CREATE INDEX idx_amount ON orders(amount); WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 500) INSERT INTO orders SELECT n, CAST((n * 17 % 1000) AS REAL) / 10.0 FROM r;" rows="20">-- How many pages does the index occupy?
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, amount REAL); CREATE INDEX idx_amount ON orders(amount); WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 500) INSERT INTO orders SELECT n, CAST((n * 17 % 1000) AS REAL) / 10.0 FROM r;" rows="10">-- How many pages does the index occupy?
 -- rootpage is where SQLite's B-tree for this index starts.
 SELECT name, rootpage
 FROM sqlite_master
@@ -112,21 +142,19 @@ FROM pragma_page_count(), pragma_page_size();
 --            SELECT value FROM r);
 -- Then re-run the page_count query to see growth.</textarea>
   </div>
+</div><p>As you add rows, <code>page_count</code> climbs in jumps — each jump corresponds to one or more split events allocating new pages.</p>
+<h2>Why This Matters for Performance</h2>
+<p>Splits and merges are the engine&#39;s way of staying honest, but they are not free:</p>
+<ul>
+<li><strong>Write amplification:</strong> One logical insert can touch many pages (the target leaf, a new sibling, and every ancestor up to the root in a worst-case cascade).</li>
+<li><strong>Page fragmentation:</strong> After many random inserts and deletes, pages may be only 60–70% full on average. A full sequential scan of the index reads more pages than a freshly built one would.</li>
+<li><strong>Index rebuilds:</strong> <code>REINDEX</code> (SQLite/PostgreSQL) or <code>ALTER INDEX ... REBUILD</code> (SQL Server) rewrite the B-tree from scratch, packing pages to near 100% fill. This is the blunt-but-effective cure for fragmentation after heavy churn.</li>
+</ul>
+<p>Understanding splits and merges also sets up the next topic: LSM-trees (Log-Structured Merge-trees) were invented specifically to avoid the high random-write cost of in-place B-tree splits by batching all writes into sequential appends.</p>
+
 </div>
-
-As you add rows, `page_count` climbs in jumps — each jump corresponds to one or more split events allocating new pages.
-
-## Why This Matters for Performance
-
-Splits and merges are the engine's way of staying honest, but they are not free:
-
-- **Write amplification:** One logical insert can touch many pages (the target leaf, a new sibling, and every ancestor up to the root in a worst-case cascade).
-- **Page fragmentation:** After many random inserts and deletes, pages may be only 60–70% full on average. A full sequential scan of the index reads more pages than a freshly built one would.
-- **Index rebuilds:** `REINDEX` (SQLite/PostgreSQL) or `ALTER INDEX ... REBUILD` (SQL Server) rewrite the B-tree from scratch, packing pages to near 100% fill. This is the blunt-but-effective cure for fragmentation after heavy churn.
-
-Understanding splits and merges also sets up the next topic: LSM-trees (Log-Structured Merge-trees) were invented specifically to avoid the high random-write cost of in-place B-tree splits by batching all writes into sequential appends.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="091-b-tree-structure-in-detail.html"><span class="dir">← Previous</span><span class="ttl">B-tree structure in detail</span></a><a class="next" href="093-write-ahead-logging-basics.html"><span class="dir">Next →</span><span class="ttl">Write-ahead logging basics</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

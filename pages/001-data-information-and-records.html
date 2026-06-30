@@ -5,82 +5,154 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Data, information, and records — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 1. What a Database System Is</p>
   <h1 class="content-title">Data, information, and records</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="disabled prev"><span class="dir">Previous</span><span class="ttl">—</span></a><a class="next" href="002-database-vs-file-storage.html"><span class="dir">Next →</span><span class="ttl">Database vs file storage</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every database system exists to answer one question: *how do we keep track of things that matter?* Before you write a single line of SQL, it helps to be precise about what "keeping track" actually means — and that starts with distinguishing three terms that people often blur together: **data**, **information**, and **records**.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#e2e8f0"/><stop offset="100%" stop-color="#2f6df6"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12"/></filter>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5a6678"/></marker>
+  </defs>
+  <g transform="translate(20,20)">
+    <!-- Raw Data -->
+    <rect x="0" y="30" width="180" height="180" rx="12" fill="#fff" stroke="#e2e6ec" filter="url(#shadow)"/>
+    <text x="90" y="60" text-anchor="middle" font-size="14" font-weight="700" fill="#1c2330">Raw Data</text>
+    <text x="90" y="85" text-anchor="middle" font-size="12" fill="#5a6678">Context-free values</text>
+    <line x1="30" y1="100" x2="150" y2="100" stroke="#e2e6ec"/>
+    <text x="90" y="125" text-anchor="middle" font-size="30" font-weight="800" fill="#2f6df6">32</text>
+    <text x="90" y="150" text-anchor="middle" font-size="13" fill="#5a6678">A number, nothing more</text>
+    <text x="90" y="175" text-anchor="middle" font-size="11" fill="#9aa6b8">"Paris" · 2024-03-15</text>
 
-## Data vs. Information
+    <!-- Arrow 1 -->
+    <line x1="185" y1="120" x2="240" y2="120" stroke="#5a6678" stroke-width="2" marker-end="url(#arr)"/>
+    <text x="212" y="112" text-anchor="middle" font-size="10" fill="#5a6678" font-weight="600">CONTEXT</text>
 
-**Data** is raw, uninterpreted values. The number `32`, the string `"Paris"`, the timestamp `2024-03-15 09:00:00` — each is just a value sitting in isolation. By themselves they mean nothing. You don't know whether 32 is a temperature, an age, a score, or a row count.
+    <!-- Information -->
+    <rect x="250" y="30" width="220" height="180" rx="12" fill="#fff" stroke="#2f6df6" filter="url(#shadow)"/>
+    <rect x="250" y="30" width="220" height="32" rx="12" fill="#e8f0ff"/>
+    <text x="360" y="52" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">Information</text>
+    <text x="360" y="85" text-anchor="middle" font-size="12" fill="#5a6678">Data + meaning</text>
+    <line x1="280" y1="100" x2="440" y2="100" stroke="#e2e6ec"/>
+    <text x="360" y="125" text-anchor="middle" font-size="12" fill="#1c2330">temperature_celsius: <tspan font-weight="700" fill="#2f6df6">32</tspan></text>
+    <text x="360" y="148" text-anchor="middle" font-size="12" fill="#1c2330">city: <tspan font-weight="700" fill="#2f6df6">Paris</tspan></text>
+    <text x="360" y="171" text-anchor="middle" font-size="12" fill="#1c2330">recorded_at: <tspan font-weight="700" fill="#2f6df6">2024-03-15</tspan></text>
 
-**Information** is data that has been given context and meaning. Once you know that `32` is the current outside temperature in degrees Celsius in a city called `"Paris"` recorded at `2024-03-15 09:00:00`, those three values become a single piece of information: *it was 32 °C in Paris on the morning of March 15, 2024.*
+    <!-- Arrow 2 -->
+    <line x1="475" y1="120" x2="530" y2="120" stroke="#5a6678" stroke-width="2" marker-end="url(#arr)"/>
+    <text x="502" y="112" text-anchor="middle" font-size="10" fill="#5a6678" font-weight="600">STRUCTURE</text>
 
-> **Note:** This distinction isn't just philosophy — it drives database design. A column named `val REAL` stores data. A column named `temperature_celsius REAL` stores data *with enough context* to become information the moment someone reads it.
-
-The job of a database is to store data in a structured way so that the context is always recoverable and queries can reconstruct information reliably.
-
-## Records: Data Organized for Retrieval
-
-A **record** is a named, structured collection of related data values that describe a single real-world entity or event. In a relational database a record maps directly to a **row** in a table, and each column in that row holds one attribute of the entity.
-
-| Column | Value | What it represents |
-|---|---|---|
-| `observation_id` | 4821 | A unique identifier for this measurement |
-| `city` | Paris | Where the reading was taken |
-| `temperature_celsius` | 32.0 | The measured value |
-| `recorded_at` | 2024-03-15 09:00:00 | When it was taken |
-
-Every row in the table has the same columns (the same **schema**), so the database can retrieve, compare, and aggregate records consistently. That uniform structure is what separates a database from a pile of text files.
-
-### What makes a good record?
-
-Three properties matter most:
-
-1. **Atomicity of fields** — each column should hold one indivisible value. Storing `"Paris, France"` in a single column is tempting, but splitting it into `city` and `country` lets you query by country without string-parsing.
-2. **A unique identifier** — every record needs something that distinguishes it from all others. This is the **primary key** (more on keys in a later chapter).
-3. **Consistent types** — a column defined as `REAL` should never sneak in a string like `"N/A"`. Type discipline lets the database enforce meaning automatically.
-
-## Seeing It Live
-
-The widget below creates a tiny `weather_observations` table and seeds it with a few records. Run the default query to see the raw rows, then try changing the `WHERE` clause to filter by city or temperature — you are turning data into information by adding the context of a specific question.
-
+    <!-- Record -->
+    <rect x="540" y="30" width="160" height="180" rx="12" fill="#fff" stroke="#16a34a" filter="url(#shadow)"/>
+    <rect x="540" y="30" width="160" height="32" rx="12" fill="#dcfce7"/>
+    <text x="620" y="52" text-anchor="middle" font-size="14" font-weight="700" fill="#16a34a">Record</text>
+    <text x="620" y="85" text-anchor="middle" font-size="12" fill="#5a6678">A row in a table</text>
+    <line x1="560" y1="100" x2="680" y2="100" stroke="#e2e6ec"/>
+    <rect x="555" y="112" width="110" height="20" rx="4" fill="#dcfce7"/>
+    <text x="610" y="126" text-anchor="middle" font-size="10" fill="#16a34a">observation_id: 4821</text>
+    <rect x="555" y="138" width="110" height="20" rx="4" fill="#f0f2f5"/>
+    <text x="610" y="152" text-anchor="middle" font-size="10" fill="#5a6678">city: Paris</text>
+    <rect x="555" y="164" width="110" height="20" rx="4" fill="#f0f2f5"/>
+    <text x="610" y="178" text-anchor="middle" font-size="10" fill="#5a6678">temp: 32.0°C</text>
+  </g>
+</svg>
+<figcaption>From raw data to structured record — context and structure turn meaningless values into queryable information.</figcaption>
+</figure>
+<p>Every database system exists to answer one question: <em>how do we keep track of things that matter?</em> Before you write a single line of SQL, it helps to be precise about what &quot;keeping track&quot; actually means — and that starts with distinguishing three terms that people often blur together: <strong>data</strong>, <strong>information</strong>, and <strong>records</strong>.</p>
+<h2>Data vs. Information</h2>
+<p><strong>Data</strong> is raw, uninterpreted values. The number <code>32</code>, the string <code>&quot;Paris&quot;</code>, the timestamp <code>2024-03-15 09:00:00</code> — each is just a value sitting in isolation. By themselves they mean nothing. You don&#39;t know whether 32 is a temperature, an age, a score, or a row count.</p>
+<p><strong>Information</strong> is data that has been given context and meaning. Once you know that <code>32</code> is the current outside temperature in degrees Celsius in a city called <code>&quot;Paris&quot;</code> recorded at <code>2024-03-15 09:00:00</code>, those three values become a single piece of information: <em>it was 32 °C in Paris on the morning of March 15, 2024.</em></p>
+<blockquote>
+<p><strong>Note:</strong> This distinction isn&#39;t just philosophy — it drives database design. A column named <code>val REAL</code> stores data. A column named <code>temperature_celsius REAL</code> stores data <em>with enough context</em> to become information the moment someone reads it.</p>
+</blockquote>
+<p>The job of a database is to store data in a structured way so that the context is always recoverable and queries can reconstruct information reliably.</p>
+<h2>Records: Data Organized for Retrieval</h2>
+<p>A <strong>record</strong> is a named, structured collection of related data values that describe a single real-world entity or event. In a relational database a record maps directly to a <strong>row</strong> in a table, and each column in that row holds one attribute of the entity.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Value</th>
+<th>What it represents</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>observation_id</code></td>
+<td>4821</td>
+<td>A unique identifier for this measurement</td>
+</tr>
+<tr>
+<td><code>city</code></td>
+<td>Paris</td>
+<td>Where the reading was taken</td>
+</tr>
+<tr>
+<td><code>temperature_celsius</code></td>
+<td>32.0</td>
+<td>The measured value</td>
+</tr>
+<tr>
+<td><code>recorded_at</code></td>
+<td>2024-03-15 09:00:00</td>
+<td>When it was taken</td>
+</tr>
+</tbody></table>
+<p>Every row in the table has the same columns (the same <strong>schema</strong>), so the database can retrieve, compare, and aggregate records consistently. That uniform structure is what separates a database from a pile of text files.</p>
+<h3>What makes a good record?</h3>
+<p>Three properties matter most:</p>
+<ol>
+<li><strong>Atomicity of fields</strong> — each column should hold one indivisible value. Storing <code>&quot;Paris, France&quot;</code> in a single column is tempting, but splitting it into <code>city</code> and <code>country</code> lets you query by country without string-parsing.</li>
+<li><strong>A unique identifier</strong> — every record needs something that distinguishes it from all others. This is the <strong>primary key</strong> (more on keys in a later chapter).</li>
+<li><strong>Consistent types</strong> — a column defined as <code>REAL</code> should never sneak in a string like <code>&quot;N/A&quot;</code>. Type discipline lets the database enforce meaning automatically.</li>
+</ol>
+<h2>Seeing It Live</h2>
+<p>The widget below creates a tiny <code>weather_observations</code> table and seeds it with a few records. Run the default query to see the raw rows, then try changing the <code>WHERE</code> clause to filter by city or temperature — you are turning data into information by adding the context of a specific question.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Data vs. Records</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE weather_observations (observation_id INTEGER PRIMARY KEY, city TEXT NOT NULL, country TEXT NOT NULL, temperature_celsius REAL NOT NULL, recorded_at TEXT NOT NULL); INSERT INTO weather_observations VALUES (1,'Paris','France',32.0,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (2,'Tokyo','Japan',18.5,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (3,'Cairo','Egypt',27.3,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (4,'Paris','France',29.1,'2024-03-16 09:00:00'); INSERT INTO weather_observations VALUES (5,'Tokyo','Japan',20.2,'2024-03-16 09:00:00');" rows="20">SELECT city, country, temperature_celsius, recorded_at
+    <textarea data-setup="CREATE TABLE weather_observations (observation_id INTEGER PRIMARY KEY, city TEXT NOT NULL, country TEXT NOT NULL, temperature_celsius REAL NOT NULL, recorded_at TEXT NOT NULL); INSERT INTO weather_observations VALUES (1,'Paris','France',32.0,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (2,'Tokyo','Japan',18.5,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (3,'Cairo','Egypt',27.3,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (4,'Paris','France',29.1,'2024-03-16 09:00:00'); INSERT INTO weather_observations VALUES (5,'Tokyo','Japan',20.2,'2024-03-16 09:00:00');" rows="10">SELECT city, country, temperature_celsius, recorded_at
 FROM weather_observations
 WHERE city = 'Paris'
 ORDER BY recorded_at;</textarea>
   </div>
+</div><p>Notice that the same raw number <code>32.0</code> carries full meaning only because the surrounding columns supply the <em>who</em>, <em>where</em>, and <em>when</em>. Strip those away and you are back to plain data.</p>
+<h2>The Takeaway</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Database analog</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Data</td>
+<td>Raw, context-free values</td>
+<td>Individual cell values</td>
+</tr>
+<tr>
+<td>Information</td>
+<td>Data + context + interpretation</td>
+<td>A query result with meaningful column names</td>
+</tr>
+<tr>
+<td>Record</td>
+<td>A structured set of data describing one entity</td>
+<td>A row in a table</td>
+</tr>
+</tbody></table>
+<p>These three concepts underpin everything else in this guide. When you design a table you are deciding <em>which data to capture</em>, <em>how to give it context through column names and types</em>, and <em>how to group it into records</em> that represent the real-world things you care about.</p>
+
 </div>
-
-Notice that the same raw number `32.0` carries full meaning only because the surrounding columns supply the *who*, *where*, and *when*. Strip those away and you are back to plain data.
-
-## The Takeaway
-
-| Term | Definition | Database analog |
-|---|---|---|
-| Data | Raw, context-free values | Individual cell values |
-| Information | Data + context + interpretation | A query result with meaningful column names |
-| Record | A structured set of data describing one entity | A row in a table |
-
-These three concepts underpin everything else in this guide. When you design a table you are deciding *which data to capture*, *how to give it context through column names and types*, and *how to group it into records* that represent the real-world things you care about.
-
-</script>
+  <nav class="pagenav"><a class="disabled prev"><span class="dir">Previous</span><span class="ttl">—</span></a><a class="next" href="002-database-vs-file-storage.html"><span class="dir">Next →</span><span class="ttl">Database vs file storage</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

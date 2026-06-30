@@ -5,45 +5,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Limiting results — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 5. A Gentle Introduction to SQL</p>
   <h1 class="content-title">Limiting results</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="044-sorting-with-order-by.html"><span class="dir">← Previous</span><span class="ttl">Sorting with ORDER BY</span></a><a class="next" href="046-aggregates-and-group-by.html"><span class="dir">Next →</span><span class="ttl">Aggregates and GROUP BY</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Real tables are rarely small. A production database might hold millions of orders, log entries, or user accounts. Asking for "all rows" is almost never what you actually want — and often what you *cannot* afford. SQL gives you two closely related clauses for controlling exactly how many rows come back: `LIMIT` and `OFFSET`.
-
-## LIMIT: Take Only What You Need
-
-`LIMIT n` tells the database to stop returning rows after the first `n` it finds. Everything else is discarded before the result even reaches your application.
-
-```sql
-SELECT name, salary
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 160" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <rect x="0" y="0" width="340" height="130" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="170" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#2f6df6">LIMIT + OFFSET</text>
+    <line x1="15" y1="36" x2="325" y2="36" stroke="#bfdbfe"/>
+    <text x="170" y="58" font-size="9" fill="#1c2330">SELECT * FROM employees</text>
+    <text x="170" y="76" font-size="9" fill="#1c2330">ORDER BY salary DESC</text>
+    <text x="170" y="94" font-size="9" fill="#1c2330">LIMIT 10 OFFSET 20</text>
+    <text x="170" y="118" font-size="8" fill="#5a6678">→ Page 3, 10 per page</text>
+    <rect x="360" y="0" width="330" height="130" rx="10" fill="#fef3c7" stroke="#f59e0b" filter="url(#sh)"/>
+    <text x="525" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#d97706">Keyset Pagination (better)</text>
+    <line x1="375" y1="36" x2="675" y2="36" stroke="#fde68a"/>
+    <text x="525" y="58" font-size="9" fill="#1c2330">SELECT * FROM employees</text>
+    <text x="525" y="76" font-size="9" fill="#1c2330">WHERE id > last_seen_id</text>
+    <text x="525" y="94" font-size="9" fill="#1c2330">ORDER BY id LIMIT 10</text>
+    <text x="525" y="118" font-size="8" fill="#5a6678">→ Consistent, index-friendly</text>
+  </g>
+</svg>
+<figcaption>LIMIT caps row count; OFFSET skips rows. For pagination, keyset pagination (WHERE id > last_seen) beats OFFSET — it's consistent and index-friendly.</figcaption>
+</figure>
+<p>Real tables are rarely small. A production database might hold millions of orders, log entries, or user accounts. Asking for &quot;all rows&quot; is almost never what you actually want — and often what you <em>cannot</em> afford. SQL gives you two closely related clauses for controlling exactly how many rows come back: <code>LIMIT</code> and <code>OFFSET</code>.</p>
+<h2>LIMIT: Take Only What You Need</h2>
+<p><code>LIMIT n</code> tells the database to stop returning rows after the first <code>n</code> it finds. Everything else is discarded before the result even reaches your application.</p>
+<pre><code class="language-sql">SELECT name, salary
 FROM employee
 ORDER BY salary DESC
 LIMIT 5;
-```
-
-This returns only the five highest-paid employees. Without `LIMIT`, the full table comes back. With it, the database can often short-circuit its work once the quota is met.
-
-> **Note:** `LIMIT` without `ORDER BY` returns *some* `n` rows in an unspecified order — the engine is free to pick whichever rows are cheapest to retrieve. Always pair `LIMIT` with `ORDER BY` when the particular rows matter, not just the count.
-
-## OFFSET: Skipping Ahead
-
-`OFFSET m` tells the database to skip the first `m` rows before it starts counting toward your limit. Together, `LIMIT` and `OFFSET` let you page through a large result set in chunks.
-
-```sql
--- Page 1: rows 1–10
+</code></pre>
+<p>This returns only the five highest-paid employees. Without <code>LIMIT</code>, the full table comes back. With it, the database can often short-circuit its work once the quota is met.</p>
+<blockquote>
+<p><strong>Note:</strong> <code>LIMIT</code> without <code>ORDER BY</code> returns <em>some</em> <code>n</code> rows in an unspecified order — the engine is free to pick whichever rows are cheapest to retrieve. Always pair <code>LIMIT</code> with <code>ORDER BY</code> when the particular rows matter, not just the count.</p>
+</blockquote>
+<h2>OFFSET: Skipping Ahead</h2>
+<p><code>OFFSET m</code> tells the database to skip the first <code>m</code> rows before it starts counting toward your limit. Together, <code>LIMIT</code> and <code>OFFSET</code> let you page through a large result set in chunks.</p>
+<pre><code class="language-sql">-- Page 1: rows 1–10
 SELECT name, salary FROM employee ORDER BY salary DESC LIMIT 10 OFFSET 0;
 
 -- Page 2: rows 11–20
@@ -51,53 +58,59 @@ SELECT name, salary FROM employee ORDER BY salary DESC LIMIT 10 OFFSET 10;
 
 -- Page 3: rows 21–30
 SELECT name, salary FROM employee ORDER BY salary DESC LIMIT 10 OFFSET 20;
-```
-
-The pattern is: `OFFSET = (page_number - 1) * page_size`. This is the classic **offset pagination** technique used in countless APIs and admin dashboards.
-
-### The Hidden Cost of Large Offsets
-
-Offset pagination feels intuitive, but it has a real performance trap: the database must still scan and discard all the skipped rows on every query. Jumping to page 500 with `OFFSET 4990` forces the engine to touch nearly 5 000 rows just to throw them away.
-
-| Approach | Works well when… | Watch out when… |
-|---|---|---|
-| `LIMIT` only | You just want the top-N results | You never need to page further |
-| `LIMIT` + `OFFSET` | Data is small or offset is modest | Offset grows large (slow scans) |
-| Keyset / cursor pagination | Data is large, offset grows big | You need arbitrary page jumps |
-
-For large datasets, **keyset pagination** (also called cursor-based pagination) avoids the problem by filtering on the last-seen value instead of counting rows:
-
-```sql
--- After seeing the last row had id = 342:
+</code></pre>
+<p>The pattern is: <code>OFFSET = (page_number - 1) * page_size</code>. This is the classic <strong>offset pagination</strong> technique used in countless APIs and admin dashboards.</p>
+<h3>The Hidden Cost of Large Offsets</h3>
+<p>Offset pagination feels intuitive, but it has a real performance trap: the database must still scan and discard all the skipped rows on every query. Jumping to page 500 with <code>OFFSET 4990</code> forces the engine to touch nearly 5 000 rows just to throw them away.</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Works well when…</th>
+<th>Watch out when…</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>LIMIT</code> only</td>
+<td>You just want the top-N results</td>
+<td>You never need to page further</td>
+</tr>
+<tr>
+<td><code>LIMIT</code> + <code>OFFSET</code></td>
+<td>Data is small or offset is modest</td>
+<td>Offset grows large (slow scans)</td>
+</tr>
+<tr>
+<td>Keyset / cursor pagination</td>
+<td>Data is large, offset grows big</td>
+<td>You need arbitrary page jumps</td>
+</tr>
+</tbody></table>
+<p>For large datasets, <strong>keyset pagination</strong> (also called cursor-based pagination) avoids the problem by filtering on the last-seen value instead of counting rows:</p>
+<pre><code class="language-sql">-- After seeing the last row had id = 342:
 SELECT id, name, salary
 FROM employee
-WHERE id > 342
+WHERE id &gt; 342
 ORDER BY id
 LIMIT 10;
-```
-
-This is always fast because an index on `id` goes straight to the right starting point.
-
-## Try It Yourself
-
-The widget below seeds a small `product` table. Run the default query, then experiment: change the `LIMIT`, add an `OFFSET`, try different `ORDER BY` columns, or remove `ORDER BY` entirely to see how the result becomes non-deterministic.
-
+</code></pre>
+<p>This is always fast because an index on <code>id</code> goes straight to the right starting point.</p>
+<h2>Try It Yourself</h2>
+<p>The widget below seeds a small <code>product</code> table. Run the default query, then experiment: change the <code>LIMIT</code>, add an <code>OFFSET</code>, try different <code>ORDER BY</code> columns, or remove <code>ORDER BY</code> entirely to see how the result becomes non-deterministic.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · LIMIT &amp; OFFSET</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE product (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, price REAL NOT NULL); INSERT INTO product VALUES (1, 'Wireless Mouse', 'Electronics', 29.99); INSERT INTO product VALUES (2, 'Standing Desk', 'Furniture', 349.00); INSERT INTO product VALUES (3, 'USB-C Hub', 'Electronics', 49.95); INSERT INTO product VALUES (4, 'Notebook', 'Stationery', 4.50); INSERT INTO product VALUES (5, 'Monitor Arm', 'Furniture', 89.00); INSERT INTO product VALUES (6, 'Mechanical Keyboard', 'Electronics', 119.00); INSERT INTO product VALUES (7, 'Ballpoint Pens (12pk)', 'Stationery', 6.99); INSERT INTO product VALUES (8, 'Desk Lamp', 'Furniture', 54.00); INSERT INTO product VALUES (9, 'Webcam', 'Electronics', 79.99); INSERT INTO product VALUES (10, 'Sticky Notes', 'Stationery', 3.25); INSERT INTO product VALUES (11, 'Laptop Stand', 'Electronics', 39.00); INSERT INTO product VALUES (12, 'Whiteboard', 'Furniture', 129.99);" rows="20">-- Top 5 most expensive products
+    <textarea data-setup="CREATE TABLE product (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, price REAL NOT NULL); INSERT INTO product VALUES (1, 'Wireless Mouse', 'Electronics', 29.99); INSERT INTO product VALUES (2, 'Standing Desk', 'Furniture', 349.00); INSERT INTO product VALUES (3, 'USB-C Hub', 'Electronics', 49.95); INSERT INTO product VALUES (4, 'Notebook', 'Stationery', 4.50); INSERT INTO product VALUES (5, 'Monitor Arm', 'Furniture', 89.00); INSERT INTO product VALUES (6, 'Mechanical Keyboard', 'Electronics', 119.00); INSERT INTO product VALUES (7, 'Ballpoint Pens (12pk)', 'Stationery', 6.99); INSERT INTO product VALUES (8, 'Desk Lamp', 'Furniture', 54.00); INSERT INTO product VALUES (9, 'Webcam', 'Electronics', 79.99); INSERT INTO product VALUES (10, 'Sticky Notes', 'Stationery', 3.25); INSERT INTO product VALUES (11, 'Laptop Stand', 'Electronics', 39.00); INSERT INTO product VALUES (12, 'Whiteboard', 'Furniture', 129.99);" rows="10">-- Top 5 most expensive products
 SELECT id, name, category, price
 FROM product
 ORDER BY price DESC
 LIMIT 5;</textarea>
   </div>
-</div>
-
-Try changing `LIMIT 5` to `LIMIT 5 OFFSET 5` to fetch the next page. Then try `ORDER BY name` to see alphabetical paging instead.
-
+</div><p>Try changing <code>LIMIT 5</code> to <code>LIMIT 5 OFFSET 5</code> to fetch the next page. Then try <code>ORDER BY name</code> to see alphabetical paging instead.</p>
 <details class="reveal"><summary>Reveal: What does LIMIT 0 return?</summary><div class="reveal-body"><code>LIMIT 0</code> returns zero rows — an empty result set with the correct column headers. This is occasionally useful for probing a query's shape (what columns does it return?) without paying the cost of fetching actual data.</div></details>
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="044-sorting-with-order-by.html"><span class="dir">← Previous</span><span class="ttl">Sorting with ORDER BY</span></a><a class="next" href="046-aggregates-and-group-by.html"><span class="dir">Next →</span><span class="ttl">Aggregates and GROUP BY</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

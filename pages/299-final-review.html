@@ -5,46 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Final review — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VII. Building Understanding</p>
   <p class="chapter-label">Chapter 30. Where to Go Next</p>
   <h1 class="content-title">Final review</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="298-suggested-learning-path.html"><span class="dir">← Previous</span><span class="ttl">Suggested learning path</span></a><a class="disabled next"><span class="dir">Next</span><span class="ttl">—</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-You have reached the end of a course that spans from the physical reality of a spinning disk to the philosophical question of what it means to know something in a distributed system. This final page is both a review and a synthesis: it revisits the most important ideas from all seven parts, shows how they connect, and articulates what it means to have internalized them rather than merely remembered them.
-
-## What This Course Was Really About
-
-Every chapter in this course was, at some level, about the same question: **how do you design a system that stores data reliably and retrieves it efficiently, under the constraints of real hardware and real failure modes?** The answers differ across storage engines, database families, and deployment topologies — but the question is always the same.
-
-The seven parts each approached this question from a different angle:
-
-- **Parts I–III** answered it for storage: how physical media, data structures, and access patterns interact.
-- **Part IV** answered it for query processing: how to turn a declarative statement into an efficient execution plan.
-- **Part V** answered it for correctness: how to ensure that concurrent operations and crashes don't corrupt data.
-- **Part VI** answered it for scale: how to maintain the guarantees of Parts I–V when the data and load exceed what one machine can handle.
-- **Part VII** answered it for learning itself: how to continue building understanding after this course ends.
-
-## Part I — How Storage Works
-
-The foundation of everything is storage. Databases are, at their core, programs that read and write bytes to persistent media. Everything else is layered on top of this physical reality.
-
-**Key ideas:**
-- Disks read and write in **pages** (typically 4–16 KB), not bytes. The unit of I/O is the page, which is why databases are page-oriented at every level.
-- **Sequential I/O is dramatically faster than random I/O** on HDDs; on SSDs the gap is smaller but still present. This single fact explains the existence of the write-ahead log, LSM-trees, and compaction.
-- **The memory hierarchy** — registers → L1/L2/L3 cache → DRAM → SSD → HDD — has latency differences of 5–6 orders of magnitude between fastest and slowest. Data structures are designed with this hierarchy in mind.
-- **File formats** encode both data and structural metadata. Row-oriented formats co-locate all columns of a row; column-oriented formats co-locate all values of a column. This choice dominates OLTP vs. OLAP performance.
-
+  <div id="rendered" class="content">
+<p>You have reached the end of a course that spans from the physical reality of a spinning disk to the philosophical question of what it means to know something in a distributed system. This final page is both a review and a synthesis: it revisits the most important ideas from all seven parts, shows how they connect, and articulates what it means to have internalized them rather than merely remembered them.</p>
+<h2>What This Course Was Really About</h2>
+<p>Every chapter in this course was, at some level, about the same question: <strong>how do you design a system that stores data reliably and retrieves it efficiently, under the constraints of real hardware and real failure modes?</strong> The answers differ across storage engines, database families, and deployment topologies — but the question is always the same.</p>
+<p>The seven parts each approached this question from a different angle:</p>
+<ul>
+<li><strong>Parts I–III</strong> answered it for storage: how physical media, data structures, and access patterns interact.</li>
+<li><strong>Part IV</strong> answered it for query processing: how to turn a declarative statement into an efficient execution plan.</li>
+<li><strong>Part V</strong> answered it for correctness: how to ensure that concurrent operations and crashes don&#39;t corrupt data.</li>
+<li><strong>Part VI</strong> answered it for scale: how to maintain the guarantees of Parts I–V when the data and load exceed what one machine can handle.</li>
+<li><strong>Part VII</strong> answered it for learning itself: how to continue building understanding after this course ends.</li>
+</ul>
+<h2>Part I — How Storage Works</h2>
+<p>The foundation of everything is storage. Databases are, at their core, programs that read and write bytes to persistent media. Everything else is layered on top of this physical reality.</p>
+<p><strong>Key ideas:</strong></p>
+<ul>
+<li>Disks read and write in <strong>pages</strong> (typically 4–16 KB), not bytes. The unit of I/O is the page, which is why databases are page-oriented at every level.</li>
+<li><strong>Sequential I/O is dramatically faster than random I/O</strong> on HDDs; on SSDs the gap is smaller but still present. This single fact explains the existence of the write-ahead log, LSM-trees, and compaction.</li>
+<li><strong>The memory hierarchy</strong> — registers → L1/L2/L3 cache → DRAM → SSD → HDD — has latency differences of 5–6 orders of magnitude between fastest and slowest. Data structures are designed with this hierarchy in mind.</li>
+<li><strong>File formats</strong> encode both data and structural metadata. Row-oriented formats co-locate all columns of a row; column-oriented formats co-locate all values of a column. This choice dominates OLTP vs. OLAP performance.</li>
+</ul>
 <figure class="diagram">
 <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Seven-part course structure showing Parts I through VII as connected layers: storage at the bottom, queries and transactions above, distribution above that, and learning path at the top">
   <defs>
@@ -84,84 +73,73 @@ The foundation of everything is storage. Databases are, at their core, programs 
   <line x1="320" y1="42" x2="320" y2="35" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3,2"/>
 </svg>
 <figcaption>The seven-part architecture of this course: each layer builds on the ones below it, with distribution providing scale across the solid foundation of storage, structures, queries, and transactions.</figcaption>
-</figure>
-
-## Part II — Data Structures
-
-Given that I/O is page-oriented and expensive, the choice of data structure determines the character of a database.
-
-**Key ideas:**
-- The **B-tree** is the dominant structure for read-heavy workloads. Its properties — logarithmic depth, high fan-out, sequential leaf pages — map directly onto how disk reads work. Every traversal from root to leaf costs O(log_B N) I/Os, where B is the branching factor.
-- The **LSM-tree** trades read performance for write performance. By writing only to memory (MemTable) and sequential files (SSTables), it converts random writes into sequential I/O. Compaction is the cost: it creates **write amplification** (each byte is written multiple times) and uses background I/O.
-- **Indexes** are secondary data structures that accelerate lookup at the cost of storage and write overhead. Hash indexes support only point lookups. B-tree indexes support point lookups and range scans. Covering indexes eliminate table lookups entirely.
-- **Bloom filters** are a probabilistic structure that tests set membership with no false negatives and a tunable false positive rate. They are used in LSM-trees to skip SSTables that cannot contain a key.
-
-## Part III — Database Families
-
-Relational databases are not the only way to organize data. The choice of database family determines what queries are efficient and what operations are natural.
-
-**Key ideas:**
-- **Relational databases** store data in tables with strict schemas. SQL is declarative — you say *what*, not *how*. The query planner decides *how*. The relational model's power comes from its generality: any query that can be expressed in relational algebra can be answered.
-- **Key-value stores** offer a single operation: look up a value by its exact key. Their strength is throughput and simplicity; their limitation is that any query that doesn't know the key requires a full scan.
-- **Document databases** store semi-structured documents (JSON/BSON). They allow flexible schemas and are natural for hierarchical data, but joins are expensive and consistency guarantees are often weaker.
-- **Column-family stores** (Bigtable, Cassandra, HBase) organize data as a sparse, sorted map of `(row_key, column_family, column, timestamp) → value`. They excel at wide rows and time-series-like access patterns.
-- **Graph databases** represent entities as nodes and relationships as edges. They make graph traversal (shortest path, neighbor queries) fast — operations that are O(N) joins in SQL become O(depth) traversals.
-- **Time-series databases** optimize for append-heavy workloads where queries involve time ranges. They typically use columnar compression and automatic data aging (downsampling older data).
-
-The key lesson: **data model determines query model**. Choose the database family that makes your most common queries natural, then verify it can handle your edge cases.
-
-## Part IV — Query Processing
-
-A database engine transforms a declarative SQL statement into a physical execution plan. This transformation is one of the most complex parts of any RDBMS.
-
-**Key ideas:**
-- The **query pipeline**: SQL text → parser (AST) → semantic analyzer → query rewriter → query planner/optimizer → execution engine.
-- The **relational algebra** underlies SQL. SQL is a syntax for relational expressions; the planner rewrites these expressions into equivalent forms with better performance.
-- The **query optimizer** is a search problem: find the physical plan with the lowest estimated cost. For N tables, there are N! join orderings, so exhaustive search is infeasible for large N. Most optimizers use dynamic programming with pruning.
-- **Join algorithms**: nested loop join (simple, slow for large inputs), sort-merge join (requires sorted input, O(N log N)), hash join (O(N) average, requires the smaller relation to fit in memory).
-- **EXPLAIN / EXPLAIN ANALYZE**: every serious database engineer reads these regularly. `EXPLAIN` shows the planned operations and estimated costs; `EXPLAIN ANALYZE` shows actual execution statistics and reveals where estimates were wrong.
-
-## Part V — Transactions
-
-Transactions are the mechanism by which databases provide the illusion of a single-user system to multiple concurrent users, and the guarantee that the system remains correct across crashes.
-
-**Key ideas:**
-- **ACID**: Atomicity (all-or-nothing), Consistency (invariants preserved), Isolation (concurrent transactions don't interfere), Durability (committed data survives crashes). Each property requires specific mechanisms.
-- **Write-ahead logging (WAL / ARIES)**: before modifying a data page, write the change to a sequential log. On crash, replay the log. This is the universal mechanism for Atomicity and Durability in relational databases.
-- **MVCC (Multi-Version Concurrency Control)**: each write creates a new version of a row. Readers see the snapshot from when their transaction started. This enables read-without-locking in PostgreSQL, MySQL InnoDB, and many other systems.
-- **Isolation levels**: Read Uncommitted, Read Committed, Repeatable Read, Serializable. Each level prevents a subset of anomalies (dirty reads, non-repeatable reads, phantom reads) at increasing cost.
-- **Two-phase locking (2PL)**: acquire all locks before releasing any. Guarantees serializability but can cause deadlocks.
-- **Snapshot Isolation**: a practical middle ground — reads see a consistent snapshot, writes conflict-check against concurrent writes. Used by PostgreSQL and many cloud databases.
-
-## Part VI — Distribution
-
-When one machine is not enough, distribution introduces new failure modes: network partitions, partial failures, clock skew, and the CAP theorem's fundamental trade-off.
-
-**Key ideas:**
-- **Replication** copies data across multiple nodes for durability and read scale. **Synchronous replication** guarantees no data loss at the cost of write latency. **Asynchronous replication** reduces latency but allows data loss on failover.
-- **Leader election** is required for single-leader replication. When the leader fails, a new one must be elected without split-brain (two nodes both believing they are the leader).
-- **Consensus algorithms** (Paxos, Raft) provide a principled way to elect a leader and agree on the order of log entries. Raft's key insight is making the algorithm understandable; it cleanly separates leader election, log replication, and safety.
-- **Sharding / Partitioning** divides data across nodes. Range partitioning preserves order but creates hot spots; hash partitioning distributes evenly but loses range query efficiency; consistent hashing minimizes redistribution when nodes join or leave.
-- **The CAP theorem**: a distributed system can provide at most two of Consistency, Availability, and Partition Tolerance. Because partitions are unavoidable in real networks, the practical choice is between CP (consistency + partition tolerance) and AP (availability + partition tolerance).
-- **Distributed transactions** using two-phase commit (2PC) are expensive: they require a coordinator and multiple round trips. Modern systems often use saga patterns or optimistic concurrency to avoid distributed locks.
-
-## The Connections Between Parts
-
-The parts are not independent — they form a dependency graph:
-
-- Distribution (Part VI) is harder to get right than transactions (Part V) because network partitions introduce failure modes that a single-machine ACID system doesn't face.
-- Transactions (Part V) are harder without the right data structures (Part II) — MVCC is efficient only because version chains are O(1) to append.
-- Query processing (Part IV) is constrained by storage (Part I) — the optimizer can only choose plans that the storage engine supports efficiently.
-- The database families (Part III) are each optimized for a different point in the trade-off space defined by Parts I and II.
-
-Understanding these dependencies is what transforms a list of facts into a mental model.
-
-## Interactive Final Review
-
+</figure><h2>Part II — Data Structures</h2>
+<p>Given that I/O is page-oriented and expensive, the choice of data structure determines the character of a database.</p>
+<p><strong>Key ideas:</strong></p>
+<ul>
+<li>The <strong>B-tree</strong> is the dominant structure for read-heavy workloads. Its properties — logarithmic depth, high fan-out, sequential leaf pages — map directly onto how disk reads work. Every traversal from root to leaf costs O(log_B N) I/Os, where B is the branching factor.</li>
+<li>The <strong>LSM-tree</strong> trades read performance for write performance. By writing only to memory (MemTable) and sequential files (SSTables), it converts random writes into sequential I/O. Compaction is the cost: it creates <strong>write amplification</strong> (each byte is written multiple times) and uses background I/O.</li>
+<li><strong>Indexes</strong> are secondary data structures that accelerate lookup at the cost of storage and write overhead. Hash indexes support only point lookups. B-tree indexes support point lookups and range scans. Covering indexes eliminate table lookups entirely.</li>
+<li><strong>Bloom filters</strong> are a probabilistic structure that tests set membership with no false negatives and a tunable false positive rate. They are used in LSM-trees to skip SSTables that cannot contain a key.</li>
+</ul>
+<h2>Part III — Database Families</h2>
+<p>Relational databases are not the only way to organize data. The choice of database family determines what queries are efficient and what operations are natural.</p>
+<p><strong>Key ideas:</strong></p>
+<ul>
+<li><strong>Relational databases</strong> store data in tables with strict schemas. SQL is declarative — you say <em>what</em>, not <em>how</em>. The query planner decides <em>how</em>. The relational model&#39;s power comes from its generality: any query that can be expressed in relational algebra can be answered.</li>
+<li><strong>Key-value stores</strong> offer a single operation: look up a value by its exact key. Their strength is throughput and simplicity; their limitation is that any query that doesn&#39;t know the key requires a full scan.</li>
+<li><strong>Document databases</strong> store semi-structured documents (JSON/BSON). They allow flexible schemas and are natural for hierarchical data, but joins are expensive and consistency guarantees are often weaker.</li>
+<li><strong>Column-family stores</strong> (Bigtable, Cassandra, HBase) organize data as a sparse, sorted map of <code>(row_key, column_family, column, timestamp) → value</code>. They excel at wide rows and time-series-like access patterns.</li>
+<li><strong>Graph databases</strong> represent entities as nodes and relationships as edges. They make graph traversal (shortest path, neighbor queries) fast — operations that are O(N) joins in SQL become O(depth) traversals.</li>
+<li><strong>Time-series databases</strong> optimize for append-heavy workloads where queries involve time ranges. They typically use columnar compression and automatic data aging (downsampling older data).</li>
+</ul>
+<p>The key lesson: <strong>data model determines query model</strong>. Choose the database family that makes your most common queries natural, then verify it can handle your edge cases.</p>
+<h2>Part IV — Query Processing</h2>
+<p>A database engine transforms a declarative SQL statement into a physical execution plan. This transformation is one of the most complex parts of any RDBMS.</p>
+<p><strong>Key ideas:</strong></p>
+<ul>
+<li>The <strong>query pipeline</strong>: SQL text → parser (AST) → semantic analyzer → query rewriter → query planner/optimizer → execution engine.</li>
+<li>The <strong>relational algebra</strong> underlies SQL. SQL is a syntax for relational expressions; the planner rewrites these expressions into equivalent forms with better performance.</li>
+<li>The <strong>query optimizer</strong> is a search problem: find the physical plan with the lowest estimated cost. For N tables, there are N! join orderings, so exhaustive search is infeasible for large N. Most optimizers use dynamic programming with pruning.</li>
+<li><strong>Join algorithms</strong>: nested loop join (simple, slow for large inputs), sort-merge join (requires sorted input, O(N log N)), hash join (O(N) average, requires the smaller relation to fit in memory).</li>
+<li><strong>EXPLAIN / EXPLAIN ANALYZE</strong>: every serious database engineer reads these regularly. <code>EXPLAIN</code> shows the planned operations and estimated costs; <code>EXPLAIN ANALYZE</code> shows actual execution statistics and reveals where estimates were wrong.</li>
+</ul>
+<h2>Part V — Transactions</h2>
+<p>Transactions are the mechanism by which databases provide the illusion of a single-user system to multiple concurrent users, and the guarantee that the system remains correct across crashes.</p>
+<p><strong>Key ideas:</strong></p>
+<ul>
+<li><strong>ACID</strong>: Atomicity (all-or-nothing), Consistency (invariants preserved), Isolation (concurrent transactions don&#39;t interfere), Durability (committed data survives crashes). Each property requires specific mechanisms.</li>
+<li><strong>Write-ahead logging (WAL / ARIES)</strong>: before modifying a data page, write the change to a sequential log. On crash, replay the log. This is the universal mechanism for Atomicity and Durability in relational databases.</li>
+<li><strong>MVCC (Multi-Version Concurrency Control)</strong>: each write creates a new version of a row. Readers see the snapshot from when their transaction started. This enables read-without-locking in PostgreSQL, MySQL InnoDB, and many other systems.</li>
+<li><strong>Isolation levels</strong>: Read Uncommitted, Read Committed, Repeatable Read, Serializable. Each level prevents a subset of anomalies (dirty reads, non-repeatable reads, phantom reads) at increasing cost.</li>
+<li><strong>Two-phase locking (2PL)</strong>: acquire all locks before releasing any. Guarantees serializability but can cause deadlocks.</li>
+<li><strong>Snapshot Isolation</strong>: a practical middle ground — reads see a consistent snapshot, writes conflict-check against concurrent writes. Used by PostgreSQL and many cloud databases.</li>
+</ul>
+<h2>Part VI — Distribution</h2>
+<p>When one machine is not enough, distribution introduces new failure modes: network partitions, partial failures, clock skew, and the CAP theorem&#39;s fundamental trade-off.</p>
+<p><strong>Key ideas:</strong></p>
+<ul>
+<li><strong>Replication</strong> copies data across multiple nodes for durability and read scale. <strong>Synchronous replication</strong> guarantees no data loss at the cost of write latency. <strong>Asynchronous replication</strong> reduces latency but allows data loss on failover.</li>
+<li><strong>Leader election</strong> is required for single-leader replication. When the leader fails, a new one must be elected without split-brain (two nodes both believing they are the leader).</li>
+<li><strong>Consensus algorithms</strong> (Paxos, Raft) provide a principled way to elect a leader and agree on the order of log entries. Raft&#39;s key insight is making the algorithm understandable; it cleanly separates leader election, log replication, and safety.</li>
+<li><strong>Sharding / Partitioning</strong> divides data across nodes. Range partitioning preserves order but creates hot spots; hash partitioning distributes evenly but loses range query efficiency; consistent hashing minimizes redistribution when nodes join or leave.</li>
+<li><strong>The CAP theorem</strong>: a distributed system can provide at most two of Consistency, Availability, and Partition Tolerance. Because partitions are unavoidable in real networks, the practical choice is between CP (consistency + partition tolerance) and AP (availability + partition tolerance).</li>
+<li><strong>Distributed transactions</strong> using two-phase commit (2PC) are expensive: they require a coordinator and multiple round trips. Modern systems often use saga patterns or optimistic concurrency to avoid distributed locks.</li>
+</ul>
+<h2>The Connections Between Parts</h2>
+<p>The parts are not independent — they form a dependency graph:</p>
+<ul>
+<li>Distribution (Part VI) is harder to get right than transactions (Part V) because network partitions introduce failure modes that a single-machine ACID system doesn&#39;t face.</li>
+<li>Transactions (Part V) are harder without the right data structures (Part II) — MVCC is efficient only because version chains are O(1) to append.</li>
+<li>Query processing (Part IV) is constrained by storage (Part I) — the optimizer can only choose plans that the storage engine supports efficiently.</li>
+<li>The database families (Part III) are each optimized for a different point in the trade-off space defined by Parts I and II.</li>
+</ul>
+<p>Understanding these dependencies is what transforms a list of facts into a mental model.</p>
+<h2>Interactive Final Review</h2>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Comprehensive Review Exercise</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, price REAL NOT NULL, stock INTEGER NOT NULL); CREATE TABLE sales (id INTEGER PRIMARY KEY, product_id INTEGER NOT NULL, quantity INTEGER NOT NULL, sale_date INTEGER NOT NULL, channel TEXT NOT NULL); CREATE INDEX idx_prod_cat ON products(category); CREATE INDEX idx_sales_product ON sales(product_id); CREATE INDEX idx_sales_date ON sales(sale_date); INSERT INTO products VALUES (1,'Laptop','Electronics',999.0,50),(2,'Mouse','Electronics',29.0,200),(3,'Desk','Furniture',349.0,30),(4,'Chair','Furniture',249.0,45),(5,'Monitor','Electronics',399.0,80); INSERT INTO sales VALUES (1,1,2,1700000100,'online'),(2,2,5,1700000200,'online'),(3,3,1,1700000300,'store'),(4,1,1,1700000400,'store'),(5,4,3,1700000500,'online'),(6,5,2,1700000600,'online'),(7,2,10,1700000700,'store'),(8,3,2,1700000800,'online');" rows="20">-- Part IV review: window function query with join
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, price REAL NOT NULL, stock INTEGER NOT NULL); CREATE TABLE sales (id INTEGER PRIMARY KEY, product_id INTEGER NOT NULL, quantity INTEGER NOT NULL, sale_date INTEGER NOT NULL, channel TEXT NOT NULL); CREATE INDEX idx_prod_cat ON products(category); CREATE INDEX idx_sales_product ON sales(product_id); CREATE INDEX idx_sales_date ON sales(sale_date); INSERT INTO products VALUES (1,'Laptop','Electronics',999.0,50),(2,'Mouse','Electronics',29.0,200),(3,'Desk','Furniture',349.0,30),(4,'Chair','Furniture',249.0,45),(5,'Monitor','Electronics',399.0,80); INSERT INTO sales VALUES (1,1,2,1700000100,'online'),(2,2,5,1700000200,'online'),(3,3,1,1700000300,'store'),(4,1,1,1700000400,'store'),(5,4,3,1700000500,'online'),(6,5,2,1700000600,'online'),(7,2,10,1700000700,'store'),(8,3,2,1700000800,'online');" rows="10">-- Part IV review: window function query with join
 -- Revenue per product with running total ordered by revenue
 SELECT
   p.name,
@@ -177,48 +155,44 @@ ORDER BY revenue DESC;
 -- Try adding a WHERE filter and observe how the plan changes:
 -- WHERE p.category = 'Electronics'</textarea>
   </div>
+</div><h2>What Genuine Understanding Looks Like</h2>
+<p>By the end of this course, a practitioner with genuine understanding can:</p>
+<ol>
+<li><strong>Given a workload, recommend a database family</strong> and explain which properties of that family match the workload — not from a checklist, but from reasoning about data structure and query characteristics.</li>
+<li><strong>Given a slow query, diagnose it</strong> using <code>EXPLAIN ANALYZE</code>, identify whether the problem is a missing index, a wrong join algorithm, or stale statistics, and fix it.</li>
+<li><strong>Given a consistency requirement, choose an isolation level</strong> and explain what anomalies it prevents and what it allows.</li>
+<li><strong>Given a scale requirement, sketch a distribution strategy</strong> — how to shard, how to replicate, what consistency trade-off to accept.</li>
+<li><strong>Given a paper or vendor claim, evaluate it critically</strong> — what workload does it assume? What is the baseline? What is not measured?</li>
+</ol>
+<p>These five capabilities are the payoff of this course. They require mental models, not memorized facts. Memorized facts decay; mental models compound.</p>
+<h2>What Comes Next</h2>
+<p>The field does not stand still. In the years since the foundational papers were written:</p>
+<ul>
+<li><strong>LSM-trees</strong> have largely displaced B-trees in write-heavy systems, leading to RocksDB powering MySQL, CockroachDB, TiKV, and dozens of others.</li>
+<li><strong>Columnar databases</strong> (DuckDB, ClickHouse) have made in-process OLAP fast enough to run inside applications.</li>
+<li><strong>Consensus algorithms</strong> have been implemented well enough that distributed SQL (Spanner, CockroachDB, YugabyteDB) is production-ready.</li>
+<li><strong>Lakehouse architectures</strong> (Iceberg, Delta Lake) are replacing traditional data warehouses for many analytical workloads.</li>
+<li><strong>Vector databases</strong> and <strong>LLM-integrated query</strong> are the newest frontier, driven by the embedding-based AI systems of the 2020s.</li>
+</ul>
+<p>The engineers who will navigate this landscape well are not those who memorized today&#39;s best practices. They are those who understand <em>why</em> the best practices are what they are — so they can recognize when the underlying trade-offs have shifted and the best practice needs to change.</p>
+<h2>Key Takeaways Across the Entire Course</h2>
+<ul>
+<li><strong>Storage is the foundation.</strong> Every design decision flows from the properties of the underlying storage — its latency, its unit of access, its failure modes.</li>
+<li><strong>Data structures encode trade-offs.</strong> B-trees optimize reads; LSM-trees optimize writes. Neither is universally better.</li>
+<li><strong>Data model determines query model.</strong> Choose the database family that makes your most common operations natural.</li>
+<li><strong>The query planner works by estimating costs.</strong> When estimates are wrong, plans are wrong. Keep statistics current; read <code>EXPLAIN ANALYZE</code>.</li>
+<li><strong>ACID is not binary.</strong> Each property has a cost; isolation levels trade correctness for throughput. Know what each level prevents.</li>
+<li><strong>WAL is the universal crash safety mechanism.</strong> Log before modifying; replay on recovery. This principle appears in every durable storage system.</li>
+<li><strong>Distribution multiplies complexity.</strong> Replication, sharding, and consensus each introduce failure modes that don&#39;t exist on a single machine. Avoid distributing until you must.</li>
+<li><strong>CAP is a genuine constraint, not a marketing frame.</strong> When partitions happen (and they will), you must choose between consistency and availability.</li>
+<li><strong>Measure before optimizing.</strong> Intuitions about bottlenecks are usually wrong.</li>
+<li><strong>Mental models beat checklists.</strong> The goal was never to memorize facts — it was to build a framework for reasoning about systems you haven&#39;t seen yet.</li>
+</ul>
+<p>Congratulations on completing the course. The next step is to use it.</p>
+
 </div>
-
-## What Genuine Understanding Looks Like
-
-By the end of this course, a practitioner with genuine understanding can:
-
-1. **Given a workload, recommend a database family** and explain which properties of that family match the workload — not from a checklist, but from reasoning about data structure and query characteristics.
-2. **Given a slow query, diagnose it** using `EXPLAIN ANALYZE`, identify whether the problem is a missing index, a wrong join algorithm, or stale statistics, and fix it.
-3. **Given a consistency requirement, choose an isolation level** and explain what anomalies it prevents and what it allows.
-4. **Given a scale requirement, sketch a distribution strategy** — how to shard, how to replicate, what consistency trade-off to accept.
-5. **Given a paper or vendor claim, evaluate it critically** — what workload does it assume? What is the baseline? What is not measured?
-
-These five capabilities are the payoff of this course. They require mental models, not memorized facts. Memorized facts decay; mental models compound.
-
-## What Comes Next
-
-The field does not stand still. In the years since the foundational papers were written:
-
-- **LSM-trees** have largely displaced B-trees in write-heavy systems, leading to RocksDB powering MySQL, CockroachDB, TiKV, and dozens of others.
-- **Columnar databases** (DuckDB, ClickHouse) have made in-process OLAP fast enough to run inside applications.
-- **Consensus algorithms** have been implemented well enough that distributed SQL (Spanner, CockroachDB, YugabyteDB) is production-ready.
-- **Lakehouse architectures** (Iceberg, Delta Lake) are replacing traditional data warehouses for many analytical workloads.
-- **Vector databases** and **LLM-integrated query** are the newest frontier, driven by the embedding-based AI systems of the 2020s.
-
-The engineers who will navigate this landscape well are not those who memorized today's best practices. They are those who understand *why* the best practices are what they are — so they can recognize when the underlying trade-offs have shifted and the best practice needs to change.
-
-## Key Takeaways Across the Entire Course
-
-- **Storage is the foundation.** Every design decision flows from the properties of the underlying storage — its latency, its unit of access, its failure modes.
-- **Data structures encode trade-offs.** B-trees optimize reads; LSM-trees optimize writes. Neither is universally better.
-- **Data model determines query model.** Choose the database family that makes your most common operations natural.
-- **The query planner works by estimating costs.** When estimates are wrong, plans are wrong. Keep statistics current; read `EXPLAIN ANALYZE`.
-- **ACID is not binary.** Each property has a cost; isolation levels trade correctness for throughput. Know what each level prevents.
-- **WAL is the universal crash safety mechanism.** Log before modifying; replay on recovery. This principle appears in every durable storage system.
-- **Distribution multiplies complexity.** Replication, sharding, and consensus each introduce failure modes that don't exist on a single machine. Avoid distributing until you must.
-- **CAP is a genuine constraint, not a marketing frame.** When partitions happen (and they will), you must choose between consistency and availability.
-- **Measure before optimizing.** Intuitions about bottlenecks are usually wrong.
-- **Mental models beat checklists.** The goal was never to memorize facts — it was to build a framework for reasoning about systems you haven't seen yet.
-
-Congratulations on completing the course. The next step is to use it.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="298-suggested-learning-path.html"><span class="dir">← Previous</span><span class="ttl">Suggested learning path</span></a><a class="disabled next"><span class="dir">Next</span><span class="ttl">—</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

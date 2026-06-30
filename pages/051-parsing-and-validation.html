@@ -5,82 +5,89 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Parsing and validation — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 6. How Query Processing Works</p>
   <h1 class="content-title">Parsing and validation</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="049-reading-sql-as-a-data-flow.html"><span class="dir">← Previous</span><span class="ttl">Reading SQL as a data flow</span></a><a class="next" href="052-logical-plans.html"><span class="dir">Next →</span><span class="ttl">Logical plans</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every time you send a SQL query to a database engine, it goes through several stages before a single row of data is touched. The very first two stages — **parsing** and **validation** — turn your raw text into something the engine can reason about and check for correctness. Understanding them helps you read error messages, write better SQL, and build an accurate mental model of how the engine works.
-
-## Stage 1: Parsing — From Text to Tree
-
-A SQL query arrives as a plain string of characters. The parser's job is to verify that the string follows SQL's grammar rules and, if it does, convert it into a structured representation called an **abstract syntax tree (AST)**.
-
-The AST is an in-memory tree where each node represents a syntactic element:
-
-```
-SELECT name, salary FROM employees WHERE salary > 50000
-```
-
-Produces a tree roughly like:
-
-```
-SelectStatement
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">051-parsing-and-validation</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 051-parsing-and-validation.</figcaption>
+</figure>
+<p>Every time you send a SQL query to a database engine, it goes through several stages before a single row of data is touched. The very first two stages — <strong>parsing</strong> and <strong>validation</strong> — turn your raw text into something the engine can reason about and check for correctness. Understanding them helps you read error messages, write better SQL, and build an accurate mental model of how the engine works.</p>
+<h2>Stage 1: Parsing — From Text to Tree</h2>
+<p>A SQL query arrives as a plain string of characters. The parser&#39;s job is to verify that the string follows SQL&#39;s grammar rules and, if it does, convert it into a structured representation called an <strong>abstract syntax tree (AST)</strong>.</p>
+<p>The AST is an in-memory tree where each node represents a syntactic element:</p>
+<pre><code>SELECT name, salary FROM employees WHERE salary &gt; 50000
+</code></pre>
+<p>Produces a tree roughly like:</p>
+<pre><code>SelectStatement
 ├── Columns: [name, salary]
 ├── From: employees
-└── Where: BinaryOp(>)
+└── Where: BinaryOp(&gt;)
          ├── Left: salary
          └── Right: 50000
-```
-
-The parser does **not** know whether the table `employees` exists, or whether `salary` is a real column — that comes next. Its only concern is grammar. If you write `SELECT FROM WHERE name`, it fails here because the structure violates SQL syntax rules, regardless of what tables you have.
-
-> **Note:** Databases typically implement their parser as a hand-written or generated **tokenizer + recursive descent parser**. The tokenizer breaks the string into tokens (`SELECT`, `name`, `,`, `FROM`, …), then the parser builds the tree according to the language grammar.
-
-### What Causes a Parse Error?
-
-Parse errors come from broken grammar:
-
-| Broken query | Why the parser rejects it |
-|---|---|
-| `SELEC name FROM t` | Unrecognized keyword |
-| `SELECT name FROM` | Missing table reference after `FROM` |
-| `SELECT name, FROM t` | Trailing comma before a keyword |
-| `SELECT (name FROM t` | Unclosed parenthesis |
-
-The error message usually names the unexpected token and its position, which is why database errors often say something like `syntax error near "FROM"`.
-
-## Stage 2: Validation — Does This Query Make Sense?
-
-Once the AST exists, the engine passes it to the **semantic analyzer** (often called the validator or binder). This stage checks that the *meaning* of the query is valid against the actual schema stored in the **catalog** (the database's internal directory of tables, columns, types, and constraints).
-
-Three things are checked:
-
-1. **Object existence** — Does the table `employees` exist in this database?
-2. **Column resolution** — Does `salary` exist as a column in `employees`? If a query references multiple tables, which table does an ambiguous column name belong to?
-3. **Type compatibility** — Is comparing `salary > 50000` valid given `salary`'s declared data type? Would `salary > 'hello'` cause a type mismatch?
-
-If any check fails, the query is rejected before any data is read — a useful guarantee that saves wasted I/O.
-
-> **Note:** The catalog is also called the **system catalog** or **data dictionary**. In SQLite you can inspect it directly via `sqlite_schema`. In PostgreSQL it lives in `pg_catalog`. It is just a set of tables that the engine itself queries internally during validation.
-
-### Seeing Validation Errors in Practice
-
-A **parse error** and a **validation error** feel similar from the outside, but they come from different stages:
-
-```sql
--- Parse error: broken syntax (no table given)
+</code></pre>
+<p>The parser does <strong>not</strong> know whether the table <code>employees</code> exists, or whether <code>salary</code> is a real column — that comes next. Its only concern is grammar. If you write <code>SELECT FROM WHERE name</code>, it fails here because the structure violates SQL syntax rules, regardless of what tables you have.</p>
+<blockquote>
+<p><strong>Note:</strong> Databases typically implement their parser as a hand-written or generated <strong>tokenizer + recursive descent parser</strong>. The tokenizer breaks the string into tokens (<code>SELECT</code>, <code>name</code>, <code>,</code>, <code>FROM</code>, …), then the parser builds the tree according to the language grammar.</p>
+</blockquote>
+<h3>What Causes a Parse Error?</h3>
+<p>Parse errors come from broken grammar:</p>
+<table>
+<thead>
+<tr>
+<th>Broken query</th>
+<th>Why the parser rejects it</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SELEC name FROM t</code></td>
+<td>Unrecognized keyword</td>
+</tr>
+<tr>
+<td><code>SELECT name FROM</code></td>
+<td>Missing table reference after <code>FROM</code></td>
+</tr>
+<tr>
+<td><code>SELECT name, FROM t</code></td>
+<td>Trailing comma before a keyword</td>
+</tr>
+<tr>
+<td><code>SELECT (name FROM t</code></td>
+<td>Unclosed parenthesis</td>
+</tr>
+</tbody></table>
+<p>The error message usually names the unexpected token and its position, which is why database errors often say something like <code>syntax error near &quot;FROM&quot;</code>.</p>
+<h2>Stage 2: Validation — Does This Query Make Sense?</h2>
+<p>Once the AST exists, the engine passes it to the <strong>semantic analyzer</strong> (often called the validator or binder). This stage checks that the <em>meaning</em> of the query is valid against the actual schema stored in the <strong>catalog</strong> (the database&#39;s internal directory of tables, columns, types, and constraints).</p>
+<p>Three things are checked:</p>
+<ol>
+<li><strong>Object existence</strong> — Does the table <code>employees</code> exist in this database?</li>
+<li><strong>Column resolution</strong> — Does <code>salary</code> exist as a column in <code>employees</code>? If a query references multiple tables, which table does an ambiguous column name belong to?</li>
+<li><strong>Type compatibility</strong> — Is comparing <code>salary &gt; 50000</code> valid given <code>salary</code>&#39;s declared data type? Would <code>salary &gt; &#39;hello&#39;</code> cause a type mismatch?</li>
+</ol>
+<p>If any check fails, the query is rejected before any data is read — a useful guarantee that saves wasted I/O.</p>
+<blockquote>
+<p><strong>Note:</strong> The catalog is also called the <strong>system catalog</strong> or <strong>data dictionary</strong>. In SQLite you can inspect it directly via <code>sqlite_schema</code>. In PostgreSQL it lives in <code>pg_catalog</code>. It is just a set of tables that the engine itself queries internally during validation.</p>
+</blockquote>
+<h3>Seeing Validation Errors in Practice</h3>
+<p>A <strong>parse error</strong> and a <strong>validation error</strong> feel similar from the outside, but they come from different stages:</p>
+<pre><code class="language-sql">-- Parse error: broken syntax (no table given)
 SELECT name FROM;
 
 -- Validation error: table does not exist (syntax is fine)
@@ -88,16 +95,11 @@ SELECT name FROM ghost_table;
 
 -- Validation error: column does not exist
 SELECT ghost_column FROM employees;
-```
-
-## From Validated AST to Execution
-
-After parsing and validation succeed, the engine has a clean, fully-resolved AST — every name is confirmed to refer to a real object, and types are consistent. This validated AST is what gets handed off to the **query optimizer**, which we will cover on the next page.
-
-The diagram below summarizes the flow:
-
-```
-SQL text
+</code></pre>
+<h2>From Validated AST to Execution</h2>
+<p>After parsing and validation succeed, the engine has a clean, fully-resolved AST — every name is confirmed to refer to a real object, and types are consistent. This validated AST is what gets handed off to the <strong>query optimizer</strong>, which we will cover on the next page.</p>
+<p>The diagram below summarizes the flow:</p>
+<pre><code>SQL text
    │
    ▼  (parser)
 Abstract Syntax Tree  ──► parse error if grammar is wrong
@@ -107,27 +109,26 @@ Validated AST         ──► validation error if objects/types are wrong
    │
    ▼
 Query optimizer
-```
-
-## Try It Yourself
-
-The widget below has a working query against a small `employees` table. Try deliberately breaking it in different ways and observe the error messages:
-
-- Remove the table name after `FROM` to trigger a **parse error**
-- Change `employees` to a table name that does not exist for a **validation error**
-- Change `salary` in the `WHERE` clause to a column that does not exist
-
+</code></pre>
+<h2>Try It Yourself</h2>
+<p>The widget below has a working query against a small <code>employees</code> table. Try deliberately breaking it in different ways and observe the error messages:</p>
+<ul>
+<li>Remove the table name after <code>FROM</code> to trigger a <strong>parse error</strong></li>
+<li>Change <code>employees</code> to a table name that does not exist for a <strong>validation error</strong></li>
+<li>Change <code>salary</code> in the <code>WHERE</code> clause to a column that does not exist</li>
+</ul>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Parse and validation errors</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 'Engineering', 95000), (2, 'Bob', 'Marketing', 62000), (3, 'Carol', 'Engineering', 110000), (4, 'Dan', 'HR', 58000), (5, 'Eve', 'Engineering', 87000);" rows="20">SELECT name, department, salary
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, department TEXT, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 'Engineering', 95000), (2, 'Bob', 'Marketing', 62000), (3, 'Carol', 'Engineering', 110000), (4, 'Dan', 'HR', 58000), (5, 'Eve', 'Engineering', 87000);" rows="10">SELECT name, department, salary
 FROM employees
 WHERE salary > 80000
 ORDER BY salary DESC;</textarea>
   </div>
 </div>
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="049-reading-sql-as-a-data-flow.html"><span class="dir">← Previous</span><span class="ttl">Reading SQL as a data flow</span></a><a class="next" href="052-logical-plans.html"><span class="dir">Next →</span><span class="ttl">Logical plans</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

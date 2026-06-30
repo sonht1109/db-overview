@@ -5,60 +5,84 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Data independence — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 3. The Relational Model</p>
   <h1 class="content-title">Data independence</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="025-why-relations-are-powerful.html"><span class="dir">← Previous</span><span class="ttl">Why relations are powerful</span></a><a class="next" href="027-integrity-by-design.html"><span class="dir">Next →</span><span class="ttl">Integrity by design</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-One of the most practical gifts the relational model gave database engineering is a guarantee you probably already rely on without realizing it: you can reorganize how data is stored, or restructure how it is presented to one group of users, without rewriting the applications that use it. That guarantee has a name — **data independence** — and it is one of the primary reasons relational databases became the dominant model for business data.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(10,10)">
+    <!-- Level 1: View / External -->
+    <rect x="40" y="0" width="630" height="50" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="355" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">👁️ View / External Level</text>
+    <text x="355" y="40" text-anchor="middle" font-size="9" fill="#5a6678">What each user or app sees — can hide columns, rename, pre-join</text>
+    <line x1="355" y1="50" x2="355" y2="65" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="375" y="62" font-size="8" fill="#2f6df6">Logical Data Independence</text>
 
-## Two Kinds of Independence
+    <!-- Level 2: Logical / Conceptual -->
+    <rect x="80" y="68" width="550" height="50" rx="10" fill="#fef3c7" stroke="#f59e0b" filter="url(#sh)"/>
+    <text x="355" y="90" text-anchor="middle" font-size="13" font-weight="700" fill="#d97706">📋 Logical / Conceptual Level</text>
+    <text x="355" y="108" text-anchor="middle" font-size="9" fill="#5a6678">Tables, columns, constraints — the schema as designed</text>
+    <line x1="355" y1="118" x2="355" y2="133" stroke="#d97706" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="375" y="130" font-size="8" fill="#d97706">Physical Data Independence</text>
 
-Edgar Codd, who formalized the relational model in 1970, identified two distinct levels of independence. Each one protects a different audience from a different kind of change.
+    <!-- Level 3: Physical / Internal -->
+    <rect x="110" y="136" width="490" height="50" rx="10" fill="#f0f2f5" stroke="#e2e6ec" filter="url(#sh)"/>
+    <text x="355" y="158" text-anchor="middle" font-size="13" font-weight="700" fill="#5a6678">💾 Physical / Internal Level</text>
+    <text x="355" y="176" text-anchor="middle" font-size="9" fill="#5a6678">How data is actually stored — pages, B-trees, file layout</text>
 
-| Kind | What is shielded | What can change underneath |
-|------|-----------------|---------------------------|
-| **Physical data independence** | Applications and queries | How data is stored on disk (files, indexes, page layout) |
-| **Logical data independence** | External views and applications | The logical schema (adding tables, splitting a table, renaming columns) |
-
-Think of it as two insulating layers. Physical independence sits at the bottom, separating the storage engine from the relational schema. Logical independence sits above that, separating the schema from the views and queries that users write.
-
-### Physical Data Independence
-
-Physical data independence means that the way data is physically stored — which files it lives in, what page size is used, which indexes exist — can change without affecting the SQL you write.
-
-You saw a glimpse of this in the *Logical vs. Physical Structure* page. Adding or dropping an index is the clearest example: the `SELECT` statement and its result stay exactly the same; only the internal access path changes. A DBA can add an index on a busy production table to fix a slow query, and not a single line of application code needs to touch.
-
-Other physical changes that should not break your SQL:
-
-- Moving a database to faster SSD storage
-- Changing the internal page size or buffer pool size
-- Partitioning a large table across multiple physical files
-- Switching the storage engine (e.g., from one B-tree format to another)
-
-The database engine's **query optimizer** is the mechanism that makes this work. When you submit a query, the optimizer consults the current physical layout and generates an efficient execution plan. As the layout changes, the optimizer generates new plans — automatically, transparently.
-
-### Logical Data Independence
-
-Logical data independence is the harder of the two. It means that changes to the *relational schema* — the tables and their columns — should not break the views and queries that sit on top of it.
-
-The usual mechanism is a **view**: a named, stored query that looks like a table to any code that uses it.
-
-Imagine a `users` table that is later split into two tables for organizational reasons:
-
-```sql
--- Original schema
+    <!-- Right annotation -->
+    <rect x="15" y="208" width="690" height="26" rx="6" fill="#dcfce7" stroke="#86efac"/>
+    <text x="360" y="226" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="600">✓ Change storage without rewriting queries    ✓ Change views without rewriting apps</text>
+  </g>
+</svg>
+<figcaption>Three levels of data independence: the physical level can be reorganized without touching apps; the view level can be reshaped without touching the base schema.</figcaption>
+</figure>
+<p>One of the most practical gifts the relational model gave database engineering is a guarantee you probably already rely on without realizing it: you can reorganize how data is stored, or restructure how it is presented to one group of users, without rewriting the applications that use it. That guarantee has a name — <strong>data independence</strong> — and it is one of the primary reasons relational databases became the dominant model for business data.</p>
+<h2>Two Kinds of Independence</h2>
+<p>Edgar Codd, who formalized the relational model in 1970, identified two distinct levels of independence. Each one protects a different audience from a different kind of change.</p>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>What is shielded</th>
+<th>What can change underneath</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Physical data independence</strong></td>
+<td>Applications and queries</td>
+<td>How data is stored on disk (files, indexes, page layout)</td>
+</tr>
+<tr>
+<td><strong>Logical data independence</strong></td>
+<td>External views and applications</td>
+<td>The logical schema (adding tables, splitting a table, renaming columns)</td>
+</tr>
+</tbody></table>
+<p>Think of it as two insulating layers. Physical independence sits at the bottom, separating the storage engine from the relational schema. Logical independence sits above that, separating the schema from the views and queries that users write.</p>
+<h3>Physical Data Independence</h3>
+<p>Physical data independence means that the way data is physically stored — which files it lives in, what page size is used, which indexes exist — can change without affecting the SQL you write.</p>
+<p>You saw a glimpse of this in the <em>Logical vs. Physical Structure</em> page. Adding or dropping an index is the clearest example: the <code>SELECT</code> statement and its result stay exactly the same; only the internal access path changes. A DBA can add an index on a busy production table to fix a slow query, and not a single line of application code needs to touch.</p>
+<p>Other physical changes that should not break your SQL:</p>
+<ul>
+<li>Moving a database to faster SSD storage</li>
+<li>Changing the internal page size or buffer pool size</li>
+<li>Partitioning a large table across multiple physical files</li>
+<li>Switching the storage engine (e.g., from one B-tree format to another)</li>
+</ul>
+<p>The database engine&#39;s <strong>query optimizer</strong> is the mechanism that makes this work. When you submit a query, the optimizer consults the current physical layout and generates an efficient execution plan. As the layout changes, the optimizer generates new plans — automatically, transparently.</p>
+<h3>Logical Data Independence</h3>
+<p>Logical data independence is the harder of the two. It means that changes to the <em>relational schema</em> — the tables and their columns — should not break the views and queries that sit on top of it.</p>
+<p>The usual mechanism is a <strong>view</strong>: a named, stored query that looks like a table to any code that uses it.</p>
+<p>Imagine a <code>users</code> table that is later split into two tables for organizational reasons:</p>
+<pre><code class="language-sql">-- Original schema
 CREATE TABLE users (
   id      INTEGER PRIMARY KEY,
   name    TEXT,
@@ -75,40 +99,37 @@ CREATE VIEW users AS
   SELECT a.id, a.name, a.email, l.country
   FROM user_accounts a
   JOIN user_locations l ON l.user_id = a.id;
-```
-
-Any application that was querying `SELECT name, email FROM users WHERE country = 'TH'` keeps working without modification. The view acts as an adapter between the new schema and the old interface.
-
-> **Note:** Logical data independence is harder to achieve in full because views over complex schema changes (like splitting a column or merging tables) become difficult to keep writable. Read-only views are easy; updatable views that preserve the original behavior require more care.
-
-## Seeing It in Action
-
-The widget below sets up the split-schema scenario from above. First, run the query against the `users` view — it looks just like a regular table. Then try querying the underlying tables directly to see what the view is abstracting away.
-
+</code></pre>
+<p>Any application that was querying <code>SELECT name, email FROM users WHERE country = &#39;TH&#39;</code> keeps working without modification. The view acts as an adapter between the new schema and the old interface.</p>
+<blockquote>
+<p><strong>Note:</strong> Logical data independence is harder to achieve in full because views over complex schema changes (like splitting a column or merging tables) become difficult to keep writable. Read-only views are easy; updatable views that preserve the original behavior require more care.</p>
+</blockquote>
+<h2>Seeing It in Action</h2>
+<p>The widget below sets up the split-schema scenario from above. First, run the query against the <code>users</code> view — it looks just like a regular table. Then try querying the underlying tables directly to see what the view is abstracting away.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · View as logical adapter</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE user_accounts (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL); CREATE TABLE user_locations (user_id INTEGER PRIMARY KEY, country TEXT NOT NULL); INSERT INTO user_accounts VALUES (1, 'Ada', 'ada@example.com'); INSERT INTO user_accounts VALUES (2, 'Brian', 'brian@example.com'); INSERT INTO user_accounts VALUES (3, 'Carmen', 'carmen@example.com'); INSERT INTO user_locations VALUES (1, 'TH'); INSERT INTO user_locations VALUES (2, 'SG'); INSERT INTO user_locations VALUES (3, 'TH'); CREATE VIEW users AS SELECT a.id, a.name, a.email, l.country FROM user_accounts a JOIN user_locations l ON l.user_id = a.id;" rows="20">-- Query the view exactly as you would the original table.
+    <textarea data-setup="CREATE TABLE user_accounts (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL); CREATE TABLE user_locations (user_id INTEGER PRIMARY KEY, country TEXT NOT NULL); INSERT INTO user_accounts VALUES (1, 'Ada', 'ada@example.com'); INSERT INTO user_accounts VALUES (2, 'Brian', 'brian@example.com'); INSERT INTO user_accounts VALUES (3, 'Carmen', 'carmen@example.com'); INSERT INTO user_locations VALUES (1, 'TH'); INSERT INTO user_locations VALUES (2, 'SG'); INSERT INTO user_locations VALUES (3, 'TH'); CREATE VIEW users AS SELECT a.id, a.name, a.email, l.country FROM user_accounts a JOIN user_locations l ON l.user_id = a.id;" rows="10">-- Query the view exactly as you would the original table.
 -- Try also: SELECT * FROM user_accounts; or SELECT * FROM user_locations;
 SELECT name, email
 FROM users
 WHERE country = 'TH';</textarea>
   </div>
+</div><h2>Why This Matters in Practice</h2>
+<p>Data independence is not just a theoretical elegance — it solves real problems:</p>
+<ol>
+<li><p><strong>Schema evolution without big-bang deployments.</strong> As a system grows, the schema needs to change. With views and a well-designed schema boundary, you can migrate tables incrementally and keep old application code running while the new code adopts the new structure.</p>
+</li>
+<li><p><strong>Performance tuning without coordination.</strong> A DBA can add indexes, reorganize storage, or enable table partitioning during off-peak hours without scheduling a coordinated release with every development team.</p>
+</li>
+<li><p><strong>Multiple audiences, one source of truth.</strong> Different teams (analytics, operations, external partners) can be given views tailored to their needs — different column names, filtered rows, aggregated data — while the underlying tables remain unchanged.</p>
+</li>
+</ol>
+<p>The relational model earns this by strictly separating <em>what data means</em> (the schema and the algebra) from <em>how it is stored</em> (the engine&#39;s internals). That separation is not accidental; Codd put it at the center of the design. It is why a query you write today against a well-designed schema can still run correctly years later, even after the hardware, the storage engine, and several rounds of schema refactoring have come and gone.</p>
+
 </div>
-
-## Why This Matters in Practice
-
-Data independence is not just a theoretical elegance — it solves real problems:
-
-1. **Schema evolution without big-bang deployments.** As a system grows, the schema needs to change. With views and a well-designed schema boundary, you can migrate tables incrementally and keep old application code running while the new code adopts the new structure.
-
-2. **Performance tuning without coordination.** A DBA can add indexes, reorganize storage, or enable table partitioning during off-peak hours without scheduling a coordinated release with every development team.
-
-3. **Multiple audiences, one source of truth.** Different teams (analytics, operations, external partners) can be given views tailored to their needs — different column names, filtered rows, aggregated data — while the underlying tables remain unchanged.
-
-The relational model earns this by strictly separating *what data means* (the schema and the algebra) from *how it is stored* (the engine's internals). That separation is not accidental; Codd put it at the center of the design. It is why a query you write today against a well-designed schema can still run correctly years later, even after the hardware, the storage engine, and several rounds of schema refactoring have come and gone.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="025-why-relations-are-powerful.html"><span class="dir">← Previous</span><span class="ttl">Why relations are powerful</span></a><a class="next" href="027-integrity-by-design.html"><span class="dir">Next →</span><span class="ttl">Integrity by design</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

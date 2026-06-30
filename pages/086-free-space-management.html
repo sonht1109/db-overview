@@ -5,30 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Free space management — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Free space management</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="085-slotted-pages.html"><span class="dir">← Previous</span><span class="ttl">Slotted pages</span></a><a class="next" href="087-record-identifiers.html"><span class="dir">Next →</span><span class="ttl">Record identifiers</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When a database deletes a row or updates a variable-length value to a shorter one, it does not immediately hand that space back to the operating system. Instead, the engine tracks the now-empty area internally so it can reuse it for future inserts. That bookkeeping is called **free space management**, and getting it right is the difference between a healthy database that stays compact and a bloated one that wastes disk and slows down every scan.
-
-## Why Gaps Appear
-
-Pages (the fixed-size chunks your storage layer reads and writes) fill up row by row. Delete a row and you leave a hole: the bytes are free, but the page still occupies the same spot on disk. The same thing happens when you UPDATE a TEXT column from a long value to a short one — the leftover bytes sit unused inside the page.
-
-```
-Before delete:
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">086-free-space-management</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 086-free-space-management.</figcaption>
+</figure>
+<p>When a database deletes a row or updates a variable-length value to a shorter one, it does not immediately hand that space back to the operating system. Instead, the engine tracks the now-empty area internally so it can reuse it for future inserts. That bookkeeping is called <strong>free space management</strong>, and getting it right is the difference between a healthy database that stays compact and a bloated one that wastes disk and slows down every scan.</p>
+<h2>Why Gaps Appear</h2>
+<p>Pages (the fixed-size chunks your storage layer reads and writes) fill up row by row. Delete a row and you leave a hole: the bytes are free, but the page still occupies the same spot on disk. The same thing happens when you UPDATE a TEXT column from a long value to a short one — the leftover bytes sit unused inside the page.</p>
+<pre><code>Before delete:
 ┌──────────────────────────────────────────┐
 │ [row 1][row 2][row 3][row 4]  free area  │
 └──────────────────────────────────────────┘
@@ -37,39 +40,50 @@ After deleting row 2:
 ┌──────────────────────────────────────────┐
 │ [row 1][     ][row 3][row 4]  free area  │
 └──────────────────────────────────────────┘
-```
-
-If the engine ignores these holes, it will keep appending new rows to the "free area" at the end. Eventually the page is full of both live rows and holes — the engine allocates a fresh page even though plenty of bytes are wasted inside existing ones. Over time, a heavily-updated table bloats to several times its logical size.
-
-## How Engines Track Free Space
-
-### Free Space Maps
-
-Most production engines maintain a **free space map (FSM)** — a compact index that records, for each page, roughly how many bytes are available. PostgreSQL, for example, keeps one FSM file per table. When an insert arrives, the engine consults the FSM to find a page with enough room, writes the row there, and updates the FSM entry. SQLite uses a similar structure called the **freelist**: a linked chain of pages that have been freed entirely (by dropping a table or deleting all rows from a page). Partial free space within a page is tracked in each page's header.
-
-| Approach | Granularity | Used by |
-|---|---|---|
-| Free space map (per-page byte count) | Fraction of a page | PostgreSQL |
-| Freelist (whole free pages) | Whole page | SQLite, InnoDB |
-| Page-level free-space percentage | Rounded bucket | SQL Server (PFS pages) |
-
-### Fragmentation and Compaction
-
-Even with a free space map, internal fragmentation builds up. Many small holes scattered across many pages means no single hole is big enough for a large row, even though the total free bytes would be sufficient. Engines handle this in two ways:
-
-- **In-page compaction (slot shifting):** When a page is written, the engine slides live rows together and merges the holes at the end. This is cheap and happens automatically.
-- **Table-level vacuuming / reorganization:** A background process rewrites pages, discarding deleted rows entirely and reclaiming space. PostgreSQL calls this `VACUUM`; SQL Server calls it a rebuild or reorganize of the heap/index; SQLite exposes it as `VACUUM`.
-
-> **Note:** SQLite's `VACUUM` rewrites the *entire* database file into a new, compact file and then replaces the old one. It reclaims space from dropped tables and deleted rows but requires enough disk space to hold two copies of the database at once during the operation.
-
-## Observing Free Space in SQLite
-
-SQLite exposes page-level statistics through `PRAGMA` commands. Try the widget below to see how deletes affect the page count and how `VACUUM` reclaims space.
-
+</code></pre>
+<p>If the engine ignores these holes, it will keep appending new rows to the &quot;free area&quot; at the end. Eventually the page is full of both live rows and holes — the engine allocates a fresh page even though plenty of bytes are wasted inside existing ones. Over time, a heavily-updated table bloats to several times its logical size.</p>
+<h2>How Engines Track Free Space</h2>
+<h3>Free Space Maps</h3>
+<p>Most production engines maintain a <strong>free space map (FSM)</strong> — a compact index that records, for each page, roughly how many bytes are available. PostgreSQL, for example, keeps one FSM file per table. When an insert arrives, the engine consults the FSM to find a page with enough room, writes the row there, and updates the FSM entry. SQLite uses a similar structure called the <strong>freelist</strong>: a linked chain of pages that have been freed entirely (by dropping a table or deleting all rows from a page). Partial free space within a page is tracked in each page&#39;s header.</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Granularity</th>
+<th>Used by</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Free space map (per-page byte count)</td>
+<td>Fraction of a page</td>
+<td>PostgreSQL</td>
+</tr>
+<tr>
+<td>Freelist (whole free pages)</td>
+<td>Whole page</td>
+<td>SQLite, InnoDB</td>
+</tr>
+<tr>
+<td>Page-level free-space percentage</td>
+<td>Rounded bucket</td>
+<td>SQL Server (PFS pages)</td>
+</tr>
+</tbody></table>
+<h3>Fragmentation and Compaction</h3>
+<p>Even with a free space map, internal fragmentation builds up. Many small holes scattered across many pages means no single hole is big enough for a large row, even though the total free bytes would be sufficient. Engines handle this in two ways:</p>
+<ul>
+<li><strong>In-page compaction (slot shifting):</strong> When a page is written, the engine slides live rows together and merges the holes at the end. This is cheap and happens automatically.</li>
+<li><strong>Table-level vacuuming / reorganization:</strong> A background process rewrites pages, discarding deleted rows entirely and reclaiming space. PostgreSQL calls this <code>VACUUM</code>; SQL Server calls it a rebuild or reorganize of the heap/index; SQLite exposes it as <code>VACUUM</code>.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> SQLite&#39;s <code>VACUUM</code> rewrites the <em>entire</em> database file into a new, compact file and then replaces the old one. It reclaims space from dropped tables and deleted rows but requires enough disk space to hold two copies of the database at once during the operation.</p>
+</blockquote>
+<h2>Observing Free Space in SQLite</h2>
+<p>SQLite exposes page-level statistics through <code>PRAGMA</code> commands. Try the widget below to see how deletes affect the page count and how <code>VACUUM</code> reclaims space.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Free space and VACUUM</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, payload TEXT); WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 200) INSERT INTO events SELECT n, 'event-data-for-row-number-' || n FROM r;" rows="20">-- Check page usage before and after deletes.
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, payload TEXT); WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 200) INSERT INTO events SELECT n, 'event-data-for-row-number-' || n FROM r;" rows="10">-- Check page usage before and after deletes.
 -- page_count * page_size = total file bytes;
 -- freelist_count = pages fully released to the freelist.
 SELECT page_count, page_size, freelist_count,
@@ -80,22 +94,20 @@ FROM pragma_page_count(), pragma_page_size(), pragma_freelist_count();
 -- Then run: VACUUM;
 -- And check again.</textarea>
   </div>
+</div><p>Run the <code>SELECT</code> above to see the baseline, then delete half the rows and re-run it to watch <code>freelist_count</code> grow. After <code>VACUUM</code>, the numbers reset to a compact state.</p>
+<h2>The Cost of Ignoring Free Space</h2>
+<p>Neglecting free space management has cascading effects:</p>
+<ol>
+<li><strong>Bloated files</strong> — the database file grows without bound even as logical data stays flat.</li>
+<li><strong>Slower full scans</strong> — a sequential scan reads every page, including ones that are mostly empty.</li>
+<li><strong>Index bloat</strong> — B-tree index pages suffer the same fragmentation; a bloated index means more I/O per lookup.</li>
+<li><strong>Stale statistics</strong> — many planners estimate row counts from page counts. A bloated table makes the optimizer think there is more data than there is, leading to bad plans.</li>
+</ol>
+<p>Scheduling regular <code>VACUUM</code> (or equivalent) runs — ideally during low-traffic windows — is one of the simplest operational habits that keeps a database healthy over months and years.</p>
+
 </div>
-
-Run the `SELECT` above to see the baseline, then delete half the rows and re-run it to watch `freelist_count` grow. After `VACUUM`, the numbers reset to a compact state.
-
-## The Cost of Ignoring Free Space
-
-Neglecting free space management has cascading effects:
-
-1. **Bloated files** — the database file grows without bound even as logical data stays flat.
-2. **Slower full scans** — a sequential scan reads every page, including ones that are mostly empty.
-3. **Index bloat** — B-tree index pages suffer the same fragmentation; a bloated index means more I/O per lookup.
-4. **Stale statistics** — many planners estimate row counts from page counts. A bloated table makes the optimizer think there is more data than there is, leading to bad plans.
-
-Scheduling regular `VACUUM` (or equivalent) runs — ideally during low-traffic windows — is one of the simplest operational habits that keeps a database healthy over months and years.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="085-slotted-pages.html"><span class="dir">← Previous</span><span class="ttl">Slotted pages</span></a><a class="next" href="087-record-identifiers.html"><span class="dir">Next →</span><span class="ttl">Record identifiers</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

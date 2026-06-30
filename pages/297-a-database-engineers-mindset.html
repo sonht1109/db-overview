@@ -5,45 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A database engineer’s mindset — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VII. Building Understanding</p>
   <p class="chapter-label">Chapter 30. Where to Go Next</p>
   <h1 class="content-title">A database engineer’s mindset</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="296-topics-beyond-this-book.html"><span class="dir">← Previous</span><span class="ttl">Topics beyond this book</span></a><a class="next" href="298-suggested-learning-path.html"><span class="dir">Next →</span><span class="ttl">Suggested learning path</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Technical knowledge about B-trees, LSM-trees, and two-phase locking is necessary but not sufficient for doing database engineering well. The engineers who design great systems share a set of habits and ways of thinking that are harder to teach from first principles but recognizable in practice. This page describes the mindset — the mental posture that separates practitioners who use databases from those who understand them.
-
-## Think in Workloads, Not Features
-
-The most important habit is **workload-first thinking**. Every database design decision is a trade-off, and trade-offs only make sense relative to a specific workload. An LSM-tree is not "better" than a B-tree — it is better for write-heavy workloads with compressible values. A hash index is not "worse" than a B-tree — it is better for point lookups and worse for range scans.
-
-When you encounter any database technology, the first question is always: **what workload was this designed for?** The second question is: **does my workload match?** If the answer to the second question is no, the technology's benchmark numbers are irrelevant to you.
-
-This also means resisting the pressure to adopt a tool because it is popular or new. Hype cycles in databases are real. Column-family stores, document databases, graph databases, time-series databases, and now vector databases each had (or are having) a moment where they were presented as general-purpose replacements for relational databases. In almost every case, the right answer was: "for the workload it was designed for, it is excellent; for general use, a relational database is usually better."
-
-## Measure Before Optimizing
-
-The second foundational habit is **never assume the bottleneck**. Database performance problems are reliably counterintuitive. The slow query is usually not the most complex one. The index that seems most useful often isn't used. The bottleneck that appears to be CPU is often I/O waiting dressed up as CPU utilization.
-
-Before optimizing anything, measure:
-
-1. **Which query is actually slow?** Use `pg_stat_statements`, slow query logs, or distributed tracing.
-2. **Why is it slow?** Use `EXPLAIN ANALYZE`, not just `EXPLAIN`. Look at actual rows vs. estimated rows — a large gap indicates stale statistics.
-3. **Where is the time going?** I/O wait vs. CPU vs. lock wait. These require different solutions.
-4. **What happens at scale?** A query that takes 1 ms with 10,000 rows may take 100 ms with 10,000,000. Measure with production-representative data volumes.
-
-The optimization you decide on after measurement is almost always different from what you would have guessed beforehand.
-
+  <div id="rendered" class="content">
+<p>Technical knowledge about B-trees, LSM-trees, and two-phase locking is necessary but not sufficient for doing database engineering well. The engineers who design great systems share a set of habits and ways of thinking that are harder to teach from first principles but recognizable in practice. This page describes the mindset — the mental posture that separates practitioners who use databases from those who understand them.</p>
+<h2>Think in Workloads, Not Features</h2>
+<p>The most important habit is <strong>workload-first thinking</strong>. Every database design decision is a trade-off, and trade-offs only make sense relative to a specific workload. An LSM-tree is not &quot;better&quot; than a B-tree — it is better for write-heavy workloads with compressible values. A hash index is not &quot;worse&quot; than a B-tree — it is better for point lookups and worse for range scans.</p>
+<p>When you encounter any database technology, the first question is always: <strong>what workload was this designed for?</strong> The second question is: <strong>does my workload match?</strong> If the answer to the second question is no, the technology&#39;s benchmark numbers are irrelevant to you.</p>
+<p>This also means resisting the pressure to adopt a tool because it is popular or new. Hype cycles in databases are real. Column-family stores, document databases, graph databases, time-series databases, and now vector databases each had (or are having) a moment where they were presented as general-purpose replacements for relational databases. In almost every case, the right answer was: &quot;for the workload it was designed for, it is excellent; for general use, a relational database is usually better.&quot;</p>
+<h2>Measure Before Optimizing</h2>
+<p>The second foundational habit is <strong>never assume the bottleneck</strong>. Database performance problems are reliably counterintuitive. The slow query is usually not the most complex one. The index that seems most useful often isn&#39;t used. The bottleneck that appears to be CPU is often I/O waiting dressed up as CPU utilization.</p>
+<p>Before optimizing anything, measure:</p>
+<ol>
+<li><strong>Which query is actually slow?</strong> Use <code>pg_stat_statements</code>, slow query logs, or distributed tracing.</li>
+<li><strong>Why is it slow?</strong> Use <code>EXPLAIN ANALYZE</code>, not just <code>EXPLAIN</code>. Look at actual rows vs. estimated rows — a large gap indicates stale statistics.</li>
+<li><strong>Where is the time going?</strong> I/O wait vs. CPU vs. lock wait. These require different solutions.</li>
+<li><strong>What happens at scale?</strong> A query that takes 1 ms with 10,000 rows may take 100 ms with 10,000,000. Measure with production-representative data volumes.</li>
+</ol>
+<p>The optimization you decide on after measurement is almost always different from what you would have guessed beforehand.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mindset feedback loop: observe the workload, measure the actual bottleneck, understand the trade-offs, make the targeted change, and measure again">
   <defs>
@@ -78,44 +63,32 @@ The optimization you decide on after measurement is almost always different from
   <line x1="150" y1="80" x2="240" y2="34" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
 </svg>
 <figcaption>The engineering mindset as a feedback loop: observe, measure, understand the trade-off, make a targeted change, and repeat.</figcaption>
-</figure>
+</figure><h2>Understand the Trade-Offs, Not Just the Features</h2>
+<p>Every database feature has a cost. Indexing speeds up reads and slows down writes. MVCC enables concurrent reads without blocking writes but requires garbage collection. Replication increases durability and read throughput but adds write latency and complexity. Partitioning enables horizontal scale but complicates cross-partition queries.</p>
+<p>A practitioner&#39;s habit is to <strong>complete the sentence</strong>: &quot;This feature speeds up X at the cost of Y.&quot; If you can&#39;t complete the sentence for a feature you&#39;re using, you don&#39;t fully understand it yet.</p>
+<p>This also means being suspicious of claims that something is &quot;free.&quot; Write-ahead logging is sometimes presented as having no throughput cost — but WAL writes consume disk bandwidth and introduce fsync latency. Compression is sometimes presented as obviously good — but CPU cost increases and write amplification changes. There is always a trade-off; sometimes it is worth it, but it is never zero.</p>
+<h2>Respect Operational Complexity</h2>
+<p>Systems that are brilliant in design are often painful in production. A distributed database with strong consistency guarantees requires understanding network partitions, leader elections, and split-brain scenarios. A system with aggressive compaction uses more I/O than a simpler design. A database with many configuration knobs requires expertise to tune.</p>
+<p><strong>Operational complexity is a real cost.</strong> The best database for a given workload is not always the most technically sophisticated one — it is the one that solves the problem with the minimum complexity your team can sustain. SQLite has won many production deployments precisely because it eliminates an entire class of operational overhead.</p>
+<h2>Build Mental Models, Not Checklists</h2>
+<p>A checklist of &quot;when to use an index&quot; is fragile — it breaks the moment you encounter a situation the list didn&#39;t anticipate. A mental model of how an index works (it costs a random I/O per row for low-selectivity queries, but high-selectivity queries amortize that cost) lets you reason about new situations you&#39;ve never seen.</p>
+<p>This course aimed to give you mental models, not checklists. The reward for mental models is that they compound: understanding how an LSM-tree manages compaction helps you reason about both write amplification <em>and</em> space amplification <em>and</em> read latency, in combinations you haven&#39;t seen before.</p>
+<h2>Calibrate Your Humility</h2>
+<p>Finally: <strong>databases are hard, and they accumulate surprises</strong>. Engineers who work on them for decades still encounter unexpected behavior from subtle interactions between MVCC, vacuum, autovacuum, toast tables, partial indexes, and query planning decisions. This is not a reason to be intimidated — it is a reason to stay curious and resist the temptation to think you understand a system fully.</p>
+<p>The best database engineers share a specific kind of humility: they have strong opinions (because they have built mental models) and they hold those opinions loosely (because they have been surprised enough times to know that reality is more complex than any model).</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Think in workloads first: every trade-off is workload-relative.</li>
+<li>Measure before optimizing: the bottleneck is almost never what you expect.</li>
+<li>Complete the sentence: &quot;This feature speeds up X at the cost of Y.&quot;</li>
+<li>Operational complexity is a real cost; the simplest system that works is usually the right system.</li>
+<li>Build mental models, not checklists — models generalize; checklists don&#39;t.</li>
+<li>Stay curious and calibrate humility: surprises in database behavior are a feature of the domain, not a sign you missed something.</li>
+</ul>
 
-## Understand the Trade-Offs, Not Just the Features
-
-Every database feature has a cost. Indexing speeds up reads and slows down writes. MVCC enables concurrent reads without blocking writes but requires garbage collection. Replication increases durability and read throughput but adds write latency and complexity. Partitioning enables horizontal scale but complicates cross-partition queries.
-
-A practitioner's habit is to **complete the sentence**: "This feature speeds up X at the cost of Y." If you can't complete the sentence for a feature you're using, you don't fully understand it yet.
-
-This also means being suspicious of claims that something is "free." Write-ahead logging is sometimes presented as having no throughput cost — but WAL writes consume disk bandwidth and introduce fsync latency. Compression is sometimes presented as obviously good — but CPU cost increases and write amplification changes. There is always a trade-off; sometimes it is worth it, but it is never zero.
-
-## Respect Operational Complexity
-
-Systems that are brilliant in design are often painful in production. A distributed database with strong consistency guarantees requires understanding network partitions, leader elections, and split-brain scenarios. A system with aggressive compaction uses more I/O than a simpler design. A database with many configuration knobs requires expertise to tune.
-
-**Operational complexity is a real cost.** The best database for a given workload is not always the most technically sophisticated one — it is the one that solves the problem with the minimum complexity your team can sustain. SQLite has won many production deployments precisely because it eliminates an entire class of operational overhead.
-
-## Build Mental Models, Not Checklists
-
-A checklist of "when to use an index" is fragile — it breaks the moment you encounter a situation the list didn't anticipate. A mental model of how an index works (it costs a random I/O per row for low-selectivity queries, but high-selectivity queries amortize that cost) lets you reason about new situations you've never seen.
-
-This course aimed to give you mental models, not checklists. The reward for mental models is that they compound: understanding how an LSM-tree manages compaction helps you reason about both write amplification *and* space amplification *and* read latency, in combinations you haven't seen before.
-
-## Calibrate Your Humility
-
-Finally: **databases are hard, and they accumulate surprises**. Engineers who work on them for decades still encounter unexpected behavior from subtle interactions between MVCC, vacuum, autovacuum, toast tables, partial indexes, and query planning decisions. This is not a reason to be intimidated — it is a reason to stay curious and resist the temptation to think you understand a system fully.
-
-The best database engineers share a specific kind of humility: they have strong opinions (because they have built mental models) and they hold those opinions loosely (because they have been surprised enough times to know that reality is more complex than any model).
-
-## Key Takeaways
-
-- Think in workloads first: every trade-off is workload-relative.
-- Measure before optimizing: the bottleneck is almost never what you expect.
-- Complete the sentence: "This feature speeds up X at the cost of Y."
-- Operational complexity is a real cost; the simplest system that works is usually the right system.
-- Build mental models, not checklists — models generalize; checklists don't.
-- Stay curious and calibrate humility: surprises in database behavior are a feature of the domain, not a sign you missed something.
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="296-topics-beyond-this-book.html"><span class="dir">← Previous</span><span class="ttl">Topics beyond this book</span></a><a class="next" href="298-suggested-learning-path.html"><span class="dir">Next →</span><span class="ttl">Suggested learning path</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

@@ -5,90 +5,145 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Merge joins — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 8. Joins, Aggregation, and Sorting</p>
   <h1 class="content-title">Merge joins</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="072-hash-joins.html"><span class="dir">← Previous</span><span class="ttl">Hash joins</span></a><a class="next" href="074-grouping-and-aggregation.html"><span class="dir">Next →</span><span class="ttl">Grouping and aggregation</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When two tables are already sorted on the join key, combining them is surprisingly cheap: you walk both lists in lockstep, advancing the pointer on whichever side is behind. That is the core idea of a **merge join** — sometimes called a *sort-merge join* because the engine will sort the inputs first if they are not already ordered.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(10,10)">
+    <!-- Two sorted arrays -->
+    <rect x="0" y="0" width="280" height="70" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="140" y="20" font-size="10" font-weight="700" fill="#2f6df6">R (sorted by id)    ptr▸</text>
+    <text x="15" y="40" font-size="9" fill="#1c2330">1 | 2 | 3 | 4 | 5 | 6</text>
+    <text x="15" y="58" font-size="9" fill="#5a6678">△ pointer advances when behind</text>
 
-## How the Algorithm Works
+    <rect x="310" y="0" width="280" height="70" rx="8" fill="#dcfce7" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="450" y="20" font-size="10" font-weight="700" fill="#16a34a">S (sorted by id)  ▸ptr</text>
+    <text x="325" y="40" font-size="9" fill="#1c2330">2 | 3 | 4 | 7 | 8 | 9</text>
+    <text x="325" y="58" font-size="9" fill="#5a6678">△ pointer advances when behind</text>
 
-Picture two sorted sequences of keys. The engine holds one pointer into each, starting at the top:
+    <!-- Zigzag walk -->
+    <text x="600" y="22" font-size="10" font-weight="700" fill="#1c2330">Walk:</text>
+    <text x="600" y="40" font-size="9" fill="#5a6678">R[1] < S[2] → advance R</text>
+    <text x="600" y="55" font-size="9" fill="#16a34a">R[2] = S[2] → MATCH!</text>
+    <text x="600" y="70" font-size="9" fill="#5a6678">R[3] < S[4] → advance R...</text>
 
-1. **Compare** the two current keys.
-2. If they are equal, **emit** all matching row pairs, then advance both pointers (or hold one while scanning duplicates on the other side).
-3. If the left key is smaller, **advance** the left pointer.
-4. If the right key is smaller, **advance** the right pointer.
-5. Stop when either pointer runs off the end.
+    <!-- Cost -->
+    <rect x="10" y="90" width="700" height="45" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+    <text x="360" y="110" font-size="11" font-weight="700" fill="#16a34a">Cost: O(M log M + N log N) if unsorted; O(M + N) if pre-sorted</text>
+    <text x="360" y="126" font-size="9" fill="#5a6678">Sort phase dominates. Pre-sorted data (index scan) → essentially free merge.</text>
 
-Because both inputs are sorted, no row is ever revisited from the wrong direction. Each side is read exactly once, making the algorithm **O(N + M)** in the number of row comparisons — linear in the size of the inputs — once sorting is done.
-
-> **Note:** The sort step itself is O(N log N). If an index already provides sorted order (a B-tree index on the join column is common), the engine skips the explicit sort and the whole join is linear.
-
-### A concrete walk-through
-
-Suppose you are joining `orders.customer_id` to `customers.id`, both sorted:
-
-| Customers (sorted by id) | Orders (sorted by customer_id) |
-|---|---|
-| 1 · Alice | 1 · #101 |
-| 2 · Bob | 1 · #102 |
-| 3 · Carol | 3 · #103 |
-| 5 · Dave | 5 · #104 |
-
-Steps: match `1`→emit (Alice, #101) and (Alice, #102); advance orders pointer to `3`. Compare `2` vs `3` — left is smaller, skip Bob. Compare `3` vs `3` — emit (Carol, #103). Compare `5` vs `5` — emit (Dave, #104). Done. Bob is skipped because he has no orders; `4` never appears.
-
-## When the Planner Chooses a Merge Join
-
-The query optimizer picks a merge join when it expects the join to produce **many matching rows** and the inputs are large enough that a hash join's up-front memory cost is undesirable, or — crucially — when **both sides are already sorted**. Common triggers:
-
-- The join columns are covered by B-tree indexes the planner can exploit.
-- The query has an `ORDER BY` on the join key, so the sort is "free" (it satisfies two goals at once).
-- The tables are large and available memory is limited: merge join streams data through rather than building an in-memory hash table.
-
-Compared to a **nested-loop join** (O(N × M)), merge join wins on large, unsorted datasets once the sort cost is amortized. Compared to a **hash join**, merge join wins when inputs are pre-sorted but loses when they are not and memory is plentiful.
-
-| Join type | Best when… | Memory use | Requires sorted input? |
-|---|---|---|---|
-| Nested loop | Small outer table or index on inner | Low | No |
-| Hash join | Large unsorted inputs, plenty of RAM | High (hash table) | No |
-| Merge join | Large inputs, sorted or index-covered | Low (streaming) | Yes (or pays sort cost) |
-
-## Seeing It in Action
-
-The widget below creates `customers` and `orders` tables already sorted by their join key. Run the query to see a straightforward inner join — then try adding an `ORDER BY` or changing to a `LEFT JOIN` to observe which customers appear even without orders.
-
+    <!-- When to use -->
+    <text x="360" y="160" font-size="10" fill="#5a6678" font-weight="600">Best when: data already sorted (index) or need sorted output (ORDER BY)</text>
+    <text x="360" y="178" font-size="10" fill="#5a6678" font-weight="600">Hash join = equi-join only | Merge join = supports range conditions (&lt;, &lt;=, &gt;, &gt;=)</text>
+  </g>
+</svg>
+<figcaption>Merge join walks two sorted inputs in lockstep. O(M+N) once sorted. Ideal when data comes from an index or ORDER BY is needed.</figcaption>
+</figure>
+<p>When two tables are already sorted on the join key, combining them is surprisingly cheap: you walk both lists in lockstep, advancing the pointer on whichever side is behind. That is the core idea of a <strong>merge join</strong> — sometimes called a <em>sort-merge join</em> because the engine will sort the inputs first if they are not already ordered.</p>
+<h2>How the Algorithm Works</h2>
+<p>Picture two sorted sequences of keys. The engine holds one pointer into each, starting at the top:</p>
+<ol>
+<li><strong>Compare</strong> the two current keys.</li>
+<li>If they are equal, <strong>emit</strong> all matching row pairs, then advance both pointers (or hold one while scanning duplicates on the other side).</li>
+<li>If the left key is smaller, <strong>advance</strong> the left pointer.</li>
+<li>If the right key is smaller, <strong>advance</strong> the right pointer.</li>
+<li>Stop when either pointer runs off the end.</li>
+</ol>
+<p>Because both inputs are sorted, no row is ever revisited from the wrong direction. Each side is read exactly once, making the algorithm <strong>O(N + M)</strong> in the number of row comparisons — linear in the size of the inputs — once sorting is done.</p>
+<blockquote>
+<p><strong>Note:</strong> The sort step itself is O(N log N). If an index already provides sorted order (a B-tree index on the join column is common), the engine skips the explicit sort and the whole join is linear.</p>
+</blockquote>
+<h3>A concrete walk-through</h3>
+<p>Suppose you are joining <code>orders.customer_id</code> to <code>customers.id</code>, both sorted:</p>
+<table>
+<thead>
+<tr>
+<th>Customers (sorted by id)</th>
+<th>Orders (sorted by customer_id)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1 · Alice</td>
+<td>1 · #101</td>
+</tr>
+<tr>
+<td>2 · Bob</td>
+<td>1 · #102</td>
+</tr>
+<tr>
+<td>3 · Carol</td>
+<td>3 · #103</td>
+</tr>
+<tr>
+<td>5 · Dave</td>
+<td>5 · #104</td>
+</tr>
+</tbody></table>
+<p>Steps: match <code>1</code>→emit (Alice, #101) and (Alice, #102); advance orders pointer to <code>3</code>. Compare <code>2</code> vs <code>3</code> — left is smaller, skip Bob. Compare <code>3</code> vs <code>3</code> — emit (Carol, #103). Compare <code>5</code> vs <code>5</code> — emit (Dave, #104). Done. Bob is skipped because he has no orders; <code>4</code> never appears.</p>
+<h2>When the Planner Chooses a Merge Join</h2>
+<p>The query optimizer picks a merge join when it expects the join to produce <strong>many matching rows</strong> and the inputs are large enough that a hash join&#39;s up-front memory cost is undesirable, or — crucially — when <strong>both sides are already sorted</strong>. Common triggers:</p>
+<ul>
+<li>The join columns are covered by B-tree indexes the planner can exploit.</li>
+<li>The query has an <code>ORDER BY</code> on the join key, so the sort is &quot;free&quot; (it satisfies two goals at once).</li>
+<li>The tables are large and available memory is limited: merge join streams data through rather than building an in-memory hash table.</li>
+</ul>
+<p>Compared to a <strong>nested-loop join</strong> (O(N × M)), merge join wins on large, unsorted datasets once the sort cost is amortized. Compared to a <strong>hash join</strong>, merge join wins when inputs are pre-sorted but loses when they are not and memory is plentiful.</p>
+<table>
+<thead>
+<tr>
+<th>Join type</th>
+<th>Best when…</th>
+<th>Memory use</th>
+<th>Requires sorted input?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Nested loop</td>
+<td>Small outer table or index on inner</td>
+<td>Low</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Hash join</td>
+<td>Large unsorted inputs, plenty of RAM</td>
+<td>High (hash table)</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Merge join</td>
+<td>Large inputs, sorted or index-covered</td>
+<td>Low (streaming)</td>
+<td>Yes (or pays sort cost)</td>
+</tr>
+</tbody></table>
+<h2>Seeing It in Action</h2>
+<p>The widget below creates <code>customers</code> and <code>orders</code> tables already sorted by their join key. Run the query to see a straightforward inner join — then try adding an <code>ORDER BY</code> or changing to a <code>LEFT JOIN</code> to observe which customers appear even without orders.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Merge join example</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Carol'), (5, 'Dave'); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders VALUES (101, 1, 49.99), (102, 1, 19.50), (103, 3, 89.00), (104, 5, 5.75);" rows="20">SELECT c.id, c.name, o.order_id, o.amount
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Carol'), (5, 'Dave'); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders VALUES (101, 1, 49.99), (102, 1, 19.50), (103, 3, 89.00), (104, 5, 5.75);" rows="10">SELECT c.id, c.name, o.order_id, o.amount
 FROM customers AS c
 JOIN orders AS o ON c.id = o.customer_id
 ORDER BY c.id;</textarea>
   </div>
+</div><p>Notice that Bob (id = 2) is absent — he has no matching orders. Switch <code>JOIN</code> to <code>LEFT JOIN</code> and Bob reappears with <code>NULL</code> in the order columns, which mirrors what a merge join must do when a left-side key has no match on the right.</p>
+<h2>Duplicates and Skew</h2>
+<p>One subtlety: when many rows share the same key value, the merge join must <strong>buffer</strong> all rows from one side for that key to pair them with every row on the other side. If a single key has thousands of matches (a &quot;skewed&quot; distribution), memory pressure can spike. Most engines handle this by spilling to disk, but it is worth knowing — a merge join&#39;s O(N + M) guarantee assumes the number of output rows is manageable. High-cardinality joins on skewed data can turn a theoretically cheap algorithm into a slow one.</p>
+<blockquote>
+<p><strong>Note:</strong> You rarely choose a join algorithm directly in SQL. You write the query; the planner decides. But understanding the mechanics lets you write queries and design indexes that <em>guide</em> the planner toward the fastest plan — for example, creating an index on a frequently joined foreign key so the merge join path is always available.</p>
+</blockquote>
+
 </div>
-
-Notice that Bob (id = 2) is absent — he has no matching orders. Switch `JOIN` to `LEFT JOIN` and Bob reappears with `NULL` in the order columns, which mirrors what a merge join must do when a left-side key has no match on the right.
-
-## Duplicates and Skew
-
-One subtlety: when many rows share the same key value, the merge join must **buffer** all rows from one side for that key to pair them with every row on the other side. If a single key has thousands of matches (a "skewed" distribution), memory pressure can spike. Most engines handle this by spilling to disk, but it is worth knowing — a merge join's O(N + M) guarantee assumes the number of output rows is manageable. High-cardinality joins on skewed data can turn a theoretically cheap algorithm into a slow one.
-
-> **Note:** You rarely choose a join algorithm directly in SQL. You write the query; the planner decides. But understanding the mechanics lets you write queries and design indexes that *guide* the planner toward the fastest plan — for example, creating an index on a frequently joined foreign key so the merge join path is always available.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="072-hash-joins.html"><span class="dir">← Previous</span><span class="ttl">Hash joins</span></a><a class="next" href="074-grouping-and-aggregation.html"><span class="dir">Next →</span><span class="ttl">Grouping and aggregation</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

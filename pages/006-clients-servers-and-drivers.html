@@ -5,69 +5,139 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clients, servers, and drivers — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 1. What a Database System Is</p>
   <h1 class="content-title">Clients, servers, and drivers</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="005-the-role-of-the-database-engine.html"><span class="dir">← Previous</span><span class="ttl">The role of the database engine</span></a><a class="next" href="007-why-database-systems-matter.html"><span class="dir">Next →</span><span class="ttl">Why database systems matter</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When you run a query, you are rarely talking to the database directly. Almost every database interaction involves three distinct roles: a **client** that asks questions, a **server** that stores and processes data, and a **driver** that makes them speak the same language. Understanding these three pieces explains why databases work the same way across a dozen programming languages — and what actually happens in the milliseconds between you calling a function and getting a result back.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2f6df6"/></marker>
+    <marker id="ar2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
+  </defs>
+  <g transform="translate(10,10)">
+    <!-- Client apps -->
+    <rect x="0" y="0" width="200" height="48" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="100" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">🧑 Client (Your App)</text>
+    <text x="100" y="38" text-anchor="middle" font-size="9" fill="#5a6678">Python / JS / Go / Java…</text>
+    <!-- Arrow: client → driver -->
+    <line x1="200" y1="24" x2="255" y2="24" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+    <!-- Driver -->
+    <rect x="265" y="0" width="180" height="48" rx="8" fill="#ede9fe" stroke="#a78bfa" filter="url(#sh)"/>
+    <text x="355" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#7c3aed">🔌 Driver / Connector</text>
+    <text x="355" y="38" text-anchor="middle" font-size="9" fill="#5a6678">libpq · JDBC · mysqlclient</text>
+    <!-- Arrow: driver → network → server -->
+    <line x1="445" y1="24" x2="500" y2="24" stroke="#7c3aed" stroke-width="2" marker-end="url(#ar2)"/>
+    <text x="472" y="18" text-anchor="middle" font-size="8" fill="#5a6678">TCP</text>
+    <text x="472" y="40" text-anchor="middle" font-size="8" fill="#5a6678">port 5432</text>
+    <!-- Server -->
+    <rect x="510" y="0" width="200" height="48" rx="8" fill="#dcfce7" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="610" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#16a34a">🖥️ DB Server</text>
+    <text x="610" y="38" text-anchor="middle" font-size="9" fill="#5a6678">Processes SQL, manages data</text>
 
-## The client-server model
+    <!-- Flow diagram below -->
+    <g transform="translate(40,80)">
+      <rect x="0" y="0" width="130" height="38" rx="6" fill="#f0fdf4" stroke="#86efac"/>
+      <text x="65" y="24" text-anchor="middle" font-size="11" fill="#16a34a">1. Open connection</text>
+      <line x1="130" y1="19" x2="155" y2="19" stroke="#16a34a" stroke-width="1.5" marker-end="url(#ar2)"/>
+      <rect x="163" y="0" width="130" height="38" rx="6" fill="#e8f0ff" stroke="#93c5fd"/>
+      <text x="228" y="24" text-anchor="middle" font-size="11" fill="#2f6df6">2. Send SQL query</text>
+      <line x1="293" y1="19" x2="318" y2="19" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#ar)"/>
+      <rect x="326" y="0" width="130" height="38" rx="6" fill="#fef3c7" stroke="#fbbf24"/>
+      <text x="391" y="24" text-anchor="middle" font-size="11" fill="#d97706">3. Engine processes</text>
+      <line x1="456" y1="19" x2="481" y2="19" stroke="#d97706" stroke-width="1.5" marker-end="url(#ar2)"/>
+      <rect x="489" y="0" width="130" height="38" rx="6" fill="#dcfce7" stroke="#86efac"/>
+      <text x="554" y="24" text-anchor="middle" font-size="11" fill="#16a34a">4. Return result set</text>
+    </g>
 
-A **database server** is a long-running process dedicated to managing data. It listens on a network port (PostgreSQL defaults to `5432`, MySQL to `3306`, SQL Server to `1433`), accepts connections, runs queries, and returns results. The server owns the data files on disk and enforces rules — access control, transactions, constraints — on everything that touches them.
-
-A **client** is anything that connects to that server to send queries and receive results. The client could be:
-
-| Client type | Example |
-|---|---|
-| Interactive shell | `psql`, `mysql`, `sqlite3` |
-| GUI tool | DBeaver, TablePlus, DataGrip |
-| Application code | A Node.js API, a Django app |
-| Another server | A reporting service, an ETL job |
-
-The key insight: the server does the heavy lifting. Sorting a million rows, joining three tables, enforcing a foreign-key constraint — all of that happens inside the server process. The client just sends SQL text and gets rows back.
-
-> **Note:** SQLite breaks this pattern intentionally. It is an *embedded* database — the "server" is a library linked directly into your application, and the data file is local. There is no network port or separate process. This makes SQLite ideal for local tools and tests but unsuitable for multiple simultaneous writers.
-
-## What a driver does
-
-The client and server need a common wire protocol — a byte-level agreement on how to frame a query, authenticate, stream rows, and signal errors. Writing that protocol by hand for every application would be painful. That is what a **driver** (sometimes called a **connector** or **adapter**) is for.
-
-A driver is a language-specific library that:
-
-1. Opens and manages a TCP connection to the server.
-2. Handles authentication (username/password, SSL certificates, Kerberos, etc.).
-3. Serialises your query string into the protocol format the server expects.
-4. Deserialises the binary response back into native language types (strings, integers, dates).
-5. Exposes a clean API your application code can call.
-
-Each database has official or community drivers for every popular language:
-
-| Database | Python driver | Node.js driver | Java driver |
-|---|---|---|---|
-| PostgreSQL | `psycopg2` / `asyncpg` | `pg` | `pgjdbc` |
-| MySQL | `mysql-connector-python` | `mysql2` | `MySQL Connector/J` |
-| SQLite | built-in `sqlite3` module | `better-sqlite3` | `xerial/sqlite-jdbc` |
-
-A higher-level library (an ORM like SQLAlchemy or Prisma) sits *on top of* a driver — it generates SQL for you, but it still needs the driver to actually talk to the server.
-
-## Putting it together: a query's round trip
-
-Here is what happens when an application runs `SELECT * FROM orders WHERE status = 'pending'`:
-
-```
-Application code
+    <!-- Key insight -->
+    <text x="360" y="155" text-anchor="middle" font-size="12" font-weight="600" fill="#5a6678">The driver serializes your object calls into the wire protocol (and back).</text>
+    <text x="360" y="175" text-anchor="middle" font-size="11" fill="#9aa6b8">Same SQL works regardless of client language — the driver handles translation.</text>
+  </g>
+</svg>
+<figcaption>Three roles: the client calls, the driver translates, and the server owns the data. The wire protocol bridges them all.</figcaption>
+</figure>
+<p>When you run a query, you are rarely talking to the database directly. Almost every database interaction involves three distinct roles: a <strong>client</strong> that asks questions, a <strong>server</strong> that stores and processes data, and a <strong>driver</strong> that makes them speak the same language. Understanding these three pieces explains why databases work the same way across a dozen programming languages — and what actually happens in the milliseconds between you calling a function and getting a result back.</p>
+<h2>The client-server model</h2>
+<p>A <strong>database server</strong> is a long-running process dedicated to managing data. It listens on a network port (PostgreSQL defaults to <code>5432</code>, MySQL to <code>3306</code>, SQL Server to <code>1433</code>), accepts connections, runs queries, and returns results. The server owns the data files on disk and enforces rules — access control, transactions, constraints — on everything that touches them.</p>
+<p>A <strong>client</strong> is anything that connects to that server to send queries and receive results. The client could be:</p>
+<table>
+<thead>
+<tr>
+<th>Client type</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Interactive shell</td>
+<td><code>psql</code>, <code>mysql</code>, <code>sqlite3</code></td>
+</tr>
+<tr>
+<td>GUI tool</td>
+<td>DBeaver, TablePlus, DataGrip</td>
+</tr>
+<tr>
+<td>Application code</td>
+<td>A Node.js API, a Django app</td>
+</tr>
+<tr>
+<td>Another server</td>
+<td>A reporting service, an ETL job</td>
+</tr>
+</tbody></table>
+<p>The key insight: the server does the heavy lifting. Sorting a million rows, joining three tables, enforcing a foreign-key constraint — all of that happens inside the server process. The client just sends SQL text and gets rows back.</p>
+<blockquote>
+<p><strong>Note:</strong> SQLite breaks this pattern intentionally. It is an <em>embedded</em> database — the &quot;server&quot; is a library linked directly into your application, and the data file is local. There is no network port or separate process. This makes SQLite ideal for local tools and tests but unsuitable for multiple simultaneous writers.</p>
+</blockquote>
+<h2>What a driver does</h2>
+<p>The client and server need a common wire protocol — a byte-level agreement on how to frame a query, authenticate, stream rows, and signal errors. Writing that protocol by hand for every application would be painful. That is what a <strong>driver</strong> (sometimes called a <strong>connector</strong> or <strong>adapter</strong>) is for.</p>
+<p>A driver is a language-specific library that:</p>
+<ol>
+<li>Opens and manages a TCP connection to the server.</li>
+<li>Handles authentication (username/password, SSL certificates, Kerberos, etc.).</li>
+<li>Serialises your query string into the protocol format the server expects.</li>
+<li>Deserialises the binary response back into native language types (strings, integers, dates).</li>
+<li>Exposes a clean API your application code can call.</li>
+</ol>
+<p>Each database has official or community drivers for every popular language:</p>
+<table>
+<thead>
+<tr>
+<th>Database</th>
+<th>Python driver</th>
+<th>Node.js driver</th>
+<th>Java driver</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PostgreSQL</td>
+<td><code>psycopg2</code> / <code>asyncpg</code></td>
+<td><code>pg</code></td>
+<td><code>pgjdbc</code></td>
+</tr>
+<tr>
+<td>MySQL</td>
+<td><code>mysql-connector-python</code></td>
+<td><code>mysql2</code></td>
+<td><code>MySQL Connector/J</code></td>
+</tr>
+<tr>
+<td>SQLite</td>
+<td>built-in <code>sqlite3</code> module</td>
+<td><code>better-sqlite3</code></td>
+<td><code>xerial/sqlite-jdbc</code></td>
+</tr>
+</tbody></table>
+<p>A higher-level library (an ORM like SQLAlchemy or Prisma) sits <em>on top of</em> a driver — it generates SQL for you, but it still needs the driver to actually talk to the server.</p>
+<h2>Putting it together: a query&#39;s round trip</h2>
+<p>Here is what happens when an application runs <code>SELECT * FROM orders WHERE status = &#39;pending&#39;</code>:</p>
+<pre><code>Application code
     │  calls driver API (e.g., cursor.execute(...))
     ▼
 Driver
@@ -82,23 +152,20 @@ Driver
     ▼
 Application code
     │  iterates rows
-```
-
-The round-trip time on a local network is typically under 1 ms. Over the public internet it can be 50–200 ms — which is why database servers are always deployed close to the application servers that query them, and why connection pooling (reusing an already-open TCP connection rather than opening a new one for every query) matters at scale.
-
-## Try it live
-
-The widget below runs SQLite entirely in your browser — `sql.js` plays the role of both the driver and the embedded server. The `data-setup` attribute seeds the database (like migrations run at startup), and the textarea is the query your "application" sends. Try changing `'pending'` to `'shipped'` and re-running.
-
+</code></pre>
+<p>The round-trip time on a local network is typically under 1 ms. Over the public internet it can be 50–200 ms — which is why database servers are always deployed close to the application servers that query them, and why connection pooling (reusing an already-open TCP connection rather than opening a new one for every query) matters at scale.</p>
+<h2>Try it live</h2>
+<p>The widget below runs SQLite entirely in your browser — <code>sql.js</code> plays the role of both the driver and the embedded server. The <code>data-setup</code> attribute seeds the database (like migrations run at startup), and the textarea is the query your &quot;application&quot; sends. Try changing <code>&#39;pending&#39;</code> to <code>&#39;shipped&#39;</code> and re-running.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · orders round-trip</span></div>
   <div class="widget-body">
     <textarea data-setup="CREATE TABLE orders (id INTEGER, customer TEXT, status TEXT, amount REAL);
-INSERT INTO orders VALUES (1,'Ada','pending',49.99),(2,'Bola','shipped',120.00),(3,'Chidi','pending',8.50),(4,'Dara','shipped',200.00);" rows="20">SELECT id, customer, amount FROM orders WHERE status = 'pending';</textarea>
+INSERT INTO orders VALUES (1,'Ada','pending',49.99),(2,'Bola','shipped',120.00),(3,'Chidi','pending',8.50),(4,'Dara','shipped',200.00);" rows="10">SELECT id, customer, amount FROM orders WHERE status = 'pending';</textarea>
   </div>
 </div>
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="005-the-role-of-the-database-engine.html"><span class="dir">← Previous</span><span class="ttl">The role of the database engine</span></a><a class="next" href="007-why-database-systems-matter.html"><span class="dir">Next →</span><span class="ttl">Why database systems matter</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

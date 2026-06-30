@@ -5,57 +5,71 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Consistency in practice — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 11. Transactions</p>
   <h1 class="content-title">Consistency in practice</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="102-the-meaning-of-atomicity.html"><span class="dir">← Previous</span><span class="ttl">The meaning of atomicity</span></a><a class="next" href="104-isolation-and-interference.html"><span class="dir">Next →</span><span class="ttl">Isolation and interference</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-The **C** in ACID stands for Consistency, but it is the most misunderstood of the four properties. Unlike Atomicity, Isolation, and Durability — which the database engine enforces mechanically — Consistency is partly *your* responsibility. The engine provides tools; you decide what "correct" means for your data.
-
-## What Consistency Actually Means
-
-Consistency says: *a transaction takes the database from one valid state to another valid state.* "Valid" is defined by the constraints, rules, and invariants you have declared.
-
-Two sources contribute to those rules:
-
-| Source | Examples | Who enforces it |
-|--------|----------|-----------------|
-| Database-level constraints | `NOT NULL`, `UNIQUE`, `FOREIGN KEY`, `CHECK` | The engine — automatically |
-| Application-level invariants | "total debits must equal total credits", "a user's age must be positive" | Your code — inside the transaction |
-
-The engine can only enforce rules it knows about. Any invariant you leave implicit lives entirely in application code. If two code paths update the same data, both must respect the invariant — or you end up in an inconsistent state even though every individual query "succeeded."
-
-> **Note:** Consistency in ACID is intentionally vague compared to the other three letters. It is a design goal, not a specific mechanism. The mechanisms that support it are constraints, transactions, and careful schema design.
-
-## Constraints as a Safety Net
-
-Database constraints are the most reliable consistency tool because the engine checks them atomically — either the entire transaction satisfies every constraint, or it is rolled back.
-
-Common constraint types and what they guard:
-
-- **`NOT NULL`** — a required field is never missing.
-- **`UNIQUE`** — no duplicate values in a column (or group of columns).
-- **`PRIMARY KEY`** — implies `NOT NULL + UNIQUE`; identifies each row.
-- **`FOREIGN KEY`** — a value in one table must exist in another; prevents orphaned rows.
-- **`CHECK`** — arbitrary condition on one or more columns (`quantity > 0`, `end_date >= start_date`).
-
-Try the widget below. It creates an `orders` table with several constraints, then attempts a few inserts — some valid, some not. Run each `INSERT` separately to see which ones the engine rejects and why.
-
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">103-consistency-in-practice</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 103-consistency-in-practice.</figcaption>
+</figure>
+<p>The <strong>C</strong> in ACID stands for Consistency, but it is the most misunderstood of the four properties. Unlike Atomicity, Isolation, and Durability — which the database engine enforces mechanically — Consistency is partly <em>your</em> responsibility. The engine provides tools; you decide what &quot;correct&quot; means for your data.</p>
+<h2>What Consistency Actually Means</h2>
+<p>Consistency says: <em>a transaction takes the database from one valid state to another valid state.</em> &quot;Valid&quot; is defined by the constraints, rules, and invariants you have declared.</p>
+<p>Two sources contribute to those rules:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Examples</th>
+<th>Who enforces it</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Database-level constraints</td>
+<td><code>NOT NULL</code>, <code>UNIQUE</code>, <code>FOREIGN KEY</code>, <code>CHECK</code></td>
+<td>The engine — automatically</td>
+</tr>
+<tr>
+<td>Application-level invariants</td>
+<td>&quot;total debits must equal total credits&quot;, &quot;a user&#39;s age must be positive&quot;</td>
+<td>Your code — inside the transaction</td>
+</tr>
+</tbody></table>
+<p>The engine can only enforce rules it knows about. Any invariant you leave implicit lives entirely in application code. If two code paths update the same data, both must respect the invariant — or you end up in an inconsistent state even though every individual query &quot;succeeded.&quot;</p>
+<blockquote>
+<p><strong>Note:</strong> Consistency in ACID is intentionally vague compared to the other three letters. It is a design goal, not a specific mechanism. The mechanisms that support it are constraints, transactions, and careful schema design.</p>
+</blockquote>
+<h2>Constraints as a Safety Net</h2>
+<p>Database constraints are the most reliable consistency tool because the engine checks them atomically — either the entire transaction satisfies every constraint, or it is rolled back.</p>
+<p>Common constraint types and what they guard:</p>
+<ul>
+<li><strong><code>NOT NULL</code></strong> — a required field is never missing.</li>
+<li><strong><code>UNIQUE</code></strong> — no duplicate values in a column (or group of columns).</li>
+<li><strong><code>PRIMARY KEY</code></strong> — implies <code>NOT NULL + UNIQUE</code>; identifies each row.</li>
+<li><strong><code>FOREIGN KEY</code></strong> — a value in one table must exist in another; prevents orphaned rows.</li>
+<li><strong><code>CHECK</code></strong> — arbitrary condition on one or more columns (<code>quantity &gt; 0</code>, <code>end_date &gt;= start_date</code>).</li>
+</ul>
+<p>Try the widget below. It creates an <code>orders</code> table with several constraints, then attempts a few inserts — some valid, some not. Run each <code>INSERT</code> separately to see which ones the engine rejects and why.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Constraints in action</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, price REAL NOT NULL CHECK(price  rows="20"> 0)); CREATE TABLE orders (id INTEGER PRIMARY KEY, product_id INTEGER NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL CHECK(quantity > 0), status TEXT NOT NULL DEFAULT 'pending'); INSERT INTO products VALUES (1, 'Widget', 9.99); INSERT INTO products VALUES (2, 'Gadget', 24.99);">-- Try each statement one at a time. Which ones succeed?
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, price REAL NOT NULL CHECK(price  rows="10"> 0)); CREATE TABLE orders (id INTEGER PRIMARY KEY, product_id INTEGER NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL CHECK(quantity > 0), status TEXT NOT NULL DEFAULT 'pending'); INSERT INTO products VALUES (1, 'Widget', 9.99); INSERT INTO products VALUES (2, 'Gadget', 24.99);">-- Try each statement one at a time. Which ones succeed?
 -- 1. Valid order:
 INSERT INTO orders VALUES (1, 1, 3, 'pending');
 -- 2. Zero quantity (violates CHECK):
@@ -67,20 +81,14 @@ INSERT INTO orders VALUES (1, 1, 3, 'pending');
 SELECT o.id, p.name AS product, o.quantity, o.status
 FROM orders o JOIN products p ON p.id = o.product_id;</textarea>
   </div>
-</div>
-
-Uncomment each blocked insert and re-run to see the constraint violation messages. The database refuses to move to an invalid state — even if your application code forgot to check.
-
-## Application-Level Invariants
-
-Some rules cannot be expressed as a single-column constraint. Consider a double-entry bookkeeping system where every transfer must debit one account and credit another by the same amount. The database cannot enforce this with a `CHECK` constraint on a single row — it spans multiple rows.
-
-The correct approach is to perform both writes inside a single transaction. If either write fails, the whole transaction rolls back, and the invariant holds.
-
+</div><p>Uncomment each blocked insert and re-run to see the constraint violation messages. The database refuses to move to an invalid state — even if your application code forgot to check.</p>
+<h2>Application-Level Invariants</h2>
+<p>Some rules cannot be expressed as a single-column constraint. Consider a double-entry bookkeeping system where every transfer must debit one account and credit another by the same amount. The database cannot enforce this with a <code>CHECK</code> constraint on a single row — it spans multiple rows.</p>
+<p>The correct approach is to perform both writes inside a single transaction. If either write fails, the whole transaction rolls back, and the invariant holds.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Maintaining a balance invariant</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, name TEXT NOT NULL, balance REAL NOT NULL CHECK(balance  rows="20">= 0)); INSERT INTO accounts VALUES (1, 'Alice', 500.00); INSERT INTO accounts VALUES (2, 'Bob', 300.00);">-- Transfer $150 from Alice to Bob atomically.
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, name TEXT NOT NULL, balance REAL NOT NULL CHECK(balance  rows="10">= 0)); INSERT INTO accounts VALUES (1, 'Alice', 500.00); INSERT INTO accounts VALUES (2, 'Bob', 300.00);">-- Transfer $150 from Alice to Bob atomically.
 -- Both updates succeed or neither does.
 BEGIN;
   UPDATE accounts SET balance = balance - 150 WHERE id = 1;
@@ -90,23 +98,22 @@ COMMIT;
 SELECT name, balance FROM accounts;
 SELECT SUM(balance) AS total FROM accounts;  -- must stay 800</textarea>
   </div>
+</div><p>Now try changing the transfer to $600 (more than Alice has). The <code>CHECK(balance &gt;= 0)</code> constraint will fire when the first <code>UPDATE</code> runs, the transaction will be aborted, and neither balance changes. The constraint on the column protects the row-level rule; the transaction protects the cross-row invariant.</p>
+<h2>What the Engine Cannot Do For You</h2>
+<p>Even with perfect schema design, some consistency problems fall outside what the database can catch automatically:</p>
+<ul>
+<li><strong>Stale reads in application logic</strong> — your code reads a value, makes a decision, then writes. If another transaction changed the value between the read and the write, your decision was based on outdated data. The fix is locking (<code>SELECT ... FOR UPDATE</code>) or optimistic concurrency checks — covered in the next page on isolation.</li>
+<li><strong>Business rules encoded only in code</strong> — if &quot;a premium customer may have at most 10 open orders&quot; lives only in an API handler, a direct SQL connection bypasses it entirely.</li>
+<li><strong>Data imported from outside</strong> — bulk loads often bypass triggers and may skip constraint checks if the import tool disables them for performance.</li>
+</ul>
+<p>The practical lesson: treat database constraints as a <em>last line of defense</em>, not the only line. Validate at the application layer first, then let the database confirm. If they disagree, the database wins — a constraint violation is a clear signal that your application logic has a gap.</p>
+<blockquote>
+<p><strong>Note:</strong> Some engines (PostgreSQL, Oracle, SQL Server) support <strong>deferrable constraints</strong> — foreign key and uniqueness checks can be postponed until <code>COMMIT</code> rather than checked after each statement. This is useful when inserting rows that temporarily violate a constraint mid-transaction (such as inserting a parent and child row in reverse order).</p>
+</blockquote>
+
 </div>
-
-Now try changing the transfer to $600 (more than Alice has). The `CHECK(balance >= 0)` constraint will fire when the first `UPDATE` runs, the transaction will be aborted, and neither balance changes. The constraint on the column protects the row-level rule; the transaction protects the cross-row invariant.
-
-## What the Engine Cannot Do For You
-
-Even with perfect schema design, some consistency problems fall outside what the database can catch automatically:
-
-- **Stale reads in application logic** — your code reads a value, makes a decision, then writes. If another transaction changed the value between the read and the write, your decision was based on outdated data. The fix is locking (`SELECT ... FOR UPDATE`) or optimistic concurrency checks — covered in the next page on isolation.
-- **Business rules encoded only in code** — if "a premium customer may have at most 10 open orders" lives only in an API handler, a direct SQL connection bypasses it entirely.
-- **Data imported from outside** — bulk loads often bypass triggers and may skip constraint checks if the import tool disables them for performance.
-
-The practical lesson: treat database constraints as a *last line of defense*, not the only line. Validate at the application layer first, then let the database confirm. If they disagree, the database wins — a constraint violation is a clear signal that your application logic has a gap.
-
-> **Note:** Some engines (PostgreSQL, Oracle, SQL Server) support **deferrable constraints** — foreign key and uniqueness checks can be postponed until `COMMIT` rather than checked after each statement. This is useful when inserting rows that temporarily violate a constraint mid-transaction (such as inserting a parent and child row in reverse order).
-
-</script>
+  <nav class="pagenav"><a class="prev" href="102-the-meaning-of-atomicity.html"><span class="dir">← Previous</span><span class="ttl">The meaning of atomicity</span></a><a class="next" href="104-isolation-and-interference.html"><span class="dir">Next →</span><span class="ttl">Isolation and interference</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

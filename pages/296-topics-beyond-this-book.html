@@ -5,57 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Topics beyond this book — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VII. Building Understanding</p>
   <p class="chapter-label">Chapter 30. Where to Go Next</p>
   <h1 class="content-title">Topics beyond this book</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="295-what-to-build-for-practice.html"><span class="dir">← Previous</span><span class="ttl">What to build for practice</span></a><a class="next" href="297-a-database-engineers-mindset.html"><span class="dir">Next →</span><span class="ttl">A database engineer’s mindset</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-This course covered the core of how databases are designed and why — storage engines, query processing, transactions, distribution, and the major database families. But the field is large and active. Entire sub-disciplines are not covered here, either because they require significant mathematical background, because they are evolving rapidly, or because they are specialized enough to warrant their own courses. This page maps the frontier.
-
-## What This Course Did Not Cover
-
-### Query Optimization (Deep)
-
-This course introduced the query planner conceptually, but a full treatment of query optimization is its own field. The deep topics include:
-
-- **Cardinality estimation** — how the optimizer guesses how many rows a filter will return; the source of most bad plans. Modern approaches use histograms, sketches (HyperLogLog, Count-Min Sketch), and ML-based estimation.
-- **Join ordering** — the number of possible join orders grows factorially with the number of tables; dynamic programming (System R approach) and genetic algorithms are both used.
-- **Physical properties** — the optimizer must track whether data is sorted or partitioned to avoid unnecessary sorts and hash redistributions.
-- **Adaptive query processing** — reoptimizing a query mid-execution when estimates were wrong (Eddies, AQP in Spark).
-
-**Resources:** "Database System Implementation" (Garcia-Molina et al.), Selinger et al. (1979), and the CMU 15-721 advanced database course.
-
-### Database Theory
-
-The theoretical foundations of databases are a separate discipline:
-
-- **Relational algebra and calculus** — formal underpinnings of SQL; important for understanding query rewriting and equivalences.
-- **Functional dependencies and normal forms** — BCNF, 4NF, 5NF; when to normalize and when not to.
-- **Datalog** — a logic-based query language that underlies Datomic and modern Dedalus/Bloom research.
-- **Complexity of queries** — which queries can be answered in polynomial time; the dichotomy conjecture.
-
-**Resources:** "Foundations of Databases" (Abiteboul, Hull, Vianu) — the canonical theory text, free online.
-
-### Hardware-Aware Database Design
-
-Modern storage engines increasingly exploit hardware directly:
-
-- **Non-volatile memory (NVDIMM / Optane)** — byte-addressable persistent memory blurs the boundary between DRAM and storage. WAL designs change fundamentally.
-- **RDMA (Remote Direct Memory Access)** — bypassing the kernel for network I/O; used in FaRM, DrTM, and other research systems.
-- **SIMD and vectorized execution** — using CPU vector registers to process 8–16 values in a single instruction; core to DuckDB and MonetDB.
-- **NVMe and io_uring** — modern storage interfaces that allow asynchronous I/O without kernel involvement per operation.
-
+  <div id="rendered" class="content">
+<p>This course covered the core of how databases are designed and why — storage engines, query processing, transactions, distribution, and the major database families. But the field is large and active. Entire sub-disciplines are not covered here, either because they require significant mathematical background, because they are evolving rapidly, or because they are specialized enough to warrant their own courses. This page maps the frontier.</p>
+<h2>What This Course Did Not Cover</h2>
+<h3>Query Optimization (Deep)</h3>
+<p>This course introduced the query planner conceptually, but a full treatment of query optimization is its own field. The deep topics include:</p>
+<ul>
+<li><strong>Cardinality estimation</strong> — how the optimizer guesses how many rows a filter will return; the source of most bad plans. Modern approaches use histograms, sketches (HyperLogLog, Count-Min Sketch), and ML-based estimation.</li>
+<li><strong>Join ordering</strong> — the number of possible join orders grows factorially with the number of tables; dynamic programming (System R approach) and genetic algorithms are both used.</li>
+<li><strong>Physical properties</strong> — the optimizer must track whether data is sorted or partitioned to avoid unnecessary sorts and hash redistributions.</li>
+<li><strong>Adaptive query processing</strong> — reoptimizing a query mid-execution when estimates were wrong (Eddies, AQP in Spark).</li>
+</ul>
+<p><strong>Resources:</strong> &quot;Database System Implementation&quot; (Garcia-Molina et al.), Selinger et al. (1979), and the CMU 15-721 advanced database course.</p>
+<h3>Database Theory</h3>
+<p>The theoretical foundations of databases are a separate discipline:</p>
+<ul>
+<li><strong>Relational algebra and calculus</strong> — formal underpinnings of SQL; important for understanding query rewriting and equivalences.</li>
+<li><strong>Functional dependencies and normal forms</strong> — BCNF, 4NF, 5NF; when to normalize and when not to.</li>
+<li><strong>Datalog</strong> — a logic-based query language that underlies Datomic and modern Dedalus/Bloom research.</li>
+<li><strong>Complexity of queries</strong> — which queries can be answered in polynomial time; the dichotomy conjecture.</li>
+</ul>
+<p><strong>Resources:</strong> &quot;Foundations of Databases&quot; (Abiteboul, Hull, Vianu) — the canonical theory text, free online.</p>
+<h3>Hardware-Aware Database Design</h3>
+<p>Modern storage engines increasingly exploit hardware directly:</p>
+<ul>
+<li><strong>Non-volatile memory (NVDIMM / Optane)</strong> — byte-addressable persistent memory blurs the boundary between DRAM and storage. WAL designs change fundamentally.</li>
+<li><strong>RDMA (Remote Direct Memory Access)</strong> — bypassing the kernel for network I/O; used in FaRM, DrTM, and other research systems.</li>
+<li><strong>SIMD and vectorized execution</strong> — using CPU vector registers to process 8–16 values in a single instruction; core to DuckDB and MonetDB.</li>
+<li><strong>NVMe and io_uring</strong> — modern storage interfaces that allow asynchronous I/O without kernel involvement per operation.</li>
+</ul>
 <figure class="diagram">
 <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Map of database topics beyond this book organized into five clusters: query optimization, theory, hardware, ML and databases, and emerging paradigms">
   <defs>
@@ -66,97 +52,105 @@ Modern storage engines increasingly exploit hardware directly:
   <!-- center -->
   <rect x="255" y="100" width="130" height="60" rx="8" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="320" y="127" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">This Course</text>
-  <text x="320" y="145" text-anchor="middle" font-size="10" fill="var(--muted)">Storage · Queries · Tx · Dist</text>
-
-  <!-- top left: Query Optimization -->
+  <text x="320" y="145" text-anchor="middle" font-size="10" fill="var(--muted)">Storage · Queries · Tx · Dist</text>  <!-- top left: Query Optimization -->
   <rect x="20" y="20" width="150" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="95" y="47" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Query Optimization</text>
   <text x="95" y="65" text-anchor="middle" font-size="10" fill="var(--muted)">Cardinality · Join order</text>
-  <line x1="170" y1="80" x2="255" y2="115" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr)"/>
-
-  <!-- top right: DB Theory -->
+  <line x1="170" y1="80" x2="255" y2="115" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr)"/>  <!-- top right: DB Theory -->
   <rect x="470" y="20" width="150" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="545" y="47" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">DB Theory</text>
   <text x="545" y="65" text-anchor="middle" font-size="10" fill="var(--muted)">Algebra · Datalog · NF</text>
-  <line x1="470" y1="80" x2="385" y2="115" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr)"/>
-
-  <!-- bottom left: Hardware -->
+  <line x1="470" y1="80" x2="385" y2="115" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr)"/>  <!-- bottom left: Hardware -->
   <rect x="20" y="180" width="150" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="95" y="207" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Hardware-Aware</text>
   <text x="95" y="225" text-anchor="middle" font-size="10" fill="var(--muted)">NVDIMM · SIMD · RDMA</text>
-  <line x1="170" y1="200" x2="255" y2="148" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr)"/>
-
-  <!-- bottom right: ML + DBs -->
+  <line x1="170" y1="200" x2="255" y2="148" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr)"/>  <!-- bottom right: ML + DBs -->
   <rect x="470" y="180" width="150" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="545" y="207" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">ML + Databases</text>
   <text x="545" y="225" text-anchor="middle" font-size="10" fill="var(--muted)">Learned indexes · LLM+SQL</text>
-  <line x1="470" y1="200" x2="385" y2="148" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr)"/>
-
-  <!-- bottom center: Emerging -->
+  <line x1="470" y1="200" x2="385" y2="148" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr)"/>  <!-- bottom center: Emerging -->
   <rect x="235" y="195" width="170" height="55" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="320" y="219" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Emerging Paradigms</text>
   <text x="320" y="237" text-anchor="middle" font-size="10" fill="var(--muted)">Lakehouse · Streaming · HTAP</text>
   <line x1="320" y1="195" x2="320" y2="162" stroke="var(--border)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr)"/>
 </svg>
 <figcaption>Five active research and engineering frontiers beyond the core material in this course — each is a substantial field in its own right.</figcaption>
-</figure>
+</figure><h3>Machine Learning and Databases</h3>
+<p>This intersection is growing fast in both directions:</p>
+<ul>
+<li><strong>Learned indexes</strong> — replacing B-trees with ML models that predict the position of a key. &quot;The Case for Learned Index Structures&quot; (Kraska et al., 2018) is the landmark paper.</li>
+<li><strong>Learned query optimization</strong> — using RL or supervised learning to replace the cost-based optimizer. Bao (Learned Knobs), Neo, and similar projects.</li>
+<li><strong>Vector databases</strong> — storing high-dimensional embeddings and answering approximate nearest-neighbor queries. Used for semantic search, RAG pipelines, and recommendation. Examples: pgvector, Weaviate, Pinecone, Milvus.</li>
+<li><strong>LLM + SQL</strong> — text-to-SQL systems (DAIL-SQL, DIN-SQL), natural-language interfaces over structured data.</li>
+</ul>
+<h3>Streaming and Real-Time Databases</h3>
+<p>Databases that process data as it arrives rather than in batches:</p>
+<ul>
+<li><strong>Apache Flink</strong> — stateful stream processing; exactly-once semantics over unbounded streams.</li>
+<li><strong>Apache Kafka</strong> — a distributed, replicated log; often used as the transport layer between streaming systems.</li>
+<li><strong>Materialize / Risingwave</strong> — streaming SQL that maintains views incrementally as new data arrives.</li>
+<li><strong>ksqlDB</strong> — SQL over Kafka streams.</li>
+</ul>
+<p>The theoretical foundation is <strong>datastream processing</strong>: how do you compute aggregates over an unbounded stream with finite memory? Sliding windows, tumbling windows, and watermarks are the key concepts.</p>
+<h3>Lakehouse Architecture</h3>
+<p>The convergence of data lakes (cheap object storage) and data warehouses (structured queries):</p>
+<ul>
+<li><strong>Apache Iceberg / Delta Lake / Apache Hudi</strong> — table formats that bring ACID semantics, schema evolution, and time travel to object storage (S3/GCS/Azure Blob).</li>
+<li><strong>Apache Parquet / ORC</strong> — columnar file formats that enable predicate pushdown even in a file system.</li>
+<li><strong>Query engines:</strong> Trino, Spark, Dask, DuckDB — all can query Parquet files on S3 directly.</li>
+</ul>
+<p>This architecture is now the dominant pattern for large-scale analytical workloads, replacing traditional data warehouses for many use cases.</p>
+<h3>Security and Privacy</h3>
+<ul>
+<li><strong>Row-level security</strong> — ensuring users can only see rows they own; implemented in PostgreSQL with row security policies.</li>
+<li><strong>Encryption at rest</strong> — transparent data encryption (TDE); how keys are managed.</li>
+<li><strong>Differential privacy</strong> — answering aggregate queries without leaking individual records; Apple, Google, and the US Census Bureau use this.</li>
+<li><strong>Homomorphic encryption</strong> — computing on encrypted data without decrypting (mostly research-stage for databases).</li>
+</ul>
+<h2>Courses and Books to Go Deeper</h2>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CMU 15-721 (free online)</td>
+<td>Advanced database internals: OLAP, vectorization, HTAP</td>
+</tr>
+<tr>
+<td>&quot;Database System Implementation&quot; — Garcia-Molina</td>
+<td>Storage, indexing, query processing in depth</td>
+</tr>
+<tr>
+<td>&quot;Designing Data-Intensive Applications&quot; — Kleppmann</td>
+<td>Distributed systems concepts with database focus</td>
+</tr>
+<tr>
+<td>&quot;Streaming Systems&quot; — Akidau et al.</td>
+<td>Stream processing theory and practice</td>
+</tr>
+<tr>
+<td>&quot;Readings in Database Systems&quot; (Red Book)</td>
+<td>Curated foundational papers with commentary</td>
+</tr>
+<tr>
+<td>VLDB / SIGMOD / OSDI proceedings</td>
+<td>Where new database research is published</td>
+</tr>
+</tbody></table>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Query optimization, database theory, hardware-aware design, ML-database intersection, streaming, and lakehouse architecture are each substantial fields beyond this course.</li>
+<li>Vector databases and LLM-integrated query systems are the fastest-moving area right now.</li>
+<li>The &quot;Red Book&quot; (Readings in Database Systems) and CMU 15-721 are the highest-leverage next steps for engineering depth.</li>
+<li>Streaming and lakehouse architecture are increasingly the dominant patterns for analytical workloads in production.</li>
+</ul>
 
-### Machine Learning and Databases
-
-This intersection is growing fast in both directions:
-
-- **Learned indexes** — replacing B-trees with ML models that predict the position of a key. "The Case for Learned Index Structures" (Kraska et al., 2018) is the landmark paper.
-- **Learned query optimization** — using RL or supervised learning to replace the cost-based optimizer. Bao (Learned Knobs), Neo, and similar projects.
-- **Vector databases** — storing high-dimensional embeddings and answering approximate nearest-neighbor queries. Used for semantic search, RAG pipelines, and recommendation. Examples: pgvector, Weaviate, Pinecone, Milvus.
-- **LLM + SQL** — text-to-SQL systems (DAIL-SQL, DIN-SQL), natural-language interfaces over structured data.
-
-### Streaming and Real-Time Databases
-
-Databases that process data as it arrives rather than in batches:
-
-- **Apache Flink** — stateful stream processing; exactly-once semantics over unbounded streams.
-- **Apache Kafka** — a distributed, replicated log; often used as the transport layer between streaming systems.
-- **Materialize / Risingwave** — streaming SQL that maintains views incrementally as new data arrives.
-- **ksqlDB** — SQL over Kafka streams.
-
-The theoretical foundation is **datastream processing**: how do you compute aggregates over an unbounded stream with finite memory? Sliding windows, tumbling windows, and watermarks are the key concepts.
-
-### Lakehouse Architecture
-
-The convergence of data lakes (cheap object storage) and data warehouses (structured queries):
-
-- **Apache Iceberg / Delta Lake / Apache Hudi** — table formats that bring ACID semantics, schema evolution, and time travel to object storage (S3/GCS/Azure Blob).
-- **Apache Parquet / ORC** — columnar file formats that enable predicate pushdown even in a file system.
-- **Query engines:** Trino, Spark, Dask, DuckDB — all can query Parquet files on S3 directly.
-
-This architecture is now the dominant pattern for large-scale analytical workloads, replacing traditional data warehouses for many use cases.
-
-### Security and Privacy
-
-- **Row-level security** — ensuring users can only see rows they own; implemented in PostgreSQL with row security policies.
-- **Encryption at rest** — transparent data encryption (TDE); how keys are managed.
-- **Differential privacy** — answering aggregate queries without leaking individual records; Apple, Google, and the US Census Bureau use this.
-- **Homomorphic encryption** — computing on encrypted data without decrypting (mostly research-stage for databases).
-
-## Courses and Books to Go Deeper
-
-| Resource | What it covers |
-|---|---|
-| CMU 15-721 (free online) | Advanced database internals: OLAP, vectorization, HTAP |
-| "Database System Implementation" — Garcia-Molina | Storage, indexing, query processing in depth |
-| "Designing Data-Intensive Applications" — Kleppmann | Distributed systems concepts with database focus |
-| "Streaming Systems" — Akidau et al. | Stream processing theory and practice |
-| "Readings in Database Systems" (Red Book) | Curated foundational papers with commentary |
-| VLDB / SIGMOD / OSDI proceedings | Where new database research is published |
-
-## Key Takeaways
-
-- Query optimization, database theory, hardware-aware design, ML-database intersection, streaming, and lakehouse architecture are each substantial fields beyond this course.
-- Vector databases and LLM-integrated query systems are the fastest-moving area right now.
-- The "Red Book" (Readings in Database Systems) and CMU 15-721 are the highest-leverage next steps for engineering depth.
-- Streaming and lakehouse architecture are increasingly the dominant patterns for analytical workloads in production.
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="295-what-to-build-for-practice.html"><span class="dir">← Previous</span><span class="ttl">What to build for practice</span></a><a class="next" href="297-a-database-engineers-mindset.html"><span class="dir">Next →</span><span class="ttl">A database engineer’s mindset</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

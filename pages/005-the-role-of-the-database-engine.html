@@ -5,43 +5,89 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The role of the database engine — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 1. What a Database System Is</p>
   <h1 class="content-title">The role of the database engine</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="004-queries-transactions-and-schemas.html"><span class="dir">← Previous</span><span class="ttl">Queries, transactions, and schemas</span></a><a class="next" href="006-clients-servers-and-drivers.html"><span class="dir">Next →</span><span class="ttl">Clients, servers, and drivers</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When you store data in a spreadsheet, *you* are the engine — you decide where data lives, how to find it, and what happens when two people edit the same cell at once. A **database engine** (also called a storage engine or database management system kernel) is the software layer that takes those responsibilities away from you. It sits between your application and the raw bytes on disk, turning high-level requests like "give me all orders placed today" into precise read/write operations — and making sure nothing goes wrong in the process.
-
-## What the Engine Actually Does
-
-The database engine has four core jobs, each one solving a real problem:
-
-| Job | The problem it solves | Example |
-|---|---|---|
-| **Storage management** | Files and disk blocks are a poor fit for structured data | Arranges rows and indexes on disk pages for fast access |
-| **Query processing** | Applications shouldn't need to know *how* data is stored | Parses SQL, builds an execution plan, returns results |
-| **Concurrency control** | Multiple clients reading/writing simultaneously can corrupt data | Uses locks or MVCC so transactions don't interfere |
-| **Recovery** | Crashes happen; committed data must survive them | Replays a write-ahead log to restore a consistent state |
-
-None of these are glamorous, but every application that touches a database depends on all four working correctly at the same time.
-
-## The Engine and the Query Lifecycle
-
-When your application sends a SQL statement, the engine processes it through several internal stages before a single byte of data moves:
-
-```
-SQL text
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#5a6678"/></marker>
+  </defs>
+  <g transform="translate(10,10)">
+    <!-- Top: Application -->
+    <rect x="180" y="0" width="340" height="32" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="350" y="21" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">Application / Client</text>
+    <line x1="350" y1="32" x2="350" y2="48" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+    <text x="370" y="44" font-size="9" fill="#5a6678">SQL / API</text>
+    <!-- Engine box -->
+    <rect x="80" y="52" width="540" height="170" rx="12" fill="#fff" stroke="#1c2330" stroke-width="1.5" filter="url(#sh)"/>
+    <text x="350" y="75" text-anchor="middle" font-size="14" font-weight="800" fill="#1c2330">DATABASE ENGINE</text>
+    <!-- Sub-components -->
+    <rect x="100" y="90" width="155" height="55" rx="8" fill="#dcfce7" stroke="#86efac"/>
+    <text x="177" y="112" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">🔍 Query Processor</text>
+    <text x="177" y="130" text-anchor="middle" font-size="9" fill="#5a6678">Parser → Optimizer → Executor</text>
+    <rect x="270" y="90" width="155" height="55" rx="8" fill="#fef3c7" stroke="#fbbf24"/>
+    <text x="347" y="112" text-anchor="middle" font-size="11" font-weight="700" fill="#d97706">🔒 Transaction Mgr</text>
+    <text x="347" y="130" text-anchor="middle" font-size="9" fill="#5a6678">ACID · Concurrency · Locks</text>
+    <rect x="440" y="90" width="160" height="55" rx="8" fill="#ede9fe" stroke="#a78bfa"/>
+    <text x="520" y="112" text-anchor="middle" font-size="11" font-weight="700" fill="#7c3aed">💾 Storage Engine</text>
+    <text x="520" y="130" text-anchor="middle" font-size="9" fill="#5a6678">Pages · B-trees · Buffer pool</text>
+    <!-- Bottom connector -->
+    <rect x="240" y="155" width="200" height="55" rx="8" fill="#fce7f3" stroke="#f472b6"/>
+    <text x="340" y="177" text-anchor="middle" font-size="11" font-weight="700" fill="#db2777">🛠️ Recovery Manager</text>
+    <text x="340" y="195" text-anchor="middle" font-size="9" fill="#5a6678">WAL · Checkpoints · Crash recovery</text>
+    <!-- Down arrow -->
+    <line x1="340" y1="222" x2="340" y2="232" stroke="#1c2330" stroke-width="2" marker-end="url(#ar)"/>
+  </g>
+  <!-- Disk -->
+  <rect x="230" y="234" width="220" height="28" rx="6" fill="#f0f2f5" stroke="#e2e6ec" filter="url(#sh)"/>
+  <text x="340" y="253" text-anchor="middle" font-size="11" fill="#5a6678">💿 Disk (pages, WAL files)</text>
+</svg>
+<figcaption>The database engine is the software that sits between your app and disk, handling query processing, transactions, storage, and recovery.</figcaption>
+</figure>
+<p>When you store data in a spreadsheet, <em>you</em> are the engine — you decide where data lives, how to find it, and what happens when two people edit the same cell at once. A <strong>database engine</strong> (also called a storage engine or database management system kernel) is the software layer that takes those responsibilities away from you. It sits between your application and the raw bytes on disk, turning high-level requests like &quot;give me all orders placed today&quot; into precise read/write operations — and making sure nothing goes wrong in the process.</p>
+<h2>What the Engine Actually Does</h2>
+<p>The database engine has four core jobs, each one solving a real problem:</p>
+<table>
+<thead>
+<tr>
+<th>Job</th>
+<th>The problem it solves</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Storage management</strong></td>
+<td>Files and disk blocks are a poor fit for structured data</td>
+<td>Arranges rows and indexes on disk pages for fast access</td>
+</tr>
+<tr>
+<td><strong>Query processing</strong></td>
+<td>Applications shouldn&#39;t need to know <em>how</em> data is stored</td>
+<td>Parses SQL, builds an execution plan, returns results</td>
+</tr>
+<tr>
+<td><strong>Concurrency control</strong></td>
+<td>Multiple clients reading/writing simultaneously can corrupt data</td>
+<td>Uses locks or MVCC so transactions don&#39;t interfere</td>
+</tr>
+<tr>
+<td><strong>Recovery</strong></td>
+<td>Crashes happen; committed data must survive them</td>
+<td>Replays a write-ahead log to restore a consistent state</td>
+</tr>
+</tbody></table>
+<p>None of these are glamorous, but every application that touches a database depends on all four working correctly at the same time.</p>
+<h2>The Engine and the Query Lifecycle</h2>
+<p>When your application sends a SQL statement, the engine processes it through several internal stages before a single byte of data moves:</p>
+<pre><code>SQL text
    │
    ▼
  Parser          ← checks syntax, builds a parse tree
@@ -54,20 +100,17 @@ SQL text
    │
    ▼
  Storage layer   ← reads/writes pages from the buffer pool or disk
-```
-
-The **optimizer** stage is where the engine earns its keep. Given `SELECT * FROM orders WHERE customer_id = 42`, it decides whether to scan every row in the table or use an index — a choice that can mean the difference between milliseconds and minutes on a large dataset.
-
-> **Note:** The optimizer works with *statistics* about your data (row counts, value distributions) rather than reading every row. Keeping those statistics fresh — via `ANALYZE` in PostgreSQL or `UPDATE STATISTICS` in SQL Server — is one of the most impactful routine maintenance tasks you can do.
-
-## Trying It: the Engine Working Behind the Scenes
-
-The widget below creates a small `orders` table and seeds it with a few rows. The default query uses a `WHERE` clause — behind the scenes, SQLite's engine parses it, checks whether an index exists on `customer_id`, and chooses an execution plan. Try running `EXPLAIN QUERY PLAN SELECT ...` to see the engine's decision exposed.
-
+</code></pre>
+<p>The <strong>optimizer</strong> stage is where the engine earns its keep. Given <code>SELECT * FROM orders WHERE customer_id = 42</code>, it decides whether to scan every row in the table or use an index — a choice that can mean the difference between milliseconds and minutes on a large dataset.</p>
+<blockquote>
+<p><strong>Note:</strong> The optimizer works with <em>statistics</em> about your data (row counts, value distributions) rather than reading every row. Keeping those statistics fresh — via <code>ANALYZE</code> in PostgreSQL or <code>UPDATE STATISTICS</code> in SQL Server — is one of the most impactful routine maintenance tasks you can do.</p>
+</blockquote>
+<h2>Trying It: the Engine Working Behind the Scenes</h2>
+<p>The widget below creates a small <code>orders</code> table and seeds it with a few rows. The default query uses a <code>WHERE</code> clause — behind the scenes, SQLite&#39;s engine parses it, checks whether an index exists on <code>customer_id</code>, and chooses an execution plan. Try running <code>EXPLAIN QUERY PLAN SELECT ...</code> to see the engine&#39;s decision exposed.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Query lifecycle</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, placed_at TEXT NOT NULL); INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Carol'); INSERT INTO orders VALUES (1, 1, 49.99, '2024-06-01'), (2, 1, 120.00, '2024-06-10'), (3, 2, 9.99, '2024-06-11'), (4, 3, 250.00, '2024-06-12'), (5, 1, 75.50, '2024-06-15');" rows="20">-- See the engine's execution plan for this query:
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, placed_at TEXT NOT NULL); INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Carol'); INSERT INTO orders VALUES (1, 1, 49.99, '2024-06-01'), (2, 1, 120.00, '2024-06-10'), (3, 2, 9.99, '2024-06-11'), (4, 3, 250.00, '2024-06-12'), (5, 1, 75.50, '2024-06-15');" rows="10">-- See the engine's execution plan for this query:
 EXPLAIN QUERY PLAN
 SELECT c.name, SUM(o.amount) AS total
 FROM orders o
@@ -76,14 +119,11 @@ WHERE o.placed_at >= '2024-06-10'
 GROUP BY c.id
 ORDER BY total DESC;</textarea>
   </div>
-</div>
-
-Now create an index and re-run the plan to watch the engine switch strategies:
-
+</div><p>Now create an index and re-run the plan to watch the engine switch strategies:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index effect</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, placed_at TEXT NOT NULL); INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Carol'); INSERT INTO orders VALUES (1, 1, 49.99, '2024-06-01'), (2, 1, 120.00, '2024-06-10'), (3, 2, 9.99, '2024-06-11'), (4, 3, 250.00, '2024-06-12'), (5, 1, 75.50, '2024-06-15'); CREATE INDEX idx_orders_placed_at ON orders(placed_at);" rows="20">-- Now the engine has an index on placed_at.
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, placed_at TEXT NOT NULL); INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Carol'); INSERT INTO orders VALUES (1, 1, 49.99, '2024-06-01'), (2, 1, 120.00, '2024-06-10'), (3, 2, 9.99, '2024-06-11'), (4, 3, 250.00, '2024-06-12'), (5, 1, 75.50, '2024-06-15'); CREATE INDEX idx_orders_placed_at ON orders(placed_at);" rows="10">-- Now the engine has an index on placed_at.
 -- Run EXPLAIN QUERY PLAN again and compare:
 EXPLAIN QUERY PLAN
 SELECT c.name, SUM(o.amount) AS total
@@ -93,15 +133,13 @@ WHERE o.placed_at >= '2024-06-10'
 GROUP BY c.id
 ORDER BY total DESC;</textarea>
   </div>
+</div><h2>The Engine Is Not the Database</h2>
+<p>It is worth drawing one clear boundary: the <strong>engine</strong> is the processing and storage machinery; the <strong>database</strong> is the organised collection of data it manages. A single database server (like PostgreSQL or MySQL) runs one engine but can host many databases. Some systems — such as MySQL with InnoDB and MyISAM — even let you choose a different engine per table, though in practice most teams pick one and stick with it.</p>
+<p>Understanding the engine&#39;s role matters because every design decision you make — schema shape, index strategy, transaction scope — is really an instruction to the engine about <em>how</em> to do its job. The better you understand what the engine is optimising for, the better your schema choices will be.</p>
+
 </div>
-
-## The Engine Is Not the Database
-
-It is worth drawing one clear boundary: the **engine** is the processing and storage machinery; the **database** is the organised collection of data it manages. A single database server (like PostgreSQL or MySQL) runs one engine but can host many databases. Some systems — such as MySQL with InnoDB and MyISAM — even let you choose a different engine per table, though in practice most teams pick one and stick with it.
-
-Understanding the engine's role matters because every design decision you make — schema shape, index strategy, transaction scope — is really an instruction to the engine about *how* to do its job. The better you understand what the engine is optimising for, the better your schema choices will be.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="004-queries-transactions-and-schemas.html"><span class="dir">← Previous</span><span class="ttl">Queries, transactions, and schemas</span></a><a class="next" href="006-clients-servers-and-drivers.html"><span class="dir">Next →</span><span class="ttl">Clients, servers, and drivers</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

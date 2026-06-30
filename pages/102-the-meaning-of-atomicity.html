@@ -5,68 +5,90 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The meaning of atomicity — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 11. Transactions</p>
   <h1 class="content-title">The meaning of atomicity</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="101-why-transactions-exist.html"><span class="dir">← Previous</span><span class="ttl">Why transactions exist</span></a><a class="next" href="103-consistency-in-practice.html"><span class="dir">Next →</span><span class="ttl">Consistency in practice</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When a database says an operation is **atomic**, it means exactly what the word suggests from chemistry: indivisible. Either the whole operation happens, or none of it does. There is no halfway state that other parts of the system can observe. This single guarantee turns out to be the foundation on which everything else about transactions is built.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(20,10)">
+    <!-- Atomic unit -->
+    <rect x="80" y="0" width="540" height="32" rx="8" fill="#fef3c7" stroke="#f59e0b" filter="url(#sh)"/>
+    <text x="350" y="21" text-anchor="middle" font-size="12" font-weight="700" fill="#d97706">BEGIN TRANSACTION — Atomic Unit — COMMIT / ROLLBACK</text>
 
-## The Classic Example: A Bank Transfer
+    <!-- Steps -->
+    <rect x="0" y="48" width="160" height="30" rx="6" fill="#e8f0ff"/>
+    <text x="80" y="67" text-anchor="middle" font-size="9" fill="#2f6df6">① UPDATE A -= $50</text>
+    <text x="170" y="67" font-size="14" fill="#5a6678">→</text>
+    <rect x="185" y="48" width="160" height="30" rx="6" fill="#e8f0ff"/>
+    <text x="265" y="67" text-anchor="middle" font-size="9" fill="#2f6df6">② UPDATE B += $50</text>
+    <text x="355" y="67" font-size="14" fill="#5a6678">→</text>
+    <rect x="370" y="48" width="140" height="30" rx="6" fill="#dcfce7"/>
+    <text x="440" y="67" text-anchor="middle" font-size="9" fill="#16a34a">③ COMMIT ✓</text>
 
-The go-to illustration of atomicity is a money transfer, and it earns that status because the problem is painfully obvious.
-
-Suppose Alice wants to send $200 to Bob. In the database that means two writes:
-
-1. Subtract $200 from Alice's balance.
-2. Add $200 to Bob's balance.
-
-If the database crashes — or the network drops, or the application throws an exception — right between step 1 and step 2, something terrible happens: Alice is $200 poorer and Bob received nothing. The money has vanished from the ledger.
-
-```sql
--- Without atomicity, a crash here leaves the database in a broken state:
-UPDATE accounts SET balance = balance - 200 WHERE name = 'Alice';
--- <-- crash, power cut, or error here -->
-UPDATE accounts SET balance = balance + 200 WHERE name = 'Bob';
-```
-
-Atomicity is the promise that this intermediate state can never be made permanent. The database guarantees that both writes commit together, or neither one does.
-
-## What "All or Nothing" Actually Means
-
-Atomicity does **not** mean the two statements run in a single CPU instruction. Under the hood the engine executes them one at a time. What it means is that the engine tracks the full set of changes belonging to one transaction and, when something goes wrong before the transaction finishes, it **rolls back** every change in that set — restoring the database to the state it was in before the transaction started.
-
-The mechanism that makes this possible (the write-ahead log, covered in Chapter 10) records every intended change to durable storage before it is applied to the actual data pages. If the system crashes mid-transaction, recovery replays the log on restart, finds the incomplete transaction, and undoes its partial changes.
-
-> **Note:** Atomicity is one of the four ACID properties. The others — Consistency, Isolation, and Durability — each add a further guarantee. But atomicity is the prerequisite: if you cannot guarantee all-or-nothing, the other three have nothing to stand on.
-
-## Atomicity in Practice: BEGIN / COMMIT / ROLLBACK
-
-Applications control transaction boundaries with three SQL statements:
-
-| Statement | Effect |
-|---|---|
-| `BEGIN` | Start a new transaction; changes are now grouped |
-| `COMMIT` | Make all changes in the transaction permanent |
-| `ROLLBACK` | Discard all changes in the transaction; return to previous state |
-
-The interactive example below lets you see atomicity in action. A `ROLLBACK` after two updates leaves the balances completely unchanged, as if the updates never ran.
-
+    <!-- Either all or nothing -->
+    <rect x="0" y="95" width="680" height="60" rx="8" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="340" y="115" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">All-or-nothing guarantee</text>
+    <text x="340" y="135" text-anchor="middle" font-size="9" fill="#5a6678">If crash after ① but before ② → ROLLBACK restores A to $100</text>
+    <text x="340" y="150" text-anchor="middle" font-size="9" fill="#5a6678">Other transactions NEVER see the half-done state (isolation)</text>
+  </g>
+</svg>
+<figcaption>Atomicity: either all steps in a transaction succeed together, or none do. A mid-transaction crash triggers automatic rollback — no partial writes are ever visible.</figcaption>
+</figure>
+<p>When a database says an operation is <strong>atomic</strong>, it means exactly what the word suggests from chemistry: indivisible. Either the whole operation happens, or none of it does. There is no halfway state that other parts of the system can observe. This single guarantee turns out to be the foundation on which everything else about transactions is built.</p>
+<h2>The Classic Example: A Bank Transfer</h2>
+<p>The go-to illustration of atomicity is a money transfer, and it earns that status because the problem is painfully obvious.</p>
+<p>Suppose Alice wants to send $200 to Bob. In the database that means two writes:</p>
+<ol>
+<li>Subtract $200 from Alice&#39;s balance.</li>
+<li>Add $200 to Bob&#39;s balance.</li>
+</ol>
+<p>If the database crashes — or the network drops, or the application throws an exception — right between step 1 and step 2, something terrible happens: Alice is $200 poorer and Bob received nothing. The money has vanished from the ledger.</p>
+<pre><code class="language-sql">-- Without atomicity, a crash here leaves the database in a broken state:
+UPDATE accounts SET balance = balance - 200 WHERE name = &#39;Alice&#39;;
+-- &lt;-- crash, power cut, or error here --&gt;
+UPDATE accounts SET balance = balance + 200 WHERE name = &#39;Bob&#39;;
+</code></pre>
+<p>Atomicity is the promise that this intermediate state can never be made permanent. The database guarantees that both writes commit together, or neither one does.</p>
+<h2>What &quot;All or Nothing&quot; Actually Means</h2>
+<p>Atomicity does <strong>not</strong> mean the two statements run in a single CPU instruction. Under the hood the engine executes them one at a time. What it means is that the engine tracks the full set of changes belonging to one transaction and, when something goes wrong before the transaction finishes, it <strong>rolls back</strong> every change in that set — restoring the database to the state it was in before the transaction started.</p>
+<p>The mechanism that makes this possible (the write-ahead log, covered in Chapter 10) records every intended change to durable storage before it is applied to the actual data pages. If the system crashes mid-transaction, recovery replays the log on restart, finds the incomplete transaction, and undoes its partial changes.</p>
+<blockquote>
+<p><strong>Note:</strong> Atomicity is one of the four ACID properties. The others — Consistency, Isolation, and Durability — each add a further guarantee. But atomicity is the prerequisite: if you cannot guarantee all-or-nothing, the other three have nothing to stand on.</p>
+</blockquote>
+<h2>Atomicity in Practice: BEGIN / COMMIT / ROLLBACK</h2>
+<p>Applications control transaction boundaries with three SQL statements:</p>
+<table>
+<thead>
+<tr>
+<th>Statement</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>BEGIN</code></td>
+<td>Start a new transaction; changes are now grouped</td>
+</tr>
+<tr>
+<td><code>COMMIT</code></td>
+<td>Make all changes in the transaction permanent</td>
+</tr>
+<tr>
+<td><code>ROLLBACK</code></td>
+<td>Discard all changes in the transaction; return to previous state</td>
+</tr>
+</tbody></table>
+<p>The interactive example below lets you see atomicity in action. A <code>ROLLBACK</code> after two updates leaves the balances completely unchanged, as if the updates never ran.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Atomicity with ROLLBACK</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (name TEXT PRIMARY KEY, balance INTEGER NOT NULL); INSERT INTO accounts VALUES ('Alice', 1000); INSERT INTO accounts VALUES ('Bob', 500);" rows="20">-- Start the transaction
+    <textarea data-setup="CREATE TABLE accounts (name TEXT PRIMARY KEY, balance INTEGER NOT NULL); INSERT INTO accounts VALUES ('Alice', 1000); INSERT INTO accounts VALUES ('Bob', 500);" rows="10">-- Start the transaction
 BEGIN;
 -- Debit Alice
 UPDATE accounts SET balance = balance - 200 WHERE name = 'Alice';
@@ -77,25 +99,21 @@ ROLLBACK;
 -- Both balances should be unchanged
 SELECT name, balance FROM accounts ORDER BY name;</textarea>
   </div>
+</div><p>Try it: change <code>ROLLBACK</code> to <code>COMMIT</code> and re-run. Now the transfer sticks and the balances reflect the move. Change it back to <code>ROLLBACK</code> and the database returns to its original state every time.</p>
+<h3>What happens inside a failed COMMIT</h3>
+<p>A <code>COMMIT</code> can also fail — for example if a disk write error occurs while flushing the log. In that case the database treats the transaction as if <code>ROLLBACK</code> had been issued: no partial changes escape. From the application&#39;s perspective the commit either succeeds completely or raises an error and leaves the data untouched.</p>
+<h2>Why This Matters Beyond Transfers</h2>
+<p>Bank transfers get all the press, but atomicity matters any time multiple rows or tables need to change as a single logical unit:</p>
+<ul>
+<li>Creating an order <strong>and</strong> decrementing inventory in the same operation.</li>
+<li>Inserting a user account <strong>and</strong> sending a welcome-email record to a queue table.</li>
+<li>Deleting a parent row <strong>and</strong> all its child rows (when cascades are not available).</li>
+</ul>
+<p>In every case, the application needs confidence that readers will never see a universe where one half of the update happened and the other did not. Atomicity is that confidence, stated as a hard guarantee by the database engine.</p>
+
 </div>
-
-Try it: change `ROLLBACK` to `COMMIT` and re-run. Now the transfer sticks and the balances reflect the move. Change it back to `ROLLBACK` and the database returns to its original state every time.
-
-### What happens inside a failed COMMIT
-
-A `COMMIT` can also fail — for example if a disk write error occurs while flushing the log. In that case the database treats the transaction as if `ROLLBACK` had been issued: no partial changes escape. From the application's perspective the commit either succeeds completely or raises an error and leaves the data untouched.
-
-## Why This Matters Beyond Transfers
-
-Bank transfers get all the press, but atomicity matters any time multiple rows or tables need to change as a single logical unit:
-
-- Creating an order **and** decrementing inventory in the same operation.
-- Inserting a user account **and** sending a welcome-email record to a queue table.
-- Deleting a parent row **and** all its child rows (when cascades are not available).
-
-In every case, the application needs confidence that readers will never see a universe where one half of the update happened and the other did not. Atomicity is that confidence, stated as a hard guarantee by the database engine.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="101-why-transactions-exist.html"><span class="dir">← Previous</span><span class="ttl">Why transactions exist</span></a><a class="next" href="103-consistency-in-practice.html"><span class="dir">Next →</span><span class="ttl">Consistency in practice</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

@@ -5,108 +5,112 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Physical plans — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 6. How Query Processing Works</p>
   <h1 class="content-title">Physical plans</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="052-logical-plans.html"><span class="dir">← Previous</span><span class="ttl">Logical plans</span></a><a class="next" href="054-operators-such-as-scan-filter-join.html"><span class="dir">Next →</span><span class="ttl">Operators such as scan, filter, join</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When you run a SQL query, the database engine compiles it into a **physical plan** — a tree of concrete operations specifying exactly how data will be fetched, filtered, joined, and assembled. Understanding physical plans is what lets you reason about why a query is fast or slow, and why adding an index can change everything.
-
-## From Logical to Physical
-
-SQL describes *what* you want, not *how* to get it. The optimizer first builds a **logical plan** — an abstract tree of relational operations like "filter rows" or "join two relations" — then maps each node to one or more **physical operators**: concrete algorithms that run against real storage.
-
-| Logical operation | Possible physical operators |
-|---|---|
-| Scan a table | Full table scan, index scan, index-only scan |
-| Filter rows | Applied inline during the scan |
-| Join two tables | Nested-loop join, hash join, sort-merge join |
-| Sort rows | In-memory sort, external merge-sort |
-| Aggregate | Hash aggregate, sort-then-aggregate |
-
-The optimizer chooses operators based on statistics: estimated table sizes, column cardinality, available indexes, and filter selectivity. The goal is to minimize total work — measured in I/O and CPU.
-
-## Reading a Physical Plan
-
-Most databases let you inspect the chosen physical plan with `EXPLAIN` or `EXPLAIN ANALYZE`. SQLite's `EXPLAIN QUERY PLAN` shows a simplified version:
-
-```sql
-EXPLAIN QUERY PLAN
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">053-physical-plans</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 053-physical-plans.</figcaption>
+</figure>
+<p>When you run a SQL query, the database engine compiles it into a <strong>physical plan</strong> — a tree of concrete operations specifying exactly how data will be fetched, filtered, joined, and assembled. Understanding physical plans is what lets you reason about why a query is fast or slow, and why adding an index can change everything.</p>
+<h2>From Logical to Physical</h2>
+<p>SQL describes <em>what</em> you want, not <em>how</em> to get it. The optimizer first builds a <strong>logical plan</strong> — an abstract tree of relational operations like &quot;filter rows&quot; or &quot;join two relations&quot; — then maps each node to one or more <strong>physical operators</strong>: concrete algorithms that run against real storage.</p>
+<table>
+<thead>
+<tr>
+<th>Logical operation</th>
+<th>Possible physical operators</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Scan a table</td>
+<td>Full table scan, index scan, index-only scan</td>
+</tr>
+<tr>
+<td>Filter rows</td>
+<td>Applied inline during the scan</td>
+</tr>
+<tr>
+<td>Join two tables</td>
+<td>Nested-loop join, hash join, sort-merge join</td>
+</tr>
+<tr>
+<td>Sort rows</td>
+<td>In-memory sort, external merge-sort</td>
+</tr>
+<tr>
+<td>Aggregate</td>
+<td>Hash aggregate, sort-then-aggregate</td>
+</tr>
+</tbody></table>
+<p>The optimizer chooses operators based on statistics: estimated table sizes, column cardinality, available indexes, and filter selectivity. The goal is to minimize total work — measured in I/O and CPU.</p>
+<h2>Reading a Physical Plan</h2>
+<p>Most databases let you inspect the chosen physical plan with <code>EXPLAIN</code> or <code>EXPLAIN ANALYZE</code>. SQLite&#39;s <code>EXPLAIN QUERY PLAN</code> shows a simplified version:</p>
+<pre><code class="language-sql">EXPLAIN QUERY PLAN
 SELECT e.name, d.dept_name
 FROM employees e
 JOIN departments d ON e.dept_id = d.id
-WHERE e.salary > 80000;
-```
-
-You might see output like:
-
-```
-SCAN employees AS e
+WHERE e.salary &gt; 80000;
+</code></pre>
+<p>You might see output like:</p>
+<pre><code>SCAN employees AS e
 SEARCH departments AS d USING INTEGER PRIMARY KEY (rowid=?)
-```
-
-Two things stand out here. First, `SCAN` means a full table scan — SQLite will read every row in `employees` to evaluate the `salary` filter. Second, `SEARCH ... USING INTEGER PRIMARY KEY` means for each matching employee the engine does a fast primary-key lookup into `departments`. This is a **nested-loop join**: the outer loop scans `employees`, and the inner loop looks up the matching department row by its primary key.
-
-> **Note:** `EXPLAIN QUERY PLAN` shows the *intended* plan before execution. `EXPLAIN ANALYZE` (in PostgreSQL) or `EXPLAIN` with `VERBOSE` runs the query and reports actual row counts and timing alongside estimates — invaluable for spotting optimizer mistakes.
-
-## The Three Common Join Algorithms
-
-Joins are where physical planning has the biggest impact on performance, so it is worth knowing the three algorithms most engines implement:
-
-**Nested-loop join** — for each row in the outer table, probe the inner table for matches. Without an index this is O(n × m). With an index on the inner side the probe is O(log m) per outer row — fast when the outer set is small.
-
-**Hash join** — build a hash table from the smaller relation, then stream the larger relation through it. Very efficient for large equi-joins with no useful index. Memory-hungry: if the hash table spills to disk, cost rises sharply.
-
-**Sort-merge join** — sort both sides on the join key, then merge the sorted streams in one pass. Efficient when inputs are already sorted (both have an index on the join column), or when the output itself must be ordered.
-
-## See It Live
-
-The widget below creates a small `employees`/`departments` schema. Run the default query and note the plan SQLite chooses. Then try removing the `WHERE` clause, or try adding `ORDER BY e.salary` — see if the plan changes.
-
+</code></pre>
+<p>Two things stand out here. First, <code>SCAN</code> means a full table scan — SQLite will read every row in <code>employees</code> to evaluate the <code>salary</code> filter. Second, <code>SEARCH ... USING INTEGER PRIMARY KEY</code> means for each matching employee the engine does a fast primary-key lookup into <code>departments</code>. This is a <strong>nested-loop join</strong>: the outer loop scans <code>employees</code>, and the inner loop looks up the matching department row by its primary key.</p>
+<blockquote>
+<p><strong>Note:</strong> <code>EXPLAIN QUERY PLAN</code> shows the <em>intended</em> plan before execution. <code>EXPLAIN ANALYZE</code> (in PostgreSQL) or <code>EXPLAIN</code> with <code>VERBOSE</code> runs the query and reports actual row counts and timing alongside estimates — invaluable for spotting optimizer mistakes.</p>
+</blockquote>
+<h2>The Three Common Join Algorithms</h2>
+<p>Joins are where physical planning has the biggest impact on performance, so it is worth knowing the three algorithms most engines implement:</p>
+<p><strong>Nested-loop join</strong> — for each row in the outer table, probe the inner table for matches. Without an index this is O(n × m). With an index on the inner side the probe is O(log m) per outer row — fast when the outer set is small.</p>
+<p><strong>Hash join</strong> — build a hash table from the smaller relation, then stream the larger relation through it. Very efficient for large equi-joins with no useful index. Memory-hungry: if the hash table spills to disk, cost rises sharply.</p>
+<p><strong>Sort-merge join</strong> — sort both sides on the join key, then merge the sorted streams in one pass. Efficient when inputs are already sorted (both have an index on the join column), or when the output itself must be ordered.</p>
+<h2>See It Live</h2>
+<p>The widget below creates a small <code>employees</code>/<code>departments</code> schema. Run the default query and note the plan SQLite chooses. Then try removing the <code>WHERE</code> clause, or try adding <code>ORDER BY e.salary</code> — see if the plan changes.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Physical plans with EXPLAIN QUERY PLAN</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, dept_name TEXT); INSERT INTO departments VALUES (1, 'Engineering'), (2, 'Marketing'), (3, 'Finance'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 95000), (2, 'Bob', 2, 72000), (3, 'Carol', 1, 88000), (4, 'Dan', 3, 61000), (5, 'Eve', 1, 102000), (6, 'Frank', 2, 55000);" rows="20">EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, dept_name TEXT); INSERT INTO departments VALUES (1, 'Engineering'), (2, 'Marketing'), (3, 'Finance'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 95000), (2, 'Bob', 2, 72000), (3, 'Carol', 1, 88000), (4, 'Dan', 3, 61000), (5, 'Eve', 1, 102000), (6, 'Frank', 2, 55000);" rows="10">EXPLAIN QUERY PLAN
 SELECT e.name, d.dept_name, e.salary
 FROM employees e
 JOIN departments d ON e.dept_id = d.id
 WHERE e.salary > 80000
 ORDER BY e.salary DESC;</textarea>
   </div>
-</div>
-
-Now add an index on `employees.salary` and re-run `EXPLAIN QUERY PLAN` to see how SQLite's plan shifts:
-
+</div><p>Now add an index on <code>employees.salary</code> and re-run <code>EXPLAIN QUERY PLAN</code> to see how SQLite&#39;s plan shifts:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Plan after adding an index</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, dept_name TEXT); INSERT INTO departments VALUES (1, 'Engineering'), (2, 'Marketing'), (3, 'Finance'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 95000), (2, 'Bob', 2, 72000), (3, 'Carol', 1, 88000), (4, 'Dan', 3, 61000), (5, 'Eve', 1, 102000), (6, 'Frank', 2, 55000); CREATE INDEX idx_emp_salary ON employees(salary);" rows="20">EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, dept_name TEXT); INSERT INTO departments VALUES (1, 'Engineering'), (2, 'Marketing'), (3, 'Finance'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 95000), (2, 'Bob', 2, 72000), (3, 'Carol', 1, 88000), (4, 'Dan', 3, 61000), (5, 'Eve', 1, 102000), (6, 'Frank', 2, 55000); CREATE INDEX idx_emp_salary ON employees(salary);" rows="10">EXPLAIN QUERY PLAN
 SELECT e.name, d.dept_name, e.salary
 FROM employees e
 JOIN departments d ON e.dept_id = d.id
 WHERE e.salary > 80000
 ORDER BY e.salary DESC;</textarea>
   </div>
+</div><p>With the index in place you should see <code>SEARCH employees USING INDEX idx_emp_salary</code> instead of <code>SCAN employees</code> — the engine now reads only the rows whose salary exceeds 80 000, skipping the rest entirely.</p>
+<h2>Why This Matters</h2>
+<p>A physical plan is the engine&#39;s bet on the cheapest execution path given what it knows. When a query is slow, the culprit is almost always a suboptimal plan — a full scan where an index scan was possible, or a hash join spilling to disk because statistics were stale. Learning to read <code>EXPLAIN</code> output is the single most practical performance skill you will develop as a database user.</p>
+
 </div>
-
-With the index in place you should see `SEARCH employees USING INDEX idx_emp_salary` instead of `SCAN employees` — the engine now reads only the rows whose salary exceeds 80 000, skipping the rest entirely.
-
-## Why This Matters
-
-A physical plan is the engine's bet on the cheapest execution path given what it knows. When a query is slow, the culprit is almost always a suboptimal plan — a full scan where an index scan was possible, or a hash join spilling to disk because statistics were stale. Learning to read `EXPLAIN` output is the single most practical performance skill you will develop as a database user.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="052-logical-plans.html"><span class="dir">← Previous</span><span class="ttl">Logical plans</span></a><a class="next" href="054-operators-such-as-scan-filter-join.html"><span class="dir">Next →</span><span class="ttl">Operators such as scan, filter, join</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

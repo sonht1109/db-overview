@@ -5,75 +5,79 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wide rows and sparse data — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part V. Database Families</p>
   <p class="chapter-label">Chapter 20. Column-Family Databases</p>
   <h1 class="content-title">Wide rows and sparse data</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="189-good-use-cases.html"><span class="dir">← Previous</span><span class="ttl">Good use cases</span></a><a class="next" href="192-partitioning-and-clustering-keys.html"><span class="dir">Next →</span><span class="ttl">Partitioning and clustering keys</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Column-family databases take a fundamentally different approach to organizing data than the relational model. Instead of storing data in rigid tables where every row has exactly the same columns, they allow **wide rows** — rows that can carry hundreds or even thousands of columns — and they are **sparse**, meaning a row only stores the columns it actually has. This page explores what that means in practice, why it matters for certain workloads, and how the data model maps onto systems like Apache Cassandra and Apache HBase.
-
-## What Is a "Wide Row"?
-
-In a relational table, every row has exactly the same set of columns. If a column has no value for a given row, you store NULL. The schema is fixed: add a column and you touch every row.
-
-A wide row works differently. Think of a row as an ordered map of column name → value pairs. One row might have 3 columns; the next row in the same table might have 3,000 columns. The columns themselves can differ between rows. There is no NULL stored for missing entries — a column simply does not exist for that row.
-
-This is a crucial distinction:
-
-| Concept | Relational | Column-Family |
-|---|---|---|
-| Schema | Fixed — same columns for every row | Flexible — each row defines its own columns |
-| Missing data | NULL stored (wastes space) | Column absent (nothing stored) |
-| Row width | Narrow, bounded by schema | Wide, potentially thousands of columns |
-| Column definition | DDL (`ALTER TABLE ADD COLUMN`) | Implicit — just write to it |
-| Suitable for | Structured, uniform entities | Event streams, sensor data, timelines |
-
-## The Sparsity Advantage
-
-Imagine you are modeling user activity on a platform. A user can perform 500 different action types. In a relational model you might add 500 boolean or timestamp columns. Most users perform a handful of action types, so 98% of those columns would be NULL.
-
-In a column-family database, you write only the columns for the actions a user actually performed. A user who did five things has a row with five columns. A power user who did 400 things has a row with 400 columns. Storage is proportional to the actual data, not the schema footprint.
-
-> **Key insight:** Sparsity is the default, not an exception. Column-family stores are built to store tens of millions of rows each with a different column set efficiently. NULLs are not "stored as NULL" — they are simply absent.
-
-## The Hierarchy: Keyspace → Table → Partition → Row → Column
-
-Column-family systems organize data in a consistent hierarchy. Using Cassandra's terminology:
-
-```
-Keyspace  (≈ database / schema in SQL)
+  <div id="rendered" class="content">
+<p>Column-family databases take a fundamentally different approach to organizing data than the relational model. Instead of storing data in rigid tables where every row has exactly the same columns, they allow <strong>wide rows</strong> — rows that can carry hundreds or even thousands of columns — and they are <strong>sparse</strong>, meaning a row only stores the columns it actually has. This page explores what that means in practice, why it matters for certain workloads, and how the data model maps onto systems like Apache Cassandra and Apache HBase.</p>
+<h2>What Is a &quot;Wide Row&quot;?</h2>
+<p>In a relational table, every row has exactly the same set of columns. If a column has no value for a given row, you store NULL. The schema is fixed: add a column and you touch every row.</p>
+<p>A wide row works differently. Think of a row as an ordered map of column name → value pairs. One row might have 3 columns; the next row in the same table might have 3,000 columns. The columns themselves can differ between rows. There is no NULL stored for missing entries — a column simply does not exist for that row.</p>
+<p>This is a crucial distinction:</p>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Relational</th>
+<th>Column-Family</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Schema</td>
+<td>Fixed — same columns for every row</td>
+<td>Flexible — each row defines its own columns</td>
+</tr>
+<tr>
+<td>Missing data</td>
+<td>NULL stored (wastes space)</td>
+<td>Column absent (nothing stored)</td>
+</tr>
+<tr>
+<td>Row width</td>
+<td>Narrow, bounded by schema</td>
+<td>Wide, potentially thousands of columns</td>
+</tr>
+<tr>
+<td>Column definition</td>
+<td>DDL (<code>ALTER TABLE ADD COLUMN</code>)</td>
+<td>Implicit — just write to it</td>
+</tr>
+<tr>
+<td>Suitable for</td>
+<td>Structured, uniform entities</td>
+<td>Event streams, sensor data, timelines</td>
+</tr>
+</tbody></table>
+<h2>The Sparsity Advantage</h2>
+<p>Imagine you are modeling user activity on a platform. A user can perform 500 different action types. In a relational model you might add 500 boolean or timestamp columns. Most users perform a handful of action types, so 98% of those columns would be NULL.</p>
+<p>In a column-family database, you write only the columns for the actions a user actually performed. A user who did five things has a row with five columns. A power user who did 400 things has a row with 400 columns. Storage is proportional to the actual data, not the schema footprint.</p>
+<blockquote>
+<p><strong>Key insight:</strong> Sparsity is the default, not an exception. Column-family stores are built to store tens of millions of rows each with a different column set efficiently. NULLs are not &quot;stored as NULL&quot; — they are simply absent.</p>
+</blockquote>
+<h2>The Hierarchy: Keyspace → Table → Partition → Row → Column</h2>
+<p>Column-family systems organize data in a consistent hierarchy. Using Cassandra&#39;s terminology:</p>
+<pre><code>Keyspace  (≈ database / schema in SQL)
   └── Table  (≈ table, but with a wide-row data model)
         └── Partition  (a logical group of rows with the same partition key)
               └── Row  (identified by the primary key within a partition)
                     └── Column  (a name-value pair, only present if data exists)
-```
-
-This hierarchy determines both **how data is stored** on disk and **how it is distributed** across nodes. A partition is the unit of distribution — all rows in the same partition live on the same node(s).
-
+</code></pre>
+<p>This hierarchy determines both <strong>how data is stored</strong> on disk and <strong>how it is distributed</strong> across nodes. A partition is the unit of distribution — all rows in the same partition live on the same node(s).</p>
 <figure class="diagram">
 <svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wide row diagram showing three rows from the same table. Row 1 has columns A, B, C. Row 2 has columns A, D. Row 3 has columns B, C, E, F. Missing columns are simply absent.">
   <defs>
     <marker id="arr191" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
     </marker>
-  </defs>
-
-  <!-- Title -->
-  <text x="340" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Wide Rows vs Relational Rows</text>
-
+  </defs>  <!-- Title -->
+<p>  <text x="340" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Wide Rows vs Relational Rows</text></p>
   <!-- RELATIONAL SIDE -->
-  <text x="170" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="var(--muted)">Relational (NULLs stored)</text>
+<p>  <text x="170" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="var(--muted)">Relational (NULLs stored)</text>
   <!-- Header row -->
   <rect x="20" y="56" width="60" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
   <text x="50" y="74" text-anchor="middle" font-size="11" fill="var(--muted)">row_id</text>
@@ -86,8 +90,7 @@ This hierarchy determines both **how data is stored** on disk and **how it is di
   <rect x="230" y="56" width="50" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
   <text x="255" y="74" text-anchor="middle" font-size="11" fill="var(--muted)">col_D</text>
   <rect x="280" y="56" width="50" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
-  <text x="305" y="74" text-anchor="middle" font-size="11" fill="var(--muted)">col_E</text>
-
+  <text x="305" y="74" text-anchor="middle" font-size="11" fill="var(--muted)">col_E</text></p>
   <!-- Row 1 (relational) -->
   <rect x="20" y="84" width="60" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="50" y="102" text-anchor="middle" font-size="11" fill="var(--text)">1</text>
@@ -100,9 +103,7 @@ This hierarchy determines both **how data is stored** on disk and **how it is di
   <rect x="230" y="84" width="50" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" opacity="0.5"/>
   <text x="255" y="102" text-anchor="middle" font-size="10" fill="var(--muted)">NULL</text>
   <rect x="280" y="84" width="50" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" opacity="0.5"/>
-  <text x="305" y="102" text-anchor="middle" font-size="10" fill="var(--muted)">NULL</text>
-
-  <!-- Row 2 (relational) -->
+  <text x="305" y="102" text-anchor="middle" font-size="10" fill="var(--muted)">NULL</text>  <!-- Row 2 (relational) -->
   <rect x="20" y="112" width="60" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="50" y="130" text-anchor="middle" font-size="11" fill="var(--text)">2</text>
   <rect x="80" y="112" width="50" height="28" fill="var(--accent)" opacity="0.25" stroke="var(--border)" stroke-width="1"/>
@@ -114,9 +115,7 @@ This hierarchy determines both **how data is stored** on disk and **how it is di
   <rect x="230" y="112" width="50" height="28" fill="var(--accent)" opacity="0.25" stroke="var(--border)" stroke-width="1"/>
   <text x="255" y="130" text-anchor="middle" font-size="11" fill="var(--text)">v5</text>
   <rect x="280" y="112" width="50" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" opacity="0.5"/>
-  <text x="305" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">NULL</text>
-
-  <!-- Row 3 (relational) -->
+  <text x="305" y="130" text-anchor="middle" font-size="10" fill="var(--muted)">NULL</text>  <!-- Row 3 (relational) -->
   <rect x="20" y="140" width="60" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="50" y="158" text-anchor="middle" font-size="11" fill="var(--text)">3</text>
   <rect x="80" y="140" width="50" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" opacity="0.5"/>
@@ -128,87 +127,65 @@ This hierarchy determines both **how data is stored** on disk and **how it is di
   <rect x="230" y="140" width="50" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" opacity="0.5"/>
   <text x="255" y="158" text-anchor="middle" font-size="10" fill="var(--muted)">NULL</text>
   <rect x="280" y="140" width="50" height="28" fill="var(--accent)" opacity="0.25" stroke="var(--border)" stroke-width="1"/>
-  <text x="305" y="158" text-anchor="middle" font-size="11" fill="var(--text)">v8</text>
-
-  <text x="170" y="190" text-anchor="middle" font-size="11" fill="var(--muted)">NULLs occupy space on disk</text>
-
+  <text x="305" y="158" text-anchor="middle" font-size="11" fill="var(--text)">v8</text><p>  <text x="170" y="190" text-anchor="middle" font-size="11" fill="var(--muted)">NULLs occupy space on disk</text></p>
   <!-- WIDE ROW SIDE -->
-  <text x="530" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">Column-Family (sparse)</text>
-
+<p>  <text x="530" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">Column-Family (sparse)</text></p>
   <!-- Row 1 wide -->
-  <text x="360" y="98" font-size="11" font-weight="600" fill="var(--text)">row:1</text>
+<p>  <text x="360" y="98" font-size="11" font-weight="600" fill="var(--text)">row:1</text>
   <rect x="405" y="82" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="432" y="100" text-anchor="middle" font-size="10" fill="var(--text)">A=v1</text>
   <rect x="465" y="82" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="492" y="100" text-anchor="middle" font-size="10" fill="var(--text)">B=v2</text>
   <rect x="525" y="82" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="552" y="100" text-anchor="middle" font-size="10" fill="var(--text)">C=v3</text>
-  <!-- no col_D, col_E for row 1 — nothing drawn -->
-
+  <!-- no col_D, col_E for row 1 — nothing drawn --></p>
   <!-- Row 2 wide -->
-  <text x="360" y="138" font-size="11" font-weight="600" fill="var(--text)">row:2</text>
+<p>  <text x="360" y="138" font-size="11" font-weight="600" fill="var(--text)">row:2</text>
   <rect x="405" y="122" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="432" y="140" text-anchor="middle" font-size="10" fill="var(--text)">A=v4</text>
   <rect x="465" y="122" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="492" y="140" text-anchor="middle" font-size="10" fill="var(--text)">D=v5</text>
-  <!-- no B, C, E for row 2 -->
-
+  <!-- no B, C, E for row 2 --></p>
   <!-- Row 3 wide -->
-  <text x="360" y="178" font-size="11" font-weight="600" fill="var(--text)">row:3</text>
+<p>  <text x="360" y="178" font-size="11" font-weight="600" fill="var(--text)">row:3</text>
   <rect x="405" y="162" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="432" y="180" text-anchor="middle" font-size="10" fill="var(--text)">B=v6</text>
   <rect x="465" y="162" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="492" y="180" text-anchor="middle" font-size="10" fill="var(--text)">C=v7</text>
   <rect x="525" y="162" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
-  <text x="552" y="180" text-anchor="middle" font-size="10" fill="var(--text)">E=v8</text>
-
-  <text x="530" y="210" text-anchor="middle" font-size="11" fill="var(--muted)">Only present columns stored</text>
-
+  <text x="552" y="180" text-anchor="middle" font-size="10" fill="var(--text)">E=v8</text></p>
+<p>  <text x="530" y="210" text-anchor="middle" font-size="11" fill="var(--muted)">Only present columns stored</text></p>
   <!-- divider -->
   <line x1="345" y1="40" x2="345" y2="220" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5,4"/>
 </svg>
 <figcaption>Left: a relational table stores NULLs for every missing value. Right: a column-family row stores only the columns that exist — absent columns take zero space.</figcaption>
-</figure>
-
-## Column Families
-
-In HBase (and Cassandra's early design), columns are grouped into **column families** — a fixed set of column groups defined at table creation. Within a column family, individual column qualifiers can vary per row.
-
-```
-Table: user_activity
-  Column Family: "events"
-    Row "user:1001"  →  events:login=2024-01-15, events:purchase=2024-01-20
-    Row "user:1002"  →  events:login=2024-01-16, events:search=2024-01-16
-  Column Family: "profile"
-    Row "user:1001"  →  profile:name=Alice, profile:country=US
-    Row "user:1002"  →  profile:name=Bob
-```
-
-Column families matter physically: each family is stored in a separate file (HFile in HBase, SSTable in Cassandra). Reads that only need one column family don't touch the files of another, which can dramatically reduce I/O.
-
-In modern Cassandra (version 3+), the data model is closer to SQL in syntax — you define columns in a CREATE TABLE statement — but the storage model remains sparse and wide rows are still possible through collection types and user-defined types.
-
-## Modeling Wide Rows: A Practical Example
-
-Consider a system that stores time-series IoT sensor readings. Different sensors report different metrics. In a relational model:
-
-```sql
--- Relational: every sensor gets NULLs for metrics it doesn't report
+</figure><h2>Column Families</h2>
+<p>In HBase (and Cassandra&#39;s early design), columns are grouped into <strong>column families</strong> — a fixed set of column groups defined at table creation. Within a column family, individual column qualifiers can vary per row.</p>
+<pre><code>Table: user_activity
+  Column Family: &quot;events&quot;
+    Row &quot;user:1001&quot;  →  events:login=2024-01-15, events:purchase=2024-01-20
+    Row &quot;user:1002&quot;  →  events:login=2024-01-16, events:search=2024-01-16
+  Column Family: &quot;profile&quot;
+    Row &quot;user:1001&quot;  →  profile:name=Alice, profile:country=US
+    Row &quot;user:1002&quot;  →  profile:name=Bob
+</code></pre>
+<p>Column families matter physically: each family is stored in a separate file (HFile in HBase, SSTable in Cassandra). Reads that only need one column family don&#39;t touch the files of another, which can dramatically reduce I/O.</p>
+<p>In modern Cassandra (version 3+), the data model is closer to SQL in syntax — you define columns in a CREATE TABLE statement — but the storage model remains sparse and wide rows are still possible through collection types and user-defined types.</p>
+<h2>Modeling Wide Rows: A Practical Example</h2>
+<p>Consider a system that stores time-series IoT sensor readings. Different sensors report different metrics. In a relational model:</p>
+<pre><code class="language-sql">-- Relational: every sensor gets NULLs for metrics it doesn&#39;t report
 CREATE TABLE sensor_readings (
   sensor_id    TEXT,
   ts           TIMESTAMP,
-  temperature  FLOAT,  -- NULL for sensors that don't report this
-  humidity     FLOAT,  -- NULL for sensors that don't report this
-  pressure     FLOAT,  -- NULL for sensors that don't report this
-  voltage      FLOAT,  -- NULL for sensors that don't report this
+  temperature  FLOAT,  -- NULL for sensors that don&#39;t report this
+  humidity     FLOAT,  -- NULL for sensors that don&#39;t report this
+  pressure     FLOAT,  -- NULL for sensors that don&#39;t report this
+  voltage      FLOAT,  -- NULL for sensors that don&#39;t report this
   PRIMARY KEY (sensor_id, ts)
 );
-```
-
-In a column-family model using CQL (Cassandra Query Language):
-
-```sql
--- Cassandra: only store what you have
+</code></pre>
+<p>In a column-family model using CQL (Cassandra Query Language):</p>
+<pre><code class="language-sql">-- Cassandra: only store what you have
 CREATE TABLE sensor_readings (
   sensor_id TEXT,
   ts        TIMESTAMP,
@@ -216,49 +193,44 @@ CREATE TABLE sensor_readings (
   value     FLOAT,
   PRIMARY KEY (sensor_id, ts, metric)
 );
--- Each "row" in the partition is effectively a column in the wide-row model
-```
-
-Or using a map type to embed the sparse columns directly:
-
-```sql
-CREATE TABLE sensor_readings (
+-- Each &quot;row&quot; in the partition is effectively a column in the wide-row model
+</code></pre>
+<p>Or using a map type to embed the sparse columns directly:</p>
+<pre><code class="language-sql">CREATE TABLE sensor_readings (
   sensor_id TEXT,
   ts        TIMESTAMP,
-  readings  MAP<TEXT, FLOAT>,   -- sparse: only present keys stored
+  readings  MAP&lt;TEXT, FLOAT&gt;,   -- sparse: only present keys stored
   PRIMARY KEY (sensor_id, ts)
 );
-```
-
+</code></pre>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Sparse vs Dense Storage</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE relational_sensors (sensor_id TEXT, ts INTEGER, temperature REAL, humidity REAL, pressure REAL, voltage REAL); INSERT INTO relational_sensors VALUES ('sensor-A', 1, 22.5, NULL, NULL, NULL); INSERT INTO relational_sensors VALUES ('sensor-B', 1, NULL, 65.0, NULL, 3.7); INSERT INTO relational_sensors VALUES ('sensor-C', 1, NULL, NULL, 1013.0, NULL); CREATE TABLE sparse_sensors (sensor_id TEXT, ts INTEGER, metric TEXT, value REAL, PRIMARY KEY (sensor_id, ts, metric)); INSERT INTO sparse_sensors VALUES ('sensor-A', 1, 'temperature', 22.5); INSERT INTO sparse_sensors VALUES ('sensor-B', 1, 'humidity', 65.0); INSERT INTO sparse_sensors VALUES ('sensor-B', 1, 'voltage', 3.7); INSERT INTO sparse_sensors VALUES ('sensor-C', 1, 'pressure', 1013.0);" rows="20">-- Relational: NULLs waste space for absent metrics
+    <textarea data-setup="CREATE TABLE relational_sensors (sensor_id TEXT, ts INTEGER, temperature REAL, humidity REAL, pressure REAL, voltage REAL); INSERT INTO relational_sensors VALUES ('sensor-A', 1, 22.5, NULL, NULL, NULL); INSERT INTO relational_sensors VALUES ('sensor-B', 1, NULL, 65.0, NULL, 3.7); INSERT INTO relational_sensors VALUES ('sensor-C', 1, NULL, NULL, 1013.0, NULL); CREATE TABLE sparse_sensors (sensor_id TEXT, ts INTEGER, metric TEXT, value REAL, PRIMARY KEY (sensor_id, ts, metric)); INSERT INTO sparse_sensors VALUES ('sensor-A', 1, 'temperature', 22.5); INSERT INTO sparse_sensors VALUES ('sensor-B', 1, 'humidity', 65.0); INSERT INTO sparse_sensors VALUES ('sensor-B', 1, 'voltage', 3.7); INSERT INTO sparse_sensors VALUES ('sensor-C', 1, 'pressure', 1013.0);" rows="10">-- Relational: NULLs waste space for absent metrics
 SELECT * FROM relational_sensors;
 -- Uncomment to see the sparse model: only real data stored
 -- SELECT * FROM sparse_sensors ORDER BY sensor_id, ts, metric;</textarea>
   </div>
+</div><h2>What Column-Family Systems Are Not</h2>
+<p>It is easy to conflate &quot;column-family&quot; with &quot;column-store&quot; (OLAP). They are different things:</p>
+<ul>
+<li>A <strong>column-store</strong> (like Parquet, DuckDB, Redshift) stores data column-by-column on disk, enabling compression and vectorized reads across all rows for a given column. It is optimized for analytics.</li>
+<li>A <strong>column-family store</strong> (Cassandra, HBase) groups data by row and partition key. Within a partition, columns are stored together. It is optimized for <strong>low-latency reads and writes by key</strong>.</li>
+</ul>
+<p>The word &quot;column&quot; in each name refers to completely different ideas.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li><strong>Wide rows</strong> allow a single row to have thousands of columns, with different rows having different columns.</li>
+<li><strong>Sparsity</strong> means only present columns are stored — there are no NULLs consuming space.</li>
+<li>The hierarchy is: keyspace → table → partition → row → column.</li>
+<li>Column families group physically related columns into separate files, enabling selective I/O.</li>
+<li>Column-family databases are distinct from column-stores (OLAP engines) — the word &quot;column&quot; has different meanings in each context.</li>
+<li>Best fit: event streams, sensor data, time-series, user activity tracking — workloads where schema uniformity across rows is not a requirement.</li>
+</ul>
+
 </div>
-
-## What Column-Family Systems Are Not
-
-It is easy to conflate "column-family" with "column-store" (OLAP). They are different things:
-
-- A **column-store** (like Parquet, DuckDB, Redshift) stores data column-by-column on disk, enabling compression and vectorized reads across all rows for a given column. It is optimized for analytics.
-- A **column-family store** (Cassandra, HBase) groups data by row and partition key. Within a partition, columns are stored together. It is optimized for **low-latency reads and writes by key**.
-
-The word "column" in each name refers to completely different ideas.
-
-## Key Takeaways
-
-- **Wide rows** allow a single row to have thousands of columns, with different rows having different columns.
-- **Sparsity** means only present columns are stored — there are no NULLs consuming space.
-- The hierarchy is: keyspace → table → partition → row → column.
-- Column families group physically related columns into separate files, enabling selective I/O.
-- Column-family databases are distinct from column-stores (OLAP engines) — the word "column" has different meanings in each context.
-- Best fit: event streams, sensor data, time-series, user activity tracking — workloads where schema uniformity across rows is not a requirement.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="189-good-use-cases.html"><span class="dir">← Previous</span><span class="ttl">Good use cases</span></a><a class="next" href="192-partitioning-and-clustering-keys.html"><span class="dir">Next →</span><span class="ttl">Partitioning and clustering keys</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

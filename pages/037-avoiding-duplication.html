@@ -5,65 +5,103 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Avoiding duplication — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 4. Schemas and Data Modeling</p>
   <h1 class="content-title">Avoiding duplication</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="036-naming-tables-and-columns.html"><span class="dir">← Previous</span><span class="ttl">Naming tables and columns</span></a><a class="next" href="038-evolving-a-schema-safely.html"><span class="dir">Next →</span><span class="ttl">Evolving a schema safely</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Duplication is the quiet enemy of a healthy database. When the same fact is stored in more than one place, you create two problems: extra storage (the minor one) and the risk that copies drift out of sync (the serious one). This page shows you how duplication enters a schema, what harm it causes, and the design moves that eliminate it.
-
-## What Counts as Duplication?
-
-A single fact — say, a customer's city — should be recorded exactly once. If it appears in multiple rows or multiple tables, any update must touch every copy simultaneously. Miss even one, and your database holds contradictory information. That contradiction has a name: **data anomaly**.
-
-There are three classic anomaly types:
-
-| Anomaly | What goes wrong |
-|---------|----------------|
-| **Update anomaly** | You change a value in one row but forget the copies in other rows |
-| **Insertion anomaly** | You cannot record a new entity without also recording something else |
-| **Deletion anomaly** | Removing one thing accidentally destroys an unrelated fact |
-
-All three stem from storing multiple independent facts in a single table. The solution is to give each fact its own home.
-
-## Spotting Duplication in Practice
-
-Consider an `employees` table that also tries to record department information:
-
-```sql
-CREATE TABLE employees (
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <rect x="0" y="0" width="330" height="140" rx="10" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="165" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#dc2626">Duplicated (wrong)</text>
+    <line x1="15" y1="36" x2="315" y2="36" stroke="#fca5a5"/>
+    <text x="25" y="58" font-size="9" fill="#dc2626">orders: [id, customer_name, customer_email, total]</text>
+    <text x="25" y="78" font-size="9" fill="#dc2626">orders: [2, Alice, alice@x.com, $18]</text>
+    <text x="25" y="98" font-size="9" fill="#dc2626">orders: [3, Alice, alice@x.com, $67]</text>
+    <text x="165" y="125" text-anchor="middle" font-size="9" fill="#b91c1c">Alice's data duplicated N times → update anomaly</text>
+    <rect x="350" y="0" width="340" height="140" rx="10" fill="#f0fdf4" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="520" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a">Normalized (correct)</text>
+    <line x1="365" y1="36" x2="675" y2="36" stroke="#86efac"/>
+    <text x="375" y="58" font-size="9" fill="#1c2330">orders: [id, customer_id, total]</text>
+    <text x="375" y="78" font-size="9" fill="#1c2330">customers: [id, name, email]</text>
+    <text x="375" y="98" font-size="9" fill="#1c2330">Alice is stored once → FK links to orders</text>
+    <text x="520" y="125" text-anchor="middle" font-size="9" fill="#16a34a">✓ Single source of truth · No update anomalies</text>
+  </g>
+</svg>
+<figcaption>Normalization eliminates duplication by splitting facts into separate tables connected by foreign keys. Each fact lives in exactly one place.</figcaption>
+</figure>
+<p>Duplication is the quiet enemy of a healthy database. When the same fact is stored in more than one place, you create two problems: extra storage (the minor one) and the risk that copies drift out of sync (the serious one). This page shows you how duplication enters a schema, what harm it causes, and the design moves that eliminate it.</p>
+<h2>What Counts as Duplication?</h2>
+<p>A single fact — say, a customer&#39;s city — should be recorded exactly once. If it appears in multiple rows or multiple tables, any update must touch every copy simultaneously. Miss even one, and your database holds contradictory information. That contradiction has a name: <strong>data anomaly</strong>.</p>
+<p>There are three classic anomaly types:</p>
+<table>
+<thead>
+<tr>
+<th>Anomaly</th>
+<th>What goes wrong</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Update anomaly</strong></td>
+<td>You change a value in one row but forget the copies in other rows</td>
+</tr>
+<tr>
+<td><strong>Insertion anomaly</strong></td>
+<td>You cannot record a new entity without also recording something else</td>
+</tr>
+<tr>
+<td><strong>Deletion anomaly</strong></td>
+<td>Removing one thing accidentally destroys an unrelated fact</td>
+</tr>
+</tbody></table>
+<p>All three stem from storing multiple independent facts in a single table. The solution is to give each fact its own home.</p>
+<h2>Spotting Duplication in Practice</h2>
+<p>Consider an <code>employees</code> table that also tries to record department information:</p>
+<pre><code class="language-sql">CREATE TABLE employees (
   id         INTEGER PRIMARY KEY,
   name       TEXT,
   dept_name  TEXT,
   dept_floor INTEGER   -- which floor the department sits on
 );
-```
-
-A sample of the data:
-
-| id | name    | dept_name   | dept_floor |
-|----|---------|-------------|------------|
-| 1  | Ada     | Engineering | 3          |
-| 2  | Bruno   | Engineering | 3          |
-| 3  | Carmen  | Marketing   | 2          |
-
-`dept_floor` is a fact *about the department*, not about the employee. It repeats for every person in Engineering. If Engineering moves to floor 4, you must update every Engineering row — and the database will not stop you from setting them to different values.
-
-The fix is to **extract the repeating group** into its own table and link back by key:
-
-```sql
-CREATE TABLE departments (
+</code></pre>
+<p>A sample of the data:</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>name</th>
+<th>dept_name</th>
+<th>dept_floor</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Ada</td>
+<td>Engineering</td>
+<td>3</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Bruno</td>
+<td>Engineering</td>
+<td>3</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Carmen</td>
+<td>Marketing</td>
+<td>2</td>
+</tr>
+</tbody></table>
+<p><code>dept_floor</code> is a fact <em>about the department</em>, not about the employee. It repeats for every person in Engineering. If Engineering moves to floor 4, you must update every Engineering row — and the database will not stop you from setting them to different values.</p>
+<p>The fix is to <strong>extract the repeating group</strong> into its own table and link back by key:</p>
+<pre><code class="language-sql">CREATE TABLE departments (
   id    INTEGER PRIMARY KEY,
   name  TEXT UNIQUE,
   floor INTEGER
@@ -74,53 +112,63 @@ CREATE TABLE employees (
   name    TEXT,
   dept_id INTEGER REFERENCES departments(id)
 );
-```
-
-Now `dept_floor` lives in exactly one row. Update it once and every employee in that department sees the correct value through a join.
-
-Try it yourself. The setup creates both the duplicated design and the normalized design. Compare what an update looks like in each:
-
+</code></pre>
+<p>Now <code>dept_floor</code> lives in exactly one row. Update it once and every employee in that department sees the correct value through a join.</p>
+<p>Try it yourself. The setup creates both the duplicated design and the normalized design. Compare what an update looks like in each:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Spotting and fixing duplication</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT UNIQUE, floor INTEGER); INSERT INTO departments VALUES (1, 'Engineering', 3), (2, 'Marketing', 2); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER REFERENCES departments(id)); INSERT INTO employees VALUES (1, 'Ada', 1), (2, 'Bruno', 1), (3, 'Carmen', 2);" rows="20">-- One update propagates to all employees in Engineering
+    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT UNIQUE, floor INTEGER); INSERT INTO departments VALUES (1, 'Engineering', 3), (2, 'Marketing', 2); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER REFERENCES departments(id)); INSERT INTO employees VALUES (1, 'Ada', 1), (2, 'Bruno', 1), (3, 'Carmen', 2);" rows="10">-- One update propagates to all employees in Engineering
 UPDATE departments SET floor = 4 WHERE name = 'Engineering';
 -- Verify: both Ada and Bruno now show floor 4
 SELECT e.name, d.name AS dept, d.floor
 FROM employees e
 JOIN departments d ON d.id = e.dept_id;</textarea>
   </div>
+</div><blockquote>
+<p><strong>Note:</strong> Because <code>dept_floor</code> depends on the department, not on any individual employee, it belongs in <code>departments</code>. This intuition — <em>where does this fact naturally belong?</em> — is the everyday test for duplication.</p>
+</blockquote>
+<h2>The Functional Dependency Test</h2>
+<p>A more precise way to spot misplaced facts is to think about <strong>functional dependencies</strong>: column A <em>determines</em> column B if knowing A always tells you B.</p>
+<ul>
+<li><code>employee_id</code> → <code>employee_name</code> (one employee, one name — belongs together)</li>
+<li><code>dept_name</code> → <code>dept_floor</code> (one department, one floor — belongs in a departments table)</li>
+<li><code>employee_id</code> → <code>dept_name</code> (one employee, one department at a time — a foreign key is the right link)</li>
+</ul>
+<p>When a non-key column is determined by <em>another non-key column</em> rather than by the primary key, you have a <strong>transitive dependency</strong> — a reliable sign of hidden duplication. Extract the dependent column into its own table, keyed by its true determinant.</p>
+<h2>One Fact, One Place</h2>
+<p>The design principle that follows from all of this is sometimes called <strong>single source of truth</strong>: each piece of information should be stored in exactly one row of exactly one table, and every other reference to it should use a key pointing back to that row.</p>
+<p>This principle is why relational databases lean on foreign keys rather than copying data. A foreign key is essentially a promise: &quot;the real value lives over there; I am just pointing to it.&quot;</p>
+<p>Here is a quick pattern reference:</p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Same value repeated in many rows</td>
+<td>Attribute belongs to a different entity</td>
+<td>Move it to a separate table, add a foreign key</td>
+</tr>
+<tr>
+<td>Can&#39;t insert X without also inserting Y</td>
+<td>Two entities share a table</td>
+<td>Split into two tables</td>
+</tr>
+<tr>
+<td>Deleting a row removes unrelated info</td>
+<td>Unrelated facts are co-located</td>
+<td>Normalize into separate tables</td>
+</tr>
+</tbody></table>
+<p>Keeping duplication out of a schema is not just academic tidiness. It is what makes a database trustworthy: when you read a value, you know it is <em>the</em> value — not one of several possibly-stale copies.</p>
+
 </div>
-
-> **Note:** Because `dept_floor` depends on the department, not on any individual employee, it belongs in `departments`. This intuition — *where does this fact naturally belong?* — is the everyday test for duplication.
-
-## The Functional Dependency Test
-
-A more precise way to spot misplaced facts is to think about **functional dependencies**: column A *determines* column B if knowing A always tells you B.
-
-- `employee_id` → `employee_name` (one employee, one name — belongs together)
-- `dept_name` → `dept_floor` (one department, one floor — belongs in a departments table)
-- `employee_id` → `dept_name` (one employee, one department at a time — a foreign key is the right link)
-
-When a non-key column is determined by *another non-key column* rather than by the primary key, you have a **transitive dependency** — a reliable sign of hidden duplication. Extract the dependent column into its own table, keyed by its true determinant.
-
-## One Fact, One Place
-
-The design principle that follows from all of this is sometimes called **single source of truth**: each piece of information should be stored in exactly one row of exactly one table, and every other reference to it should use a key pointing back to that row.
-
-This principle is why relational databases lean on foreign keys rather than copying data. A foreign key is essentially a promise: "the real value lives over there; I am just pointing to it."
-
-Here is a quick pattern reference:
-
-| Symptom | Likely cause | Fix |
-|---------|-------------|-----|
-| Same value repeated in many rows | Attribute belongs to a different entity | Move it to a separate table, add a foreign key |
-| Can't insert X without also inserting Y | Two entities share a table | Split into two tables |
-| Deleting a row removes unrelated info | Unrelated facts are co-located | Normalize into separate tables |
-
-Keeping duplication out of a schema is not just academic tidiness. It is what makes a database trustworthy: when you read a value, you know it is *the* value — not one of several possibly-stale copies.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="036-naming-tables-and-columns.html"><span class="dir">← Previous</span><span class="ttl">Naming tables and columns</span></a><a class="next" href="038-evolving-a-schema-safely.html"><span class="dir">Next →</span><span class="ttl">Evolving a schema safely</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

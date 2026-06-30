@@ -5,81 +5,87 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Join order matters — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 8. Joins, Aggregation, and Sorting</p>
   <h1 class="content-title">Join order matters</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="076-memory-limits-and-spill-to-disk.html"><span class="dir">← Previous</span><span class="ttl">Memory limits and spill to disk</span></a><a class="next" href="078-cardinality-and-row-counts.html"><span class="dir">Next →</span><span class="ttl">Cardinality and row counts</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When you write a multi-table query, the database engine has to decide *how* to combine those tables internally — which table to read first, which to probe into next, and what algorithm to use at each step. This sequence of decisions is called the **join order**, and it can be the difference between a query that finishes in milliseconds and one that crawls for minutes on the exact same data.
-
-## Why the sequence matters
-
-Every join produces an intermediate result set — a temporary "virtual table" in memory (or on disk if it's large). If you join a huge table early and a small table late, you carry that heavy intermediate result through every subsequent step. Flip the order and the intermediate results stay small the whole way through.
-
-Consider three tables:
-
-| Table | Rows |
-|---|---|
-| `orders` | 10,000,000 |
-| `customers` | 500,000 |
-| `promo_codes` | 50 |
-
-**Worst order:** `orders` JOIN `customers` → 10 M intermediate rows → JOIN `promo_codes`  
-**Better order:** `promo_codes` JOIN `orders` → ~50 matching rows → JOIN `customers`
-
-The data hasn't changed. The query hasn't changed. Only the join order changed — and the engine touches millions fewer rows.
-
-## What the optimizer does
-
-Modern database engines include a **query optimizer** that analyzes your SQL before executing it. It considers statistics (row counts, value distributions, index availability) and picks the join order it estimates will be cheapest. You don't have to write tables in a magic order; the optimizer will often rearrange them.
-
-> **Note:** The optimizer works from statistics, not live data. If your statistics are stale — because a table grew 10× since the last `ANALYZE` — the optimizer can choose a bad plan. Keeping statistics fresh is a routine DBA task.
-
-The optimizer's plan is visible via `EXPLAIN` (or `EXPLAIN ANALYZE` in PostgreSQL). This is the single most useful debugging tool for slow queries.
-
-### When the optimizer gets it wrong
-
-The optimizer can be fooled by:
-- **Stale statistics** — table grew but `ANALYZE` hasn't run.
-- **Data skew** — a column value appears in 90 % of rows; average-based estimates are off.
-- **Complex predicates** — functions on columns (`WHERE YEAR(created_at) = 2024`) prevent index use and confuse cardinality estimates.
-- **Too many tables** — join-order search space is exponential; optimizers prune it heuristically, sometimes badly.
-
-In these cases you can use **hints** (supported by MySQL, Oracle, SQL Server) or rewrite the query to force a better plan.
-
-## Seeing join order in action
-
-The example below has two tables: a small `categories` table (5 rows) and a larger `products` table (12 rows). Try running the default query, then swap the table order in the `FROM` clause and re-run — SQLite will produce the same result either way, demonstrating that *logical* output is order-independent even when the *physical* plan may differ.
-
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">077-join-order-matters</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 077-join-order-matters.</figcaption>
+</figure>
+<p>When you write a multi-table query, the database engine has to decide <em>how</em> to combine those tables internally — which table to read first, which to probe into next, and what algorithm to use at each step. This sequence of decisions is called the <strong>join order</strong>, and it can be the difference between a query that finishes in milliseconds and one that crawls for minutes on the exact same data.</p>
+<h2>Why the sequence matters</h2>
+<p>Every join produces an intermediate result set — a temporary &quot;virtual table&quot; in memory (or on disk if it&#39;s large). If you join a huge table early and a small table late, you carry that heavy intermediate result through every subsequent step. Flip the order and the intermediate results stay small the whole way through.</p>
+<p>Consider three tables:</p>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Rows</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>orders</code></td>
+<td>10,000,000</td>
+</tr>
+<tr>
+<td><code>customers</code></td>
+<td>500,000</td>
+</tr>
+<tr>
+<td><code>promo_codes</code></td>
+<td>50</td>
+</tr>
+</tbody></table>
+<p><strong>Worst order:</strong> <code>orders</code> JOIN <code>customers</code> → 10 M intermediate rows → JOIN <code>promo_codes</code><br><strong>Better order:</strong> <code>promo_codes</code> JOIN <code>orders</code> → ~50 matching rows → JOIN <code>customers</code></p>
+<p>The data hasn&#39;t changed. The query hasn&#39;t changed. Only the join order changed — and the engine touches millions fewer rows.</p>
+<h2>What the optimizer does</h2>
+<p>Modern database engines include a <strong>query optimizer</strong> that analyzes your SQL before executing it. It considers statistics (row counts, value distributions, index availability) and picks the join order it estimates will be cheapest. You don&#39;t have to write tables in a magic order; the optimizer will often rearrange them.</p>
+<blockquote>
+<p><strong>Note:</strong> The optimizer works from statistics, not live data. If your statistics are stale — because a table grew 10× since the last <code>ANALYZE</code> — the optimizer can choose a bad plan. Keeping statistics fresh is a routine DBA task.</p>
+</blockquote>
+<p>The optimizer&#39;s plan is visible via <code>EXPLAIN</code> (or <code>EXPLAIN ANALYZE</code> in PostgreSQL). This is the single most useful debugging tool for slow queries.</p>
+<h3>When the optimizer gets it wrong</h3>
+<p>The optimizer can be fooled by:</p>
+<ul>
+<li><strong>Stale statistics</strong> — table grew but <code>ANALYZE</code> hasn&#39;t run.</li>
+<li><strong>Data skew</strong> — a column value appears in 90 % of rows; average-based estimates are off.</li>
+<li><strong>Complex predicates</strong> — functions on columns (<code>WHERE YEAR(created_at) = 2024</code>) prevent index use and confuse cardinality estimates.</li>
+<li><strong>Too many tables</strong> — join-order search space is exponential; optimizers prune it heuristically, sometimes badly.</li>
+</ul>
+<p>In these cases you can use <strong>hints</strong> (supported by MySQL, Oracle, SQL Server) or rewrite the query to force a better plan.</p>
+<h2>Seeing join order in action</h2>
+<p>The example below has two tables: a small <code>categories</code> table (5 rows) and a larger <code>products</code> table (12 rows). Try running the default query, then swap the table order in the <code>FROM</code> clause and re-run — SQLite will produce the same result either way, demonstrating that <em>logical</em> output is order-independent even when the <em>physical</em> plan may differ.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Join order demo</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE categories (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO categories VALUES (1,'Electronics'),(2,'Books'),(3,'Clothing'),(4,'Sports'),(5,'Toys'); CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category_id INTEGER, price REAL); INSERT INTO products VALUES (1,'Laptop',1,999),(2,'Phone',1,699),(3,'Novel',2,14),(4,'Textbook',2,89),(5,'T-Shirt',3,25),(6,'Jeans',3,60),(7,'Tennis Racket',4,120),(8,'Football',4,30),(9,'Doll',5,18),(10,'Board Game',5,45),(11,'Tablet',1,399),(12,'Jacket',3,110);" rows="20">-- Join products → categories (big table first in the clause)
+    <textarea data-setup="CREATE TABLE categories (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO categories VALUES (1,'Electronics'),(2,'Books'),(3,'Clothing'),(4,'Sports'),(5,'Toys'); CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category_id INTEGER, price REAL); INSERT INTO products VALUES (1,'Laptop',1,999),(2,'Phone',1,699),(3,'Novel',2,14),(4,'Textbook',2,89),(5,'T-Shirt',3,25),(6,'Jeans',3,60),(7,'Tennis Racket',4,120),(8,'Football',4,30),(9,'Doll',5,18),(10,'Board Game',5,45),(11,'Tablet',1,399),(12,'Jacket',3,110);" rows="10">-- Join products → categories (big table first in the clause)
 SELECT p.name, p.price, c.name AS category
 FROM products p
 JOIN categories c ON c.id = p.category_id
 WHERE c.name = 'Electronics'
 ORDER BY p.price DESC;</textarea>
   </div>
-</div>
-
-Now try the `EXPLAIN QUERY PLAN` command to see how SQLite actually plans the join — it may surprise you:
-
+</div><p>Now try the <code>EXPLAIN QUERY PLAN</code> command to see how SQLite actually plans the join — it may surprise you:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Inspect the query plan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE categories (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO categories VALUES (1,'Electronics'),(2,'Books'),(3,'Clothing'),(4,'Sports'),(5,'Toys'); CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category_id INTEGER, price REAL); INSERT INTO products VALUES (1,'Laptop',1,999),(2,'Phone',1,699),(3,'Novel',2,14),(4,'Textbook',2,89),(5,'T-Shirt',3,25),(6,'Jeans',3,60),(7,'Tennis Racket',4,120),(8,'Football',4,30),(9,'Doll',5,18),(10,'Board Game',5,45),(11,'Tablet',1,399),(12,'Jacket',3,110);" rows="20">-- See the physical plan SQLite chose.
+    <textarea data-setup="CREATE TABLE categories (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO categories VALUES (1,'Electronics'),(2,'Books'),(3,'Clothing'),(4,'Sports'),(5,'Toys'); CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category_id INTEGER, price REAL); INSERT INTO products VALUES (1,'Laptop',1,999),(2,'Phone',1,699),(3,'Novel',2,14),(4,'Textbook',2,89),(5,'T-Shirt',3,25),(6,'Jeans',3,60),(7,'Tennis Racket',4,120),(8,'Football',4,30),(9,'Doll',5,18),(10,'Board Game',5,45),(11,'Tablet',1,399),(12,'Jacket',3,110);" rows="10">-- See the physical plan SQLite chose.
 -- Try adding an index, then re-run this plan:
 -- CREATE INDEX idx_products_cat ON products(category_id);
 EXPLAIN QUERY PLAN
@@ -89,19 +95,19 @@ JOIN categories c ON c.id = p.category_id
 WHERE c.name = 'Electronics'
 ORDER BY p.price DESC;</textarea>
   </div>
+</div><p>Look at the <code>detail</code> column in the output. You&#39;ll see which table SQLite scans first (the outer loop) and which it looks up (the inner loop). Add the suggested index and re-run — notice how the plan changes.</p>
+<h2>Key takeaways</h2>
+<ul>
+<li>Join order determines how large intermediate result sets grow; smaller intermediate sets mean less work.</li>
+<li>The query optimizer rewrites join order automatically using table statistics.</li>
+<li><code>EXPLAIN</code> / <code>EXPLAIN QUERY PLAN</code> shows you the plan the engine actually chose — always check it when a query is slow.</li>
+<li>Keep statistics current (<code>ANALYZE</code>, <code>UPDATE STATISTICS</code>, etc.) so the optimizer can make good decisions.</li>
+<li>When the optimizer gets it wrong, you can guide it with index hints or by restructuring subqueries, but that should be a last resort after understanding <em>why</em> it chose a bad plan.</li>
+</ul>
+
 </div>
-
-Look at the `detail` column in the output. You'll see which table SQLite scans first (the outer loop) and which it looks up (the inner loop). Add the suggested index and re-run — notice how the plan changes.
-
-## Key takeaways
-
-- Join order determines how large intermediate result sets grow; smaller intermediate sets mean less work.
-- The query optimizer rewrites join order automatically using table statistics.
-- `EXPLAIN` / `EXPLAIN QUERY PLAN` shows you the plan the engine actually chose — always check it when a query is slow.
-- Keep statistics current (`ANALYZE`, `UPDATE STATISTICS`, etc.) so the optimizer can make good decisions.
-- When the optimizer gets it wrong, you can guide it with index hints or by restructuring subqueries, but that should be a last resort after understanding *why* it chose a bad plan.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="076-memory-limits-and-spill-to-disk.html"><span class="dir">← Previous</span><span class="ttl">Memory limits and spill to disk</span></a><a class="next" href="078-cardinality-and-row-counts.html"><span class="dir">Next →</span><span class="ttl">Cardinality and row counts</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

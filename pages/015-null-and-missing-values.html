@@ -5,114 +5,135 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NULL and missing values — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 2. How Data Is Organized</p>
   <h1 class="content-title">NULL and missing values</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="014-constraints-and-rules.html"><span class="dir">← Previous</span><span class="ttl">Constraints and rules</span></a><a class="next" href="016-data-types-and-domains.html"><span class="dir">Next →</span><span class="ttl">Data types and domains</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every table you design will eventually face a question no data type can answer on its own: *what do you store when the value is unknown or does not apply?* The answer in SQL is `NULL` — and it behaves in ways that surprise almost every newcomer. Understanding NULL now will save you from subtle bugs later.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(30,10)">
+    <rect x="0" y="0" width="310" height="140" rx="10" fill="#fff" stroke="#e2e6ec" filter="url(#sh)"/>
+    <text x="155" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2330">How NULL Behaves</text>
+    <line x1="15" y1="34" x2="295" y2="34" stroke="#e2e6ec"/>
+    <text x="25" y="55" font-size="9" fill="#dc2626">NULL = NULL → NULL (not TRUE!)</text>
+    <text x="25" y="72" font-size="9" fill="#dc2626">NULL + 5 → NULL</text>
+    <text x="25" y="89" font-size="9" fill="#dc2626">NULL AND TRUE → NULL</text>
+    <text x="25" y="106" font-size="9" fill="#16a34a">NULL IS NULL → TRUE</text>
+    <text x="25" y="123" font-size="9" fill="#16a34a">COALESCE(NULL, 0) → 0</text>
 
-## What NULL Is (and Is Not)
-
-`NULL` is not zero, not an empty string, and not `false`. It is the explicit absence of a value — a marker that says "this cell has no known value."
-
-| Value | Means |
-|---|---|
-| `0` | The number zero — a real, known value |
-| `''` | An empty string — still a real, known value |
-| `NULL` | Unknown, missing, or not applicable |
-
-Consider a `users` table where `phone` is optional. A user who has not provided a phone number should have `NULL` there, not an empty string. That distinction matters when you later query "give me all users who have a phone number" — an empty string would silently slip through.
-
-```sql
-CREATE TABLE users (
+    <rect x="340" y="0" width="350" height="140" rx="10" fill="#f9fafb" stroke="#e2e6ec" filter="url(#sh)"/>
+    <text x="515" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2330">NULL in Practice</text>
+    <line x1="355" y1="34" x2="675" y2="34" stroke="#e2e6ec"/>
+    <text x="365" y="55" font-size="9" fill="#5a6678">WHERE dept IS NULL — find missing values</text>
+    <text x="365" y="72" font-size="9" fill="#5a6678">WHERE dept IS NOT NULL — exclude missing</text>
+    <text x="365" y="89" font-size="9" fill="#5a6678">NOT NULL constraint — prevent NULLs</text>
+    <text x="365" y="106" font-size="9" fill="#5a6678">DEFAULT — use instead of NULL</text>
+    <text x="365" y="123" font-size="9" fill="#5a6678">COUNT(*) vs COUNT(col) — NULLs excluded!</text>
+  </g>
+</svg>
+<figcaption>NULL means "unknown" — not zero, not empty string. Most operations with NULL return NULL. Use IS NULL/IS NOT NULL for comparisons, COALESCE for defaults.</figcaption>
+</figure>
+<p>Every table you design will eventually face a question no data type can answer on its own: <em>what do you store when the value is unknown or does not apply?</em> The answer in SQL is <code>NULL</code> — and it behaves in ways that surprise almost every newcomer. Understanding NULL now will save you from subtle bugs later.</p>
+<h2>What NULL Is (and Is Not)</h2>
+<p><code>NULL</code> is not zero, not an empty string, and not <code>false</code>. It is the explicit absence of a value — a marker that says &quot;this cell has no known value.&quot;</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>0</code></td>
+<td>The number zero — a real, known value</td>
+</tr>
+<tr>
+<td><code>&#39;&#39;</code></td>
+<td>An empty string — still a real, known value</td>
+</tr>
+<tr>
+<td><code>NULL</code></td>
+<td>Unknown, missing, or not applicable</td>
+</tr>
+</tbody></table>
+<p>Consider a <code>users</code> table where <code>phone</code> is optional. A user who has not provided a phone number should have <code>NULL</code> there, not an empty string. That distinction matters when you later query &quot;give me all users who have a phone number&quot; — an empty string would silently slip through.</p>
+<pre><code class="language-sql">CREATE TABLE users (
   user_id  INTEGER PRIMARY KEY,
   name     TEXT    NOT NULL,
   email    TEXT    NOT NULL,
   phone    TEXT             -- NULL = not provided
 );
-```
-
-The column `phone` has no `NOT NULL` constraint, so the database will accept rows that omit it.
-
-## The Three-Valued Logic of NULL
-
-Here is the trap. In ordinary logic, a statement is either true or false. In SQL, comparisons involving NULL produce a third result: **UNKNOWN**. A row only makes it into your result set if its `WHERE` condition evaluates to `TRUE` — not UNKNOWN.
-
-This has one critical consequence: **you cannot compare NULL with `=`**.
-
-```sql
--- This returns NO rows, even if phone IS NULL in the table
+</code></pre>
+<p>The column <code>phone</code> has no <code>NOT NULL</code> constraint, so the database will accept rows that omit it.</p>
+<h2>The Three-Valued Logic of NULL</h2>
+<p>Here is the trap. In ordinary logic, a statement is either true or false. In SQL, comparisons involving NULL produce a third result: <strong>UNKNOWN</strong>. A row only makes it into your result set if its <code>WHERE</code> condition evaluates to <code>TRUE</code> — not UNKNOWN.</p>
+<p>This has one critical consequence: <strong>you cannot compare NULL with <code>=</code></strong>.</p>
+<pre><code class="language-sql">-- This returns NO rows, even if phone IS NULL in the table
 SELECT * FROM users WHERE phone = NULL;
 
 -- This is correct — always use IS NULL or IS NOT NULL
 SELECT * FROM users WHERE phone IS NULL;
-```
-
-The same rule applies to inequality: `phone != NULL` also returns UNKNOWN for every row. SQL gives you dedicated operators exactly for this:
-
-| Operator | Use it to |
-|---|---|
-| `IS NULL` | Find rows where the value is absent |
-| `IS NOT NULL` | Find rows where a value is present |
-
-### NULL in aggregate functions
-
-Most aggregate functions silently skip NULLs:
-
-```sql
-SELECT AVG(score) FROM results;
+</code></pre>
+<p>The same rule applies to inequality: <code>phone != NULL</code> also returns UNKNOWN for every row. SQL gives you dedicated operators exactly for this:</p>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Use it to</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>IS NULL</code></td>
+<td>Find rows where the value is absent</td>
+</tr>
+<tr>
+<td><code>IS NOT NULL</code></td>
+<td>Find rows where a value is present</td>
+</tr>
+</tbody></table>
+<h3>NULL in aggregate functions</h3>
+<p>Most aggregate functions silently skip NULLs:</p>
+<pre><code class="language-sql">SELECT AVG(score) FROM results;
 -- AVG ignores NULL rows; it averages only the non-NULL scores
-```
-
-`COUNT(*)` counts all rows. `COUNT(column)` counts only non-NULL values in that column. Knowing which one you want matters.
-
-## Experimenting with NULL
-
-The widget below sets up a small `orders` table where `shipped_at` is optional — orders that have not shipped yet have `NULL` there. Try the starter query, then edit it to find only shipped orders, or calculate how many are still pending.
-
+</code></pre>
+<p><code>COUNT(*)</code> counts all rows. <code>COUNT(column)</code> counts only non-NULL values in that column. Knowing which one you want matters.</p>
+<h2>Experimenting with NULL</h2>
+<p>The widget below sets up a small <code>orders</code> table where <code>shipped_at</code> is optional — orders that have not shipped yet have <code>NULL</code> there. Try the starter query, then edit it to find only shipped orders, or calculate how many are still pending.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · NULL and missing values</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT NOT NULL, amount_cents INTEGER NOT NULL, shipped_at TEXT); INSERT INTO orders VALUES (1, 'Alice', 4999, '2024-03-01'), (2, 'Bob', 1200, NULL), (3, 'Carol', 8750, '2024-03-05'), (4, 'Dave', 300, NULL), (5, 'Eve', 2200, '2024-03-07');" rows="20">-- How many orders have not shipped yet?
+    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT NOT NULL, amount_cents INTEGER NOT NULL, shipped_at TEXT); INSERT INTO orders VALUES (1, 'Alice', 4999, '2024-03-01'), (2, 'Bob', 1200, NULL), (3, 'Carol', 8750, '2024-03-05'), (4, 'Dave', 300, NULL), (5, 'Eve', 2200, '2024-03-07');" rows="10">-- How many orders have not shipped yet?
 SELECT
   COUNT(*)            AS total_orders,
   COUNT(shipped_at)   AS shipped,
   COUNT(*) - COUNT(shipped_at) AS pending
 FROM orders;</textarea>
   </div>
-</div>
-
-> **Note:** Try replacing `COUNT(shipped_at)` with `COUNT(*)` and notice the difference. Then add a `WHERE shipped_at IS NULL` clause to list only the pending orders by name.
-
-## Designing Around NULL
-
-NULL is useful, but overusing it creates headaches. A few guidelines:
-
-- **Use `NOT NULL` as the default.** Add it to every column unless you have a specific reason for the value to be absent. Fewer NULLs means simpler queries.
-- **Distinguish "unknown" from "not applicable."** If a column simply does not apply to certain rows, consider whether those rows belong in a separate table instead.
-- **Be careful with `COALESCE`.** The `COALESCE(a, b)` function returns the first non-NULL argument. It is handy for providing fallback values in queries, but using it to paper over a design problem can hide bugs.
-
-```sql
--- Return a display label, falling back to 'No phone' if NULL
-SELECT name, COALESCE(phone, 'No phone') AS phone_display
+</div><blockquote>
+<p><strong>Note:</strong> Try replacing <code>COUNT(shipped_at)</code> with <code>COUNT(*)</code> and notice the difference. Then add a <code>WHERE shipped_at IS NULL</code> clause to list only the pending orders by name.</p>
+</blockquote>
+<h2>Designing Around NULL</h2>
+<p>NULL is useful, but overusing it creates headaches. A few guidelines:</p>
+<ul>
+<li><strong>Use <code>NOT NULL</code> as the default.</strong> Add it to every column unless you have a specific reason for the value to be absent. Fewer NULLs means simpler queries.</li>
+<li><strong>Distinguish &quot;unknown&quot; from &quot;not applicable.&quot;</strong> If a column simply does not apply to certain rows, consider whether those rows belong in a separate table instead.</li>
+<li><strong>Be careful with <code>COALESCE</code>.</strong> The <code>COALESCE(a, b)</code> function returns the first non-NULL argument. It is handy for providing fallback values in queries, but using it to paper over a design problem can hide bugs.</li>
+</ul>
+<pre><code class="language-sql">-- Return a display label, falling back to &#39;No phone&#39; if NULL
+SELECT name, COALESCE(phone, &#39;No phone&#39;) AS phone_display
 FROM users;
-```
+</code></pre>
+<p>NULL is one of the most frequently misunderstood corners of SQL. The key insight to carry forward: NULL is not a value — it is the <em>absence</em> of one, and the database treats it that way at every step from comparison to aggregation.</p>
 
-NULL is one of the most frequently misunderstood corners of SQL. The key insight to carry forward: NULL is not a value — it is the *absence* of one, and the database treats it that way at every step from comparison to aggregation.
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="014-constraints-and-rules.html"><span class="dir">← Previous</span><span class="ttl">Constraints and rules</span></a><a class="next" href="016-data-types-and-domains.html"><span class="dir">Next →</span><span class="ttl">Data types and domains</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

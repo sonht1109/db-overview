@@ -5,72 +5,87 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Buffer pools — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 10. Trees, Logs, and Internal Structures</p>
   <h1 class="content-title">Buffer pools</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="094-checkpoints.html"><span class="dir">← Previous</span><span class="ttl">Checkpoints</span></a><a class="next" href="096-dirty-pages-and-flushing.html"><span class="dir">Next →</span><span class="ttl">Dirty pages and flushing</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every database page you read about in the previous sections — heap pages, B-tree nodes, WAL records — lives on disk. But disk is slow: even a fast NVMe drive is thousands of times slower than RAM. The **buffer pool** is the database engine's main memory cache. It sits between your queries and the disk, and almost every read or write passes through it.
-
-## What a Buffer Pool Is
-
-The buffer pool is a fixed-size region of RAM that the database manages itself, divided into frames. Each frame holds exactly one page (typically 8 KB or 16 KB, matching the on-disk page size). When the engine needs a page, it checks the buffer pool first:
-
-1. **Cache hit** — the page is already in a frame. Return it immediately.
-2. **Cache miss** — the page is not in memory. Find a free frame (or evict an existing one), read the page from disk into that frame, then return it.
-
-A small hash table maps `(file_id, page_number)` → frame index, so lookups are O(1).
-
-```
-Disk                        Buffer Pool (RAM)
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">095-buffer-pools</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 095-buffer-pools.</figcaption>
+</figure>
+<p>Every database page you read about in the previous sections — heap pages, B-tree nodes, WAL records — lives on disk. But disk is slow: even a fast NVMe drive is thousands of times slower than RAM. The <strong>buffer pool</strong> is the database engine&#39;s main memory cache. It sits between your queries and the disk, and almost every read or write passes through it.</p>
+<h2>What a Buffer Pool Is</h2>
+<p>The buffer pool is a fixed-size region of RAM that the database manages itself, divided into frames. Each frame holds exactly one page (typically 8 KB or 16 KB, matching the on-disk page size). When the engine needs a page, it checks the buffer pool first:</p>
+<ol>
+<li><strong>Cache hit</strong> — the page is already in a frame. Return it immediately.</li>
+<li><strong>Cache miss</strong> — the page is not in memory. Find a free frame (or evict an existing one), read the page from disk into that frame, then return it.</li>
+</ol>
+<p>A small hash table maps <code>(file_id, page_number)</code> → frame index, so lookups are O(1).</p>
+<pre><code>Disk                        Buffer Pool (RAM)
 ┌──────────┐               ┌────────┬────────┬────────┬────────┐
 │ page 1   │◄──── miss ────│ frame0 │ frame1 │ frame2 │ frame3 │
 │ page 2   │               │ page 7 │ page 2 │ page 9 │  free  │
 │  ...     │               └────────┴────────┴────────┴────────┘
 │ page N   │                    ▲         ▲
 └──────────┘               query A   query B
-```
-
-Because most real workloads access a small "hot" set of pages repeatedly, a modest buffer pool can absorb the vast majority of disk I/O. PostgreSQL defaults to 128 MB (`shared_buffers`); production systems routinely allocate tens of gigabytes.
-
-## Dirty Pages and the Write Path
-
-When a query **modifies** a page (an INSERT, UPDATE, or DELETE), the engine changes the in-memory copy and marks that frame **dirty**. The dirty page is not written to disk immediately — this is intentional. Batching writes is far more efficient than flushing every change one at a time.
-
-Dirty pages are eventually written to disk by a background process (PostgreSQL calls it the *bgwriter*; InnoDB has its own *page cleaner*). The write-ahead log (WAL) you read about earlier ensures that even if the server crashes before a dirty page is flushed, the change can be replayed from the log. That is the contract: **the log is durable, the buffer pool is not**.
-
-> **Note:** A page must never be evicted from the buffer pool while a transaction that modified it has not yet written its log record to disk. This ordering rule — "log before evict" — is a cornerstone of crash recovery.
-
-## Eviction and Replacement Policy
-
-When the buffer pool is full and a new page must be loaded, the engine must choose a victim frame to evict. The classic policy is **LRU (Least Recently Used)**: evict the page that was accessed least recently.
-
-LRU works well for random access patterns, but it can backfire during a sequential scan. If a query scans a huge table, every page gets loaded exactly once, flooding the pool and evicting hot pages that other queries need. Most engines handle this with **clock sweep** (PostgreSQL) or a **midpoint insertion** variant of LRU (InnoDB), which gives new pages a lower priority until they are accessed a second time.
-
-| Policy | Good for | Weakness |
-|---|---|---|
-| LRU | Mixed OLTP workloads | Sequential scans flush hot data |
-| Clock sweep | General use, low overhead | Approximate, not strictly LRU |
-| LRU-K (k=2) | Mixed + analytical | More bookkeeping |
-| 2Q / midpoint | Scan-heavy workloads | Tuning required |
-
-## Seeing Buffer Pool Pressure in Practice
-
-Buffer pool behavior is mostly invisible — until the pool is too small. When hit rates drop, queries that used to be fast suddenly wait on disk I/O. Most databases expose cache statistics you can query directly.
-
-Try the interactive example below. It simulates a simplified page-access log and computes a hit rate, the same metric DBAs watch in production:
-
+</code></pre>
+<p>Because most real workloads access a small &quot;hot&quot; set of pages repeatedly, a modest buffer pool can absorb the vast majority of disk I/O. PostgreSQL defaults to 128 MB (<code>shared_buffers</code>); production systems routinely allocate tens of gigabytes.</p>
+<h2>Dirty Pages and the Write Path</h2>
+<p>When a query <strong>modifies</strong> a page (an INSERT, UPDATE, or DELETE), the engine changes the in-memory copy and marks that frame <strong>dirty</strong>. The dirty page is not written to disk immediately — this is intentional. Batching writes is far more efficient than flushing every change one at a time.</p>
+<p>Dirty pages are eventually written to disk by a background process (PostgreSQL calls it the <em>bgwriter</em>; InnoDB has its own <em>page cleaner</em>). The write-ahead log (WAL) you read about earlier ensures that even if the server crashes before a dirty page is flushed, the change can be replayed from the log. That is the contract: <strong>the log is durable, the buffer pool is not</strong>.</p>
+<blockquote>
+<p><strong>Note:</strong> A page must never be evicted from the buffer pool while a transaction that modified it has not yet written its log record to disk. This ordering rule — &quot;log before evict&quot; — is a cornerstone of crash recovery.</p>
+</blockquote>
+<h2>Eviction and Replacement Policy</h2>
+<p>When the buffer pool is full and a new page must be loaded, the engine must choose a victim frame to evict. The classic policy is <strong>LRU (Least Recently Used)</strong>: evict the page that was accessed least recently.</p>
+<p>LRU works well for random access patterns, but it can backfire during a sequential scan. If a query scans a huge table, every page gets loaded exactly once, flooding the pool and evicting hot pages that other queries need. Most engines handle this with <strong>clock sweep</strong> (PostgreSQL) or a <strong>midpoint insertion</strong> variant of LRU (InnoDB), which gives new pages a lower priority until they are accessed a second time.</p>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Good for</th>
+<th>Weakness</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>LRU</td>
+<td>Mixed OLTP workloads</td>
+<td>Sequential scans flush hot data</td>
+</tr>
+<tr>
+<td>Clock sweep</td>
+<td>General use, low overhead</td>
+<td>Approximate, not strictly LRU</td>
+</tr>
+<tr>
+<td>LRU-K (k=2)</td>
+<td>Mixed + analytical</td>
+<td>More bookkeeping</td>
+</tr>
+<tr>
+<td>2Q / midpoint</td>
+<td>Scan-heavy workloads</td>
+<td>Tuning required</td>
+</tr>
+</tbody></table>
+<h2>Seeing Buffer Pool Pressure in Practice</h2>
+<p>Buffer pool behavior is mostly invisible — until the pool is too small. When hit rates drop, queries that used to be fast suddenly wait on disk I/O. Most databases expose cache statistics you can query directly.</p>
+<p>Try the interactive example below. It simulates a simplified page-access log and computes a hit rate, the same metric DBAs watch in production:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Buffer hit rate simulation</span></div>
   <div class="widget-body">
@@ -84,7 +99,7 @@ INSERT INTO access_log VALUES
   (6,  9, 0), (7,  3, 1), (8,  7, 1), (9,  2, 0),
   (10, 5, 1), (11, 9, 1), (12, 1, 0), (13, 3, 1),
   (14, 7, 1), (15, 2, 1), (16, 1, 1), (17, 9, 1),
-  (18, 5, 1), (19, 4, 0), (20, 4, 1);" rows="20">-- Overall hit rate
+  (18, 5, 1), (19, 4, 0), (20, 4, 1);" rows="10">-- Overall hit rate
 SELECT
   COUNT(*)                          AS total_accesses,
   SUM(hit)                          AS cache_hits,
@@ -93,13 +108,14 @@ SELECT
 FROM access_log;
 </textarea>
   </div>
+</div><p>A healthy OLTP system typically runs at 95–99% hit rate. Try modifying the query to compute the hit rate for a single page (<code>WHERE page_no = 7</code>) and compare it with the overall rate. You can also add rows to simulate a cold start (all misses) or a warm cache (all hits).</p>
+<blockquote>
+<p><strong>Note:</strong> In PostgreSQL, the view <code>pg_statio_user_tables</code> shows <code>heap_blks_hit</code> and <code>heap_blks_read</code> per table, giving you real hit rates without any simulation needed.</p>
+</blockquote>
+
 </div>
-
-A healthy OLTP system typically runs at 95–99% hit rate. Try modifying the query to compute the hit rate for a single page (`WHERE page_no = 7`) and compare it with the overall rate. You can also add rows to simulate a cold start (all misses) or a warm cache (all hits).
-
-> **Note:** In PostgreSQL, the view `pg_statio_user_tables` shows `heap_blks_hit` and `heap_blks_read` per table, giving you real hit rates without any simulation needed.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="094-checkpoints.html"><span class="dir">← Previous</span><span class="ttl">Checkpoints</span></a><a class="next" href="096-dirty-pages-and-flushing.html"><span class="dir">Next →</span><span class="ttl">Dirty pages and flushing</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

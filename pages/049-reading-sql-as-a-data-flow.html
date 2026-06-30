@@ -5,81 +5,124 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reading SQL as a data flow — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 5. A Gentle Introduction to SQL</p>
   <h1 class="content-title">Reading SQL as a data flow</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="048-subqueries-and-common-table-expressions.html"><span class="dir">← Previous</span><span class="ttl">Subqueries and common table expressions</span></a><a class="next" href="051-parsing-and-validation.html"><span class="dir">Next →</span><span class="ttl">Parsing and validation</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Most people learn SQL by memorising keywords. A more powerful approach is to read a query as a *pipeline*: data enters from one end, gets shaped at each stage, and exits the other end as a result set. Once that mental model clicks, unfamiliar queries become readable — and writing new ones becomes systematic.
-
-## SQL is Declarative, but it Executes in Steps
-
-SQL is a declarative language: you state *what* you want, not *how* to fetch it. The database engine works out the how. But even though you are not writing a loop or a function, the engine processes your query in a well-defined sequence of logical steps.
-
-The order in which you *write* the clauses does not match the order in which they *execute*:
-
-| Step | Clause | What it does |
-|------|--------|--------------|
-| 1 | `FROM` | Identifies the source table(s); produces the initial row set |
-| 2 | `WHERE` | Filters rows; only matching rows flow forward |
-| 3 | `GROUP BY` | Buckets surviving rows by the grouped column(s) |
-| 4 | Aggregate fns | Collapses each bucket into a single summary row |
-| 5 | `HAVING` | Filters buckets (groups) by a condition |
-| 6 | `SELECT` | Projects — picks and computes the output columns |
-| 7 | `ORDER BY` | Sorts the final output |
-| 8 | `LIMIT` | Trims the output to *n* rows |
-
-Think of each step as a stage in a factory line. Rows arrive, a machine works on them, and only the survivors move on to the next machine.
-
-> **Note:** This logical order explains a common gotcha — you cannot use a `SELECT` alias inside a `WHERE` clause, because `WHERE` runs *before* `SELECT` assigns names to columns. The alias simply does not exist yet at step 2.
-
-## Tracing a Query Through the Pipeline
-
-A concrete trace makes this tangible. Suppose you have a small `orders` table and want to find the top two customers by total spend, counting only orders over $50:
-
-```sql
-SELECT customer,
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(10,10)">
+    <rect x="0" y="0" width="700" height="145" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="350" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">Read SQL as a Pipeline (Logical Order)</text>
+    <line x1="15" y1="36" x2="685" y2="36" stroke="#e2e6ec"/>
+    <rect x="15" y="46" width="120" height="22" rx="4" fill="#e8f0ff"/><text x="75" y="61" text-anchor="middle" font-size="9" fill="#2f6df6">1. FROM + JOIN</text>
+    <text x="142" y="61" font-size="10" fill="#5a6678">→</text>
+    <rect x="150" y="46" width="120" height="22" rx="4" fill="#dcfce7"/><text x="210" y="61" text-anchor="middle" font-size="9" fill="#16a34a">2. WHERE</text>
+    <text x="277" y="61" font-size="10" fill="#5a6678">→</text>
+    <rect x="285" y="46" width="120" height="22" rx="4" fill="#fef3c7"/><text x="345" y="61" text-anchor="middle" font-size="9" fill="#d97706">3. GROUP BY</text>
+    <text x="412" y="61" font-size="10" fill="#5a6678">→</text>
+    <rect x="420" y="46" width="120" height="22" rx="4" fill="#ede9fe"/><text x="480" y="61" text-anchor="middle" font-size="9" fill="#7c3aed">4. HAVING</text>
+    <text x="547" y="61" font-size="10" fill="#5a6678">→</text>
+    <rect x="555" y="46" width="120" height="22" rx="4" fill="#fce7f3"/><text x="615" y="61" text-anchor="middle" font-size="9" fill="#db2777">5. SELECT</text>
+    <text x="350" y="95" text-anchor="middle" font-size="9" fill="#5a6678">6. ORDER BY → 7. LIMIT/OFFSET</text>
+    <rect x="15" y="112" width="670" height="22" rx="4" fill="#f9fafb"/>
+    <text x="350" y="127" text-anchor="middle" font-size="9" fill="#5a6678">SELECT happens AFTER filtering and grouping — that's why aliases in WHERE don't work!</text>
+  </g>
+</svg>
+<figcaption>SQL's logical execution order (FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT) differs from its written order. Think of it as a data pipeline.</figcaption>
+</figure>
+<p>Most people learn SQL by memorising keywords. A more powerful approach is to read a query as a <em>pipeline</em>: data enters from one end, gets shaped at each stage, and exits the other end as a result set. Once that mental model clicks, unfamiliar queries become readable — and writing new ones becomes systematic.</p>
+<h2>SQL is Declarative, but it Executes in Steps</h2>
+<p>SQL is a declarative language: you state <em>what</em> you want, not <em>how</em> to fetch it. The database engine works out the how. But even though you are not writing a loop or a function, the engine processes your query in a well-defined sequence of logical steps.</p>
+<p>The order in which you <em>write</em> the clauses does not match the order in which they <em>execute</em>:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Clause</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>FROM</code></td>
+<td>Identifies the source table(s); produces the initial row set</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>WHERE</code></td>
+<td>Filters rows; only matching rows flow forward</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>GROUP BY</code></td>
+<td>Buckets surviving rows by the grouped column(s)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Aggregate fns</td>
+<td>Collapses each bucket into a single summary row</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>HAVING</code></td>
+<td>Filters buckets (groups) by a condition</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>SELECT</code></td>
+<td>Projects — picks and computes the output columns</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>ORDER BY</code></td>
+<td>Sorts the final output</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>LIMIT</code></td>
+<td>Trims the output to <em>n</em> rows</td>
+</tr>
+</tbody></table>
+<p>Think of each step as a stage in a factory line. Rows arrive, a machine works on them, and only the survivors move on to the next machine.</p>
+<blockquote>
+<p><strong>Note:</strong> This logical order explains a common gotcha — you cannot use a <code>SELECT</code> alias inside a <code>WHERE</code> clause, because <code>WHERE</code> runs <em>before</em> <code>SELECT</code> assigns names to columns. The alias simply does not exist yet at step 2.</p>
+</blockquote>
+<h2>Tracing a Query Through the Pipeline</h2>
+<p>A concrete trace makes this tangible. Suppose you have a small <code>orders</code> table and want to find the top two customers by total spend, counting only orders over $50:</p>
+<pre><code class="language-sql">SELECT customer,
        SUM(amount) AS total_spent
 FROM   orders
-WHERE  amount > 50
+WHERE  amount &gt; 50
 GROUP  BY customer
-HAVING SUM(amount) > 200
+HAVING SUM(amount) &gt; 200
 ORDER  BY total_spent DESC
 LIMIT  2;
-```
-
-Walk through each stage:
-
-1. **FROM orders** — all rows enter the pipeline.
-2. **WHERE amount > 50** — rows with small amounts are dropped. A $30 order never reaches the grouping stage.
-3. **GROUP BY customer** — surviving rows are partitioned into one bucket per customer name.
-4. **SUM(amount)** — each bucket is collapsed into a single row with the summed amount.
-5. **HAVING SUM(amount) > 200** — customers whose qualifying orders sum to $200 or less are discarded entirely.
-6. **SELECT customer, SUM(amount) AS total_spent** — only these two columns are kept; the aggregate gets its alias.
-7. **ORDER BY total_spent DESC** — rows are sorted highest-to-lowest.
-8. **LIMIT 2** — only the top two rows exit.
-
-Each clause does exactly one job, and they compose cleanly.
-
-## Try It Yourself
-
-The widget below has the `orders` table already set up. The default query runs the full pipeline from the example above. Try removing the `WHERE` clause — notice how customers with only small orders now appear in the groups. Then add them back and raise the `HAVING` threshold.
-
+</code></pre>
+<p>Walk through each stage:</p>
+<ol>
+<li><strong>FROM orders</strong> — all rows enter the pipeline.</li>
+<li><strong>WHERE amount &gt; 50</strong> — rows with small amounts are dropped. A $30 order never reaches the grouping stage.</li>
+<li><strong>GROUP BY customer</strong> — surviving rows are partitioned into one bucket per customer name.</li>
+<li><strong>SUM(amount)</strong> — each bucket is collapsed into a single row with the summed amount.</li>
+<li><strong>HAVING SUM(amount) &gt; 200</strong> — customers whose qualifying orders sum to $200 or less are discarded entirely.</li>
+<li><strong>SELECT customer, SUM(amount) AS total_spent</strong> — only these two columns are kept; the aggregate gets its alias.</li>
+<li><strong>ORDER BY total_spent DESC</strong> — rows are sorted highest-to-lowest.</li>
+<li><strong>LIMIT 2</strong> — only the top two rows exit.</li>
+</ol>
+<p>Each clause does exactly one job, and they compose cleanly.</p>
+<h2>Try It Yourself</h2>
+<p>The widget below has the <code>orders</code> table already set up. The default query runs the full pipeline from the example above. Try removing the <code>WHERE</code> clause — notice how customers with only small orders now appear in the groups. Then add them back and raise the <code>HAVING</code> threshold.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Data flow pipeline</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 120), (2, 'Bob', 340), (3, 'Alice', 30), (4, 'Carol', 210), (5, 'Bob', 180), (6, 'Alice', 300), (7, 'Carol', 450), (8, 'Bob', 40), (9, 'Dana', 45), (10, 'Dana', 60);" rows="20">SELECT customer,
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 120), (2, 'Bob', 340), (3, 'Alice', 30), (4, 'Carol', 210), (5, 'Bob', 180), (6, 'Alice', 300), (7, 'Carol', 450), (8, 'Bob', 40), (9, 'Dana', 45), (10, 'Dana', 60);" rows="10">SELECT customer,
        SUM(amount) AS total_spent
 FROM   orders
 WHERE  amount > 50
@@ -88,14 +131,11 @@ HAVING SUM(amount) > 200
 ORDER  BY total_spent DESC
 LIMIT  2;</textarea>
   </div>
-</div>
-
-Now try this variation — remove the `LIMIT` and lower the `HAVING` threshold to 100 to see more customers qualify:
-
+</div><p>Now try this variation — remove the <code>LIMIT</code> and lower the <code>HAVING</code> threshold to 100 to see more customers qualify:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Adjusting the pipeline</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 120), (2, 'Bob', 340), (3, 'Alice', 30), (4, 'Carol', 210), (5, 'Bob', 180), (6, 'Alice', 300), (7, 'Carol', 450), (8, 'Bob', 40), (9, 'Dana', 45), (10, 'Dana', 60);" rows="20">SELECT customer,
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 120), (2, 'Bob', 340), (3, 'Alice', 30), (4, 'Carol', 210), (5, 'Bob', 180), (6, 'Alice', 300), (7, 'Carol', 450), (8, 'Bob', 40), (9, 'Dana', 45), (10, 'Dana', 60);" rows="10">SELECT customer,
        COUNT(*)        AS num_orders,
        SUM(amount)     AS total_spent,
        ROUND(AVG(amount), 2) AS avg_order
@@ -105,21 +145,21 @@ GROUP  BY customer
 HAVING total_spent > 100
 ORDER  BY total_spent DESC;</textarea>
   </div>
+</div><blockquote>
+<p><strong>Note:</strong> SQLite allows referencing a <code>SELECT</code> alias (<code>total_spent</code>) inside <code>HAVING</code>, but most other databases (PostgreSQL, MySQL in strict mode) do not — they require repeating <code>SUM(amount) &gt; 100</code>. For portability, prefer the explicit form.</p>
+</blockquote>
+<h2>Why This Mental Model Matters</h2>
+<p>Reading SQL as a data flow pays dividends beyond just understanding one query:</p>
+<ul>
+<li><strong>Debugging</strong> — when a result looks wrong, walk through the pipeline stage by stage. Is the row being dropped by <code>WHERE</code> before it even reaches <code>GROUP BY</code>? Is the <code>HAVING</code> filter too aggressive?</li>
+<li><strong>Performance intuition</strong> — filtering early (at <code>WHERE</code>) is cheaper than filtering late (at <code>HAVING</code>), because fewer rows travel through the expensive grouping and aggregation stages.</li>
+<li><strong>Writing new queries</strong> — instead of staring at a blank editor, start at <code>FROM</code>, pick your source, add a <code>WHERE</code> if you need to narrow rows, add <code>GROUP BY</code> if you need summaries, and work forward. The shape of the result follows naturally.</li>
+</ul>
+<p>SQL&#39;s verbosity is a feature here: each clause declares one intent, and together they read almost like a recipe for transforming data.</p>
+
 </div>
-
-> **Note:** SQLite allows referencing a `SELECT` alias (`total_spent`) inside `HAVING`, but most other databases (PostgreSQL, MySQL in strict mode) do not — they require repeating `SUM(amount) > 100`. For portability, prefer the explicit form.
-
-## Why This Mental Model Matters
-
-Reading SQL as a data flow pays dividends beyond just understanding one query:
-
-- **Debugging** — when a result looks wrong, walk through the pipeline stage by stage. Is the row being dropped by `WHERE` before it even reaches `GROUP BY`? Is the `HAVING` filter too aggressive?
-- **Performance intuition** — filtering early (at `WHERE`) is cheaper than filtering late (at `HAVING`), because fewer rows travel through the expensive grouping and aggregation stages.
-- **Writing new queries** — instead of staring at a blank editor, start at `FROM`, pick your source, add a `WHERE` if you need to narrow rows, add `GROUP BY` if you need summaries, and work forward. The shape of the result follows naturally.
-
-SQL's verbosity is a feature here: each clause declares one intent, and together they read almost like a recipe for transforming data.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="048-subqueries-and-common-table-expressions.html"><span class="dir">← Previous</span><span class="ttl">Subqueries and common table expressions</span></a><a class="next" href="051-parsing-and-validation.html"><span class="dir">Next →</span><span class="ttl">Parsing and validation</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

@@ -5,87 +5,105 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What SQL is for — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 5. A Gentle Introduction to SQL</p>
   <h1 class="content-title">What SQL is for</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="039-tradeoffs-in-modeling.html"><span class="dir">← Previous</span><span class="ttl">Tradeoffs in modeling</span></a><a class="next" href="042-select-insert-update-delete.html"><span class="dir">Next →</span><span class="ttl">SELECT, INSERT, UPDATE, DELETE</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-SQL — Structured Query Language — is the standard language for talking to a relational database. You use it to ask questions ("give me all orders placed in the last 30 days"), to change data ("mark this order as shipped"), and to define structure ("create a table to hold customers"). Almost every relational database you will encounter — PostgreSQL, MySQL, SQLite, SQL Server, Oracle — speaks SQL, even if each adds its own dialect on top.
-
-## The Four Things SQL Does
-
-SQL is divided into sub-languages, each with a distinct job:
-
-| Sub-language | Stands for | What it covers | Example statement |
-|---|---|---|---|
-| **DML** | Data Manipulation Language | Reading and writing rows | `SELECT`, `INSERT`, `UPDATE`, `DELETE` |
-| **DDL** | Data Definition Language | Creating and altering structure | `CREATE TABLE`, `ALTER TABLE`, `DROP TABLE` |
-| **DCL** | Data Control Language | Permissions and access | `GRANT`, `REVOKE` |
-| **TCL** | Transaction Control Language | Grouping changes atomically | `BEGIN`, `COMMIT`, `ROLLBACK` |
-
-Day-to-day application work lives almost entirely in DML. DDL appears when you build or migrate a schema. DCL and TCL matter at the operations and reliability level — you will meet them properly in later chapters.
-
-## SQL Describes *What*, Not *How*
-
-The most important thing to understand about SQL is that it is **declarative**. You state what result you want; the database engine figures out how to produce it.
-
-Compare this to a procedural approach you might use in Python:
-
-```python
-# Procedural: you specify the steps
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 160" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <rect x="0" y="0" width="690" height="135" rx="10" fill="#e8f0ff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">SQL = Declarative Language</text>
+    <text x="345" y="48" text-anchor="middle" font-size="10" fill="#5a6678">You say WHAT you want — the engine figures out HOW</text>
+    <line x1="15" y1="58" x2="675" y2="58" stroke="#bfdbfe"/>
+    <rect x="15" y="68" width="210" height="28" rx="6" fill="#fff"/><text x="120" y="86" text-anchor="middle" font-size="10" fill="#2f6df6">DML: SELECT, INSERT, UPDATE, DELETE</text>
+    <rect x="235" y="68" width="210" height="28" rx="6" fill="#fff"/><text x="340" y="86" text-anchor="middle" font-size="10" fill="#16a34a">DDL: CREATE, ALTER, DROP</text>
+    <rect x="455" y="68" width="220" height="28" rx="6" fill="#fff"/><text x="565" y="86" text-anchor="middle" font-size="10" fill="#d97706">DCL: GRANT, REVOKE</text>
+    <text x="345" y="125" text-anchor="middle" font-size="9" fill="#5a6678">One language for all relational databases — portable across PostgreSQL, MySQL, SQLite, Oracle, SQL Server…</text>
+  </g>
+</svg>
+<figcaption>SQL is a declarative language: you specify what data you want, not how to retrieve it. The engine parses, optimizes, and executes your intent.</figcaption>
+</figure>
+<p>SQL — Structured Query Language — is the standard language for talking to a relational database. You use it to ask questions (&quot;give me all orders placed in the last 30 days&quot;), to change data (&quot;mark this order as shipped&quot;), and to define structure (&quot;create a table to hold customers&quot;). Almost every relational database you will encounter — PostgreSQL, MySQL, SQLite, SQL Server, Oracle — speaks SQL, even if each adds its own dialect on top.</p>
+<h2>The Four Things SQL Does</h2>
+<p>SQL is divided into sub-languages, each with a distinct job:</p>
+<table>
+<thead>
+<tr>
+<th>Sub-language</th>
+<th>Stands for</th>
+<th>What it covers</th>
+<th>Example statement</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>DML</strong></td>
+<td>Data Manipulation Language</td>
+<td>Reading and writing rows</td>
+<td><code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code></td>
+</tr>
+<tr>
+<td><strong>DDL</strong></td>
+<td>Data Definition Language</td>
+<td>Creating and altering structure</td>
+<td><code>CREATE TABLE</code>, <code>ALTER TABLE</code>, <code>DROP TABLE</code></td>
+</tr>
+<tr>
+<td><strong>DCL</strong></td>
+<td>Data Control Language</td>
+<td>Permissions and access</td>
+<td><code>GRANT</code>, <code>REVOKE</code></td>
+</tr>
+<tr>
+<td><strong>TCL</strong></td>
+<td>Transaction Control Language</td>
+<td>Grouping changes atomically</td>
+<td><code>BEGIN</code>, <code>COMMIT</code>, <code>ROLLBACK</code></td>
+</tr>
+</tbody></table>
+<p>Day-to-day application work lives almost entirely in DML. DDL appears when you build or migrate a schema. DCL and TCL matter at the operations and reliability level — you will meet them properly in later chapters.</p>
+<h2>SQL Describes <em>What</em>, Not <em>How</em></h2>
+<p>The most important thing to understand about SQL is that it is <strong>declarative</strong>. You state what result you want; the database engine figures out how to produce it.</p>
+<p>Compare this to a procedural approach you might use in Python:</p>
+<pre><code class="language-python"># Procedural: you specify the steps
 results = []
 for order in orders:
-    if order.total > 100:
+    if order.total &gt; 100:
         results.append(order)
-```
-
-```sql
--- Declarative: you describe the outcome
-SELECT * FROM orders WHERE total > 100;
-```
-
-Both produce the same rows. The difference is that the database engine can choose the fastest physical path — using an index, parallelising the scan, caching pages — without you having to direct it. This is why SQL scales so well: smarter engines improve performance without changing a line of your query.
-
-> **Note:** "Declarative" does not mean SQL is magic. Poorly written queries still run slowly. Understanding what the engine does *underneath* — indexes, joins, execution plans — is exactly what the rest of this part of the guide is about.
-
-## SQL Operates on Sets, Not Loops
-
-SQL inherits the set-based thinking of the relational model (Chapter 3). Every `SELECT` returns a **relation** — a set of rows — and you can feed that set straight into another query. There is no notion of "process row 1, then row 2"; the engine processes all matching rows as a unit.
-
-This matters in practice: when you write a `WHERE` clause, you are filtering an entire set at once. When you write a `JOIN`, you are combining two sets by a relationship. Thinking in sets — rather than in loops — is the mental shift that makes SQL feel natural.
-
-Try it yourself. The widget below seeds a small `products` table. Run the default query, then try editing the `WHERE` clause to filter by a different category, or remove it entirely to see all rows.
-
+</code></pre>
+<pre><code class="language-sql">-- Declarative: you describe the outcome
+SELECT * FROM orders WHERE total &gt; 100;
+</code></pre>
+<p>Both produce the same rows. The difference is that the database engine can choose the fastest physical path — using an index, parallelising the scan, caching pages — without you having to direct it. This is why SQL scales so well: smarter engines improve performance without changing a line of your query.</p>
+<blockquote>
+<p><strong>Note:</strong> &quot;Declarative&quot; does not mean SQL is magic. Poorly written queries still run slowly. Understanding what the engine does <em>underneath</em> — indexes, joins, execution plans — is exactly what the rest of this part of the guide is about.</p>
+</blockquote>
+<h2>SQL Operates on Sets, Not Loops</h2>
+<p>SQL inherits the set-based thinking of the relational model (Chapter 3). Every <code>SELECT</code> returns a <strong>relation</strong> — a set of rows — and you can feed that set straight into another query. There is no notion of &quot;process row 1, then row 2&quot;; the engine processes all matching rows as a unit.</p>
+<p>This matters in practice: when you write a <code>WHERE</code> clause, you are filtering an entire set at once. When you write a <code>JOIN</code>, you are combining two sets by a relationship. Thinking in sets — rather than in loops — is the mental shift that makes SQL feel natural.</p>
+<p>Try it yourself. The widget below seeds a small <code>products</code> table. Run the default query, then try editing the <code>WHERE</code> clause to filter by a different category, or remove it entirely to see all rows.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Products table</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, price_cents INTEGER NOT NULL); INSERT INTO products VALUES (1, 'Notebook', 'stationery', 299); INSERT INTO products VALUES (2, 'Pen', 'stationery', 99); INSERT INTO products VALUES (3, 'Desk Lamp', 'electronics', 2999); INSERT INTO products VALUES (4, 'USB Hub', 'electronics', 1499); INSERT INTO products VALUES (5, 'Sticky Notes', 'stationery', 149);" rows="20">SELECT id, name, price_cents / 100.0 AS price
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, price_cents INTEGER NOT NULL); INSERT INTO products VALUES (1, 'Notebook', 'stationery', 299); INSERT INTO products VALUES (2, 'Pen', 'stationery', 99); INSERT INTO products VALUES (3, 'Desk Lamp', 'electronics', 2999); INSERT INTO products VALUES (4, 'USB Hub', 'electronics', 1499); INSERT INTO products VALUES (5, 'Sticky Notes', 'stationery', 149);" rows="10">SELECT id, name, price_cents / 100.0 AS price
 FROM   products
 WHERE  category = 'stationery'
 ORDER  BY price;</textarea>
   </div>
+</div><p>Notice that <code>SELECT</code> asks for <em>which columns</em> (projection), <code>WHERE</code> asks for <em>which rows</em> (selection), and <code>ORDER BY</code> sorts the result — three separate concerns expressed in one readable statement. SQL was designed to be close to plain English precisely so that the intent stays clear even to someone reading the query months later.</p>
+<h2>What SQL Is Not</h2>
+<p>SQL is not a general-purpose programming language. It has no built-in file I/O, no native HTTP calls, and only limited looping constructs. When people add procedural logic to a database they typically use stored procedures (PL/pgSQL, T-SQL, PL/SQL), but those are extensions layered on top of SQL, not SQL itself.</p>
+<p>SQL is also not tied to any single database product. The core syntax you learn here works in SQLite, PostgreSQL, MySQL, and most others with only minor adjustments. That portability is one of SQL&#39;s greatest practical strengths.</p>
+
 </div>
-
-Notice that `SELECT` asks for *which columns* (projection), `WHERE` asks for *which rows* (selection), and `ORDER BY` sorts the result — three separate concerns expressed in one readable statement. SQL was designed to be close to plain English precisely so that the intent stays clear even to someone reading the query months later.
-
-## What SQL Is Not
-
-SQL is not a general-purpose programming language. It has no built-in file I/O, no native HTTP calls, and only limited looping constructs. When people add procedural logic to a database they typically use stored procedures (PL/pgSQL, T-SQL, PL/SQL), but those are extensions layered on top of SQL, not SQL itself.
-
-SQL is also not tied to any single database product. The core syntax you learn here works in SQLite, PostgreSQL, MySQL, and most others with only minor adjustments. That portability is one of SQL's greatest practical strengths.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="039-tradeoffs-in-modeling.html"><span class="dir">← Previous</span><span class="ttl">Tradeoffs in modeling</span></a><a class="next" href="042-select-insert-update-delete.html"><span class="dir">Next →</span><span class="ttl">SELECT, INSERT, UPDATE, DELETE</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

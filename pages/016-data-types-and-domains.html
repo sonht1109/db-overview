@@ -5,86 +5,116 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Data types and domains — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 2. How Data Is Organized</p>
   <h1 class="content-title">Data types and domains</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="015-null-and-missing-values.html"><span class="dir">← Previous</span><span class="ttl">NULL and missing values</span></a><a class="next" href="017-normalized-and-denormalized-data.html"><span class="dir">Next →</span><span class="ttl">Normalized and denormalized data</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every column in a table carries a **data type** — a contract with the engine about what values it will hold. Get that contract right and the engine becomes a tireless validator, rejecting bad data at write time before it can corrupt your records. This page covers the major type families, how domains narrow them further, and why choosing well matters more than it might seem.
-
-## The Major Families of Data Types
-
-All major database systems share a handful of fundamental type families, even if the exact keyword varies by vendor:
-
-| Family | Common SQL names | What it stores |
-|---|---|---|
-| **Integer** | `INTEGER`, `BIGINT`, `SMALLINT` | Whole numbers (no decimal point) |
-| **Decimal / Numeric** | `NUMERIC(p,s)`, `DECIMAL`, `REAL`, `FLOAT` | Numbers with fractional parts |
-| **Text** | `TEXT`, `VARCHAR(n)`, `CHAR(n)` | Strings of characters |
-| **Boolean** | `BOOLEAN` | True / false (SQLite stores as 1 / 0) |
-| **Date & Time** | `DATE`, `TIME`, `TIMESTAMP` | Calendar dates, clock times, or both |
-| **Binary** | `BLOB`, `BYTEA` | Raw bytes — images, files, encrypted data |
-
-Choosing the **right** type is not pedantry. Storing a price in `TEXT` means you cannot do arithmetic on it; the database cannot stop someone from writing `"free"` into the column. Storing a phone number in `INTEGER` silently strips leading zeroes. Types are guardrails.
-
-### Integer vs. Decimal — a common trap
-
-`REAL` and `FLOAT` are binary floating-point numbers. They are fast but approximate — the decimal `0.1` cannot be represented exactly in binary, so arithmetic can produce surprising rounding errors. For money, always use `NUMERIC` (or store cents as an `INTEGER`).
-
-```sql
--- Floating-point rounding in action (SQLite REAL)
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(10,10)">
+    <rect x="0" y="0" width="690" height="145" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">Data Types → Domains</text>
+    <line x1="15" y1="34" x2="675" y2="34" stroke="#e2e6ec"/>
+    <rect x="15" y="44" width="100" height="22" rx="4" fill="#e8f0ff"/><text x="65" y="59" text-anchor="middle" font-size="9" fill="#2f6df6">INTEGER</text>
+    <rect x="125" y="44" width="100" height="22" rx="4" fill="#dcfce7"/><text x="175" y="59" text-anchor="middle" font-size="9" fill="#16a34a">TEXT/VARCHAR</text>
+    <rect x="235" y="44" width="100" height="22" rx="4" fill="#fef3c7"/><text x="285" y="59" text-anchor="middle" font-size="9" fill="#d97706">REAL/FLOAT</text>
+    <rect x="345" y="44" width="100" height="22" rx="4" fill="#ede9fe"/><text x="395" y="59" text-anchor="middle" font-size="9" fill="#7c3aed">DATE/TIMESTAMP</text>
+    <rect x="455" y="44" width="100" height="22" rx="4" fill="#fce7f3"/><text x="505" y="59" text-anchor="middle" font-size="9" fill="#db2777">BOOLEAN</text>
+    <rect x="565" y="44" width="120" height="22" rx="4" fill="#f0f2f5"/><text x="625" y="59" text-anchor="middle" font-size="9" fill="#5a6678">BLOB/JSON</text>
+    <rect x="15" y="80" width="660" height="26" rx="4" fill="#f9fafb"/>
+    <text x="345" y="97" text-anchor="middle" font-size="10" fill="#1c2330">Types constrain what values are valid → the engine enforces them automatically</text>
+    <rect x="15" y="116" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="131" text-anchor="middle" font-size="9" fill="#16a34a">A domain = type + constraints, e.g., "positive INTEGER CHECK (salary > 0)" — reusable type definition</text>
+  </g>
+</svg>
+<figcaption>Types define what values are valid in a column. A domain is a type plus constraints — a reusable, named type definition with built-in validation.</figcaption>
+</figure>
+<p>Every column in a table carries a <strong>data type</strong> — a contract with the engine about what values it will hold. Get that contract right and the engine becomes a tireless validator, rejecting bad data at write time before it can corrupt your records. This page covers the major type families, how domains narrow them further, and why choosing well matters more than it might seem.</p>
+<h2>The Major Families of Data Types</h2>
+<p>All major database systems share a handful of fundamental type families, even if the exact keyword varies by vendor:</p>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Common SQL names</th>
+<th>What it stores</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Integer</strong></td>
+<td><code>INTEGER</code>, <code>BIGINT</code>, <code>SMALLINT</code></td>
+<td>Whole numbers (no decimal point)</td>
+</tr>
+<tr>
+<td><strong>Decimal / Numeric</strong></td>
+<td><code>NUMERIC(p,s)</code>, <code>DECIMAL</code>, <code>REAL</code>, <code>FLOAT</code></td>
+<td>Numbers with fractional parts</td>
+</tr>
+<tr>
+<td><strong>Text</strong></td>
+<td><code>TEXT</code>, <code>VARCHAR(n)</code>, <code>CHAR(n)</code></td>
+<td>Strings of characters</td>
+</tr>
+<tr>
+<td><strong>Boolean</strong></td>
+<td><code>BOOLEAN</code></td>
+<td>True / false (SQLite stores as 1 / 0)</td>
+</tr>
+<tr>
+<td><strong>Date &amp; Time</strong></td>
+<td><code>DATE</code>, <code>TIME</code>, <code>TIMESTAMP</code></td>
+<td>Calendar dates, clock times, or both</td>
+</tr>
+<tr>
+<td><strong>Binary</strong></td>
+<td><code>BLOB</code>, <code>BYTEA</code></td>
+<td>Raw bytes — images, files, encrypted data</td>
+</tr>
+</tbody></table>
+<p>Choosing the <strong>right</strong> type is not pedantry. Storing a price in <code>TEXT</code> means you cannot do arithmetic on it; the database cannot stop someone from writing <code>&quot;free&quot;</code> into the column. Storing a phone number in <code>INTEGER</code> silently strips leading zeroes. Types are guardrails.</p>
+<h3>Integer vs. Decimal — a common trap</h3>
+<p><code>REAL</code> and <code>FLOAT</code> are binary floating-point numbers. They are fast but approximate — the decimal <code>0.1</code> cannot be represented exactly in binary, so arithmetic can produce surprising rounding errors. For money, always use <code>NUMERIC</code> (or store cents as an <code>INTEGER</code>).</p>
+<pre><code class="language-sql">-- Floating-point rounding in action (SQLite REAL)
 SELECT 0.1 + 0.2;          -- returns 0.300000000000000 ... sometimes
 SELECT 0.1 + 0.2 = 0.3;    -- may return 0 (false!) due to rounding
 
 -- Safe money arithmetic: store cents as INTEGER
 SELECT 10 + 20;             -- 30, exact
 SELECT 10 + 20 = 30;        -- 1 (true), always
-```
-
-> **Note:** SQLite's type system is more flexible ("type affinity") than strict SQL, but the principle holds in PostgreSQL, MySQL, and every other engine. Use `NUMERIC` or integer-cents for financial data.
-
-## Domains: Narrowing the Type Further
-
-A **domain** is a named, reusable type with extra constraints on top of a base type — "an integer, but only 1–100" or "text, but only from this list".
-
-SQL defines domains with `CREATE DOMAIN` (PostgreSQL and the standard). SQLite omits the keyword, but you get the same effect with `CHECK` constraints:
-
-```sql
--- PostgreSQL / standard SQL syntax (for reference)
--- CREATE DOMAIN positive_price AS NUMERIC(10,2) CHECK (VALUE > 0);
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> SQLite&#39;s type system is more flexible (&quot;type affinity&quot;) than strict SQL, but the principle holds in PostgreSQL, MySQL, and every other engine. Use <code>NUMERIC</code> or integer-cents for financial data.</p>
+</blockquote>
+<h2>Domains: Narrowing the Type Further</h2>
+<p>A <strong>domain</strong> is a named, reusable type with extra constraints on top of a base type — &quot;an integer, but only 1–100&quot; or &quot;text, but only from this list&quot;.</p>
+<p>SQL defines domains with <code>CREATE DOMAIN</code> (PostgreSQL and the standard). SQLite omits the keyword, but you get the same effect with <code>CHECK</code> constraints:</p>
+<pre><code class="language-sql">-- PostgreSQL / standard SQL syntax (for reference)
+-- CREATE DOMAIN positive_price AS NUMERIC(10,2) CHECK (VALUE &gt; 0);
 
 -- SQLite equivalent: inline CHECK on the column
 CREATE TABLE products (
   product_id  INTEGER PRIMARY KEY,
   name        TEXT    NOT NULL,
-  price_cents INTEGER NOT NULL CHECK (price_cents > 0),
+  price_cents INTEGER NOT NULL CHECK (price_cents &gt; 0),
   rating      INTEGER          CHECK (rating BETWEEN 1 AND 5)
 );
-```
-
-The column `rating` is still an `INTEGER` at the storage level, but the database will reject any value outside 1–5. That is a domain in practice, even without the formal keyword.
-
-> **Note:** Domains are most valuable when the same constraint would appear on dozens of columns across many tables. Centralizing it in a domain means you fix a rule in one place rather than hunting through every table definition.
-
-## Seeing Types in Action
-
-The widget below creates an `employees` table with mixed types. Run the default query, then try changing a value — for example, swap `'2022-03-15'` for `'not-a-date'` — to see how permissive or strict SQLite is compared to engines like PostgreSQL.
-
+</code></pre>
+<p>The column <code>rating</code> is still an <code>INTEGER</code> at the storage level, but the database will reject any value outside 1–5. That is a domain in practice, even without the formal keyword.</p>
+<blockquote>
+<p><strong>Note:</strong> Domains are most valuable when the same constraint would appear on dozens of columns across many tables. Centralizing it in a domain means you fix a rule in one place rather than hunting through every table definition.</p>
+</blockquote>
+<h2>Seeing Types in Action</h2>
+<p>The widget below creates an <code>employees</code> table with mixed types. Run the default query, then try changing a value — for example, swap <code>&#39;2022-03-15&#39;</code> for <code>&#39;not-a-date&#39;</code> — to see how permissive or strict SQLite is compared to engines like PostgreSQL.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Data Types</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (emp_id INTEGER PRIMARY KEY, name TEXT NOT NULL, salary_cents INTEGER NOT NULL CHECK (salary_cents  rows="20"> 0), hire_date TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))); INSERT INTO employees VALUES (1, 'Alice', 9500000, '2019-06-01', 1), (2, 'Bob', 7200000, '2022-03-15', 1), (3, 'Carol', 8100000, '2020-11-30', 0);">SELECT
+    <textarea data-setup="CREATE TABLE employees (emp_id INTEGER PRIMARY KEY, name TEXT NOT NULL, salary_cents INTEGER NOT NULL CHECK (salary_cents  rows="10"> 0), hire_date TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))); INSERT INTO employees VALUES (1, 'Alice', 9500000, '2019-06-01', 1), (2, 'Bob', 7200000, '2022-03-15', 1), (3, 'Carol', 8100000, '2020-11-30', 0);">SELECT
   name,
   salary_cents / 100.0   AS salary_dollars,
   hire_date,
@@ -92,32 +122,28 @@ The widget below creates an `employees` table with mixed types. Run the default 
 FROM employees
 ORDER BY salary_cents DESC;</textarea>
   </div>
-</div>
-
-Now try adding a row with a violated constraint — change the `CHECK` and see what the engine says:
-
+</div><p>Now try adding a row with a violated constraint — change the <code>CHECK</code> and see what the engine says:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Constraint Rejection</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (emp_id INTEGER PRIMARY KEY, name TEXT NOT NULL, salary_cents INTEGER NOT NULL CHECK (salary_cents  rows="20"> 0), hire_date TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))); INSERT INTO employees VALUES (1, 'Alice', 9500000, '2019-06-01', 1);">-- This should succeed:
+    <textarea data-setup="CREATE TABLE employees (emp_id INTEGER PRIMARY KEY, name TEXT NOT NULL, salary_cents INTEGER NOT NULL CHECK (salary_cents  rows="10"> 0), hire_date TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))); INSERT INTO employees VALUES (1, 'Alice', 9500000, '2019-06-01', 1);">-- This should succeed:
 INSERT INTO employees VALUES (2, 'Bob', 7200000, '2022-03-15', 1);
 -- Now try a bad salary (negative) — uncomment the line below and run:
 -- INSERT INTO employees VALUES (3, 'Bad', -500, '2023-01-01', 1);</textarea>
   </div>
+</div><h2>Why Getting Types Right Matters Early</h2>
+<p>Changing a column&#39;s data type after a table has millions of rows is painful — most engines must rewrite the entire table. A few minutes of thought at design time pays back quickly. The rule of thumb:</p>
+<ul>
+<li>Store <strong>numbers you compute with</strong> as numeric types, not text.</li>
+<li>Store <strong>money</strong> as integer cents or <code>NUMERIC</code>, never <code>FLOAT</code>.</li>
+<li>Store <strong>dates</strong> as <code>DATE</code>/<code>TIMESTAMP</code>, not <code>VARCHAR</code>.</li>
+<li>Use <code>CHECK</code> constraints to encode domain rules in the database, not just in application code.</li>
+</ul>
+<p>Types and domains are the first line of data quality — the safety net that catches what application code misses.</p>
+
 </div>
-
-## Why Getting Types Right Matters Early
-
-Changing a column's data type after a table has millions of rows is painful — most engines must rewrite the entire table. A few minutes of thought at design time pays back quickly. The rule of thumb:
-
-- Store **numbers you compute with** as numeric types, not text.
-- Store **money** as integer cents or `NUMERIC`, never `FLOAT`.
-- Store **dates** as `DATE`/`TIMESTAMP`, not `VARCHAR`.
-- Use `CHECK` constraints to encode domain rules in the database, not just in application code.
-
-Types and domains are the first line of data quality — the safety net that catches what application code misses.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="015-null-and-missing-values.html"><span class="dir">← Previous</span><span class="ttl">NULL and missing values</span></a><a class="next" href="017-normalized-and-denormalized-data.html"><span class="dir">Next →</span><span class="ttl">Normalized and denormalized data</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

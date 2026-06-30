@@ -5,118 +5,168 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Queries, transactions, and schemas — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 1. What a Database System Is</p>
   <h1 class="content-title">Queries, transactions, and schemas</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="003-database-table-row-column.html"><span class="dir">← Previous</span><span class="ttl">Database, table, row, column</span></a><a class="next" href="005-the-role-of-the-database-engine.html"><span class="dir">Next →</span><span class="ttl">The role of the database engine</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every time you ask a database "who are my top customers?" or "how much stock is left?", three distinct concepts are at work under the hood: a **query** that fetches the answer, a **transaction** that keeps changes safe, and a **schema** that defines the shape of the data. Understanding each — and how they relate — is the foundation for everything else in this guide.
-
-## Schemas: the blueprint
-
-A **schema** is a formal description of how data is organized: which tables exist, what columns each table has, and what type of value each column holds. It is the contract between the application and the database.
-
-```sql
-CREATE TABLE orders (
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5a6678"/></marker>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+  </defs>
+  <g transform="translate(10,15)">
+    <!-- Schema box (top, spanning) -->
+    <rect x="0" y="0" width="700" height="42" rx="8" fill="#fef3c7" stroke="#f59e0b" filter="url(#sh)"/>
+    <text x="350" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#d97706">SCHEMA — The contract</text>
+    <text x="350" y="33" text-anchor="middle" font-size="10" fill="#92400e">Tables, columns, types, constraints… validated before any data is touched</text>
+    <!-- Down arrow from schema -->
+    <line x1="350" y1="42" x2="350" y2="58" stroke="#d97706" stroke-width="1.5" marker-end="url(#ar)"/>
+    <!-- Query box -->
+    <rect x="15" y="60" width="210" height="50" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="120" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">🔍 Query</text>
+    <text x="120" y="98" text-anchor="middle" font-size="10" fill="#5a6678">"What data do I want?"</text>
+    <!-- Arrow -->
+    <line x1="225" y1="85" x2="265" y2="85" stroke="#5a6678" stroke-width="1.5" marker-end="url(#ar)"/>
+    <!-- Engine box -->
+    <rect x="275" y="60" width="160" height="50" rx="8" fill="#fff" stroke="#93c5fd" filter="url(#sh)"/>
+    <text x="355" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#1c2330">⚙️ Engine</text>
+    <text x="355" y="98" text-anchor="middle" font-size="10" fill="#5a6678">Parse → Plan → Execute</text>
+    <!-- Arrow -->
+    <line x1="435" y1="85" x2="475" y2="85" stroke="#5a6678" stroke-width="1.5" marker-end="url(#ar)"/>
+    <!-- Result box -->
+    <rect x="485" y="60" width="210" height="50" rx="8" fill="#dcfce7" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="590" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#16a34a">📊 Result Set</text>
+    <text x="590" y="98" text-anchor="middle" font-size="10" fill="#5a6678">Rows matching the query</text>
+    <!-- Transaction boundary (bottom) -->
+    <rect x="15" y="130" width="680" height="60" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-dasharray="6,4" filter="url(#sh)"/>
+    <text x="40" y="152" font-size="12" font-weight="700" fill="#16a34a">🔒 TRANSACTION</text>
+    <text x="40" y="170" font-size="10" fill="#5a6678">BEGIN → (INSERT, UPDATE, DELETE…) → COMMIT or ROLLBACK</text>
+    <text x="560" y="160" font-size="10" fill="#16a34a" font-weight="600">ACID guarantees</text>
+    <text x="560" y="175" font-size="9" fill="#5a6678">Atomicity · Consistency · Isolation · Durability</text>
+  </g>
+</svg>
+<figcaption>Three pillars: the schema defines the shape, queries retrieve and manipulate, transactions keep multi-step changes safe.</figcaption>
+</figure>
+<p>Every time you ask a database &quot;who are my top customers?&quot; or &quot;how much stock is left?&quot;, three distinct concepts are at work under the hood: a <strong>query</strong> that fetches the answer, a <strong>transaction</strong> that keeps changes safe, and a <strong>schema</strong> that defines the shape of the data. Understanding each — and how they relate — is the foundation for everything else in this guide.</p>
+<h2>Schemas: the blueprint</h2>
+<p>A <strong>schema</strong> is a formal description of how data is organized: which tables exist, what columns each table has, and what type of value each column holds. It is the contract between the application and the database.</p>
+<pre><code class="language-sql">CREATE TABLE orders (
     id      INTEGER PRIMARY KEY,
     customer TEXT    NOT NULL,
     amount  REAL    NOT NULL,
     placed  TEXT    NOT NULL   -- stored as ISO date string in SQLite
 );
-```
-
-The schema says: every order must have an `id`, a `customer` name, a numeric `amount`, and a `placed` date. The database enforces this — try inserting a row with a missing `amount` and it will refuse.
-
-Think of a schema as the spreadsheet's column headers, but with rules attached: required vs. optional, integers vs. text, references to other tables. Those rules are called **constraints**, and they are what let you trust the data you get back.
-
-> **Note:** "Schema" sometimes refers to a single table's structure, and sometimes to the full set of tables in a database. The meaning is usually clear from context.
-
-## Queries: asking questions
-
-A **query** is a request sent to the database — typically written in SQL (Structured Query Language). The database engine interprets the query, finds the relevant rows, and returns a result set.
-
-SQL queries are *declarative*: you say **what** you want, not **how** to find it. The database figures out the efficient path on its own.
-
-The core of most queries is `SELECT … FROM … WHERE`:
-
-| Clause | Purpose |
-|--------|---------|
-| `SELECT` | Which columns to include in the result |
-| `FROM` | Which table(s) to read |
-| `WHERE` | Filter rows to only those matching a condition |
-| `ORDER BY` | Sort the result |
-| `LIMIT` | Cap the number of rows returned |
-
-Try the widget below. The setup creates an `orders` table with five rows. The default query finds orders above a threshold — edit the amount or add an `ORDER BY` clause to explore.
-
+</code></pre>
+<p>The schema says: every order must have an <code>id</code>, a <code>customer</code> name, a numeric <code>amount</code>, and a <code>placed</code> date. The database enforces this — try inserting a row with a missing <code>amount</code> and it will refuse.</p>
+<p>Think of a schema as the spreadsheet&#39;s column headers, but with rules attached: required vs. optional, integers vs. text, references to other tables. Those rules are called <strong>constraints</strong>, and they are what let you trust the data you get back.</p>
+<blockquote>
+<p><strong>Note:</strong> &quot;Schema&quot; sometimes refers to a single table&#39;s structure, and sometimes to the full set of tables in a database. The meaning is usually clear from context.</p>
+</blockquote>
+<h2>Queries: asking questions</h2>
+<p>A <strong>query</strong> is a request sent to the database — typically written in SQL (Structured Query Language). The database engine interprets the query, finds the relevant rows, and returns a result set.</p>
+<p>SQL queries are <em>declarative</em>: you say <strong>what</strong> you want, not <strong>how</strong> to find it. The database figures out the efficient path on its own.</p>
+<p>The core of most queries is <code>SELECT … FROM … WHERE</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Clause</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SELECT</code></td>
+<td>Which columns to include in the result</td>
+</tr>
+<tr>
+<td><code>FROM</code></td>
+<td>Which table(s) to read</td>
+</tr>
+<tr>
+<td><code>WHERE</code></td>
+<td>Filter rows to only those matching a condition</td>
+</tr>
+<tr>
+<td><code>ORDER BY</code></td>
+<td>Sort the result</td>
+</tr>
+<tr>
+<td><code>LIMIT</code></td>
+<td>Cap the number of rows returned</td>
+</tr>
+</tbody></table>
+<p>Try the widget below. The setup creates an <code>orders</code> table with five rows. The default query finds orders above a threshold — edit the amount or add an <code>ORDER BY</code> clause to explore.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · queries</span></div>
   <div class="widget-body">
     <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT NOT NULL, amount REAL NOT NULL, placed TEXT NOT NULL);
-INSERT INTO orders VALUES (1,'Alice',120.00,'2026-01-03'),(2,'Bob',45.50,'2026-01-04'),(3,'Alice',300.00,'2026-01-05'),(4,'Chidi',88.00,'2026-01-06'),(5,'Bob',210.00,'2026-01-07');" rows="20">SELECT customer, amount, placed
+INSERT INTO orders VALUES (1,'Alice',120.00,'2026-01-03'),(2,'Bob',45.50,'2026-01-04'),(3,'Alice',300.00,'2026-01-05'),(4,'Chidi',88.00,'2026-01-06'),(5,'Bob',210.00,'2026-01-07');" rows="10">SELECT customer, amount, placed
 FROM orders
 WHERE amount > 100
 ORDER BY amount DESC;</textarea>
   </div>
-</div>
-
-## Transactions: keeping changes safe
-
-A **transaction** is a group of database operations that are treated as a single, indivisible unit. Either every operation in the group succeeds and is committed to disk, or — if anything goes wrong — none of them are, and the database is rolled back to where it started.
-
-The classic example is a bank transfer. Moving $200 from account A to account B involves two writes:
-
-1. Deduct $200 from A.
-2. Add $200 to B.
-
-If a crash happens between step 1 and step 2, the money vanishes. A transaction prevents this by wrapping both steps in a single commit. The database guarantees they happen together or not at all.
-
-Transactions are governed by four properties, collectively known as **ACID**:
-
-| Property | What it means |
-|----------|--------------|
-| **Atomicity** | All operations in the transaction succeed, or none do |
-| **Consistency** | The transaction can only leave the database in a valid state (all constraints still satisfied) |
-| **Isolation** | Concurrent transactions don't see each other's partial work |
-| **Durability** | Once committed, the change survives crashes and power loss |
-
-The widget below simulates the two-step transfer. Watch what happens when you run it — then try commenting out the `COMMIT` line (prepend `--`) and re-running: the change is visible inside the transaction but is never finalized.
-
+</div><h2>Transactions: keeping changes safe</h2>
+<p>A <strong>transaction</strong> is a group of database operations that are treated as a single, indivisible unit. Either every operation in the group succeeds and is committed to disk, or — if anything goes wrong — none of them are, and the database is rolled back to where it started.</p>
+<p>The classic example is a bank transfer. Moving $200 from account A to account B involves two writes:</p>
+<ol>
+<li>Deduct $200 from A.</li>
+<li>Add $200 to B.</li>
+</ol>
+<p>If a crash happens between step 1 and step 2, the money vanishes. A transaction prevents this by wrapping both steps in a single commit. The database guarantees they happen together or not at all.</p>
+<p>Transactions are governed by four properties, collectively known as <strong>ACID</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Atomicity</strong></td>
+<td>All operations in the transaction succeed, or none do</td>
+</tr>
+<tr>
+<td><strong>Consistency</strong></td>
+<td>The transaction can only leave the database in a valid state (all constraints still satisfied)</td>
+</tr>
+<tr>
+<td><strong>Isolation</strong></td>
+<td>Concurrent transactions don&#39;t see each other&#39;s partial work</td>
+</tr>
+<tr>
+<td><strong>Durability</strong></td>
+<td>Once committed, the change survives crashes and power loss</td>
+</tr>
+</tbody></table>
+<p>The widget below simulates the two-step transfer. Watch what happens when you run it — then try commenting out the <code>COMMIT</code> line (prepend <code>--</code>) and re-running: the change is visible inside the transaction but is never finalized.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · transactions</span></div>
   <div class="widget-body">
     <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance REAL NOT NULL);
-INSERT INTO accounts VALUES (1,'Alice',500.00),(2,'Bob',100.00);" rows="20">BEGIN;
+INSERT INTO accounts VALUES (1,'Alice',500.00),(2,'Bob',100.00);" rows="10">BEGIN;
 UPDATE accounts SET balance = balance - 200 WHERE owner = 'Alice';
 UPDATE accounts SET balance = balance + 200 WHERE owner = 'Bob';
 COMMIT;
 -- Now check the result:
 SELECT owner, balance FROM accounts;</textarea>
   </div>
+</div><h2>How the three fit together</h2>
+<p>Schemas, queries, and transactions operate at different layers but depend on each other:</p>
+<ul>
+<li>The <strong>schema</strong> defines <em>what</em> can exist in the database and enforces correctness at write time.</li>
+<li><strong>Queries</strong> read (and write) data within the structure the schema defines.</li>
+<li><strong>Transactions</strong> wrap queries into safe, atomic units so that concurrent users and unexpected failures can&#39;t corrupt the data.</li>
+</ul>
+<p>Remove any one of the three and the system breaks down: a schemaless store has no guarantees about shape; a store without queries can&#39;t be asked meaningful questions; a store without transactions can&#39;t safely handle more than one writer at a time.</p>
+
 </div>
-
-## How the three fit together
-
-Schemas, queries, and transactions operate at different layers but depend on each other:
-
-- The **schema** defines *what* can exist in the database and enforces correctness at write time.
-- **Queries** read (and write) data within the structure the schema defines.
-- **Transactions** wrap queries into safe, atomic units so that concurrent users and unexpected failures can't corrupt the data.
-
-Remove any one of the three and the system breaks down: a schemaless store has no guarantees about shape; a store without queries can't be asked meaningful questions; a store without transactions can't safely handle more than one writer at a time.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="003-database-table-row-column.html"><span class="dir">← Previous</span><span class="ttl">Database, table, row, column</span></a><a class="next" href="005-the-role-of-the-database-engine.html"><span class="dir">Next →</span><span class="ttl">The role of the database engine</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

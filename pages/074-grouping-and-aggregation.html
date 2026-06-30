@@ -5,94 +5,103 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Grouping and aggregation — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 8. Joins, Aggregation, and Sorting</p>
   <h1 class="content-title">Grouping and aggregation</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="073-merge-joins.html"><span class="dir">← Previous</span><span class="ttl">Merge joins</span></a><a class="next" href="075-external-sort.html"><span class="dir">Next →</span><span class="ttl">External sort</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-So far you have filtered rows with `WHERE` and sorted them with `ORDER BY`. Those operations work on individual rows. **Aggregation** is different: it collapses many rows into a single summary value — a count, a sum, an average, a minimum, or a maximum. **Grouping** lets you compute those summaries separately for each subset of your data. Together, `GROUP BY` and the aggregate functions are among the most practically useful tools in SQL.
-
-## Aggregate Functions
-
-SQLite (and every major relational database) ships with five core aggregate functions:
-
-| Function | Returns |
-|---|---|
-| `COUNT(*)` | Number of rows |
-| `COUNT(expr)` | Number of non-NULL values of expr |
-| `SUM(expr)` | Total of all non-NULL values |
-| `AVG(expr)` | Arithmetic mean of non-NULL values |
-| `MIN(expr)` / `MAX(expr)` | Smallest / largest non-NULL value |
-
-Used without `GROUP BY`, each function collapses the **entire table** into one row:
-
-```sql
-SELECT COUNT(*) AS total_orders,
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">074-grouping-and-aggregation</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 074-grouping-and-aggregation.</figcaption>
+</figure>
+<p>So far you have filtered rows with <code>WHERE</code> and sorted them with <code>ORDER BY</code>. Those operations work on individual rows. <strong>Aggregation</strong> is different: it collapses many rows into a single summary value — a count, a sum, an average, a minimum, or a maximum. <strong>Grouping</strong> lets you compute those summaries separately for each subset of your data. Together, <code>GROUP BY</code> and the aggregate functions are among the most practically useful tools in SQL.</p>
+<h2>Aggregate Functions</h2>
+<p>SQLite (and every major relational database) ships with five core aggregate functions:</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>COUNT(*)</code></td>
+<td>Number of rows</td>
+</tr>
+<tr>
+<td><code>COUNT(expr)</code></td>
+<td>Number of non-NULL values of expr</td>
+</tr>
+<tr>
+<td><code>SUM(expr)</code></td>
+<td>Total of all non-NULL values</td>
+</tr>
+<tr>
+<td><code>AVG(expr)</code></td>
+<td>Arithmetic mean of non-NULL values</td>
+</tr>
+<tr>
+<td><code>MIN(expr)</code> / <code>MAX(expr)</code></td>
+<td>Smallest / largest non-NULL value</td>
+</tr>
+</tbody></table>
+<p>Used without <code>GROUP BY</code>, each function collapses the <strong>entire table</strong> into one row:</p>
+<pre><code class="language-sql">SELECT COUNT(*) AS total_orders,
        SUM(amount) AS revenue,
        AVG(amount) AS avg_order
 FROM orders;
-```
-
-That is useful, but often you want the same numbers broken down by category — by customer, by month, by product. That is where `GROUP BY` comes in.
-
-## Grouping Rows with GROUP BY
-
-`GROUP BY` partitions the result set into groups, one per distinct combination of the grouping columns, and then applies the aggregate function independently to each group.
-
-```sql
-SELECT customer_id,
+</code></pre>
+<p>That is useful, but often you want the same numbers broken down by category — by customer, by month, by product. That is where <code>GROUP BY</code> comes in.</p>
+<h2>Grouping Rows with GROUP BY</h2>
+<p><code>GROUP BY</code> partitions the result set into groups, one per distinct combination of the grouping columns, and then applies the aggregate function independently to each group.</p>
+<pre><code class="language-sql">SELECT customer_id,
        COUNT(*)   AS order_count,
        SUM(amount) AS total_spent
 FROM orders
 GROUP BY customer_id;
-```
-
-Think of it as: "For each unique value of `customer_id`, count and sum the rows that belong to it." The engine scans all the rows, buckets them by `customer_id`, and emits one output row per bucket.
-
-> **Note:** Every column in the `SELECT` list must either be one of the `GROUP BY` columns or wrapped in an aggregate function. Selecting a column that is neither — for example `SELECT customer_id, product_name, SUM(amount)` while grouping only by `customer_id` — is an error in standard SQL (SQLite is lenient here, but the result is unpredictable).
-
-### Filtering Groups with HAVING
-
-`WHERE` filters **rows before** grouping. To filter **after** aggregation — for example, "only show customers who placed more than two orders" — use `HAVING`:
-
-```sql
-SELECT customer_id,
+</code></pre>
+<p>Think of it as: &quot;For each unique value of <code>customer_id</code>, count and sum the rows that belong to it.&quot; The engine scans all the rows, buckets them by <code>customer_id</code>, and emits one output row per bucket.</p>
+<blockquote>
+<p><strong>Note:</strong> Every column in the <code>SELECT</code> list must either be one of the <code>GROUP BY</code> columns or wrapped in an aggregate function. Selecting a column that is neither — for example <code>SELECT customer_id, product_name, SUM(amount)</code> while grouping only by <code>customer_id</code> — is an error in standard SQL (SQLite is lenient here, but the result is unpredictable).</p>
+</blockquote>
+<h3>Filtering Groups with HAVING</h3>
+<p><code>WHERE</code> filters <strong>rows before</strong> grouping. To filter <strong>after</strong> aggregation — for example, &quot;only show customers who placed more than two orders&quot; — use <code>HAVING</code>:</p>
+<pre><code class="language-sql">SELECT customer_id,
        COUNT(*) AS order_count
 FROM orders
 GROUP BY customer_id
-HAVING COUNT(*) > 2;
-```
-
-`HAVING` operates on the aggregated result, so aggregate functions are valid inside it. `WHERE` cannot reference aggregate functions at all.
-
-The logical order of a `SELECT` query is:
-
-1. `FROM` — identify the source rows
-2. `WHERE` — filter individual rows
-3. `GROUP BY` — partition into groups
-4. `HAVING` — filter groups
-5. `SELECT` — compute output columns
-6. `ORDER BY` — sort the final result
-
-## Try It Live
-
-The widget below has a small `orders` table with customers, products, and amounts. Run the default query, then experiment — try grouping by `product`, or add a `HAVING` clause to keep only high-revenue groups.
-
+HAVING COUNT(*) &gt; 2;
+</code></pre>
+<p><code>HAVING</code> operates on the aggregated result, so aggregate functions are valid inside it. <code>WHERE</code> cannot reference aggregate functions at all.</p>
+<p>The logical order of a <code>SELECT</code> query is:</p>
+<ol>
+<li><code>FROM</code> — identify the source rows</li>
+<li><code>WHERE</code> — filter individual rows</li>
+<li><code>GROUP BY</code> — partition into groups</li>
+<li><code>HAVING</code> — filter groups</li>
+<li><code>SELECT</code> — compute output columns</li>
+<li><code>ORDER BY</code> — sort the final result</li>
+</ol>
+<h2>Try It Live</h2>
+<p>The widget below has a small <code>orders</code> table with customers, products, and amounts. Run the default query, then experiment — try grouping by <code>product</code>, or add a <code>HAVING</code> clause to keep only high-revenue groups.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · GROUP BY and aggregates</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Priya', 'Keyboard', 79.99), (2, 'Leon', 'Monitor', 329.00), (3, 'Priya', 'Mouse', 29.99), (4, 'Amara', 'Keyboard', 79.99), (5, 'Leon', 'Keyboard', 79.99), (6, 'Amara', 'Monitor', 329.00), (7, 'Priya', 'Monitor', 329.00), (8, 'Amara', 'Mouse', 29.99);" rows="20">-- Revenue and order count per customer
+    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Priya', 'Keyboard', 79.99), (2, 'Leon', 'Monitor', 329.00), (3, 'Priya', 'Mouse', 29.99), (4, 'Amara', 'Keyboard', 79.99), (5, 'Leon', 'Keyboard', 79.99), (6, 'Amara', 'Monitor', 329.00), (7, 'Priya', 'Monitor', 329.00), (8, 'Amara', 'Mouse', 29.99);" rows="10">-- Revenue and order count per customer
 SELECT customer,
        COUNT(*)        AS order_count,
        SUM(amount)     AS total_spent,
@@ -101,14 +110,11 @@ FROM orders
 GROUP BY customer
 ORDER BY total_spent DESC;</textarea>
   </div>
-</div>
-
-Now try filtering with `HAVING`. The widget below starts with the same dataset — edit the query to see only customers who spent more than $400 in total.
-
+</div><p>Now try filtering with <code>HAVING</code>. The widget below starts with the same dataset — edit the query to see only customers who spent more than $400 in total.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · HAVING clause</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Priya', 'Keyboard', 79.99), (2, 'Leon', 'Monitor', 329.00), (3, 'Priya', 'Mouse', 29.99), (4, 'Amara', 'Keyboard', 79.99), (5, 'Leon', 'Keyboard', 79.99), (6, 'Amara', 'Monitor', 329.00), (7, 'Priya', 'Monitor', 329.00), (8, 'Amara', 'Mouse', 29.99);" rows="20">-- Which products had total revenue above $200?
+    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Priya', 'Keyboard', 79.99), (2, 'Leon', 'Monitor', 329.00), (3, 'Priya', 'Mouse', 29.99), (4, 'Amara', 'Keyboard', 79.99), (5, 'Leon', 'Keyboard', 79.99), (6, 'Amara', 'Monitor', 329.00), (7, 'Priya', 'Monitor', 329.00), (8, 'Amara', 'Mouse', 29.99);" rows="10">-- Which products had total revenue above $200?
 SELECT product,
        SUM(amount) AS revenue
 FROM orders
@@ -116,17 +122,18 @@ GROUP BY product
 HAVING SUM(amount) > 200
 ORDER BY revenue DESC;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li>Aggregate functions (<code>COUNT</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code>) reduce many rows to one summary value.</li>
+<li><code>GROUP BY</code> applies those functions per group rather than across the whole table.</li>
+<li>Every non-aggregate column in <code>SELECT</code> must appear in <code>GROUP BY</code>.</li>
+<li>Use <code>WHERE</code> to filter rows before grouping; use <code>HAVING</code> to filter groups after aggregation.</li>
+<li>The logical execution order — <code>FROM</code> → <code>WHERE</code> → <code>GROUP BY</code> → <code>HAVING</code> → <code>SELECT</code> → <code>ORDER BY</code> — explains why aggregate expressions are legal in <code>HAVING</code> and <code>ORDER BY</code> but not in <code>WHERE</code>.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- Aggregate functions (`COUNT`, `SUM`, `AVG`, `MIN`, `MAX`) reduce many rows to one summary value.
-- `GROUP BY` applies those functions per group rather than across the whole table.
-- Every non-aggregate column in `SELECT` must appear in `GROUP BY`.
-- Use `WHERE` to filter rows before grouping; use `HAVING` to filter groups after aggregation.
-- The logical execution order — `FROM` → `WHERE` → `GROUP BY` → `HAVING` → `SELECT` → `ORDER BY` — explains why aggregate expressions are legal in `HAVING` and `ORDER BY` but not in `WHERE`.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="073-merge-joins.html"><span class="dir">← Previous</span><span class="ttl">Merge joins</span></a><a class="next" href="075-external-sort.html"><span class="dir">Next →</span><span class="ttl">External sort</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

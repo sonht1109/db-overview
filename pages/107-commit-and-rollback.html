@@ -5,91 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Commit and rollback — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 11. Transactions</p>
   <h1 class="content-title">Commit and rollback</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="106-transaction-boundaries.html"><span class="dir">← Previous</span><span class="ttl">Transaction boundaries</span></a><a class="next" href="108-multi-step-updates.html"><span class="dir">Next →</span><span class="ttl">Multi-step updates</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every transaction lives in one of two states: **in progress** or **ended**. Ending a transaction is a deliberate choice — you either tell the database to make all your changes permanent (`COMMIT`) or to erase them entirely (`ROLLBACK`). Those two commands are the on/off switch for every guarantee that transactions provide.
-
-## What Commit and Rollback Actually Do
-
-When you open a transaction with `BEGIN`, the database engine starts tracking every change you make — which rows you inserted, updated, or deleted. Until you commit, those changes live in a private workspace that only your session can see. Other sessions see the old data; you see your in-progress version.
-
-**`COMMIT`** tells the engine: *I am done, make this real.* The engine flushes the changes to durable storage (typically by writing a record to the write-ahead log first), releases any locks, and makes the new data visible to every other session. Once a commit returns successfully, the changes survive crashes.
-
-**`ROLLBACK`** tells the engine: *Discard everything since BEGIN.* The engine undoes every change in the transaction — new rows are deleted, modified rows are restored to their previous values — and the database is left exactly as it was before the `BEGIN`. No trace of the aborted work remains.
-
+  <div id="rendered" class="content">
+<p>Every transaction lives in one of two states: <strong>in progress</strong> or <strong>ended</strong>. Ending a transaction is a deliberate choice — you either tell the database to make all your changes permanent (<code>COMMIT</code>) or to erase them entirely (<code>ROLLBACK</code>). Those two commands are the on/off switch for every guarantee that transactions provide.</p>
+<h2>What Commit and Rollback Actually Do</h2>
+<p>When you open a transaction with <code>BEGIN</code>, the database engine starts tracking every change you make — which rows you inserted, updated, or deleted. Until you commit, those changes live in a private workspace that only your session can see. Other sessions see the old data; you see your in-progress version.</p>
+<p><strong><code>COMMIT</code></strong> tells the engine: <em>I am done, make this real.</em> The engine flushes the changes to durable storage (typically by writing a record to the write-ahead log first), releases any locks, and makes the new data visible to every other session. Once a commit returns successfully, the changes survive crashes.</p>
+<p><strong><code>ROLLBACK</code></strong> tells the engine: <em>Discard everything since BEGIN.</em> The engine undoes every change in the transaction — new rows are deleted, modified rows are restored to their previous values — and the database is left exactly as it was before the <code>BEGIN</code>. No trace of the aborted work remains.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Transaction lifecycle: BEGIN leads to in-progress changes, which branch to COMMIT (changes persisted) or ROLLBACK (changes discarded)">
   <!-- Timeline spine -->
-  <line x1="60" y1="110" x2="260" y2="110" stroke="var(--border)" stroke-width="2"/>
-
-  <!-- BEGIN node -->
+  <line x1="60" y1="110" x2="260" y2="110" stroke="var(--border)" stroke-width="2"/>  <!-- BEGIN node -->
   <circle cx="60" cy="110" r="22" fill="var(--surface-2)" stroke="var(--border)" stroke-width="2"/>
-  <text x="60" y="114" text-anchor="middle" font-size="13" fill="var(--text)">BEGIN</text>
-
-  <!-- In-progress box -->
+  <text x="60" y="114" text-anchor="middle" font-size="13" fill="var(--text)">BEGIN</text>  <!-- In-progress box -->
   <rect x="140" y="88" width="120" height="44" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="2"/>
   <text x="200" y="107" text-anchor="middle" font-size="13" fill="var(--text)">In-progress</text>
-  <text x="200" y="123" text-anchor="middle" font-size="12" fill="var(--text)">changes</text>
-
-  <!-- Branch lines -->
+  <text x="200" y="123" text-anchor="middle" font-size="12" fill="var(--text)">changes</text>  <!-- Branch lines -->
   <!-- Upper branch to COMMIT -->
   <line x1="260" y1="110" x2="380" y2="55" stroke="var(--border)" stroke-width="2"/>
   <!-- Lower branch to ROLLBACK -->
-  <line x1="260" y1="110" x2="380" y2="165" stroke="var(--border)" stroke-width="2"/>
-
-  <!-- COMMIT node -->
+  <line x1="260" y1="110" x2="380" y2="165" stroke="var(--border)" stroke-width="2"/>  <!-- COMMIT node -->
   <rect x="380" y="32" width="120" height="46" rx="8" fill="var(--accent)" stroke="var(--border)" stroke-width="2" opacity="0.85"/>
   <text x="440" y="52" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--surface-2)">COMMIT</text>
-  <text x="440" y="70" text-anchor="middle" font-size="12" fill="var(--surface-2)">changes persisted</text>
-
-  <!-- ROLLBACK node -->
+  <text x="440" y="70" text-anchor="middle" font-size="12" fill="var(--surface-2)">changes persisted</text>  <!-- ROLLBACK node -->
   <rect x="380" y="142" width="120" height="46" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="2"/>
   <text x="440" y="162" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text)">ROLLBACK</text>
-  <text x="440" y="180" text-anchor="middle" font-size="12" fill="var(--text)">changes discarded</text>
-
-  <!-- Outcome arrows -->
+  <text x="440" y="180" text-anchor="middle" font-size="12" fill="var(--text)">changes discarded</text>  <!-- Outcome arrows -->
   <line x1="500" y1="55" x2="580" y2="55" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <text x="585" y="59" font-size="12" fill="var(--text)">visible to all</text>
-
-  <line x1="500" y1="165" x2="580" y2="165" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="585" y="59" font-size="12" fill="var(--text)">visible to all</text>  <line x1="500" y1="165" x2="580" y2="165" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4 3"/>
   <text x="585" y="169" font-size="12" fill="var(--text)">as if never ran</text>
 </svg>
 <figcaption>A transaction either commits (changes become durable and visible) or rolls back (changes vanish).</figcaption>
-</figure>
-
-## Implicit vs. Explicit Transactions
-
-Most databases support two modes:
-
-| Mode | How it works | When to use |
-|---|---|---|
-| **Explicit** | You write `BEGIN` … `COMMIT`/`ROLLBACK` yourself | Multi-statement operations that must be atomic |
-| **Auto-commit** | Every statement is its own one-statement transaction | Quick, standalone reads and single-row writes |
-
-> **Note:** Auto-commit is on by default in most database clients. Every `INSERT`, `UPDATE`, or `DELETE` you run without an explicit `BEGIN` is automatically committed the moment it succeeds. This is convenient but means there is no safety net — a mistaken `DELETE` without a `WHERE` clause is permanent as soon as it runs.
-
-Always use explicit transactions when multiple statements need to succeed or fail together.
-
-## Automatic Rollback on Error
-
-You do not always have to call `ROLLBACK` yourself. If a statement inside a transaction causes an error (a constraint violation, a type mismatch, a deadlock), the database marks the transaction as **aborted**. Any further statements in the same transaction will be rejected, and when you eventually call `COMMIT` — or when the connection drops — the engine rolls back automatically.
-
-```sql
-BEGIN;
+</figure><h2>Implicit vs. Explicit Transactions</h2>
+<p>Most databases support two modes:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>How it works</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Explicit</strong></td>
+<td>You write <code>BEGIN</code> … <code>COMMIT</code>/<code>ROLLBACK</code> yourself</td>
+<td>Multi-statement operations that must be atomic</td>
+</tr>
+<tr>
+<td><strong>Auto-commit</strong></td>
+<td>Every statement is its own one-statement transaction</td>
+<td>Quick, standalone reads and single-row writes</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> Auto-commit is on by default in most database clients. Every <code>INSERT</code>, <code>UPDATE</code>, or <code>DELETE</code> you run without an explicit <code>BEGIN</code> is automatically committed the moment it succeeds. This is convenient but means there is no safety net — a mistaken <code>DELETE</code> without a <code>WHERE</code> clause is permanent as soon as it runs.</p>
+</blockquote>
+<p>Always use explicit transactions when multiple statements need to succeed or fail together.</p>
+<h2>Automatic Rollback on Error</h2>
+<p>You do not always have to call <code>ROLLBACK</code> yourself. If a statement inside a transaction causes an error (a constraint violation, a type mismatch, a deadlock), the database marks the transaction as <strong>aborted</strong>. Any further statements in the same transaction will be rejected, and when you eventually call <code>COMMIT</code> — or when the connection drops — the engine rolls back automatically.</p>
+<pre><code class="language-sql">BEGIN;
 
 INSERT INTO orders (id, customer_id, total) VALUES (101, 9, 250.00);
 
@@ -98,18 +79,14 @@ INSERT INTO orders (id, customer_id, total) VALUES (102, 999, 75.00);
 
 -- The transaction is now aborted. Even calling COMMIT here rolls back.
 COMMIT;  -- behaves like ROLLBACK — neither row is saved
-```
-
-This all-or-nothing behavior is what "atomicity" means in practice: a half-finished transaction cannot be committed.
-
-## Trying It Live
-
-The widget below sets up a small `accounts` table. Run the block as-is to see a successful commit. Then change `COMMIT` to `ROLLBACK` and re-run — notice that the balance stays at its original value, as if the update never happened.
-
+</code></pre>
+<p>This all-or-nothing behavior is what &quot;atomicity&quot; means in practice: a half-finished transaction cannot be committed.</p>
+<h2>Trying It Live</h2>
+<p>The widget below sets up a small <code>accounts</code> table. Run the block as-is to see a successful commit. Then change <code>COMMIT</code> to <code>ROLLBACK</code> and re-run — notice that the balance stays at its original value, as if the update never happened.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Commit vs. rollback</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1, 'Alice', 500); INSERT INTO accounts VALUES (2, 'Bob', 300);" rows="20">-- Transfer $100 from Alice to Bob.
+    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1, 'Alice', 500); INSERT INTO accounts VALUES (2, 'Bob', 300);" rows="10">-- Transfer $100 from Alice to Bob.
 -- Change COMMIT to ROLLBACK to undo everything.
 BEGIN;
 UPDATE accounts SET balance = balance - 100 WHERE id = 1;
@@ -118,18 +95,12 @@ COMMIT;
 -- See the final state:
 SELECT id, owner, balance FROM accounts;</textarea>
   </div>
-</div>
+</div><p>Now try introducing an error. Remove the second <code>UPDATE</code> entirely and add a line that references a non-existent row (<code>WHERE id = 99</code>). The first update succeeds in isolation, but swap <code>COMMIT</code> for <code>ROLLBACK</code> and confirm that Alice&#39;s balance is untouched — demonstrating that you control the outcome right up until the commit.</p>
+<h2>Savepoints: Partial Rollback</h2>
+<p>Full rollback is all-or-nothing, but SQL also provides <strong>savepoints</strong> — named checkpoints within a transaction that you can roll back to without aborting the whole thing.</p>
+<pre><code class="language-sql">BEGIN;
 
-Now try introducing an error. Remove the second `UPDATE` entirely and add a line that references a non-existent row (`WHERE id = 99`). The first update succeeds in isolation, but swap `COMMIT` for `ROLLBACK` and confirm that Alice's balance is untouched — demonstrating that you control the outcome right up until the commit.
-
-## Savepoints: Partial Rollback
-
-Full rollback is all-or-nothing, but SQL also provides **savepoints** — named checkpoints within a transaction that you can roll back to without aborting the whole thing.
-
-```sql
-BEGIN;
-
-INSERT INTO audit_log (msg) VALUES ('started');
+INSERT INTO audit_log (msg) VALUES (&#39;started&#39;);
 
 SAVEPOINT before_risky_step;
 
@@ -141,11 +112,12 @@ ROLLBACK TO SAVEPOINT before_risky_step;
 UPDATE inventory SET qty = qty - 10 WHERE product_id = 5;   -- correct amount
 
 COMMIT;  -- the audit log insert AND the corrected update are committed
-```
+</code></pre>
+<p>Savepoints are useful in long transactions where one optional step can fail without invalidating earlier work — common in batch imports and stored procedures.</p>
 
-Savepoints are useful in long transactions where one optional step can fail without invalidating earlier work — common in batch imports and stored procedures.
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="106-transaction-boundaries.html"><span class="dir">← Previous</span><span class="ttl">Transaction boundaries</span></a><a class="next" href="108-multi-step-updates.html"><span class="dir">Next →</span><span class="ttl">Multi-step updates</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

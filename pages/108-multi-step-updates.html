@@ -5,46 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Multi-step updates — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 11. Transactions</p>
   <h1 class="content-title">Multi-step updates</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="107-commit-and-rollback.html"><span class="dir">← Previous</span><span class="ttl">Commit and rollback</span></a><a class="next" href="109-real-examples-of-broken-logic.html"><span class="dir">Next →</span><span class="ttl">Real examples of broken logic</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Most real database work isn't a single `INSERT` or a lone `SELECT` — it's a **sequence of related writes** that must all succeed together to leave the database in a meaningful state. Transferring money, placing an order, or cancelling a reservation all involve touching multiple rows (sometimes across multiple tables) in a specific order. This is what makes multi-step updates both powerful and dangerous.
-
-## Why multiple steps are needed
-
-A single SQL statement can change many rows at once, but it can only change one *thing at a time* — one table, one kind of change. Real operations cross those boundaries.
-
-Consider an e-commerce order:
-
-1. Insert a new row into `orders`.
-2. Insert one row per product into `order_items`.
-3. Decrement the `stock` count for each product.
-4. Deduct the total from the customer's credit balance.
-
-Each step reads work done by the step before it. If step 3 fails (e.g., a stock count would go negative and violate a constraint), leaving steps 1 and 2 already committed would corrupt the database — you'd have a "ghost" order with items but no reserved stock.
-
-## Transactions wrap the steps
-
-The database's answer is the **transaction**: a named boundary inside which all steps are executed together. You open a transaction with `BEGIN`, do your work, and then either:
-
-- **`COMMIT`** — finalize all changes at once, making them visible to others.
-- **`ROLLBACK`** — undo every change made inside the transaction, as if it never happened.
-
-```sql
-BEGIN;
+  <div id="rendered" class="content">
+<p>Most real database work isn&#39;t a single <code>INSERT</code> or a lone <code>SELECT</code> — it&#39;s a <strong>sequence of related writes</strong> that must all succeed together to leave the database in a meaningful state. Transferring money, placing an order, or cancelling a reservation all involve touching multiple rows (sometimes across multiple tables) in a specific order. This is what makes multi-step updates both powerful and dangerous.</p>
+<h2>Why multiple steps are needed</h2>
+<p>A single SQL statement can change many rows at once, but it can only change one <em>thing at a time</em> — one table, one kind of change. Real operations cross those boundaries.</p>
+<p>Consider an e-commerce order:</p>
+<ol>
+<li>Insert a new row into <code>orders</code>.</li>
+<li>Insert one row per product into <code>order_items</code>.</li>
+<li>Decrement the <code>stock</code> count for each product.</li>
+<li>Deduct the total from the customer&#39;s credit balance.</li>
+</ol>
+<p>Each step reads work done by the step before it. If step 3 fails (e.g., a stock count would go negative and violate a constraint), leaving steps 1 and 2 already committed would corrupt the database — you&#39;d have a &quot;ghost&quot; order with items but no reserved stock.</p>
+<h2>Transactions wrap the steps</h2>
+<p>The database&#39;s answer is the <strong>transaction</strong>: a named boundary inside which all steps are executed together. You open a transaction with <code>BEGIN</code>, do your work, and then either:</p>
+<ul>
+<li><strong><code>COMMIT</code></strong> — finalize all changes at once, making them visible to others.</li>
+<li><strong><code>ROLLBACK</code></strong> — undo every change made inside the transaction, as if it never happened.</li>
+</ul>
+<pre><code class="language-sql">BEGIN;
 
 INSERT INTO orders (customer_id, total) VALUES (42, 149.99);
 
@@ -52,75 +39,73 @@ UPDATE inventory
 SET stock = stock - 1
 WHERE product_id = 7;
 
--- If anything above failed, we'd ROLLBACK here instead:
+-- If anything above failed, we&#39;d ROLLBACK here instead:
 COMMIT;
-```
-
-The guarantee is **atomicity**: either both the `INSERT` and the `UPDATE` commit together, or neither does. There is no in-between state that other sessions can observe.
-
+</code></pre>
+<p>The guarantee is <strong>atomicity</strong>: either both the <code>INSERT</code> and the <code>UPDATE</code> commit together, or neither does. There is no in-between state that other sessions can observe.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing a two-step transaction: both steps commit together on success, or both are rolled back on failure">
   <!-- Timeline axis -->
   <line x1="60" y1="50" x2="60" y2="220" stroke="var(--border)" stroke-width="2"/>
   <text x="38" y="46" font-size="12" fill="var(--text)" text-anchor="middle">time</text>
   <!-- Arrow at bottom of axis -->
-  <polygon points="60,224 55,214 65,214" fill="var(--border)"/>
-
-  <!-- BEGIN marker -->
+  <polygon points="60,224 55,214 65,214" fill="var(--border)"/>  <!-- BEGIN marker -->
   <circle cx="60" cy="70" r="6" fill="var(--accent)"/>
-  <text x="78" y="75" font-size="13" fill="var(--text)">BEGIN</text>
-
-  <!-- Step 1 box -->
+  <text x="78" y="75" font-size="13" fill="var(--text)">BEGIN</text>  <!-- Step 1 box -->
   <rect x="110" y="90" width="180" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="200" y="113" font-size="13" fill="var(--text)" text-anchor="middle">Step 1: INSERT into orders</text>
-  <line x1="60" y1="90" x2="110" y2="108" stroke="var(--border)" stroke-dasharray="4 3" stroke-width="1.2"/>
-
-  <!-- Step 2 box -->
+  <line x1="60" y1="90" x2="110" y2="108" stroke="var(--border)" stroke-dasharray="4 3" stroke-width="1.2"/>  <!-- Step 2 box -->
   <rect x="110" y="144" width="180" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="200" y="167" font-size="13" fill="var(--text)" text-anchor="middle">Step 2: UPDATE inventory</text>
-  <line x1="60" y1="144" x2="110" y2="162" stroke="var(--border)" stroke-dasharray="4 3" stroke-width="1.2"/>
-
-  <!-- Success path -->
+  <line x1="60" y1="144" x2="110" y2="162" stroke="var(--border)" stroke-dasharray="4 3" stroke-width="1.2"/>  <!-- Success path -->
   <rect x="330" y="104" width="130" height="36" rx="6" fill="var(--accent)" opacity="0.18" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="395" y="127" font-size="13" fill="var(--accent)" text-anchor="middle" font-weight="bold">COMMIT ✓</text>
   <line x1="290" y1="108" x2="330" y2="122" stroke="var(--accent)" stroke-width="1.5"/>
   <line x1="290" y1="162" x2="330" y2="122" stroke="var(--accent)" stroke-width="1.5"/>
-  <text x="395" y="155" font-size="11" fill="var(--text)" text-anchor="middle">Both changes visible</text>
-
-  <!-- Failure path -->
+  <text x="395" y="155" font-size="11" fill="var(--text)" text-anchor="middle">Both changes visible</text>  <!-- Failure path -->
   <rect x="330" y="178" width="130" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5 3"/>
   <text x="395" y="201" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">ROLLBACK ✗</text>
   <line x1="290" y1="162" x2="330" y2="196" stroke="var(--border)" stroke-dasharray="4 3" stroke-width="1.2"/>
-  <text x="395" y="224" font-size="11" fill="var(--text)" text-anchor="middle">No changes visible</text>
-
-  <!-- Labels -->
-  <text x="200" y="82" font-size="11" fill="var(--text)" text-anchor="middle" opacity="0.7">inside the transaction</text>
-</svg>
+  <text x="395" y="224" font-size="11" fill="var(--text)" text-anchor="middle">No changes visible</text>  <!-- Labels -->
+<p>  <text x="200" y="82" font-size="11" fill="var(--text)" text-anchor="middle" opacity="0.7">inside the transaction</text>
+</svg></p>
 <figcaption>On success, both steps commit atomically. On failure, a ROLLBACK leaves the database unchanged.</figcaption>
-</figure>
-
-## What can go wrong (and how the DB helps)
-
-There are three main reasons a multi-step update might need to abort:
-
-| Cause | Example | Database response |
-|---|---|---|
-| **Constraint violation** | Stock goes below 0 (CHECK constraint) | Statement fails; transaction can be rolled back |
-| **Application error** | Code detects bad input after step 1 | Application calls `ROLLBACK` explicitly |
-| **System failure** | Process crashes mid-transaction | Engine uses its write-ahead log to undo uncommitted work on restart |
-
-In all three cases, the database's logging infrastructure — the **write-ahead log (WAL)** — records what changed and lets the engine reverse it cleanly. You don't have to write "undo" code yourself.
-
-> **Note:** In SQLite (and most databases), if you don't open an explicit `BEGIN`, each statement runs in its own auto-committed transaction. That's fine for isolated reads, but it means two consecutive `UPDATE` statements are *not* atomic with each other.
-
-## Try it yourself
-
-The widget below models a ticket-booking scenario: a customer buys a seat, which should simultaneously record the booking and reduce available seats. Run it as-is to see both steps succeed, then try triggering a rollback by changing the `seat_count` update to subtract more seats than exist — the `CHECK` constraint will fire.
-
+</figure><h2>What can go wrong (and how the DB helps)</h2>
+<p>There are three main reasons a multi-step update might need to abort:</p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Example</th>
+<th>Database response</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Constraint violation</strong></td>
+<td>Stock goes below 0 (CHECK constraint)</td>
+<td>Statement fails; transaction can be rolled back</td>
+</tr>
+<tr>
+<td><strong>Application error</strong></td>
+<td>Code detects bad input after step 1</td>
+<td>Application calls <code>ROLLBACK</code> explicitly</td>
+</tr>
+<tr>
+<td><strong>System failure</strong></td>
+<td>Process crashes mid-transaction</td>
+<td>Engine uses its write-ahead log to undo uncommitted work on restart</td>
+</tr>
+</tbody></table>
+<p>In all three cases, the database&#39;s logging infrastructure — the <strong>write-ahead log (WAL)</strong> — records what changed and lets the engine reverse it cleanly. You don&#39;t have to write &quot;undo&quot; code yourself.</p>
+<blockquote>
+<p><strong>Note:</strong> In SQLite (and most databases), if you don&#39;t open an explicit <code>BEGIN</code>, each statement runs in its own auto-committed transaction. That&#39;s fine for isolated reads, but it means two consecutive <code>UPDATE</code> statements are <em>not</em> atomic with each other.</p>
+</blockquote>
+<h2>Try it yourself</h2>
+<p>The widget below models a ticket-booking scenario: a customer buys a seat, which should simultaneously record the booking and reduce available seats. Run it as-is to see both steps succeed, then try triggering a rollback by changing the <code>seat_count</code> update to subtract more seats than exist — the <code>CHECK</code> constraint will fire.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · multi-step booking</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, name TEXT NOT NULL, seats_available INTEGER NOT NULL CHECK(seats_available  rows="20">= 0));
+    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, name TEXT NOT NULL, seats_available INTEGER NOT NULL CHECK(seats_available  rows="10">= 0));
 CREATE TABLE bookings (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL, customer TEXT NOT NULL);
 INSERT INTO events VALUES (1, 'Jazz Night', 10);
 INSERT INTO events VALUES (2, 'Art Show', 2);">BEGIN;
@@ -133,11 +118,13 @@ COMMIT;
 SELECT * FROM events;
 SELECT * FROM bookings;</textarea>
   </div>
+</div><blockquote>
+<p><strong>Try this:</strong> change <code>seats_available - 1</code> to <code>seats_available - 99</code> and re-run. The <code>CHECK</code> constraint fires, the statement fails, and because the <code>INSERT</code> and <code>UPDATE</code> are in the same transaction, the booking is never recorded either. Then try removing the <code>BEGIN</code>/<code>COMMIT</code> wrapper — now the two steps are <em>separate</em> transactions, and the <code>INSERT</code> commits even when the <code>UPDATE</code> fails.</p>
+</blockquote>
+
 </div>
-
-> **Try this:** change `seats_available - 1` to `seats_available - 99` and re-run. The `CHECK` constraint fires, the statement fails, and because the `INSERT` and `UPDATE` are in the same transaction, the booking is never recorded either. Then try removing the `BEGIN`/`COMMIT` wrapper — now the two steps are *separate* transactions, and the `INSERT` commits even when the `UPDATE` fails.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="107-commit-and-rollback.html"><span class="dir">← Previous</span><span class="ttl">Commit and rollback</span></a><a class="next" href="109-real-examples-of-broken-logic.html"><span class="dir">Next →</span><span class="ttl">Real examples of broken logic</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

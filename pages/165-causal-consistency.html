@@ -5,42 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Causal consistency — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part IV. Distributed Systems</p>
   <p class="chapter-label">Chapter 17. Consistency in Distributed Databases</p>
   <h1 class="content-title">Causal consistency</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="164-monotonic-reads.html"><span class="dir">← Previous</span><span class="ttl">Monotonic reads</span></a><a class="next" href="166-cap-as-a-tradeoff-lens.html"><span class="dir">Next →</span><span class="ttl">CAP as a tradeoff lens</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Imagine you post a message in a group chat, then immediately reply to it. A friend who joins a moment later sees your reply — but not the original message. From their view, your reply is a non-sequitur. This is exactly the kind of anomaly **causal consistency** is designed to prevent.
-
-Causal consistency is a consistency model that sits between two extremes: it is weaker than linearizability (no global wall-clock ordering required), but stronger than eventual consistency (causally related operations must appear in order). The key insight is that not all operations are related — causal consistency only constrains operations that are *causally linked*.
-
-## What "Causally Related" Means
-
-Two operations are causally related if one could have influenced the other:
-
-- **Write → Read:** If process A writes a value and process B reads it, B's subsequent writes depend on that value.
-- **Read → Write:** If B reads a value and then writes based on what it saw, that write is causally downstream.
-- **Transitivity:** If A causes B, and B causes C, then A causes C — even if A and C happen on different nodes.
-
-Operations with no path between them are **concurrent** and causally independent. A causally consistent system may deliver concurrent operations in any order; it only enforces ordering within causal chains.
-
-> **Note:** Databases track causality using **vector clocks** or **version vectors** — per-node counters that let every node determine whether one event "happened before" another without relying on synchronized wall clocks.
-
-## A Concrete Example
-
-Consider three users — Alice, Bob, and Carol — sharing a distributed document store with two replicas.
-
+  <div id="rendered" class="content">
+<p>Imagine you post a message in a group chat, then immediately reply to it. A friend who joins a moment later sees your reply — but not the original message. From their view, your reply is a non-sequitur. This is exactly the kind of anomaly <strong>causal consistency</strong> is designed to prevent.</p>
+<p>Causal consistency is a consistency model that sits between two extremes: it is weaker than linearizability (no global wall-clock ordering required), but stronger than eventual consistency (causally related operations must appear in order). The key insight is that not all operations are related — causal consistency only constrains operations that are <em>causally linked</em>.</p>
+<h2>What &quot;Causally Related&quot; Means</h2>
+<p>Two operations are causally related if one could have influenced the other:</p>
+<ul>
+<li><strong>Write → Read:</strong> If process A writes a value and process B reads it, B&#39;s subsequent writes depend on that value.</li>
+<li><strong>Read → Write:</strong> If B reads a value and then writes based on what it saw, that write is causally downstream.</li>
+<li><strong>Transitivity:</strong> If A causes B, and B causes C, then A causes C — even if A and C happen on different nodes.</li>
+</ul>
+<p>Operations with no path between them are <strong>concurrent</strong> and causally independent. A causally consistent system may deliver concurrent operations in any order; it only enforces ordering within causal chains.</p>
+<blockquote>
+<p><strong>Note:</strong> Databases track causality using <strong>vector clocks</strong> or <strong>version vectors</strong> — per-node counters that let every node determine whether one event &quot;happened before&quot; another without relying on synchronized wall clocks.</p>
+</blockquote>
+<h2>A Concrete Example</h2>
+<p>Consider three users — Alice, Bob, and Carol — sharing a distributed document store with two replicas.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing causal consistency: Alice writes, Bob reads and replies, Carol must see both in order">
   <defs>
@@ -50,48 +38,35 @@ Consider three users — Alice, Bob, and Carol — sharing a distributed documen
     <marker id="causal-arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
     </marker>
-  </defs>
-
-  <!-- Time axis -->
+  </defs>  <!-- Time axis -->
   <line x1="60" y1="260" x2="610" y2="260" stroke="var(--border)" stroke-width="1.2" marker-end="url(#arr)"/>
-  <text x="620" y="264" font-size="12" fill="var(--text)" opacity="0.7">time</text>
-
-  <!-- Row labels -->
-  <text x="10" y="70" font-size="13" fill="var(--text)" font-weight="bold">Alice</text>
+  <text x="620" y="264" font-size="12" fill="var(--text)" opacity="0.7">time</text>  <!-- Row labels -->
+<p>  <text x="10" y="70" font-size="13" fill="var(--text)" font-weight="bold">Alice</text>
   <text x="10" y="140" font-size="13" fill="var(--text)" font-weight="bold">Bob</text>
-  <text x="10" y="210" font-size="13" fill="var(--text)" font-weight="bold">Carol</text>
-
+  <text x="10" y="210" font-size="13" fill="var(--text)" font-weight="bold">Carol</text></p>
   <!-- Alice timeline -->
   <line x1="60" y1="65" x2="610" y2="65" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
   <!-- Alice: post -->
   <circle cx="160" cy="65" r="10" fill="var(--accent)" opacity="0.9"/>
-  <text x="160" y="50" font-size="12" text-anchor="middle" fill="var(--text)">W: "Hello!"</text>
-
-  <!-- Bob timeline -->
+  <text x="160" y="50" font-size="12" text-anchor="middle" fill="var(--text)">W: "Hello!"</text>  <!-- Bob timeline -->
   <line x1="60" y1="135" x2="610" y2="135" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
   <!-- Bob: reads Alice's message -->
   <circle cx="280" cy="135" r="10" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="280" y="120" font-size="12" text-anchor="middle" fill="var(--text)">R: "Hello!"</text>
   <!-- Bob: replies -->
   <circle cx="390" cy="135" r="10" fill="var(--accent)" opacity="0.9"/>
-  <text x="390" y="120" font-size="12" text-anchor="middle" fill="var(--text)">W: "Hi Alice!"</text>
-
-  <!-- Carol timeline -->
+  <text x="390" y="120" font-size="12" text-anchor="middle" fill="var(--text)">W: "Hi Alice!"</text>  <!-- Carol timeline -->
   <line x1="60" y1="205" x2="610" y2="205" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
   <!-- Carol reads -->
   <circle cx="500" cy="205" r="10" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="500" y="190" font-size="12" text-anchor="middle" fill="var(--text)">R: must see both</text>
-  <text x="500" y="228" font-size="11" text-anchor="middle" fill="var(--text)" opacity="0.7">in causal order</text>
-
-  <!-- Causal arrows -->
+  <text x="500" y="228" font-size="11" text-anchor="middle" fill="var(--text)" opacity="0.7">in causal order</text>  <!-- Causal arrows -->
   <!-- Alice write -> Bob read -->
   <line x1="164" y1="72" x2="272" y2="128" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#causal-arr)"/>
   <!-- Bob read -> Bob write -->
   <line x1="290" y1="135" x2="378" y2="135" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#causal-arr)"/>
   <!-- Bob write -> Carol read -->
-  <line x1="394" y1="142" x2="490" y2="198" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#causal-arr)"/>
-
-  <!-- Legend -->
+  <line x1="394" y1="142" x2="490" y2="198" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#causal-arr)"/>  <!-- Legend -->
   <circle cx="80" cy="278" r="6" fill="var(--accent)" opacity="0.9"/>
   <text x="92" y="282" font-size="11" fill="var(--text)">Write</text>
   <circle cx="145" cy="278" r="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
@@ -100,55 +75,73 @@ Consider three users — Alice, Bob, and Carol — sharing a distributed documen
   <text x="240" y="282" font-size="11" fill="var(--text)">Causal dependency</text>
 </svg>
 <figcaption>Causal chain: Alice's post causes Bob's read, which causes Bob's reply. Carol must see Alice's post before Bob's reply.</figcaption>
-</figure>
-
-Under causal consistency, Carol is **guaranteed** to see "Hello!" before "Hi Alice!" — because Bob's reply causally depends on Alice's message. If Carol happened to be on a replica that received Bob's write first, the replica must delay delivering it until Alice's message has also arrived.
-
-Without causal consistency (e.g., under plain eventual consistency), Carol could see "Hi Alice!" arrive first — a confusing and broken experience.
-
-## Causal Consistency vs. Other Models
-
-| Model | Global order? | Causal order? | Concurrent ops order? | Availability |
-|---|---|---|---|---|
-| Linearizability | Yes (wall clock) | Yes | Yes | Lower (quorum needed) |
-| Sequential consistency | Yes (logical) | Yes | Yes | Lower |
-| **Causal consistency** | **No** | **Yes** | **No (any order)** | **Higher** |
-| Eventual consistency | No | No | No (any order) | Highest |
-
-Causal consistency is the *strongest* model that remains available under network partitions, according to the PACELC framework. This makes it attractive for geo-distributed systems where you cannot afford the latency of a global quorum.
-
-## How Databases Implement It
-
-Real systems track causal dependencies using **version vectors** (also called dependency vectors). Each client carries a vector summarizing the set of writes it has already observed. When the client issues a new operation, it sends this vector along. The server only executes the operation after it has applied all causally prior writes.
-
-```
-Client vector at Carol's read:
+</figure><p>Under causal consistency, Carol is <strong>guaranteed</strong> to see &quot;Hello!&quot; before &quot;Hi Alice!&quot; — because Bob&#39;s reply causally depends on Alice&#39;s message. If Carol happened to be on a replica that received Bob&#39;s write first, the replica must delay delivering it until Alice&#39;s message has also arrived.</p>
+<p>Without causal consistency (e.g., under plain eventual consistency), Carol could see &quot;Hi Alice!&quot; arrive first — a confusing and broken experience.</p>
+<h2>Causal Consistency vs. Other Models</h2>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Global order?</th>
+<th>Causal order?</th>
+<th>Concurrent ops order?</th>
+<th>Availability</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Linearizability</td>
+<td>Yes (wall clock)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Lower (quorum needed)</td>
+</tr>
+<tr>
+<td>Sequential consistency</td>
+<td>Yes (logical)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Lower</td>
+</tr>
+<tr>
+<td><strong>Causal consistency</strong></td>
+<td><strong>No</strong></td>
+<td><strong>Yes</strong></td>
+<td><strong>No (any order)</strong></td>
+<td><strong>Higher</strong></td>
+</tr>
+<tr>
+<td>Eventual consistency</td>
+<td>No</td>
+<td>No</td>
+<td>No (any order)</td>
+<td>Highest</td>
+</tr>
+</tbody></table>
+<p>Causal consistency is the <em>strongest</em> model that remains available under network partitions, according to the PACELC framework. This makes it attractive for geo-distributed systems where you cannot afford the latency of a global quorum.</p>
+<h2>How Databases Implement It</h2>
+<p>Real systems track causal dependencies using <strong>version vectors</strong> (also called dependency vectors). Each client carries a vector summarizing the set of writes it has already observed. When the client issues a new operation, it sends this vector along. The server only executes the operation after it has applied all causally prior writes.</p>
+<pre><code>Client vector at Carol&#39;s read:
   { replica_A: 5, replica_B: 3 }
 
 This means Carol has seen all writes up to sequence 5 on replica A
 and up to sequence 3 on replica B. The server will not show her
 a write with replica_A: 6 until she has also seen replica_A: 5.
-```
-
-Notable systems that offer causal consistency:
-- **MongoDB** (since v3.6) — causally consistent sessions via `afterClusterTime`
-- **DynamoDB** — optional strongly consistent reads, but causal sessions via client-side tokens
-- **AntidoteDB** — built from the ground up around causal+ consistency
-- **CockroachDB** — uses hybrid logical clocks (HLC) to approximate causal ordering
-
-## The Trade-off Worth Knowing
-
-Causal consistency is not free. Version vectors grow with the number of nodes and clients; tracking fine-grained causal histories at scale is expensive. Many systems therefore implement **causal+** (causal consistency plus convergent conflict resolution) rather than perfect causal consistency, accepting a small window where concurrent writes must be merged by the application.
-
-The practical question to ask is: *"Does the correctness of this operation depend on another operation the user just performed?"* If yes, causal consistency — or stronger — is warranted. If operations are genuinely independent (e.g., two users updating unrelated records), eventual consistency may be enough and will give you better write throughput.
-
-<details class="reveal"><summary>Reveal: Would causal consistency prevent a "lost update" where two users increment the same counter concurrently?</summary><div class="reveal-body">
-
-No. Causal consistency only orders operations that are *causally related* — one must have observed the other. If two users each read the counter value (say, 10) and both write 11 without seeing each other's write, those operations are concurrent and causally independent. Causal consistency allows both writes and the system converges to 11, losing one increment. Preventing this requires a stronger model (e.g., serializable transactions) or a CRDT like a grow-only counter that merges concurrent increments correctly.
-
+</code></pre>
+<p>Notable systems that offer causal consistency:</p>
+<ul>
+<li><strong>MongoDB</strong> (since v3.6) — causally consistent sessions via <code>afterClusterTime</code></li>
+<li><strong>DynamoDB</strong> — optional strongly consistent reads, but causal sessions via client-side tokens</li>
+<li><strong>AntidoteDB</strong> — built from the ground up around causal+ consistency</li>
+<li><strong>CockroachDB</strong> — uses hybrid logical clocks (HLC) to approximate causal ordering</li>
+</ul>
+<h2>The Trade-off Worth Knowing</h2>
+<p>Causal consistency is not free. Version vectors grow with the number of nodes and clients; tracking fine-grained causal histories at scale is expensive. Many systems therefore implement <strong>causal+</strong> (causal consistency plus convergent conflict resolution) rather than perfect causal consistency, accepting a small window where concurrent writes must be merged by the application.</p>
+<p>The practical question to ask is: <em>&quot;Does the correctness of this operation depend on another operation the user just performed?&quot;</em> If yes, causal consistency — or stronger — is warranted. If operations are genuinely independent (e.g., two users updating unrelated records), eventual consistency may be enough and will give you better write throughput.</p>
+<details class="reveal"><summary>Reveal: Would causal consistency prevent a "lost update" where two users increment the same counter concurrently?</summary><div class="reveal-body"><p>No. Causal consistency only orders operations that are <em>causally related</em> — one must have observed the other. If two users each read the counter value (say, 10) and both write 11 without seeing each other&#39;s write, those operations are concurrent and causally independent. Causal consistency allows both writes and the system converges to 11, losing one increment. Preventing this requires a stronger model (e.g., serializable transactions) or a CRDT like a grow-only counter that merges concurrent increments correctly.</p>
 </div></details>
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="164-monotonic-reads.html"><span class="dir">← Previous</span><span class="ttl">Monotonic reads</span></a><a class="next" href="166-cap-as-a-tradeoff-lens.html"><span class="dir">Next →</span><span class="ttl">CAP as a tradeoff lens</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

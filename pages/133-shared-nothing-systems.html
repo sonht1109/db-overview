@@ -5,127 +5,107 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shared-nothing systems — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part IV. Distributed Systems</p>
   <p class="chapter-label">Chapter 14. From One Machine to Many</p>
   <h1 class="content-title">Shared-nothing systems</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="132-replication-and-sharding.html"><span class="dir">← Previous</span><span class="ttl">Replication and sharding</span></a><a class="next" href="134-partition-keys.html"><span class="dir">Next →</span><span class="ttl">Partition keys</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-The previous page introduced replication and sharding as two techniques for spreading data across machines. **Shared-nothing architecture** is the design philosophy that unifies them — and it's the reason modern distributed databases can scale to thousands of nodes without a single point of contention.
-
-## What "Shared Nothing" Means
-
-In a shared-nothing system, every node is completely independent. Each node has:
-
-- Its own **CPU and memory** — no shared RAM bus.
-- Its own **local disk** — no shared storage array or SAN.
-- A **network connection** to other nodes — the only communication channel.
-
-No node can directly read another node's memory or disk. To get data from a peer, a node must send a **network message** and wait for a reply.
-
-This stands in contrast to two older alternatives:
-
-| Architecture | What is shared | Bottleneck |
-|---|---|---|
-| **Shared memory** | RAM across CPUs | Memory bus; OS lock contention |
-| **Shared disk** | Storage (e.g., SAN/NAS) | I/O bandwidth; distributed locking |
-| **Shared nothing** | Nothing (network only) | Network latency; cross-node coordination |
-
-The key insight: networks scale horizontally and cheaply. Adding a node adds independent capacity rather than competing for a fixed shared resource.
-
+  <div id="rendered" class="content">
+<p>The previous page introduced replication and sharding as two techniques for spreading data across machines. <strong>Shared-nothing architecture</strong> is the design philosophy that unifies them — and it&#39;s the reason modern distributed databases can scale to thousands of nodes without a single point of contention.</p>
+<h2>What &quot;Shared Nothing&quot; Means</h2>
+<p>In a shared-nothing system, every node is completely independent. Each node has:</p>
+<ul>
+<li>Its own <strong>CPU and memory</strong> — no shared RAM bus.</li>
+<li>Its own <strong>local disk</strong> — no shared storage array or SAN.</li>
+<li>A <strong>network connection</strong> to other nodes — the only communication channel.</li>
+</ul>
+<p>No node can directly read another node&#39;s memory or disk. To get data from a peer, a node must send a <strong>network message</strong> and wait for a reply.</p>
+<p>This stands in contrast to two older alternatives:</p>
+<table>
+<thead>
+<tr>
+<th>Architecture</th>
+<th>What is shared</th>
+<th>Bottleneck</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Shared memory</strong></td>
+<td>RAM across CPUs</td>
+<td>Memory bus; OS lock contention</td>
+</tr>
+<tr>
+<td><strong>Shared disk</strong></td>
+<td>Storage (e.g., SAN/NAS)</td>
+<td>I/O bandwidth; distributed locking</td>
+</tr>
+<tr>
+<td><strong>Shared nothing</strong></td>
+<td>Nothing (network only)</td>
+<td>Network latency; cross-node coordination</td>
+</tr>
+</tbody></table>
+<p>The key insight: networks scale horizontally and cheaply. Adding a node adds independent capacity rather than competing for a fixed shared resource.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Shared-nothing cluster: three independent nodes each with their own CPU, memory, and disk, connected only by a network switch">
   <defs>
     <marker id="sn-arr" markerWidth="8" markerHeight="8" refX="4" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
     </marker>
-  </defs>
-
-  <!-- Network switch in center -->
+  </defs>  <!-- Network switch in center -->
   <rect x="260" y="128" width="120" height="44" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="320" y="147" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="bold">Network</text>
-  <text x="320" y="163" text-anchor="middle" font-size="12" fill="var(--text)">Switch</text>
-
-  <!-- Node A (left) -->
+  <text x="320" y="163" text-anchor="middle" font-size="12" fill="var(--text)">Switch</text>  <!-- Node A (left) -->
   <rect x="20" y="100" width="160" height="100" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="100" y="122" text-anchor="middle" font-size="14" fill="var(--text)" font-weight="bold">Node A</text>
   <text x="100" y="142" text-anchor="middle" font-size="11" fill="var(--text)">CPU + RAM</text>
   <text x="100" y="158" text-anchor="middle" font-size="11" fill="var(--text)">Local Disk (shard A)</text>
-  <text x="100" y="174" text-anchor="middle" font-size="11" fill="var(--accent)">rows 1 – 1 000 000</text>
-
-  <!-- Node B (right) -->
+  <text x="100" y="174" text-anchor="middle" font-size="11" fill="var(--accent)">rows 1 – 1 000 000</text>  <!-- Node B (right) -->
   <rect x="460" y="100" width="160" height="100" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="540" y="122" text-anchor="middle" font-size="14" fill="var(--text)" font-weight="bold">Node B</text>
   <text x="540" y="142" text-anchor="middle" font-size="11" fill="var(--text)">CPU + RAM</text>
   <text x="540" y="158" text-anchor="middle" font-size="11" fill="var(--text)">Local Disk (shard B)</text>
-  <text x="540" y="174" text-anchor="middle" font-size="11" fill="var(--accent)">rows 1 000 001 – 2 M</text>
-
-  <!-- Node C (bottom center) -->
+  <text x="540" y="174" text-anchor="middle" font-size="11" fill="var(--accent)">rows 1 000 001 – 2 M</text>  <!-- Node C (bottom center) -->
   <rect x="240" y="240" width="160" height="50" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="320" y="261" text-anchor="middle" font-size="14" fill="var(--text)" font-weight="bold">Node C</text>
-  <text x="320" y="278" text-anchor="middle" font-size="11" fill="var(--text)">CPU + RAM · Local Disk (shard C)</text>
-
-  <!-- Lines: Node A ↔ Switch -->
+  <text x="320" y="278" text-anchor="middle" font-size="11" fill="var(--text)">CPU + RAM · Local Disk (shard C)</text>  <!-- Lines: Node A ↔ Switch -->
   <line x1="180" y1="150" x2="260" y2="150" stroke="var(--border)" stroke-width="1.5" marker-end="url(#sn-arr)"/>
-  <line x1="260" y1="155" x2="180" y2="155" stroke="var(--border)" stroke-width="1.5" marker-end="url(#sn-arr)"/>
-
-  <!-- Lines: Node B ↔ Switch -->
+  <line x1="260" y1="155" x2="180" y2="155" stroke="var(--border)" stroke-width="1.5" marker-end="url(#sn-arr)"/>  <!-- Lines: Node B ↔ Switch -->
   <line x1="380" y1="150" x2="460" y2="150" stroke="var(--border)" stroke-width="1.5" marker-end="url(#sn-arr)"/>
-  <line x1="460" y1="155" x2="380" y2="155" stroke="var(--border)" stroke-width="1.5" marker-end="url(#sn-arr)"/>
-
-  <!-- Lines: Node C ↔ Switch -->
+  <line x1="460" y1="155" x2="380" y2="155" stroke="var(--border)" stroke-width="1.5" marker-end="url(#sn-arr)"/>  <!-- Lines: Node C ↔ Switch -->
   <line x1="315" y1="240" x2="315" y2="172" stroke="var(--border)" stroke-width="1.5" marker-end="url(#sn-arr)"/>
-  <line x1="325" y1="172" x2="325" y2="240" stroke="var(--border)" stroke-width="1.5" marker-end="url(#sn-arr)"/>
-
-  <!-- "No shared resource" labels -->
-  <text x="320" y="20" text-anchor="middle" font-size="12" fill="var(--text)" font-style="italic">Each node owns its resources entirely — no shared RAM, no shared disk</text>
+  <line x1="325" y1="172" x2="325" y2="240" stroke="var(--border)" stroke-width="1.5" marker-end="url(#sn-arr)"/>  <!-- "No shared resource" labels -->
+<p>  <text x="320" y="20" text-anchor="middle" font-size="12" fill="var(--text)" font-style="italic">Each node owns its resources entirely — no shared RAM, no shared disk</text>
   <line x1="100" y1="28" x2="100" y2="98" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
   <line x1="540" y1="28" x2="540" y2="98" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
-</svg>
+</svg></p>
 <figcaption>A shared-nothing cluster: three nodes, each with private CPU, RAM, and disk, communicating only through a network switch.</figcaption>
-</figure>
-
-## Why It Scales — and Where It Hurts
-
-Shared-nothing's big win is **linear scalability** for workloads that map cleanly onto shards. If each node handles 10 000 writes/second and you need 50 000, add four more nodes. No shared bottleneck limits you.
-
-But the architecture moves complexity into the application or middleware layer:
-
-**Cross-node queries are expensive.** A `JOIN` between two tables that live on different nodes requires one node to pull data across the network. Some systems push part of the computation down to the remote node (a "push-down"); others ship entire result sets and join in memory. Either way, it costs network round trips.
-
-**Distributed transactions are hard.** ACID guarantees across two nodes require a coordination protocol — usually **two-phase commit (2PC)**. If any node fails mid-transaction, the others may block waiting for a decision. Many shared-nothing systems weaken isolation guarantees to avoid this cost, offering eventual consistency instead.
-
-**Rebalancing is painful.** When you add a node, some data must migrate from existing nodes to the new one. During migration the system must continue serving queries, which means careful bookkeeping about which version of a row is authoritative.
-
-> **Note:** Systems like Google Spanner and CockroachDB have engineered around some of these pain points using Paxos-based consensus and globally synchronized clocks — but they don't eliminate the fundamental costs of coordination; they just manage them more gracefully.
-
-## Shared Nothing in Practice
-
-Most databases you'll encounter in production are at least partially shared-nothing:
-
-- **PostgreSQL with Citus / Patroni** — Postgres extended with a sharding coordinator layer.
-- **Cassandra / DynamoDB** — pure peer-to-peer shared-nothing; no single leader.
-- **Snowflake / Redshift** — shared-nothing compute nodes but with shared cloud object storage (a hybrid, sometimes called "shared-disk for storage, shared-nothing for compute").
-- **Vitess** — shared-nothing sharding middleware on top of MySQL, used at YouTube.
-
-The label "shared-nothing" sometimes gets blurred when cloud object storage (S3, GCS) plays the role of a durable shared layer beneath independent compute nodes. That hybrid trades some of the coordination simplicity for operational convenience — you can resize compute without migrating data.
-
-The query below lets you see scatter-gather behavior (querying all shards) vs. a targeted single-shard lookup, using the same `user_id % 3` sharding scheme from the previous page. Notice how the `CASE` expression mimics what a router would do.
-
+</figure><h2>Why It Scales — and Where It Hurts</h2>
+<p>Shared-nothing&#39;s big win is <strong>linear scalability</strong> for workloads that map cleanly onto shards. If each node handles 10 000 writes/second and you need 50 000, add four more nodes. No shared bottleneck limits you.</p>
+<p>But the architecture moves complexity into the application or middleware layer:</p>
+<p><strong>Cross-node queries are expensive.</strong> A <code>JOIN</code> between two tables that live on different nodes requires one node to pull data across the network. Some systems push part of the computation down to the remote node (a &quot;push-down&quot;); others ship entire result sets and join in memory. Either way, it costs network round trips.</p>
+<p><strong>Distributed transactions are hard.</strong> ACID guarantees across two nodes require a coordination protocol — usually <strong>two-phase commit (2PC)</strong>. If any node fails mid-transaction, the others may block waiting for a decision. Many shared-nothing systems weaken isolation guarantees to avoid this cost, offering eventual consistency instead.</p>
+<p><strong>Rebalancing is painful.</strong> When you add a node, some data must migrate from existing nodes to the new one. During migration the system must continue serving queries, which means careful bookkeeping about which version of a row is authoritative.</p>
+<blockquote>
+<p><strong>Note:</strong> Systems like Google Spanner and CockroachDB have engineered around some of these pain points using Paxos-based consensus and globally synchronized clocks — but they don&#39;t eliminate the fundamental costs of coordination; they just manage them more gracefully.</p>
+</blockquote>
+<h2>Shared Nothing in Practice</h2>
+<p>Most databases you&#39;ll encounter in production are at least partially shared-nothing:</p>
+<ul>
+<li><strong>PostgreSQL with Citus / Patroni</strong> — Postgres extended with a sharding coordinator layer.</li>
+<li><strong>Cassandra / DynamoDB</strong> — pure peer-to-peer shared-nothing; no single leader.</li>
+<li><strong>Snowflake / Redshift</strong> — shared-nothing compute nodes but with shared cloud object storage (a hybrid, sometimes called &quot;shared-disk for storage, shared-nothing for compute&quot;).</li>
+<li><strong>Vitess</strong> — shared-nothing sharding middleware on top of MySQL, used at YouTube.</li>
+</ul>
+<p>The label &quot;shared-nothing&quot; sometimes gets blurred when cloud object storage (S3, GCS) plays the role of a durable shared layer beneath independent compute nodes. That hybrid trades some of the coordination simplicity for operational convenience — you can resize compute without migrating data.</p>
+<p>The query below lets you see scatter-gather behavior (querying all shards) vs. a targeted single-shard lookup, using the same <code>user_id % 3</code> sharding scheme from the previous page. Notice how the <code>CASE</code> expression mimics what a router would do.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Single-shard vs. scatter-gather</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, user_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 1, 49.99, 'shipped'); INSERT INTO orders VALUES (2, 2, 120.00, 'pending'); INSERT INTO orders VALUES (3, 3, 9.99, 'shipped'); INSERT INTO orders VALUES (4, 4, 75.50, 'cancelled'); INSERT INTO orders VALUES (5, 5, 200.00, 'shipped'); INSERT INTO orders VALUES (6, 6, 33.00, 'pending'); INSERT INTO orders VALUES (7, 7, 15.00, 'shipped'); INSERT INTO orders VALUES (8, 8, 88.00, 'pending'); INSERT INTO orders VALUES (9, 9, 60.00, 'shipped'); INSERT INTO orders VALUES (10, 1, 22.00, 'pending'); INSERT INTO orders VALUES (11, 3, 45.00, 'shipped'); INSERT INTO orders VALUES (12, 6, 11.00, 'cancelled');" rows="20">-- A router with shard key = user_id % 3 can send this
+    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, user_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 1, 49.99, 'shipped'); INSERT INTO orders VALUES (2, 2, 120.00, 'pending'); INSERT INTO orders VALUES (3, 3, 9.99, 'shipped'); INSERT INTO orders VALUES (4, 4, 75.50, 'cancelled'); INSERT INTO orders VALUES (5, 5, 200.00, 'shipped'); INSERT INTO orders VALUES (6, 6, 33.00, 'pending'); INSERT INTO orders VALUES (7, 7, 15.00, 'shipped'); INSERT INTO orders VALUES (8, 8, 88.00, 'pending'); INSERT INTO orders VALUES (9, 9, 60.00, 'shipped'); INSERT INTO orders VALUES (10, 1, 22.00, 'pending'); INSERT INTO orders VALUES (11, 3, 45.00, 'shipped'); INSERT INTO orders VALUES (12, 6, 11.00, 'cancelled');" rows="10">-- A router with shard key = user_id % 3 can send this
 -- directly to shard 1 (only rows where user_id % 3 = 1).
 -- Try changing user_id to one of: 1, 4, 7, 10 (all on shard 1).
 SELECT order_id, user_id, amount, status,
@@ -138,11 +118,10 @@ WHERE user_id = 1;
 -- FROM orders
 -- GROUP BY status;</textarea>
   </div>
+</div><details class="reveal"><summary>Reveal: Why does a query on `status` hit all shards even when there are only a few distinct statuses?</summary><div class="reveal-body">The shard key is <code>user_id</code>, not <code>status</code>. The router has no way to know which shards contain rows with <code>status = 'shipped'</code> without asking every one of them. This is the scatter-gather problem: any filter on a non-shard-key column requires a broadcast to all nodes, and the coordinator must merge the partial results. It's one reason choosing a shard key that matches your hottest query patterns is so important.</div></details>
 </div>
-
-<details class="reveal"><summary>Reveal: Why does a query on `status` hit all shards even when there are only a few distinct statuses?</summary><div class="reveal-body">The shard key is <code>user_id</code>, not <code>status</code>. The router has no way to know which shards contain rows with <code>status = 'shipped'</code> without asking every one of them. This is the scatter-gather problem: any filter on a non-shard-key column requires a broadcast to all nodes, and the coordinator must merge the partial results. It's one reason choosing a shard key that matches your hottest query patterns is so important.</div></details>
-
-</script>
+  <nav class="pagenav"><a class="prev" href="132-replication-and-sharding.html"><span class="dir">← Previous</span><span class="ttl">Replication and sharding</span></a><a class="next" href="134-partition-keys.html"><span class="dir">Next →</span><span class="ttl">Partition keys</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

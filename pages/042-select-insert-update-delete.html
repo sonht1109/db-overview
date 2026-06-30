@@ -5,124 +5,121 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SELECT, INSERT, UPDATE, DELETE — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 5. A Gentle Introduction to SQL</p>
   <h1 class="content-title">SELECT, INSERT, UPDATE, DELETE</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="041-what-sql-is-for.html"><span class="dir">← Previous</span><span class="ttl">What SQL is for</span></a><a class="next" href="043-filtering-rows-with-where.html"><span class="dir">Next →</span><span class="ttl">Filtering rows with WHERE</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-SQL gives you four workhorses for manipulating data: `SELECT` to read it, `INSERT` to add it, `UPDATE` to change it, and `DELETE` to remove it. Together they form the core of **Data Manipulation Language (DML)** — the part of SQL you will use every single day.
-
-## SELECT — Reading Data
-
-`SELECT` is the most-used statement in SQL. At minimum it needs two clauses: what columns to fetch, and which table to fetch from.
-
-```sql
-SELECT first_name, last_name
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <rect x="0" y="0" width="155" height="140" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="77" y="28" font-size="12" font-weight="700" fill="#2f6df6">🔍 SELECT</text>
+    <text x="77" y="48" font-size="9" fill="#5a6678">Read rows</text>
+    <line x1="15" y1="56" x2="140" y2="56" stroke="#bfdbfe"/>
+    <text x="77" y="76" font-size="8" fill="#1c2330">SELECT name, salary</text>
+    <text x="77" y="92" font-size="8" fill="#1c2330">FROM employees</text>
+    <text x="77" y="108" font-size="8" fill="#1c2330">WHERE dept = 'Eng'</text>
+    <rect x="170" y="0" width="155" height="140" rx="10" fill="#dcfce7" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="247" y="28" font-size="12" font-weight="700" fill="#16a34a">➕ INSERT</text>
+    <text x="247" y="48" font-size="9" fill="#5a6678">Add new rows</text>
+    <line x1="185" y1="56" x2="310" y2="56" stroke="#bbf7d0"/>
+    <text x="247" y="85" font-size="8" fill="#1c2330">INSERT INTO t (col1)</text>
+    <text x="247" y="101" font-size="8" fill="#1c2330">VALUES (val1), (val2)</text>
+    <rect x="340" y="0" width="155" height="140" rx="10" fill="#fef3c7" stroke="#f59e0b" filter="url(#sh)"/>
+    <text x="417" y="28" font-size="12" font-weight="700" fill="#d97706">✏️ UPDATE</text>
+    <text x="417" y="48" font-size="9" fill="#5a6678">Change existing</text>
+    <line x1="355" y1="56" x2="480" y2="56" stroke="#fde68a"/>
+    <text x="417" y="85" font-size="8" fill="#1c2330">UPDATE employees</text>
+    <text x="417" y="101" font-size="8" fill="#1c2330">SET salary = salary*1.1</text>
+    <text x="417" y="117" font-size="8" fill="#dc2626">⚠ WHERE is critical!</text>
+    <rect x="510" y="0" width="155" height="140" rx="10" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="587" y="28" font-size="12" font-weight="700" fill="#dc2626">🗑️ DELETE</text>
+    <text x="587" y="48" font-size="9" fill="#5a6678">Remove rows</text>
+    <line x1="525" y1="56" x2="650" y2="56" stroke="#fca5a5"/>
+    <text x="587" y="85" font-size="8" fill="#1c2330">DELETE FROM employees</text>
+    <text x="587" y="101" font-size="8" fill="#1c2330">WHERE id = 5</text>
+    <text x="587" y="117" font-size="8" fill="#dc2626">⚠ WHERE is critical!</text>
+  </g>
+</svg>
+<figcaption>The four DML workhorses: SELECT reads, INSERT adds, UPDATE modifies, DELETE removes. UPDATE and DELETE without WHERE affect every row — always double-check.</figcaption>
+</figure>
+<p>SQL gives you four workhorses for manipulating data: <code>SELECT</code> to read it, <code>INSERT</code> to add it, <code>UPDATE</code> to change it, and <code>DELETE</code> to remove it. Together they form the core of <strong>Data Manipulation Language (DML)</strong> — the part of SQL you will use every single day.</p>
+<h2>SELECT — Reading Data</h2>
+<p><code>SELECT</code> is the most-used statement in SQL. At minimum it needs two clauses: what columns to fetch, and which table to fetch from.</p>
+<pre><code class="language-sql">SELECT first_name, last_name
 FROM employees;
-```
-
-Add `WHERE` to filter rows, `ORDER BY` to sort, and `LIMIT` to cap the result:
-
-```sql
-SELECT first_name, last_name, salary
+</code></pre>
+<p>Add <code>WHERE</code> to filter rows, <code>ORDER BY</code> to sort, and <code>LIMIT</code> to cap the result:</p>
+<pre><code class="language-sql">SELECT first_name, last_name, salary
 FROM employees
-WHERE department = 'Engineering'
+WHERE department = &#39;Engineering&#39;
 ORDER BY salary DESC
 LIMIT 5;
-```
-
-You can also compute expressions inline — `salary * 1.10 AS new_salary`, `COUNT(*)`, `AVG(salary)` — but those topics get their own chapter. For now, remember the skeleton:
-
-```
-SELECT  <columns>
-FROM    <table>
-WHERE   <condition>   -- optional
-ORDER BY <column>     -- optional
-LIMIT   <n>;          -- optional
-```
-
-> **Note:** `SELECT *` fetches every column. It is handy for exploration but avoid it in production code — it breaks silently when a schema changes and often pulls more data than needed.
-
-Try it yourself. The widget below pre-loads a small `employees` table. Run the default query, then try changing the `WHERE` clause or sorting by a different column.
-
+</code></pre>
+<p>You can also compute expressions inline — <code>salary * 1.10 AS new_salary</code>, <code>COUNT(*)</code>, <code>AVG(salary)</code> — but those topics get their own chapter. For now, remember the skeleton:</p>
+<pre><code>SELECT  &lt;columns&gt;
+FROM    &lt;table&gt;
+WHERE   &lt;condition&gt;   -- optional
+ORDER BY &lt;column&gt;     -- optional
+LIMIT   &lt;n&gt;;          -- optional
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> <code>SELECT *</code> fetches every column. It is handy for exploration but avoid it in production code — it breaks silently when a schema changes and often pulls more data than needed.</p>
+</blockquote>
+<p>Try it yourself. The widget below pre-loads a small <code>employees</code> table. Run the default query, then try changing the <code>WHERE</code> clause or sorting by a different column.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · SELECT basics</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT, department TEXT, salary INTEGER); INSERT INTO employees VALUES (1,'Ada','Lovelace','Engineering',95000); INSERT INTO employees VALUES (2,'Grace','Hopper','Engineering',105000); INSERT INTO employees VALUES (3,'Alan','Turing','Research',98000); INSERT INTO employees VALUES (4,'Margaret','Hamilton','Engineering',110000); INSERT INTO employees VALUES (5,'Claude','Shannon','Research',92000);" rows="20">SELECT first_name, last_name, salary
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT, department TEXT, salary INTEGER); INSERT INTO employees VALUES (1,'Ada','Lovelace','Engineering',95000); INSERT INTO employees VALUES (2,'Grace','Hopper','Engineering',105000); INSERT INTO employees VALUES (3,'Alan','Turing','Research',98000); INSERT INTO employees VALUES (4,'Margaret','Hamilton','Engineering',110000); INSERT INTO employees VALUES (5,'Claude','Shannon','Research',92000);" rows="10">SELECT first_name, last_name, salary
 FROM employees
 WHERE department = 'Engineering'
 ORDER BY salary DESC;</textarea>
   </div>
-</div>
-
-## INSERT — Adding Rows
-
-`INSERT INTO` appends one or more new rows to a table. Always name your columns explicitly — it makes the statement resilient to future schema changes and far easier to read.
-
-```sql
-INSERT INTO employees (first_name, last_name, department, salary)
-VALUES ('Linus', 'Torvalds', 'Engineering', 120000);
-```
-
-You can insert multiple rows in a single statement by stacking `VALUES` tuples:
-
-```sql
-INSERT INTO employees (first_name, last_name, department, salary)
+</div><h2>INSERT — Adding Rows</h2>
+<p><code>INSERT INTO</code> appends one or more new rows to a table. Always name your columns explicitly — it makes the statement resilient to future schema changes and far easier to read.</p>
+<pre><code class="language-sql">INSERT INTO employees (first_name, last_name, department, salary)
+VALUES (&#39;Linus&#39;, &#39;Torvalds&#39;, &#39;Engineering&#39;, 120000);
+</code></pre>
+<p>You can insert multiple rows in a single statement by stacking <code>VALUES</code> tuples:</p>
+<pre><code class="language-sql">INSERT INTO employees (first_name, last_name, department, salary)
 VALUES
-  ('Tim',  'Berners-Lee', 'Research',    115000),
-  ('Radia', 'Perlman',    'Engineering', 108000);
-```
-
-> **Note:** If a column has a default value (like an auto-increment primary key), you can omit it from the column list and the database fills it in for you.
-
-## UPDATE — Changing Existing Rows
-
-`UPDATE` modifies rows that already exist. The `SET` clause names each column and its new value; `WHERE` selects which rows are affected.
-
-```sql
-UPDATE employees
+  (&#39;Tim&#39;,  &#39;Berners-Lee&#39;, &#39;Research&#39;,    115000),
+  (&#39;Radia&#39;, &#39;Perlman&#39;,    &#39;Engineering&#39;, 108000);
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> If a column has a default value (like an auto-increment primary key), you can omit it from the column list and the database fills it in for you.</p>
+</blockquote>
+<h2>UPDATE — Changing Existing Rows</h2>
+<p><code>UPDATE</code> modifies rows that already exist. The <code>SET</code> clause names each column and its new value; <code>WHERE</code> selects which rows are affected.</p>
+<pre><code class="language-sql">UPDATE employees
 SET salary = 102000
 WHERE id = 3;
-```
-
-You can update multiple columns in one statement:
-
-```sql
-UPDATE employees
-SET department = 'AI Research', salary = salary * 1.15
-WHERE department = 'Research';
-```
-
-> **Warning:** An `UPDATE` without a `WHERE` clause touches **every row in the table**. Always double-check your filter before running an update in production — or wrap it in a transaction so you can roll back if something goes wrong.
-
-## DELETE — Removing Rows
-
-`DELETE FROM` removes rows that match the `WHERE` condition.
-
-```sql
-DELETE FROM employees
+</code></pre>
+<p>You can update multiple columns in one statement:</p>
+<pre><code class="language-sql">UPDATE employees
+SET department = &#39;AI Research&#39;, salary = salary * 1.15
+WHERE department = &#39;Research&#39;;
+</code></pre>
+<blockquote>
+<p><strong>Warning:</strong> An <code>UPDATE</code> without a <code>WHERE</code> clause touches <strong>every row in the table</strong>. Always double-check your filter before running an update in production — or wrap it in a transaction so you can roll back if something goes wrong.</p>
+</blockquote>
+<h2>DELETE — Removing Rows</h2>
+<p><code>DELETE FROM</code> removes rows that match the <code>WHERE</code> condition.</p>
+<pre><code class="language-sql">DELETE FROM employees
 WHERE id = 5;
-```
-
-Like `UPDATE`, a `DELETE` with no `WHERE` clause wipes the entire table. If you actually want to empty a table, most engines offer `TRUNCATE` for that purpose (faster and explicit about the intent). In SQLite, plain `DELETE FROM employees;` does the job.
-
-The widget below lets you experiment with all four statements on a fresh copy of the table. Try inserting a new employee, updating a salary, then deleting a row — and use `SELECT * FROM employees;` after each step to see the result.
-
+</code></pre>
+<p>Like <code>UPDATE</code>, a <code>DELETE</code> with no <code>WHERE</code> clause wipes the entire table. If you actually want to empty a table, most engines offer <code>TRUNCATE</code> for that purpose (faster and explicit about the intent). In SQLite, plain <code>DELETE FROM employees;</code> does the job.</p>
+<p>The widget below lets you experiment with all four statements on a fresh copy of the table. Try inserting a new employee, updating a salary, then deleting a row — and use <code>SELECT * FROM employees;</code> after each step to see the result.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · INSERT / UPDATE / DELETE</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT, department TEXT, salary INTEGER); INSERT INTO employees VALUES (1,'Ada','Lovelace','Engineering',95000); INSERT INTO employees VALUES (2,'Grace','Hopper','Engineering',105000); INSERT INTO employees VALUES (3,'Alan','Turing','Research',98000); INSERT INTO employees VALUES (4,'Margaret','Hamilton','Engineering',110000); INSERT INTO employees VALUES (5,'Claude','Shannon','Research',92000);" rows="20">-- 1. Add a new employee
+    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT, department TEXT, salary INTEGER); INSERT INTO employees VALUES (1,'Ada','Lovelace','Engineering',95000); INSERT INTO employees VALUES (2,'Grace','Hopper','Engineering',105000); INSERT INTO employees VALUES (3,'Alan','Turing','Research',98000); INSERT INTO employees VALUES (4,'Margaret','Hamilton','Engineering',110000); INSERT INTO employees VALUES (5,'Claude','Shannon','Research',92000);" rows="10">-- 1. Add a new employee
 INSERT INTO employees (first_name, last_name, department, salary)
 VALUES ('Linus', 'Torvalds', 'Engineering', 120000);
 -- 2. Give Research a 10% raise
@@ -134,20 +131,41 @@ DELETE FROM employees WHERE id = 5;
 -- 4. See the result
 SELECT * FROM employees;</textarea>
   </div>
+</div><h2>Putting It Together</h2>
+<table>
+<thead>
+<tr>
+<th>Statement</th>
+<th>Purpose</th>
+<th>Danger zone</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SELECT</code></td>
+<td>Read rows</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>INSERT</code></td>
+<td>Add new rows</td>
+<td>Violating constraints (duplicate key, NOT NULL)</td>
+</tr>
+<tr>
+<td><code>UPDATE</code></td>
+<td>Change existing rows</td>
+<td>Missing <code>WHERE</code> → all rows changed</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td>Remove rows</td>
+<td>Missing <code>WHERE</code> → all rows deleted</td>
+</tr>
+</tbody></table>
+<p>These four statements are deliberately simple on their own. Their real power emerges when you combine them with <code>JOIN</code>, subqueries, transactions, and constraints — all of which the following chapters cover in depth.</p>
+
 </div>
-
-## Putting It Together
-
-| Statement | Purpose | Danger zone |
-|-----------|---------|-------------|
-| `SELECT` | Read rows | — |
-| `INSERT` | Add new rows | Violating constraints (duplicate key, NOT NULL) |
-| `UPDATE` | Change existing rows | Missing `WHERE` → all rows changed |
-| `DELETE` | Remove rows | Missing `WHERE` → all rows deleted |
-
-These four statements are deliberately simple on their own. Their real power emerges when you combine them with `JOIN`, subqueries, transactions, and constraints — all of which the following chapters cover in depth.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="041-what-sql-is-for.html"><span class="dir">← Previous</span><span class="ttl">What SQL is for</span></a><a class="next" href="043-filtering-rows-with-where.html"><span class="dir">Next →</span><span class="ttl">Filtering rows with WHERE</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

@@ -5,89 +5,130 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>One-to-one, one-to-many, many-to-many — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 4. Schemas and Data Modeling</p>
   <h1 class="content-title">One-to-one, one-to-many, many-to-many</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="032-entities-and-relationships.html"><span class="dir">← Previous</span><span class="ttl">Entities and relationships</span></a><a class="next" href="034-lookup-tables-and-enums.html"><span class="dir">Next →</span><span class="ttl">Lookup tables and enums</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every time two kinds of things in your system are connected — a user and a profile, an order and its line items, a student and their courses — you are describing a **relationship**. Relational databases express these connections with foreign keys, but before you write a single `REFERENCES` clause you need to know what *kind* of relationship you are modelling. There are three patterns, and choosing the wrong one leads to data you cannot query cleanly or constraints you cannot enforce.
-
-## One-to-One
-
-A one-to-one relationship means each row in table A corresponds to **at most one** row in table B, and vice versa. This is the rarest pattern in practice.
-
-A classic example: a `users` table and a `user_profiles` table. Every user has exactly one profile, and every profile belongs to exactly one user.
-
-| users        |           | user_profiles         |
-|--------------|-----------|-----------------------|
-| user_id (PK) | ←──────── | user_id (PK, FK)      |
-| email        |           | bio                   |
-| created_at   |           | avatar_url            |
-
-The profile table holds `user_id` as both its **primary key** and a **foreign key** back to `users`. That double role enforces the one-to-one constraint: you cannot have two profile rows for the same user because primary keys are unique.
-
-> **Note:** You could add profile columns directly to `users`. Splitting into a separate table makes sense when the extra columns are large, rarely needed, or belong to a different subsystem. It is a design choice, not a rule.
-
-## One-to-Many
-
-One-to-many is by far the most common relationship. One row in table A links to **many** rows in table B, but each row in B points back to exactly **one** row in A.
-
-Examples abound: one customer places many orders; one blog post has many comments; one department employs many staff members.
-
-The pattern is straightforward: the **many** side holds a foreign key column that references the **one** side.
-
-```sql
-CREATE TABLE customers (
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <!-- 1:1 -->
+  <rect x="5" y="5" width="230" height="170" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+  <text x="120" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#2f6df6">1 : 1</text>
+  <text x="120" y="52" text-anchor="middle" font-size="9" fill="#5a6678">user ↔ profile</text>
+  <rect x="15" y="64" width="95" height="40" rx="6" fill="#fff" stroke="#93c5fd"/>
+  <text x="62" y="82" font-size="9" fill="#1c2330">users</text>
+  <text x="62" y="96" font-size="8" fill="#5a6678">id PK</text>
+  <rect x="120" y="64" width="95" height="40" rx="6" fill="#fff" stroke="#93c5fd"/>
+  <text x="167" y="82" font-size="9" fill="#1c2330">profiles</text>
+  <text x="167" y="96" font-size="8" fill="#5a6678">user_id PK+FK</text>
+  <line x1="110" y1="84" x2="120" y2="84" stroke="#2f6df6"/>
+  <text x="120" y="128" text-anchor="middle" font-size="9" fill="#5a6678">FK = PK (unique constraint)</text>
+  <text x="120" y="144" text-anchor="middle" font-size="9" fill="#5a6678">Each user → one profile</text>
+  <text x="120" y="160" text-anchor="middle" font-size="9" fill="#5a6678">Each profile → one user</text>
+  <!-- 1:N -->
+  <rect x="245" y="5" width="230" height="170" rx="10" fill="#f0fdf4" stroke="#16a34a" filter="url(#sh)"/>
+  <text x="360" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a">1 : N</text>
+  <text x="360" y="52" text-anchor="middle" font-size="9" fill="#5a6678">customer ↔ orders</text>
+  <rect x="255" y="64" width="95" height="40" rx="6" fill="#fff" stroke="#86efac"/>
+  <text x="302" y="82" font-size="9" fill="#1c2330">customers</text>
+  <text x="302" y="96" font-size="8" fill="#5a6678">id PK</text>
+  <rect x="360" y="64" width="95" height="40" rx="6" fill="#fff" stroke="#86efac"/>
+  <text x="407" y="82" font-size="9" fill="#1c2330">orders</text>
+  <text x="407" y="96" font-size="8" fill="#5a6678">customer_id FK</text>
+  <line x1="350" y1="84" x2="360" y2="84" stroke="#16a34a"/>
+  <text x="360" y="128" text-anchor="middle" font-size="9" fill="#5a6678">FK on the "many" side</text>
+  <text x="360" y="144" text-anchor="middle" font-size="9" fill="#5a6678">1 customer → N orders</text>
+  <text x="360" y="160" text-anchor="middle" font-size="9" fill="#5a6678">Each order → 1 customer</text>
+  <!-- M:N -->
+  <rect x="485" y="5" width="230" height="170" rx="10" fill="#ede9fe" stroke="#a78bfa" filter="url(#sh)"/>
+  <text x="600" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#7c3aed">M : N</text>
+  <text x="600" y="52" text-anchor="middle" font-size="9" fill="#5a6678">students ↔ courses</text>
+  <rect x="495" y="64" width="65" height="30" rx="6" fill="#fff" stroke="#c4b5fd"/>
+  <text x="527" y="83" font-size="9" fill="#1c2330">students</text>
+  <rect x="585" y="64" width="65" height="30" rx="6" fill="#fff" stroke="#c4b5fd"/>
+  <text x="617" y="83" font-size="9" fill="#1c2330">courses</text>
+  <rect x="520" y="100" width="100" height="30" rx="6" fill="#ddd6fe"/>
+  <text x="570" y="119" font-size="9" fill="#7c3aed">enrollments (junction)</text>
+  <line x1="527" y1="94" x2="545" y2="100" stroke="#a78bfa"/>
+  <line x1="610" y1="94" x2="595" y2="100" stroke="#a78bfa"/>
+  <text x="600" y="148" text-anchor="middle" font-size="9" fill="#5a6678">Junction table with</text>
+  <text x="600" y="164" text-anchor="middle" font-size="9" fill="#5a6678">two FKs composing a PK</text>
+</svg>
+<figcaption>Three relationship patterns: 1:1 (FK also a unique PK), 1:N (FK on the child), and M:N (junction table with two FKs).</figcaption>
+</figure>
+<p>Every time two kinds of things in your system are connected — a user and a profile, an order and its line items, a student and their courses — you are describing a <strong>relationship</strong>. Relational databases express these connections with foreign keys, but before you write a single <code>REFERENCES</code> clause you need to know what <em>kind</em> of relationship you are modelling. There are three patterns, and choosing the wrong one leads to data you cannot query cleanly or constraints you cannot enforce.</p>
+<h2>One-to-One</h2>
+<p>A one-to-one relationship means each row in table A corresponds to <strong>at most one</strong> row in table B, and vice versa. This is the rarest pattern in practice.</p>
+<p>A classic example: a <code>users</code> table and a <code>user_profiles</code> table. Every user has exactly one profile, and every profile belongs to exactly one user.</p>
+<table>
+<thead>
+<tr>
+<th>users</th>
+<th></th>
+<th>user_profiles</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>user_id (PK)</td>
+<td>←────────</td>
+<td>user_id (PK, FK)</td>
+</tr>
+<tr>
+<td>email</td>
+<td></td>
+<td>bio</td>
+</tr>
+<tr>
+<td>created_at</td>
+<td></td>
+<td>avatar_url</td>
+</tr>
+</tbody></table>
+<p>The profile table holds <code>user_id</code> as both its <strong>primary key</strong> and a <strong>foreign key</strong> back to <code>users</code>. That double role enforces the one-to-one constraint: you cannot have two profile rows for the same user because primary keys are unique.</p>
+<blockquote>
+<p><strong>Note:</strong> You could add profile columns directly to <code>users</code>. Splitting into a separate table makes sense when the extra columns are large, rarely needed, or belong to a different subsystem. It is a design choice, not a rule.</p>
+</blockquote>
+<h2>One-to-Many</h2>
+<p>One-to-many is by far the most common relationship. One row in table A links to <strong>many</strong> rows in table B, but each row in B points back to exactly <strong>one</strong> row in A.</p>
+<p>Examples abound: one customer places many orders; one blog post has many comments; one department employs many staff members.</p>
+<p>The pattern is straightforward: the <strong>many</strong> side holds a foreign key column that references the <strong>one</strong> side.</p>
+<pre><code class="language-sql">CREATE TABLE customers (
   customer_id INTEGER PRIMARY KEY,
   name        TEXT NOT NULL
 );
 
 CREATE TABLE orders (
   order_id    INTEGER PRIMARY KEY,
-  customer_id INTEGER NOT NULL,         -- the foreign key lives on the "many" side
+  customer_id INTEGER NOT NULL,         -- the foreign key lives on the &quot;many&quot; side
   placed_at   TEXT NOT NULL,
   FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
 );
-```
-
-Notice the foreign key always goes on the *many* side. Putting it the other way — storing a list of order IDs inside a customer row — is not possible in a plain relational column and is a sign the design needs to change.
-
-Try the widget below to explore a one-to-many schema. The default query lists each customer alongside a count of their orders.
-
+</code></pre>
+<p>Notice the foreign key always goes on the <em>many</em> side. Putting it the other way — storing a list of order IDs inside a customer row — is not possible in a plain relational column and is a sign the design needs to change.</p>
+<p>Try the widget below to explore a one-to-many schema. The default query lists each customer alongside a count of their orders.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · One-to-Many</span></div>
   <div class="widget-body">
     <textarea data-setup="CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT NOT NULL);
 CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, item TEXT NOT NULL, FOREIGN KEY (customer_id) REFERENCES customers(customer_id));
 INSERT INTO customers VALUES (1, 'Alice'), (2, 'Ben'), (3, 'Clara');
-INSERT INTO orders VALUES (101, 1, 'Laptop'), (102, 1, 'Mouse'), (103, 1, 'Webcam'), (104, 2, 'Keyboard'), (105, 3, 'Monitor');" rows="20">-- How many orders does each customer have?
+INSERT INTO orders VALUES (101, 1, 'Laptop'), (102, 1, 'Mouse'), (103, 1, 'Webcam'), (104, 2, 'Keyboard'), (105, 3, 'Monitor');" rows="10">-- How many orders does each customer have?
 SELECT c.name, COUNT(o.order_id) AS order_count
 FROM customers c
 LEFT JOIN orders o ON c.customer_id = o.customer_id
 GROUP BY c.customer_id, c.name
 ORDER BY order_count DESC;</textarea>
   </div>
-</div>
-
-## Many-to-Many
-
-A many-to-many relationship means rows on both sides can relate to multiple rows on the other side. A student enrols in many courses; a course contains many students. A product belongs to many tags; a tag applies to many products.
-
-You **cannot** model this directly with a single foreign key column — there is no single column that can hold multiple references. The standard solution is a **junction table** (also called a bridge table or associative table) that sits between the two main tables and holds one row per connection.
-
-```sql
-CREATE TABLE students (
+</div><h2>Many-to-Many</h2>
+<p>A many-to-many relationship means rows on both sides can relate to multiple rows on the other side. A student enrols in many courses; a course contains many students. A product belongs to many tags; a tag applies to many products.</p>
+<p>You <strong>cannot</strong> model this directly with a single foreign key column — there is no single column that can hold multiple references. The standard solution is a <strong>junction table</strong> (also called a bridge table or associative table) that sits between the two main tables and holds one row per connection.</p>
+<pre><code class="language-sql">CREATE TABLE students (
   student_id INTEGER PRIMARY KEY,
   name       TEXT NOT NULL
 );
@@ -106,12 +147,9 @@ CREATE TABLE enrolments (
   FOREIGN KEY (student_id) REFERENCES students(student_id),
   FOREIGN KEY (course_id)  REFERENCES courses(course_id)
 );
-```
-
-The composite primary key `(student_id, course_id)` prevents duplicate enrolments. The junction table also gives you a natural place to store attributes that belong to the *relationship itself* — like the date a student enrolled, or a grade.
-
-Use this widget to query a many-to-many schema. Try changing the `WHERE` clause to filter by a different student or course.
-
+</code></pre>
+<p>The composite primary key <code>(student_id, course_id)</code> prevents duplicate enrolments. The junction table also gives you a natural place to store attributes that belong to the <em>relationship itself</em> — like the date a student enrolled, or a grade.</p>
+<p>Use this widget to query a many-to-many schema. Try changing the <code>WHERE</code> clause to filter by a different student or course.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Many-to-Many</span></div>
   <div class="widget-body">
@@ -120,26 +158,43 @@ CREATE TABLE courses (course_id INTEGER PRIMARY KEY, title TEXT NOT NULL);
 CREATE TABLE enrolments (student_id INTEGER NOT NULL, course_id INTEGER NOT NULL, enrolled_on TEXT NOT NULL, PRIMARY KEY (student_id, course_id), FOREIGN KEY (student_id) REFERENCES students(student_id), FOREIGN KEY (course_id) REFERENCES courses(course_id));
 INSERT INTO students VALUES (1, 'Alice'), (2, 'Ben'), (3, 'Clara');
 INSERT INTO courses VALUES (10, 'Databases 101'), (20, 'Web Development'), (30, 'Data Structures');
-INSERT INTO enrolments VALUES (1, 10, '2024-09-01'), (1, 20, '2024-09-01'), (2, 10, '2024-09-02'), (2, 30, '2024-09-02'), (3, 10, '2024-09-03'), (3, 20, '2024-09-03'), (3, 30, '2024-09-03');" rows="20">-- Which courses is Alice enrolled in?
+INSERT INTO enrolments VALUES (1, 10, '2024-09-01'), (1, 20, '2024-09-01'), (2, 10, '2024-09-02'), (2, 30, '2024-09-02'), (3, 10, '2024-09-03'), (3, 20, '2024-09-03'), (3, 30, '2024-09-03');" rows="10">-- Which courses is Alice enrolled in?
 SELECT s.name AS student, c.title AS course, e.enrolled_on
 FROM enrolments e
 JOIN students s ON e.student_id = s.student_id
 JOIN courses  c ON e.course_id  = c.course_id
 WHERE s.name = 'Alice';</textarea>
   </div>
+</div><h2>Choosing the Right Relationship</h2>
+<table>
+<thead>
+<tr>
+<th>Relationship</th>
+<th>Example</th>
+<th>Where the FK lives</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>One-to-one</td>
+<td>user → profile</td>
+<td>FK on the dependent table (profile)</td>
+</tr>
+<tr>
+<td>One-to-many</td>
+<td>customer → orders</td>
+<td>FK on the <em>many</em> side (orders)</td>
+</tr>
+<tr>
+<td>Many-to-many</td>
+<td>students ↔ courses</td>
+<td>Junction table with two FKs</td>
+</tr>
+</tbody></table>
+<p>When you are unsure which pattern fits, ask: &quot;Can a row on side A link to more than one row on side B — and can a row on side B link to more than one row on side A?&quot; If only one direction is <em>many</em>, it is one-to-many. If both directions are <em>many</em>, you need a junction table. Getting this right before you build the schema saves painful migrations later.</p>
+
 </div>
-
-## Choosing the Right Relationship
-
-| Relationship | Example | Where the FK lives |
-|---|---|---|
-| One-to-one | user → profile | FK on the dependent table (profile) |
-| One-to-many | customer → orders | FK on the *many* side (orders) |
-| Many-to-many | students ↔ courses | Junction table with two FKs |
-
-When you are unsure which pattern fits, ask: "Can a row on side A link to more than one row on side B — and can a row on side B link to more than one row on side A?" If only one direction is *many*, it is one-to-many. If both directions are *many*, you need a junction table. Getting this right before you build the schema saves painful migrations later.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="032-entities-and-relationships.html"><span class="dir">← Previous</span><span class="ttl">Entities and relationships</span></a><a class="next" href="034-lookup-tables-and-enums.html"><span class="dir">Next →</span><span class="ttl">Lookup tables and enums</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

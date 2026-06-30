@@ -5,49 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What to believe instead — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VII. Building Understanding</p>
   <p class="chapter-label">Chapter 29. Common Myths About Databases</p>
   <h1 class="content-title">What to believe instead</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="288-one-database-can-do-everything.html"><span class="dir">← Previous</span><span class="ttl">One database can do everything</span></a><a class="next" href="291-how-to-read-database-papers.html"><span class="dir">Next →</span><span class="ttl">How to read database papers</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-After eight pages of myth-busting, a natural question surfaces: if SQL isn't inherently slow, indexes don't always help, ACID doesn't preclude scale, and no single database does everything — what *should* you believe? This closing page distills the nuanced reality into a set of durable mental models for choosing, tuning, and trusting databases in production systems.
-
-## From Myths to Mental Models
-
-The myths we've examined share a common flaw: they substitute a simple, memorable rule for a more complex, contextual truth. Database engineering is full of situations where "it depends" is the correct answer — but "it depends" is only useful if you know what it depends on. These mental models make that dependency explicit.
-
-## Mental Model 1: Measure Before You Optimize
-
-Every myth in this chapter leads someone to make a significant architectural decision — switching databases, avoiding SQL, adding indexes everywhere, distributing too early — without measuring the actual bottleneck. The invariant that prevents all of these mistakes is the same:
-
-**Profile first. Optimize the thing you measured, not the thing you assumed.**
-
-- Run `EXPLAIN ANALYZE` before concluding SQL is slow.
-- Check `pg_stat_user_indexes` before adding or removing indexes.
-- Load-test your single node before distributing.
-- Measure write amplification before denormalizing.
-
-The performance issue you imagine and the performance issue that actually exists are frequently different problems.
-
-## Mental Model 2: Match the Tool to the Access Pattern
-
-Every database makes architectural trade-offs. Row-stores are fast for point lookups and complex queries; column-stores are fast for aggregations over large datasets; key-value stores are fast for single-key reads; graph databases traverse relationships efficiently. No universal trade-off winner exists.
-
-The decision framework:
-
-```
-1. What is the primary access pattern?
+  <div id="rendered" class="content">
+<p>After eight pages of myth-busting, a natural question surfaces: if SQL isn&#39;t inherently slow, indexes don&#39;t always help, ACID doesn&#39;t preclude scale, and no single database does everything — what <em>should</em> you believe? This closing page distills the nuanced reality into a set of durable mental models for choosing, tuning, and trusting databases in production systems.</p>
+<h2>From Myths to Mental Models</h2>
+<p>The myths we&#39;ve examined share a common flaw: they substitute a simple, memorable rule for a more complex, contextual truth. Database engineering is full of situations where &quot;it depends&quot; is the correct answer — but &quot;it depends&quot; is only useful if you know what it depends on. These mental models make that dependency explicit.</p>
+<h2>Mental Model 1: Measure Before You Optimize</h2>
+<p>Every myth in this chapter leads someone to make a significant architectural decision — switching databases, avoiding SQL, adding indexes everywhere, distributing too early — without measuring the actual bottleneck. The invariant that prevents all of these mistakes is the same:</p>
+<p><strong>Profile first. Optimize the thing you measured, not the thing you assumed.</strong></p>
+<ul>
+<li>Run <code>EXPLAIN ANALYZE</code> before concluding SQL is slow.</li>
+<li>Check <code>pg_stat_user_indexes</code> before adding or removing indexes.</li>
+<li>Load-test your single node before distributing.</li>
+<li>Measure write amplification before denormalizing.</li>
+</ul>
+<p>The performance issue you imagine and the performance issue that actually exists are frequently different problems.</p>
+<h2>Mental Model 2: Match the Tool to the Access Pattern</h2>
+<p>Every database makes architectural trade-offs. Row-stores are fast for point lookups and complex queries; column-stores are fast for aggregations over large datasets; key-value stores are fast for single-key reads; graph databases traverse relationships efficiently. No universal trade-off winner exists.</p>
+<p>The decision framework:</p>
+<pre><code>1. What is the primary access pattern?
    - Transactional (CRUD, ACID): relational DB
    - Exact-key reads at high throughput: key-value store
    - Aggregations over time ranges: time-series or column-store
@@ -55,13 +38,12 @@ The decision framework:
    - Graph traversal: graph DB
 
 2. Does my existing database handle it acceptably?
-   - Yes → don't add another system
+   - Yes → don&#39;t add another system
    - No → consider extension first, then specialist DB
 
 3. Does the operational cost of a new system justify the benefit?
    - Measure the gap, estimate the cost, decide.
-```
-
+</code></pre>
 <figure class="diagram">
 <svg viewBox="0 0 660 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Decision framework: a flowchart from access pattern through extension availability to specialist database selection">
   <defs>
@@ -71,93 +53,97 @@ The decision framework:
     <marker id="arr-muted" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
     </marker>
-  </defs>
-
-  <!-- Start -->
+  </defs>  <!-- Start -->
   <rect x="240" y="10" width="180" height="40" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
-  <text x="330" y="35" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">Identify Access Pattern</text>
-
-  <line x1="330" y1="52" x2="330" y2="78" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
-
-  <!-- Measure box -->
+  <text x="330" y="35" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">Identify Access Pattern</text>  <line x1="330" y1="52" x2="330" y2="78" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>  <!-- Measure box -->
   <rect x="220" y="80" width="220" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="330" y="100" text-anchor="middle" font-size="11" fill="var(--text)">Is the current DB meeting SLOs?</text>
-  <text x="330" y="114" text-anchor="middle" font-size="10" fill="var(--muted)">(measure — don't assume)</text>
-
-  <!-- Yes branch -->
+  <text x="330" y="114" text-anchor="middle" font-size="10" fill="var(--muted)">(measure — don't assume)</text>  <!-- Yes branch -->
   <line x1="220" y1="100" x2="150" y2="100" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
   <text x="185" y="94" text-anchor="middle" font-size="10" fill="var(--accent)">Yes</text>
   <rect x="30" y="80" width="118" height="40" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="89" y="100" text-anchor="middle" font-size="11" fill="var(--accent)">Keep current DB</text>
-  <text x="89" y="114" text-anchor="middle" font-size="10" fill="var(--muted)">avoid complexity</text>
-
-  <!-- No branch -->
+  <text x="89" y="114" text-anchor="middle" font-size="10" fill="var(--muted)">avoid complexity</text>  <!-- No branch -->
   <line x1="330" y1="122" x2="330" y2="148" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arr-muted)"/>
-  <text x="340" y="138" font-size="10" fill="var(--muted)">No</text>
-
-  <!-- Extension box -->
+  <text x="340" y="138" font-size="10" fill="var(--muted)">No</text>  <!-- Extension box -->
   <rect x="210" y="150" width="240" height="40" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="330" y="170" text-anchor="middle" font-size="11" fill="var(--text)">Extension available for this DB?</text>
-  <text x="330" y="184" text-anchor="middle" font-size="10" fill="var(--muted)">(PostGIS, TimescaleDB, pg_trgm…)</text>
-
-  <!-- Yes branch from extension -->
+  <text x="330" y="184" text-anchor="middle" font-size="10" fill="var(--muted)">(PostGIS, TimescaleDB, pg_trgm…)</text>  <!-- Yes branch from extension -->
   <line x1="210" y1="170" x2="140" y2="170" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
   <text x="175" y="164" text-anchor="middle" font-size="10" fill="var(--accent)">Yes</text>
   <rect x="20" y="150" width="118" height="40" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="79" y="170" text-anchor="middle" font-size="11" fill="var(--accent)">Add extension</text>
-  <text x="79" y="184" text-anchor="middle" font-size="10" fill="var(--muted)">no new system</text>
-
-  <!-- No branch to specialist -->
-  <line x1="330" y1="192" x2="330" y2="218" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arr-muted)"/>
-
-  <!-- Specialist DB box -->
+  <text x="79" y="184" text-anchor="middle" font-size="10" fill="var(--muted)">no new system</text>  <!-- No branch to specialist -->
+  <line x1="330" y1="192" x2="330" y2="218" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arr-muted)"/>  <!-- Specialist DB box -->
   <rect x="210" y="220" width="240" height="50" rx="6" fill="var(--surface-2)" stroke="var(--muted)" stroke-width="1.5"/>
   <text x="330" y="242" text-anchor="middle" font-size="11" fill="var(--text)">Add specialist DB</text>
   <text x="330" y="258" text-anchor="middle" font-size="10" fill="var(--muted)">weigh operational cost vs. benefit</text>
   <text x="330" y="272" text-anchor="middle" font-size="10" fill="var(--muted)">plan sync strategy</text>
 </svg>
 <figcaption>A practical decision framework for database selection: measure first, prefer extensions over new systems, and add specialists only when the benefit justifies the operational overhead.</figcaption>
-</figure>
-
-## Mental Model 3: Schemas Are Contracts, Not Obstacles
-
-Schemas — whether enforced by the database or by application code — represent the contract between the data layer and every consumer of that data. The myth that schemaless means simpler collapses the distinction between "no database-enforced schema" and "no schema."
-
-The productive framing: **who enforces the contract?**
-
-- **Database**: enforcement is automatic, universal, and reported as errors at write time.
-- **Application**: enforcement is manual, partial, and fails silently when code is missing or wrong.
-
-Choose where the contract lives based on how critical correctness is and how much you trust all writers to the data. For financial data, inventory levels, and user credentials: database enforcement. For optional user metadata and configuration blobs: application enforcement is acceptable.
-
-## Mental Model 4: Consistency Is a Spectrum, Not a Binary
-
-The "ACID vs. eventual consistency" framing suggests a binary choice. The reality is a spectrum:
-
-| Level | Guarantee | Cost | Use Case |
-|---|---|---|---|
-| Serializable | All transactions appear to run one at a time | Highest | Financial ledgers, inventory |
-| Repeatable Read | No phantom reads within a transaction | High | Reports, analytics queries |
-| Read Committed | See only committed data (default in most DBs) | Medium | Most OLTP workloads |
-| Read Uncommitted | May see uncommitted data | Low | Rarely appropriate |
-| Eventual | Eventually converges to correct state | Lowest | Shopping carts, social feeds |
-
-Most applications run at Read Committed and never need anything stricter. Weakening to eventual consistency is appropriate for specific workloads (global reads, high-write-throughput non-financial data) — but it should be a deliberate decision, not a default assumption.
-
-## Mental Model 5: Distribution Is a Solution, Not a Default
-
-Distributed systems are harder to operate, reason about, and debug than single-node systems. The distributed default should never be "use a distributed database because it sounds more scalable." It should be "use a distributed database because we have measured a bottleneck that a single node cannot address."
-
-The questions to ask before distributing:
-
-1. Have we optimized the single-node setup? (Indexes, query tuning, connection pooling, read replicas.)
-2. What is the specific bottleneck? (Write throughput? Data volume? Read latency for geographically distant users?)
-3. Does the distribution model match the bottleneck? (Read replicas for read latency; sharding for write throughput; global distribution for geographic latency.)
-
+</figure><h2>Mental Model 3: Schemas Are Contracts, Not Obstacles</h2>
+<p>Schemas — whether enforced by the database or by application code — represent the contract between the data layer and every consumer of that data. The myth that schemaless means simpler collapses the distinction between &quot;no database-enforced schema&quot; and &quot;no schema.&quot;</p>
+<p>The productive framing: <strong>who enforces the contract?</strong></p>
+<ul>
+<li><strong>Database</strong>: enforcement is automatic, universal, and reported as errors at write time.</li>
+<li><strong>Application</strong>: enforcement is manual, partial, and fails silently when code is missing or wrong.</li>
+</ul>
+<p>Choose where the contract lives based on how critical correctness is and how much you trust all writers to the data. For financial data, inventory levels, and user credentials: database enforcement. For optional user metadata and configuration blobs: application enforcement is acceptable.</p>
+<h2>Mental Model 4: Consistency Is a Spectrum, Not a Binary</h2>
+<p>The &quot;ACID vs. eventual consistency&quot; framing suggests a binary choice. The reality is a spectrum:</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Guarantee</th>
+<th>Cost</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Serializable</td>
+<td>All transactions appear to run one at a time</td>
+<td>Highest</td>
+<td>Financial ledgers, inventory</td>
+</tr>
+<tr>
+<td>Repeatable Read</td>
+<td>No phantom reads within a transaction</td>
+<td>High</td>
+<td>Reports, analytics queries</td>
+</tr>
+<tr>
+<td>Read Committed</td>
+<td>See only committed data (default in most DBs)</td>
+<td>Medium</td>
+<td>Most OLTP workloads</td>
+</tr>
+<tr>
+<td>Read Uncommitted</td>
+<td>May see uncommitted data</td>
+<td>Low</td>
+<td>Rarely appropriate</td>
+</tr>
+<tr>
+<td>Eventual</td>
+<td>Eventually converges to correct state</td>
+<td>Lowest</td>
+<td>Shopping carts, social feeds</td>
+</tr>
+</tbody></table>
+<p>Most applications run at Read Committed and never need anything stricter. Weakening to eventual consistency is appropriate for specific workloads (global reads, high-write-throughput non-financial data) — but it should be a deliberate decision, not a default assumption.</p>
+<h2>Mental Model 5: Distribution Is a Solution, Not a Default</h2>
+<p>Distributed systems are harder to operate, reason about, and debug than single-node systems. The distributed default should never be &quot;use a distributed database because it sounds more scalable.&quot; It should be &quot;use a distributed database because we have measured a bottleneck that a single node cannot address.&quot;</p>
+<p>The questions to ask before distributing:</p>
+<ol>
+<li>Have we optimized the single-node setup? (Indexes, query tuning, connection pooling, read replicas.)</li>
+<li>What is the specific bottleneck? (Write throughput? Data volume? Read latency for geographically distant users?)</li>
+<li>Does the distribution model match the bottleneck? (Read replicas for read latency; sharding for write throughput; global distribution for geographic latency.)</li>
+</ol>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Putting It Together</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d', 'now'))); CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), amount REAL NOT NULL CHECK(amount &gt; 0), status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d', 'now'))); CREATE INDEX idx_orders_user ON orders(user_id); CREATE INDEX idx_orders_status ON orders(status) WHERE status = 'pending'; INSERT INTO users VALUES (1,'alice@example.com','2024-01-15'),(2,'bob@example.com','2024-02-20'),(3,'carol@example.com','2024-03-10'); INSERT INTO orders VALUES (1,1,99.99,'shipped','2024-03-01'),(2,1,45.00,'pending','2024-03-15'),(3,2,200.00,'delivered','2024-02-28'),(4,3,12.50,'pending','2024-03-20'),(5,3,88.00,'shipped','2024-03-05');" rows="20">-- Normalized schema: one source of truth
+    <textarea data-setup="CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d', 'now'))); CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), amount REAL NOT NULL CHECK(amount &gt; 0), status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d', 'now'))); CREATE INDEX idx_orders_user ON orders(user_id); CREATE INDEX idx_orders_status ON orders(status) WHERE status = 'pending'; INSERT INTO users VALUES (1,'alice@example.com','2024-01-15'),(2,'bob@example.com','2024-02-20'),(3,'carol@example.com','2024-03-10'); INSERT INTO orders VALUES (1,1,99.99,'shipped','2024-03-01'),(2,1,45.00,'pending','2024-03-15'),(3,2,200.00,'delivered','2024-02-28'),(4,3,12.50,'pending','2024-03-20'),(5,3,88.00,'shipped','2024-03-05');" rows="10">-- Normalized schema: one source of truth
 -- Indexed: user_id + partial index on pending status
 -- ACID transaction: safely move an order through states
 BEGIN;
@@ -170,33 +156,63 @@ FROM orders o
 JOIN users u ON u.id = o.user_id
 WHERE o.status = 'pending';</textarea>
   </div>
+</div><blockquote>
+<p>This example captures several &quot;what to believe instead&quot; principles at once: normalized schema (one source of truth), targeted indexes (user_id + partial index on pending), ACID transaction (safe state transition), and a join that is fast because it&#39;s indexed — not because we avoided SQL.</p>
+</blockquote>
+<h2>What to Believe Instead: A Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Myth</th>
+<th>What to believe instead</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SQL is slow</td>
+<td>SQL speed is determined by indexes and schema design; the query planner does the optimization</td>
+</tr>
+<tr>
+<td>NoSQL means no schema</td>
+<td>Every application has a schema; the question is who enforces it</td>
+</tr>
+<tr>
+<td>Indexes always help</td>
+<td>Indexes are a read/write trade-off; measure selectivity and write load before adding</td>
+</tr>
+<tr>
+<td>ACID means no scale</td>
+<td>Single-node ACID handles enormous workloads; distributed ACID is real and deployable</td>
+</tr>
+<tr>
+<td>Distributed means faster</td>
+<td>Distribution adds coordination cost; profile before distributing</td>
+</tr>
+<tr>
+<td>Flexible schema means easy design</td>
+<td>Deferred design decisions become expensive application-layer complexity</td>
+</tr>
+<tr>
+<td>Denormalization always helps</td>
+<td>Denormalization trades consistency risk for read speed; measure before duplicating</td>
+</tr>
+<tr>
+<td>One database can do everything</td>
+<td>Different access patterns have different optimal storage structures</td>
+</tr>
+</tbody></table>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Measure before you optimize — the bottleneck you imagine and the one you have are usually different.</li>
+<li>Choose the database that fits the access pattern, not the one that sounds most scalable.</li>
+<li>Schema enforcement is a question of <em>where</em>, not <em>whether</em> — database or application code, both have a cost.</li>
+<li>Consistency guarantees exist on a spectrum; most applications work well at Read Committed.</li>
+<li>Distribution is a measured response to a specific bottleneck, not a default architectural choice.</li>
+<li>The best database decision you&#39;ll ever make is the one you can justify with a measurement.</li>
+</ul>
+
 </div>
-
-> This example captures several "what to believe instead" principles at once: normalized schema (one source of truth), targeted indexes (user_id + partial index on pending), ACID transaction (safe state transition), and a join that is fast because it's indexed — not because we avoided SQL.
-
-## What to Believe Instead: A Summary
-
-| Myth | What to believe instead |
-|---|---|
-| SQL is slow | SQL speed is determined by indexes and schema design; the query planner does the optimization |
-| NoSQL means no schema | Every application has a schema; the question is who enforces it |
-| Indexes always help | Indexes are a read/write trade-off; measure selectivity and write load before adding |
-| ACID means no scale | Single-node ACID handles enormous workloads; distributed ACID is real and deployable |
-| Distributed means faster | Distribution adds coordination cost; profile before distributing |
-| Flexible schema means easy design | Deferred design decisions become expensive application-layer complexity |
-| Denormalization always helps | Denormalization trades consistency risk for read speed; measure before duplicating |
-| One database can do everything | Different access patterns have different optimal storage structures |
-
-## Key Takeaways
-
-- Measure before you optimize — the bottleneck you imagine and the one you have are usually different.
-- Choose the database that fits the access pattern, not the one that sounds most scalable.
-- Schema enforcement is a question of *where*, not *whether* — database or application code, both have a cost.
-- Consistency guarantees exist on a spectrum; most applications work well at Read Committed.
-- Distribution is a measured response to a specific bottleneck, not a default architectural choice.
-- The best database decision you'll ever make is the one you can justify with a measurement.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="288-one-database-can-do-everything.html"><span class="dir">← Previous</span><span class="ttl">One database can do everything</span></a><a class="next" href="291-how-to-read-database-papers.html"><span class="dir">Next →</span><span class="ttl">How to read database papers</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

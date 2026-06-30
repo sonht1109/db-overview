@@ -5,172 +5,141 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Choosing isolation levels — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 12. Concurrency Control</p>
   <h1 class="content-title">Choosing isolation levels</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="118-snapshot-isolation.html"><span class="dir">← Previous</span><span class="ttl">Snapshot isolation</span></a><a class="next" href="121-what-can-go-wrong.html"><span class="dir">Next →</span><span class="ttl">What can go wrong</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Earlier chapters introduced the four standard isolation levels — Read Uncommitted, Read Committed, Repeatable Read, and Serializable — and showed the anomalies each one prevents. Now the practical question: **which level should you actually use, and when?** The answer is always a tradeoff between correctness guarantees and throughput.
-
-## The Core Tradeoff
-
-Higher isolation means the database does more work to shield your transaction from concurrent activity — more locking, more version tracking, or outright serialization of conflicting work. That extra work costs performance and can reduce how many transactions complete per second.
-
-| Isolation Level | Prevents | Typical Overhead | Use it when… |
-|---|---|---|---|
-| Read Uncommitted | nothing | lowest | almost never — only for raw diagnostics |
-| Read Committed | dirty reads | low | most OLTP reads; fine when re-reads are rare |
-| Repeatable Read | dirty + non-repeatable reads | moderate | reports, audits, multi-read transactions |
-| Serializable | all anomalies | highest | financial transactions, inventory, anywhere correctness beats throughput |
-
-> **Note:** Most databases default to **Read Committed** (PostgreSQL, SQL Server, Oracle). MySQL/InnoDB defaults to **Repeatable Read**. SQLite uses **Serializable** by default because it serializes writers entirely.
-
-## Matching the Level to the Workload
-
-### Simple read-heavy apps (dashboards, feeds)
-
-A dashboard that reads a few rows to render a page almost never needs Serializable. If the page shows slightly stale data because another transaction committed between two queries, users won't notice. **Read Committed** is the right choice here — it prevents corrupt (uncommitted) data from leaking into your view while keeping concurrency high.
-
-### Multi-step reads in one transaction (reports, summaries)
-
-Suppose you generate an invoice that reads `orders`, `order_items`, and `products` in sequence. If any of those tables change between reads, your totals can disagree with each other. That is a non-repeatable read, and it matters here. Use **Repeatable Read** (or Snapshot Isolation, which most databases implement under that name) so every read within the transaction sees the same version of the data.
-
-### Writes that depend on what you just read (check-then-act)
-
-The pattern "read a value, decide based on it, write a new value" is where most bugs hide. Example: deducting from an account balance, booking the last seat on a flight, or assigning a unique order number. If two transactions both read the same value and then both write, you get a lost update or phantom insert.
-
-**Serializable** is the only level that blocks *all* of these. Under Serializable, the database either detects the conflict and aborts one transaction, or prevents the conflict from happening in the first place.
-
-```sql
--- Flight booking: check-then-act pattern
+  <div id="rendered" class="content">
+<p>Earlier chapters introduced the four standard isolation levels — Read Uncommitted, Read Committed, Repeatable Read, and Serializable — and showed the anomalies each one prevents. Now the practical question: <strong>which level should you actually use, and when?</strong> The answer is always a tradeoff between correctness guarantees and throughput.</p>
+<h2>The Core Tradeoff</h2>
+<p>Higher isolation means the database does more work to shield your transaction from concurrent activity — more locking, more version tracking, or outright serialization of conflicting work. That extra work costs performance and can reduce how many transactions complete per second.</p>
+<table>
+<thead>
+<tr>
+<th>Isolation Level</th>
+<th>Prevents</th>
+<th>Typical Overhead</th>
+<th>Use it when…</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Read Uncommitted</td>
+<td>nothing</td>
+<td>lowest</td>
+<td>almost never — only for raw diagnostics</td>
+</tr>
+<tr>
+<td>Read Committed</td>
+<td>dirty reads</td>
+<td>low</td>
+<td>most OLTP reads; fine when re-reads are rare</td>
+</tr>
+<tr>
+<td>Repeatable Read</td>
+<td>dirty + non-repeatable reads</td>
+<td>moderate</td>
+<td>reports, audits, multi-read transactions</td>
+</tr>
+<tr>
+<td>Serializable</td>
+<td>all anomalies</td>
+<td>highest</td>
+<td>financial transactions, inventory, anywhere correctness beats throughput</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> Most databases default to <strong>Read Committed</strong> (PostgreSQL, SQL Server, Oracle). MySQL/InnoDB defaults to <strong>Repeatable Read</strong>. SQLite uses <strong>Serializable</strong> by default because it serializes writers entirely.</p>
+</blockquote>
+<h2>Matching the Level to the Workload</h2>
+<h3>Simple read-heavy apps (dashboards, feeds)</h3>
+<p>A dashboard that reads a few rows to render a page almost never needs Serializable. If the page shows slightly stale data because another transaction committed between two queries, users won&#39;t notice. <strong>Read Committed</strong> is the right choice here — it prevents corrupt (uncommitted) data from leaking into your view while keeping concurrency high.</p>
+<h3>Multi-step reads in one transaction (reports, summaries)</h3>
+<p>Suppose you generate an invoice that reads <code>orders</code>, <code>order_items</code>, and <code>products</code> in sequence. If any of those tables change between reads, your totals can disagree with each other. That is a non-repeatable read, and it matters here. Use <strong>Repeatable Read</strong> (or Snapshot Isolation, which most databases implement under that name) so every read within the transaction sees the same version of the data.</p>
+<h3>Writes that depend on what you just read (check-then-act)</h3>
+<p>The pattern &quot;read a value, decide based on it, write a new value&quot; is where most bugs hide. Example: deducting from an account balance, booking the last seat on a flight, or assigning a unique order number. If two transactions both read the same value and then both write, you get a lost update or phantom insert.</p>
+<p><strong>Serializable</strong> is the only level that blocks <em>all</em> of these. Under Serializable, the database either detects the conflict and aborts one transaction, or prevents the conflict from happening in the first place.</p>
+<pre><code class="language-sql">-- Flight booking: check-then-act pattern
 BEGIN;
   SELECT seats_remaining FROM flights WHERE id = 42;
   -- Without Serializable, two sessions can both see seats_remaining = 1
   -- and both proceed to book, overselling the flight.
   UPDATE flights SET seats_remaining = seats_remaining - 1 WHERE id = 42;
 COMMIT;
-```
-
-Under Serializable (or with explicit `SELECT ... FOR UPDATE` at lower levels), the second transaction will block or fail rather than oversell.
-
-## Decision Flowchart
-
+</code></pre>
+<p>Under Serializable (or with explicit <code>SELECT ... FOR UPDATE</code> at lower levels), the second transaction will block or fail rather than oversell.</p>
+<h2>Decision Flowchart</h2>
 <figure class="diagram">
 <svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flowchart for choosing an isolation level based on transaction characteristics">
   <!-- Start -->
   <rect x="240" y="16" width="160" height="36" rx="18" fill="var(--accent)" stroke="var(--border)" stroke-width="1.5"/>
-  <text x="320" y="39" fill="var(--surface-2)" font-size="14" text-anchor="middle" font-weight="bold">New transaction</text>
-
-  <!-- Arrow down -->
+  <text x="320" y="39" fill="var(--surface-2)" font-size="14" text-anchor="middle" font-weight="bold">New transaction</text>  <!-- Arrow down -->
   <line x1="320" y1="52" x2="320" y2="86" stroke="var(--border)" stroke-width="1.5"/>
-  <polygon points="320,86 315,76 325,76" fill="var(--border)"/>
-
-  <!-- Q1 -->
+  <polygon points="320,86 315,76 325,76" fill="var(--border)"/>  <!-- Q1 -->
   <rect x="180" y="86" width="280" height="44" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="320" y="106" fill="var(--text)" font-size="13" text-anchor="middle">Does it write, or read data</text>
-  <text x="320" y="122" fill="var(--text)" font-size="13" text-anchor="middle">it will act on later?</text>
-
-  <!-- No branch (left) -->
+  <text x="320" y="122" fill="var(--text)" font-size="13" text-anchor="middle">it will act on later?</text>  <!-- No branch (left) -->
   <line x1="180" y1="108" x2="80" y2="108" stroke="var(--border)" stroke-width="1.5"/>
   <polygon points="80,108 90,103 90,113" fill="var(--border)"/>
-  <text x="130" y="100" fill="var(--text)" font-size="12" text-anchor="middle">No</text>
-
-  <!-- Read-only box -->
+  <text x="130" y="100" fill="var(--text)" font-size="12" text-anchor="middle">No</text>  <!-- Read-only box -->
   <rect x="10" y="86" width="70" height="44" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="45" y="106" fill="var(--text)" font-size="12" text-anchor="middle">Read</text>
-  <text x="45" y="122" fill="var(--text)" font-size="12" text-anchor="middle">only</text>
-
-  <!-- Arrow down from read-only -->
+  <text x="45" y="122" fill="var(--text)" font-size="12" text-anchor="middle">only</text>  <!-- Arrow down from read-only -->
   <line x1="45" y1="130" x2="45" y2="164" stroke="var(--border)" stroke-width="1.5"/>
-  <polygon points="45,164 40,154 50,154" fill="var(--border)"/>
-
-  <!-- Q2 for read-only -->
+  <polygon points="45,164 40,154 50,154" fill="var(--border)"/>  <!-- Q2 for read-only -->
   <rect x="-10" y="164" width="110" height="44" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="45" y="184" fill="var(--text)" font-size="12" text-anchor="middle">Multiple reads</text>
-  <text x="45" y="200" fill="var(--text)" font-size="12" text-anchor="middle">must agree?</text>
-
-  <!-- Yes → Repeatable Read -->
+  <text x="45" y="200" fill="var(--text)" font-size="12" text-anchor="middle">must agree?</text>  <!-- Yes → Repeatable Read -->
   <line x1="45" y1="208" x2="45" y2="248" stroke="var(--border)" stroke-width="1.5"/>
   <polygon points="45,248 40,238 50,238" fill="var(--border)"/>
   <text x="50" y="234" fill="var(--text)" font-size="11">Yes</text>
   <rect x="-20" y="248" width="130" height="36" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
-  <text x="45" y="272" fill="var(--accent)" font-size="13" text-anchor="middle" font-weight="bold">Repeatable Read</text>
-
-  <!-- No → Read Committed -->
+  <text x="45" y="272" fill="var(--accent)" font-size="13" text-anchor="middle" font-weight="bold">Repeatable Read</text>  <!-- No → Read Committed -->
   <line x1="100" y1="186" x2="170" y2="186" stroke="var(--border)" stroke-width="1.5"/>
   <polygon points="170,186 160,181 160,191" fill="var(--border)"/>
   <text x="133" y="178" fill="var(--text)" font-size="11">No</text>
   <rect x="170" y="164" width="130" height="36" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
-  <text x="235" y="188" fill="var(--accent)" font-size="13" text-anchor="middle" font-weight="bold">Read Committed</text>
-
-  <!-- Yes branch (right from Q1) -->
+  <text x="235" y="188" fill="var(--accent)" font-size="13" text-anchor="middle" font-weight="bold">Read Committed</text>  <!-- Yes branch (right from Q1) -->
   <line x1="460" y1="108" x2="540" y2="108" stroke="var(--border)" stroke-width="1.5"/>
   <polygon points="540,108 530,103 530,113" fill="var(--border)"/>
-  <text x="500" y="100" fill="var(--text)" font-size="12" text-anchor="middle">Yes</text>
-
-  <!-- Writes box -->
+  <text x="500" y="100" fill="var(--text)" font-size="12" text-anchor="middle">Yes</text>  <!-- Writes box -->
   <rect x="540" y="86" width="90" height="44" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="585" y="106" fill="var(--text)" font-size="12" text-anchor="middle">Read</text>
-  <text x="585" y="122" fill="var(--text)" font-size="12" text-anchor="middle">+ write</text>
-
-  <!-- Arrow down from writes -->
+  <text x="585" y="122" fill="var(--text)" font-size="12" text-anchor="middle">+ write</text>  <!-- Arrow down from writes -->
   <line x1="585" y1="130" x2="585" y2="164" stroke="var(--border)" stroke-width="1.5"/>
-  <polygon points="585,164 580,154 590,154" fill="var(--border)"/>
-
-  <!-- Q3 for writes -->
+  <polygon points="585,164 580,154 590,154" fill="var(--border)"/>  <!-- Q3 for writes -->
   <rect x="510" y="164" width="150" height="44" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="585" y="184" fill="var(--text)" font-size="12" text-anchor="middle">Correctness is</text>
-  <text x="585" y="200" fill="var(--text)" font-size="12" text-anchor="middle">critical?</text>
-
-  <!-- Yes → Serializable -->
+  <text x="585" y="200" fill="var(--text)" font-size="12" text-anchor="middle">critical?</text>  <!-- Yes → Serializable -->
   <line x1="585" y1="208" x2="585" y2="248" stroke="var(--border)" stroke-width="1.5"/>
   <polygon points="585,248 580,238 590,238" fill="var(--border)"/>
   <text x="590" y="234" fill="var(--text)" font-size="11">Yes</text>
   <rect x="510" y="248" width="150" height="36" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
-  <text x="585" y="272" fill="var(--accent)" font-size="13" text-anchor="middle" font-weight="bold">Serializable</text>
-
-  <!-- No → RC + FOR UPDATE -->
+  <text x="585" y="272" fill="var(--accent)" font-size="13" text-anchor="middle" font-weight="bold">Serializable</text>  <!-- No → RC + FOR UPDATE -->
   <line x1="510" y1="186" x2="430" y2="186" stroke="var(--border)" stroke-width="1.5"/>
   <polygon points="430,186 440,181 440,191" fill="var(--border)"/>
   <text x="468" y="178" fill="var(--text)" font-size="11">No</text>
   <rect x="300" y="164" width="130" height="36" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="365" y="179" fill="var(--accent)" font-size="12" text-anchor="middle" font-weight="bold">Read Committed</text>
-  <text x="365" y="195" fill="var(--text)" font-size="11" text-anchor="middle">+ FOR UPDATE</text>
-
-  <!-- Legend -->
+  <text x="365" y="195" fill="var(--text)" font-size="11" text-anchor="middle">+ FOR UPDATE</text>  <!-- Legend -->
   <rect x="10" y="340" width="18" height="18" rx="3" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="34" y="354" fill="var(--text)" font-size="12">Recommended isolation level</text>
   <rect x="280" y="340" width="18" height="18" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="304" y="354" fill="var(--text)" font-size="12">Decision / intermediate step</text>
 </svg>
 <figcaption>Decision flowchart: start from your transaction's intent and follow the branches to the appropriate isolation level.</figcaption>
-</figure>
-
-## Practical Notes
-
-**You can mix levels within an application.** A background analytics query can run at Read Committed while a payment handler runs at Serializable. Most database drivers let you set the level per connection or per transaction with `SET TRANSACTION ISOLATION LEVEL ...`.
-
-**Serializable is not always slow.** Databases like PostgreSQL implement Serializable Snapshot Isolation (SSI), which detects conflicts optimistically rather than holding long locks. Throughput under SSI is often close to Snapshot Isolation unless conflict rates are high.
-
-**`SELECT ... FOR UPDATE` is a practical middle ground.** At Read Committed, you can lock specific rows you intend to modify, preventing concurrent updates without paying the full cost of Serializable for the whole transaction.
-
-Try the widget below — it demonstrates the check-then-act booking pattern and shows what happens under different strategies.
-
+</figure><h2>Practical Notes</h2>
+<p><strong>You can mix levels within an application.</strong> A background analytics query can run at Read Committed while a payment handler runs at Serializable. Most database drivers let you set the level per connection or per transaction with <code>SET TRANSACTION ISOLATION LEVEL ...</code>.</p>
+<p><strong>Serializable is not always slow.</strong> Databases like PostgreSQL implement Serializable Snapshot Isolation (SSI), which detects conflicts optimistically rather than holding long locks. Throughput under SSI is often close to Snapshot Isolation unless conflict rates are high.</p>
+<p><strong><code>SELECT ... FOR UPDATE</code> is a practical middle ground.</strong> At Read Committed, you can lock specific rows you intend to modify, preventing concurrent updates without paying the full cost of Serializable for the whole transaction.</p>
+<p>Try the widget below — it demonstrates the check-then-act booking pattern and shows what happens under different strategies.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Booking under concurrency</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE flights (id INTEGER PRIMARY KEY, route TEXT, seats_remaining INTEGER); INSERT INTO flights VALUES (1, 'NYC→LAX', 1); INSERT INTO flights VALUES (2, 'SFO→ORD', 10);" rows="20">-- Simulate two transactions both trying to book the last seat.
+    <textarea data-setup="CREATE TABLE flights (id INTEGER PRIMARY KEY, route TEXT, seats_remaining INTEGER); INSERT INTO flights VALUES (1, 'NYC→LAX', 1); INSERT INTO flights VALUES (2, 'SFO→ORD', 10);" rows="10">-- Simulate two transactions both trying to book the last seat.
 -- Run this as-is to see an oversell occur without locking:
 SELECT seats_remaining FROM flights WHERE id = 1;
 -- (Both sessions would see 1 — and both proceed)
@@ -185,11 +154,11 @@ UPDATE flights
 SELECT changes();   -- 1 row changed = booking succeeded; 0 = seat was gone
 SELECT seats_remaining FROM flights WHERE id = 1;</textarea>
   </div>
+</div><p>The <code>WHERE seats_remaining &gt; 0</code> guard in the UPDATE turns the check-and-act into a single atomic statement — no extra isolation level needed for this specific pattern. More complex scenarios (booking multiple resources at once, or cross-table invariants) still call for Serializable.</p>
+
 </div>
-
-The `WHERE seats_remaining > 0` guard in the UPDATE turns the check-and-act into a single atomic statement — no extra isolation level needed for this specific pattern. More complex scenarios (booking multiple resources at once, or cross-table invariants) still call for Serializable.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="118-snapshot-isolation.html"><span class="dir">← Previous</span><span class="ttl">Snapshot isolation</span></a><a class="next" href="121-what-can-go-wrong.html"><span class="dir">Next →</span><span class="ttl">What can go wrong</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

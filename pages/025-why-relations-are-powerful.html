@@ -5,46 +5,70 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Why relations are powerful — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 3. The Relational Model</p>
   <h1 class="content-title">Why relations are powerful</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="024-projection-selection-and-join.html"><span class="dir">← Previous</span><span class="ttl">Projection, selection, and join</span></a><a class="next" href="026-data-independence.html"><span class="dir">Next →</span><span class="ttl">Data independence</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-The relational model has dominated databases for over fifty years — not by accident, but because it solves a genuinely hard problem: how do you store data in a way that lets you ask questions you didn't anticipate at design time? The answer is a single elegant idea — the *relation* — and a small set of mathematical operations that compose cleanly on top of it.
-
-## Data lives in one place, questions can come from anywhere
-
-Before the relational model, databases were navigational: to get from one record to another, you followed pre-built pointers hard-coded at design time. If the pointer for your question didn't exist, you were out of luck — or you rebuilt the database.
-
-Relations break that dependency. Each table is self-describing: every row has the same columns, every column has a declared type, and rows carry no pointer to other tables. Relationships between tables are expressed at *query time* using shared values (keys), not at storage time using pointers. This means:
-
-- You can add new queries without restructuring the data.
-- You can combine tables in ways the original designer never imagined.
-- The engine — not the application — figures out how to navigate to the answer.
-
-> **Note:** This property is sometimes called *data independence* — the logical structure of your data is decoupled from how it is physically stored and navigated.
-
-## Keys and joins unlock unlimited combinations
-
-The mechanism that makes this work is the **join**. When two tables share a column (a foreign key referencing a primary key), you can combine rows from both tables where those values match. From three simple tables you can produce dozens of different result sets — without duplicating a single byte of data.
-
-Try it below. The schema stores orders and customers separately. The query joins them at query time:
-
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(10,10)">
+    <!-- Navigational: hard-coded pointers -->
+    <rect x="0" y="0" width="220" height="170" rx="10" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="110" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#dc2626">Navigational DB</text>
+    <text x="110" y="44" text-anchor="middle" font-size="9" fill="#b91c1c">Pre-1970</text>
+    <circle cx="60" cy="70" r="16" fill="#fee2e2" stroke="#fca5a5"/><text x="60" y="74" text-anchor="middle" font-size="9" fill="#dc2626">Dept</text>
+    <circle cx="160" cy="100" r="16" fill="#fee2e2" stroke="#fca5a5"/><text x="160" y="104" text-anchor="middle" font-size="9" fill="#dc2626">Emp</text>
+    <line x1="72" y1="78" x2="148" y2="94" stroke="#fca5a5" marker-end="url(#ar)"/>
+    <text x="110" y="130" text-anchor="middle" font-size="8" fill="#b91c1c">✗ Pointers hard-coded</text>
+    <text x="110" y="144" text-anchor="middle" font-size="8" fill="#b91c1c">✗ Can't ask unplanned Qs</text>
+    <text x="110" y="158" text-anchor="middle" font-size="8" fill="#b91c1c">✗ Rebuild for new queries</text>
+    <!-- Arrow -->
+    <text x="245" y="55" text-anchor="middle" font-size="18" fill="#5a6678">→</text>
+    <!-- Relational: composable -->
+    <rect x="270" y="0" width="440" height="170" rx="10" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="490" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a">Relational Model (Codd, 1970)</text>
+    <!-- Operations as building blocks -->
+    <rect x="288" y="45" width="80" height="28" rx="6" fill="#dcfce7" stroke="#86efac"/><text x="328" y="63" text-anchor="middle" font-size="10" fill="#16a34a">σ selection</text>
+    <text x="372" y="63" font-size="14" fill="#9aa6b8">∘</text>
+    <rect x="385" y="45" width="80" height="28" rx="6" fill="#dcfce7" stroke="#86efac"/><text x="425" y="63" text-anchor="middle" font-size="10" fill="#16a34a">π projection</text>
+    <text x="469" y="63" font-size="14" fill="#9aa6b8">∘</text>
+    <rect x="482" y="45" width="80" height="28" rx="6" fill="#dcfce7" stroke="#86efac"/><text x="522" y="63" text-anchor="middle" font-size="10" fill="#16a34a">⋈ join</text>
+    <text x="566" y="63" font-size="14" fill="#9aa6b8">∘</text>
+    <rect x="579" y="45" width="80" height="28" rx="6" fill="#dcfce7" stroke="#86efac"/><text x="619" y="63" text-anchor="middle" font-size="10" fill="#16a34a">∪ union</text>
+    <text x="490" y="98" text-anchor="middle" font-size="10" fill="#5a6678">Composed arbitrarily → any shape of answer</text>
+    <rect x="320" y="112" width="340" height="24" rx="6" fill="#e8f0ff"/>
+    <text x="490" y="128" text-anchor="middle" font-size="9" fill="#2f6df6">π(name) σ(salary>100k) (employees ⋈ departments)</text>
+    <text x="490" y="155" text-anchor="middle" font-size="9" fill="#5a6678">✓ Closure: operations return relations → chain forever</text>
+    <text x="490" y="168" text-anchor="middle" font-size="9" fill="#5a6678">✓ Any question answerable — just compose the right ops</text>
+  </g>
+</svg>
+<figcaption>Navigational databases needed pre-built pointers. The relational model's closure property — operations take and return relations — means you can answer any question by composing the right operations.</figcaption>
+</figure>
+<p>The relational model has dominated databases for over fifty years — not by accident, but because it solves a genuinely hard problem: how do you store data in a way that lets you ask questions you didn&#39;t anticipate at design time? The answer is a single elegant idea — the <em>relation</em> — and a small set of mathematical operations that compose cleanly on top of it.</p>
+<h2>Data lives in one place, questions can come from anywhere</h2>
+<p>Before the relational model, databases were navigational: to get from one record to another, you followed pre-built pointers hard-coded at design time. If the pointer for your question didn&#39;t exist, you were out of luck — or you rebuilt the database.</p>
+<p>Relations break that dependency. Each table is self-describing: every row has the same columns, every column has a declared type, and rows carry no pointer to other tables. Relationships between tables are expressed at <em>query time</em> using shared values (keys), not at storage time using pointers. This means:</p>
+<ul>
+<li>You can add new queries without restructuring the data.</li>
+<li>You can combine tables in ways the original designer never imagined.</li>
+<li>The engine — not the application — figures out how to navigate to the answer.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> This property is sometimes called <em>data independence</em> — the logical structure of your data is decoupled from how it is physically stored and navigated.</p>
+</blockquote>
+<h2>Keys and joins unlock unlimited combinations</h2>
+<p>The mechanism that makes this work is the <strong>join</strong>. When two tables share a column (a foreign key referencing a primary key), you can combine rows from both tables where those values match. From three simple tables you can produce dozens of different result sets — without duplicating a single byte of data.</p>
+<p>Try it below. The schema stores orders and customers separately. The query joins them at query time:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Relations & Joins</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, country TEXT); CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, price REAL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product_id INTEGER, qty INTEGER); INSERT INTO customers VALUES (1,'Alice','US'),(2,'Bob','UK'),(3,'Carol','US'); INSERT INTO products VALUES (1,'Widget',9.99),(2,'Gadget',24.99),(3,'Doohickey',4.50); INSERT INTO orders VALUES (1,1,1,3),(2,1,3,10),(3,2,2,1),(4,3,1,2),(5,3,2,4);" rows="20">SELECT
+    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, country TEXT); CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, price REAL); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, product_id INTEGER, qty INTEGER); INSERT INTO customers VALUES (1,'Alice','US'),(2,'Bob','UK'),(3,'Carol','US'); INSERT INTO products VALUES (1,'Widget',9.99),(2,'Gadget',24.99),(3,'Doohickey',4.50); INSERT INTO orders VALUES (1,1,1,3),(2,1,3,10),(3,2,2,1),(4,3,1,2),(5,3,2,4);" rows="10">SELECT
   c.name        AS customer,
   p.name        AS product,
   o.qty         AS quantity,
@@ -54,47 +78,59 @@ JOIN customers c ON o.customer_id = c.id
 JOIN products  p ON o.product_id  = p.id
 ORDER BY total_cost DESC;</textarea>
   </div>
-</div>
-
-Notice that each table stores only its own facts. The join assembles a tailored view at query time. Try adding `WHERE c.country = 'US'` to filter by country, or swapping `ORDER BY total_cost DESC` for `ORDER BY customer`.
-
-## Relations compose — that's the real superpower
-
-Individual joins are useful, but the deeper power is *composability*. Because every query result is itself a table (a relation), you can layer filters, aggregations, and joins on top of other queries. SQL's `WITH` clause (Common Table Expressions) makes this explicit:
-
-```sql
-WITH us_orders AS (
+</div><p>Notice that each table stores only its own facts. The join assembles a tailored view at query time. Try adding <code>WHERE c.country = &#39;US&#39;</code> to filter by country, or swapping <code>ORDER BY total_cost DESC</code> for <code>ORDER BY customer</code>.</p>
+<h2>Relations compose — that&#39;s the real superpower</h2>
+<p>Individual joins are useful, but the deeper power is <em>composability</em>. Because every query result is itself a table (a relation), you can layer filters, aggregations, and joins on top of other queries. SQL&#39;s <code>WITH</code> clause (Common Table Expressions) makes this explicit:</p>
+<pre><code class="language-sql">WITH us_orders AS (
   SELECT o.id, o.qty, o.product_id, c.name AS customer
   FROM orders o
   JOIN customers c ON o.customer_id = c.id
-  WHERE c.country = 'US'
+  WHERE c.country = &#39;US&#39;
 )
 SELECT customer, SUM(qty) AS total_items
 FROM us_orders
 GROUP BY customer;
-```
+</code></pre>
+<p><code>us_orders</code> is a temporary relation — the outer query treats it exactly like a real table. You can keep stacking these layers without touching the underlying data at all.</p>
+<p>This is what mathematicians call <em>closure</em>: relational operations (select, project, join, aggregate) take relations as input and return relations as output. The system never needs a special exit ramp to handle intermediate results — it&#39;s the same concept all the way down.</p>
+<h2>One model, many workloads</h2>
+<p>Because the relational model is built on math rather than a specific access pattern, the same schema can answer:</p>
+<table>
+<thead>
+<tr>
+<th>Query style</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Lookup by key</td>
+<td><code>SELECT * FROM customers WHERE id = 3</code></td>
+</tr>
+<tr>
+<td>Filter by value</td>
+<td><code>SELECT * FROM orders WHERE qty &gt; 5</code></td>
+</tr>
+<tr>
+<td>Aggregate</td>
+<td><code>SELECT country, COUNT(*) FROM customers GROUP BY country</code></td>
+</tr>
+<tr>
+<td>Multi-table join</td>
+<td>The example above</td>
+</tr>
+<tr>
+<td>Subquery / CTE</td>
+<td>Nested logic without new tables</td>
+</tr>
+</tbody></table>
+<p>A navigational or document model may outperform a relational one for a <em>specific</em> pre-defined access path — but it loses the moment you ask a question outside that path. Relations trade a small amount of raw speed on the happy path for near-unlimited flexibility everywhere else. For most applications, that trade is an obvious win.</p>
+<blockquote>
+<p><strong>Note:</strong> Modern relational engines (SQLite, PostgreSQL, MySQL) use sophisticated query planners that choose physical access strategies — indexes, hash joins, scans — automatically. You write the <em>what</em>; the engine figures out the <em>how</em>.</p>
+</blockquote>
 
-`us_orders` is a temporary relation — the outer query treats it exactly like a real table. You can keep stacking these layers without touching the underlying data at all.
-
-This is what mathematicians call *closure*: relational operations (select, project, join, aggregate) take relations as input and return relations as output. The system never needs a special exit ramp to handle intermediate results — it's the same concept all the way down.
-
-## One model, many workloads
-
-Because the relational model is built on math rather than a specific access pattern, the same schema can answer:
-
-| Query style | Example |
-|---|---|
-| Lookup by key | `SELECT * FROM customers WHERE id = 3` |
-| Filter by value | `SELECT * FROM orders WHERE qty > 5` |
-| Aggregate | `SELECT country, COUNT(*) FROM customers GROUP BY country` |
-| Multi-table join | The example above |
-| Subquery / CTE | Nested logic without new tables |
-
-A navigational or document model may outperform a relational one for a *specific* pre-defined access path — but it loses the moment you ask a question outside that path. Relations trade a small amount of raw speed on the happy path for near-unlimited flexibility everywhere else. For most applications, that trade is an obvious win.
-
-> **Note:** Modern relational engines (SQLite, PostgreSQL, MySQL) use sophisticated query planners that choose physical access strategies — indexes, hash joins, scans — automatically. You write the *what*; the engine figures out the *how*.
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="024-projection-selection-and-join.html"><span class="dir">← Previous</span><span class="ttl">Projection, selection, and join</span></a><a class="next" href="026-data-independence.html"><span class="dir">Next →</span><span class="ttl">Data independence</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

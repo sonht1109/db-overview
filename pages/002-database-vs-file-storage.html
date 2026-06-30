@@ -5,96 +5,133 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Database vs file storage — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 1. What a Database System Is</p>
   <h1 class="content-title">Database vs file storage</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="001-data-information-and-records.html"><span class="dir">← Previous</span><span class="ttl">Data, information, and records</span></a><a class="next" href="003-database-table-row-column.html"><span class="dir">Next →</span><span class="ttl">Database, table, row, column</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-If you have ever stored data in a CSV file, a JSON file, or even a plain text file, you have already solved the same problem a database solves — just with different tools. Understanding *why* developers reach for a database instead of a file is one of the most useful things you can know before writing your first `CREATE TABLE`.
-
-## What file storage looks like
-
-Imagine a small app that tracks employee salaries. The simplest approach is a CSV:
-
-```
-id,name,department,salary
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.1"/></filter>
+    <linearGradient id="rd" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fef2f2"/><stop offset="100%" stop-color="#fff"/></linearGradient>
+    <linearGradient id="gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f0fdf4"/><stop offset="100%" stop-color="#fff"/></linearGradient>
+  </defs>
+  <!-- LEFT: File Storage -->
+  <rect x="10" y="15" width="340" height="230" rx="10" fill="url(#rd)" stroke="#fca5a5" filter="url(#sh)"/>
+  <text x="180" y="42" text-anchor="middle" font-size="15" font-weight="700" fill="#dc2626">📁 File-Based Storage</text>
+  <!-- File icons -->
+  <rect x="30" y="58" width="300" height="32" rx="6" fill="#fff" stroke="#fca5a5"/>
+  <text x="180" y="79" text-anchor="middle" font-size="11" fill="#5a6678">employees_v1.csv — "Which one is current?"</text>
+  <rect x="30" y="98" width="300" height="32" rx="6" fill="#fff" stroke="#fca5a5"/>
+  <text x="180" y="119" text-anchor="middle" font-size="11" fill="#5a6678">salaries_backup.json — 3 copies, all different</text>
+  <rect x="30" y="138" width="300" height="32" rx="6" fill="#fff" stroke="#fca5a5"/>
+  <text x="180" y="159" text-anchor="middle" font-size="11" fill="#5a6678">departments.txt — "Wait, that's a different schema"</text>
+  <rect x="30" y="178" width="300" height="32" rx="6" fill="#fff" stroke="#fca5a5"/>
+  <text x="180" y="199" text-anchor="middle" font-size="11" fill="#5a6678">✗ Concurrency? "Who locked the file?"</text>
+  <text x="180" y="230" text-anchor="middle" font-size="10" fill="#9aa6b8">Read → parse → rebuild → overwrite… every time</text>
+  <!-- RIGHT: Database -->
+  <rect x="370" y="15" width="340" height="230" rx="10" fill="url(#gr)" stroke="#86efac" filter="url(#sh)"/>
+  <text x="540" y="42" text-anchor="middle" font-size="15" font-weight="700" fill="#16a34a">🗄️ Database System</text>
+  <rect x="390" y="58" width="300" height="32" rx="6" fill="#dcfce7" stroke="#86efac"/>
+  <text x="540" y="79" text-anchor="middle" font-size="11" fill="#1c2330">employees — single source of truth</text>
+  <rect x="390" y="98" width="145" height="60" rx="6" fill="#fff" stroke="#86efac"/>
+  <text x="462" y="122" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">departments</text>
+  <text x="462" y="140" text-anchor="middle" font-size="9" fill="#5a6678">FK → employees</text>
+  <rect x="545" y="98" width="145" height="60" rx="6" fill="#fff" stroke="#86efac"/>
+  <text x="617" y="122" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">salaries</text>
+  <text x="617" y="140" text-anchor="middle" font-size="9" fill="#5a6678">FK → employees</text>
+  <rect x="390" y="168" width="300" height="48" rx="6" fill="#fff" stroke="#e2e6ec"/>
+  <text x="540" y="188" text-anchor="middle" font-size="11" fill="#1c2330">✓ Concurrent reads/writes, ACID, indexes</text>
+  <text x="540" y="206" text-anchor="middle" font-size="11" fill="#1c2330">✓ SELECT … WHERE without scanning everything</text>
+</svg>
+<figcaption>Files store bytes. Databases store structured records and let you query, update, and protect them safely.</figcaption>
+</figure>
+<p>If you have ever stored data in a CSV file, a JSON file, or even a plain text file, you have already solved the same problem a database solves — just with different tools. Understanding <em>why</em> developers reach for a database instead of a file is one of the most useful things you can know before writing your first <code>CREATE TABLE</code>.</p>
+<h2>What file storage looks like</h2>
+<p>Imagine a small app that tracks employee salaries. The simplest approach is a CSV:</p>
+<pre><code>id,name,department,salary
 1,Ada,Engineering,95000
 2,Bola,Marketing,72000
 3,Chidi,Engineering,88000
-```
-
-This works fine for a few hundred rows and one user reading the file at a time. To find all Engineering salaries you write a script that opens the file, reads every line, and filters in memory. To update Ada's salary you read the whole file, rebuild it with the new value, and write it all back out.
-
-## Where files fall short
-
-Files are a blunt instrument once you need any of the following:
-
-| Need | File approach | Problem |
-|---|---|---|
-| **Query** a subset of data | Read entire file, filter in code | Slow; all filtering logic lives in your app |
-| **Update** one record | Read, modify, rewrite entire file | Risk of corruption if the process crashes mid-write |
-| **Concurrent access** | Multiple writers race to overwrite | Data loss or file corruption |
-| **Relationships** | Store IDs, join files in code | No guarantee referential integrity is maintained |
-| **Search** on a non-ID field | Scan every row | No way to index; gets slower as the file grows |
-
-These aren't hypothetical problems — they are precisely the bugs that motivated the creation of relational database systems in the 1970s.
-
-## What a database adds
-
-A database management system (DBMS) layers several capabilities on top of raw storage:
-
-**Structured querying.** Instead of writing file-parsing code, you describe *what* you want in SQL and let the DBMS figure out *how* to get it efficiently.
-
-**Atomicity.** When you update Ada's salary, the DBMS guarantees the write either completes fully or not at all — a crash halfway through leaves the data intact, not half-written.
-
-**Concurrent access.** Multiple clients can read and write simultaneously. The DBMS serialises conflicting writes so neither overwrites the other.
-
-**Indexes.** The DBMS can maintain a sorted index on any column so lookups by department or salary are fast without scanning every row.
-
-**Referential integrity.** Foreign keys let the DBMS enforce that an `employee_id` in a `salaries` table actually refers to a real employee — something a CSV can never guarantee.
-
-> **Note:** A DBMS is not magic — it still writes to files on disk. The difference is that those files are managed by a purpose-built engine that understands structure, concurrency, and recovery.
-
-## See it in SQL
-
-The widget below recreates the employees example as a real database table running in your browser. Try changing the `WHERE` clause, or add `ORDER BY salary DESC` — no file parsing needed.
-
+</code></pre>
+<p>This works fine for a few hundred rows and one user reading the file at a time. To find all Engineering salaries you write a script that opens the file, reads every line, and filters in memory. To update Ada&#39;s salary you read the whole file, rebuild it with the new value, and write it all back out.</p>
+<h2>Where files fall short</h2>
+<p>Files are a blunt instrument once you need any of the following:</p>
+<table>
+<thead>
+<tr>
+<th>Need</th>
+<th>File approach</th>
+<th>Problem</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Query</strong> a subset of data</td>
+<td>Read entire file, filter in code</td>
+<td>Slow; all filtering logic lives in your app</td>
+</tr>
+<tr>
+<td><strong>Update</strong> one record</td>
+<td>Read, modify, rewrite entire file</td>
+<td>Risk of corruption if the process crashes mid-write</td>
+</tr>
+<tr>
+<td><strong>Concurrent access</strong></td>
+<td>Multiple writers race to overwrite</td>
+<td>Data loss or file corruption</td>
+</tr>
+<tr>
+<td><strong>Relationships</strong></td>
+<td>Store IDs, join files in code</td>
+<td>No guarantee referential integrity is maintained</td>
+</tr>
+<tr>
+<td><strong>Search</strong> on a non-ID field</td>
+<td>Scan every row</td>
+<td>No way to index; gets slower as the file grows</td>
+</tr>
+</tbody></table>
+<p>These aren&#39;t hypothetical problems — they are precisely the bugs that motivated the creation of relational database systems in the 1970s.</p>
+<h2>What a database adds</h2>
+<p>A database management system (DBMS) layers several capabilities on top of raw storage:</p>
+<p><strong>Structured querying.</strong> Instead of writing file-parsing code, you describe <em>what</em> you want in SQL and let the DBMS figure out <em>how</em> to get it efficiently.</p>
+<p><strong>Atomicity.</strong> When you update Ada&#39;s salary, the DBMS guarantees the write either completes fully or not at all — a crash halfway through leaves the data intact, not half-written.</p>
+<p><strong>Concurrent access.</strong> Multiple clients can read and write simultaneously. The DBMS serialises conflicting writes so neither overwrites the other.</p>
+<p><strong>Indexes.</strong> The DBMS can maintain a sorted index on any column so lookups by department or salary are fast without scanning every row.</p>
+<p><strong>Referential integrity.</strong> Foreign keys let the DBMS enforce that an <code>employee_id</code> in a <code>salaries</code> table actually refers to a real employee — something a CSV can never guarantee.</p>
+<blockquote>
+<p><strong>Note:</strong> A DBMS is not magic — it still writes to files on disk. The difference is that those files are managed by a purpose-built engine that understands structure, concurrency, and recovery.</p>
+</blockquote>
+<h2>See it in SQL</h2>
+<p>The widget below recreates the employees example as a real database table running in your browser. Try changing the <code>WHERE</code> clause, or add <code>ORDER BY salary DESC</code> — no file parsing needed.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · employees</span></div>
   <div class="widget-body">
     <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary INTEGER);
-INSERT INTO employees VALUES (1,'Ada','Engineering',95000),(2,'Bola','Marketing',72000),(3,'Chidi','Engineering',88000),(4,'Dana','Marketing',81000),(5,'Emeka','Engineering',102000);" rows="20">SELECT name, salary
+INSERT INTO employees VALUES (1,'Ada','Engineering',95000),(2,'Bola','Marketing',72000),(3,'Chidi','Engineering',88000),(4,'Dana','Marketing',81000),(5,'Emeka','Engineering',102000);" rows="10">SELECT name, salary
 FROM employees
 WHERE department = 'Engineering'
 ORDER BY salary DESC;</textarea>
   </div>
+</div><p>Notice what you <em>did not</em> have to write: no file open, no loop, no manual filter, no sort algorithm. The database handles all of that — and it would handle it just as efficiently with a million rows as with five.</p>
+<h2>When a file is actually fine</h2>
+<p>Databases are not always the right answer. A flat file is perfectly appropriate when:</p>
+<ul>
+<li>Data is <strong>written once and read sequentially</strong> (logs, exports, backups).</li>
+<li>There is <strong>only one writer and one reader</strong> at a time.</li>
+<li>The dataset is <strong>small enough</strong> that a full scan is instant and structure overhead is unnecessary.</li>
+<li>You need a <strong>portable snapshot</strong> that any tool can open without a running server.</li>
+</ul>
+<p>The decision is not &quot;files are bad, databases are good.&quot; It is: <em>does your access pattern require querying, concurrent writes, integrity guarantees, or scale?</em> If yes, reach for a database. If no, a file may be simpler and perfectly correct.</p>
+
 </div>
-
-Notice what you *did not* have to write: no file open, no loop, no manual filter, no sort algorithm. The database handles all of that — and it would handle it just as efficiently with a million rows as with five.
-
-## When a file is actually fine
-
-Databases are not always the right answer. A flat file is perfectly appropriate when:
-
-- Data is **written once and read sequentially** (logs, exports, backups).
-- There is **only one writer and one reader** at a time.
-- The dataset is **small enough** that a full scan is instant and structure overhead is unnecessary.
-- You need a **portable snapshot** that any tool can open without a running server.
-
-The decision is not "files are bad, databases are good." It is: *does your access pattern require querying, concurrent writes, integrity guarantees, or scale?* If yes, reach for a database. If no, a file may be simpler and perfectly correct.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="001-data-information-and-records.html"><span class="dir">← Previous</span><span class="ttl">Data, information, and records</span></a><a class="next" href="003-database-table-row-column.html"><span class="dir">Next →</span><span class="ttl">Database, table, row, column</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

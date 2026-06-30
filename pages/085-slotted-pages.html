@@ -5,30 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Slotted pages — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Slotted pages</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="084-fixed-length-and-variable-length-records.html"><span class="dir">← Previous</span><span class="ttl">Fixed-length and variable-length records</span></a><a class="next" href="086-free-space-management.html"><span class="dir">Next →</span><span class="ttl">Free space management</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When a database engine reads or writes data, it works in fixed-size chunks called **pages** (typically 4 KB–16 KB). Each page holds multiple records, but those records are rarely the same length — a `VARCHAR(1000)` column might store 3 bytes in one row and 900 in another. The *slotted page* format is the near-universal answer to this problem: a layout that packs variable-length records tightly while still letting the engine jump directly to any record by number.
-
-## The Layout
-
-A slotted page is divided into three regions that grow toward each other:
-
-```
-┌──────────────────────────────────────────────────┐
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">085-slotted-pages</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 085-slotted-pages.</figcaption>
+</figure>
+<p>When a database engine reads or writes data, it works in fixed-size chunks called <strong>pages</strong> (typically 4 KB–16 KB). Each page holds multiple records, but those records are rarely the same length — a <code>VARCHAR(1000)</code> column might store 3 bytes in one row and 900 in another. The <em>slotted page</em> format is the near-universal answer to this problem: a layout that packs variable-length records tightly while still letting the engine jump directly to any record by number.</p>
+<h2>The Layout</h2>
+<p>A slotted page is divided into three regions that grow toward each other:</p>
+<pre><code>┌──────────────────────────────────────────────────┐
 │  Page header (fixed, at the top)                 │
 ├──────────────────────────────────────────────────┤
 │  Slot array  →  [slot 0][slot 1][slot 2]...      │  grows ↓
@@ -37,32 +40,45 @@ A slotted page is divided into three regions that grow toward each other:
 ├──────────────────────────────────────────────────┤
 │  ...← record N  ← record 1  ← record 0          │  grows ↑
 └──────────────────────────────────────────────────┘
-```
-
-- **Page header** — stores the page ID, free-space pointer, number of slots, and a checksum.
-- **Slot array** — a compact array of `(offset, length)` pairs, one per record. Slot 0 points to record 0, slot 1 to record 1, and so on. The array grows *downward* from just below the header.
-- **Record area** — records are packed *upward* from the bottom of the page. When a new record arrives it is written just above the last one; its position is recorded in the next slot.
-
-Because every record is addressed through a slot, external references (indexes, foreign keys, page-level pointers) only need to store `(page_id, slot_number)` — a **record ID (RID)** or **tuple ID (TID)**. The slot acts as an indirection layer.
-
-## Why Indirection Matters
-
-Without the slot array, moving a record inside the page (to compact free space after a deletion) would require updating every index entry that points to the old byte offset. With slots, you just update the single `(offset, length)` entry in the slot array and leave every external pointer untouched.
-
-| Operation | Without slots | With slots |
-|---|---|---|
-| Delete a record | Must compact immediately or leave a "hole" with a forwarding pointer | Mark slot as free (`length = 0`), compact later |
-| Update a record (grows) | May need to move other records; all pointers break | Move the record within the page, update one slot entry |
-| External index points to | Byte offset (fragile) | `(page_id, slot_number)` (stable) |
-
-> **Note:** When a record outgrows the page entirely after an update, the engine writes a *forwarding record* in the old slot — a tiny pointer to the new page. Queries that follow the original RID transparently follow one hop to the new location.
-
-## Deletions and Compaction
-
-Deleting a record marks its slot as invalid and leaves the bytes as dead space. Over time, a page can become fragmented — many small gaps between live records. The engine **reorganizes** (compacts) the page lazily: it slides all live records to the bottom, rewrites the slot array with fresh offsets, and reclaims the free space in one contiguous block. Because only the slot array changes, no external pointer breaks.
-
-Explore this idea below. The query simulates what a slot directory might look like by tracking offset and length for each record on a hypothetical 8 KB page.
-
+</code></pre>
+<ul>
+<li><strong>Page header</strong> — stores the page ID, free-space pointer, number of slots, and a checksum.</li>
+<li><strong>Slot array</strong> — a compact array of <code>(offset, length)</code> pairs, one per record. Slot 0 points to record 0, slot 1 to record 1, and so on. The array grows <em>downward</em> from just below the header.</li>
+<li><strong>Record area</strong> — records are packed <em>upward</em> from the bottom of the page. When a new record arrives it is written just above the last one; its position is recorded in the next slot.</li>
+</ul>
+<p>Because every record is addressed through a slot, external references (indexes, foreign keys, page-level pointers) only need to store <code>(page_id, slot_number)</code> — a <strong>record ID (RID)</strong> or <strong>tuple ID (TID)</strong>. The slot acts as an indirection layer.</p>
+<h2>Why Indirection Matters</h2>
+<p>Without the slot array, moving a record inside the page (to compact free space after a deletion) would require updating every index entry that points to the old byte offset. With slots, you just update the single <code>(offset, length)</code> entry in the slot array and leave every external pointer untouched.</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Without slots</th>
+<th>With slots</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Delete a record</td>
+<td>Must compact immediately or leave a &quot;hole&quot; with a forwarding pointer</td>
+<td>Mark slot as free (<code>length = 0</code>), compact later</td>
+</tr>
+<tr>
+<td>Update a record (grows)</td>
+<td>May need to move other records; all pointers break</td>
+<td>Move the record within the page, update one slot entry</td>
+</tr>
+<tr>
+<td>External index points to</td>
+<td>Byte offset (fragile)</td>
+<td><code>(page_id, slot_number)</code> (stable)</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> When a record outgrows the page entirely after an update, the engine writes a <em>forwarding record</em> in the old slot — a tiny pointer to the new page. Queries that follow the original RID transparently follow one hop to the new location.</p>
+</blockquote>
+<h2>Deletions and Compaction</h2>
+<p>Deleting a record marks its slot as invalid and leaves the bytes as dead space. Over time, a page can become fragmented — many small gaps between live records. The engine <strong>reorganizes</strong> (compacts) the page lazily: it slides all live records to the bottom, rewrites the slot array with fresh offsets, and reclaims the free space in one contiguous block. Because only the slot array changes, no external pointer breaks.</p>
+<p>Explore this idea below. The query simulates what a slot directory might look like by tracking offset and length for each record on a hypothetical 8 KB page.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Slot directory simulation</span></div>
   <div class="widget-body">
@@ -74,7 +90,7 @@ INSERT INTO slot_directory VALUES (3, 7700, 190, 1);
 INSERT INTO slot_directory VALUES (4, 7640, 60, 0);
 INSERT INTO slot_directory VALUES (5, 7580, 60, 1);
 CREATE TABLE page_meta (page_id INTEGER, page_size INTEGER, free_start INTEGER, free_end INTEGER);
-INSERT INTO page_meta VALUES (42, 8192, 96, 7580);" rows="20">-- Which slots are live, and how much space do they use?
+INSERT INTO page_meta VALUES (42, 8192, 96, 7580);" rows="10">-- Which slots are live, and how much space do they use?
 SELECT
   slot_num,
   record_offset,
@@ -86,18 +102,18 @@ ORDER BY record_offset DESC;
 -- SELECT SUM(record_length) AS reclaimable_bytes
 -- FROM slot_directory WHERE is_live = 0;</textarea>
   </div>
+</div><p>Uncomment the second query to see how much space compaction would recover. In a real engine (PostgreSQL calls this <strong>VACUUM</strong>, SQLite does it via <code>REINDEX</code> or auto-reorganization), this reclaimed space becomes available for new inserts on the same page.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>A slotted page stores a <strong>slot array</strong> at the top and <strong>records</strong> packed from the bottom, with free space in the middle.</li>
+<li>Each record is referenced by a stable <code>(page_id, slot_number)</code> pair — not a raw byte offset — so records can be moved within the page without breaking indexes.</li>
+<li>Deletions are cheap (mark the slot); compaction is deferred and only touches the page itself.</li>
+<li>Almost every relational engine uses this layout or a close variant: PostgreSQL&#39;s <em>heap</em> pages, InnoDB&#39;s <em>row format</em>, SQLite&#39;s <em>leaf pages</em> for rowid tables all follow the same principle.</li>
+</ul>
+
 </div>
-
-Uncomment the second query to see how much space compaction would recover. In a real engine (PostgreSQL calls this **VACUUM**, SQLite does it via `REINDEX` or auto-reorganization), this reclaimed space becomes available for new inserts on the same page.
-
-## Key Takeaways
-
-- A slotted page stores a **slot array** at the top and **records** packed from the bottom, with free space in the middle.
-- Each record is referenced by a stable `(page_id, slot_number)` pair — not a raw byte offset — so records can be moved within the page without breaking indexes.
-- Deletions are cheap (mark the slot); compaction is deferred and only touches the page itself.
-- Almost every relational engine uses this layout or a close variant: PostgreSQL's *heap* pages, InnoDB's *row format*, SQLite's *leaf pages* for rowid tables all follow the same principle.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="084-fixed-length-and-variable-length-records.html"><span class="dir">← Previous</span><span class="ttl">Fixed-length and variable-length records</span></a><a class="next" href="086-free-space-management.html"><span class="dir">Next →</span><span class="ttl">Free space management</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

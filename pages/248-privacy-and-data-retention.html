@@ -5,179 +5,179 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy and data retention — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VI. Engineering Practice</p>
   <p class="chapter-label">Chapter 25. Security and Access Control</p>
   <h1 class="content-title">Privacy and data retention</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="247-sql-injection-and-safe-queries.html"><span class="dir">← Previous</span><span class="ttl">SQL injection and safe queries</span></a><a class="next" href="249-secure-database-habits.html"><span class="dir">Next →</span><span class="ttl">Secure database habits</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Databases routinely accumulate more personal data than they need to, for longer than they are permitted to keep it. **Privacy** is the practice of collecting and storing only the data that is necessary, protecting it appropriately, and giving individuals meaningful control over it. **Data retention** is the practice of deleting or anonymizing data when it is no longer needed or permitted. Both are increasingly non-optional: GDPR, CCPA, HIPAA, and similar laws impose strict obligations — and significant penalties — on organizations that handle personal data carelessly.
-
-## Privacy Principles in Database Design
-
-### Data Minimization
-
-Collect only the personal data that is strictly necessary for the stated purpose. Every field you store is a field that can be breached, subpoenaed, or disclosed by accident. Before adding a column:
-
-- What business purpose does this serve?
-- Is this the minimum data that satisfies that purpose?
-- How long is this data needed?
-
-A date of birth might be needed to verify an age threshold. The full date is more than necessary — just a boolean `is_over_18` or the year alone may suffice.
-
-### Purpose Limitation
-
-Data collected for one purpose should not be repurposed for another without explicit consent. A common database smell: an `events` table collected for usage analytics that slowly becomes the source of truth for user profile data, fraud detection, and marketing — all without the user's knowledge.
-
-### Data Accuracy
-
-Personal data that is incorrect can cause real harm (denial of services, financial errors, legal problems). Provide mechanisms for users to correct their data, and don't over-denormalize personal fields — a single authoritative location is easier to correct than copies scattered across ten tables.
-
-## Implementing Right to Erasure ("Right to be Forgotten")
-
-GDPR Article 17 grants users the right to have their personal data deleted. In a relational database, this is harder than it sounds:
-
-- The user's email address may be in `users`, `email_campaigns`, `audit_logs`, `orders`, `support_tickets`, and a dozen other tables.
-- Foreign key constraints may prevent deletion of parent records while children exist.
-- Backup tapes and data warehouse snapshots may contain the data even after it is deleted from the live database.
-
-A practical approach uses **pseudonymization rather than deletion** for records that are referenced by other data:
-
-```sql
--- Replace PII with anonymized values; preserve referential integrity
+  <div id="rendered" class="content">
+<p>Databases routinely accumulate more personal data than they need to, for longer than they are permitted to keep it. <strong>Privacy</strong> is the practice of collecting and storing only the data that is necessary, protecting it appropriately, and giving individuals meaningful control over it. <strong>Data retention</strong> is the practice of deleting or anonymizing data when it is no longer needed or permitted. Both are increasingly non-optional: GDPR, CCPA, HIPAA, and similar laws impose strict obligations — and significant penalties — on organizations that handle personal data carelessly.</p>
+<h2>Privacy Principles in Database Design</h2>
+<h3>Data Minimization</h3>
+<p>Collect only the personal data that is strictly necessary for the stated purpose. Every field you store is a field that can be breached, subpoenaed, or disclosed by accident. Before adding a column:</p>
+<ul>
+<li>What business purpose does this serve?</li>
+<li>Is this the minimum data that satisfies that purpose?</li>
+<li>How long is this data needed?</li>
+</ul>
+<p>A date of birth might be needed to verify an age threshold. The full date is more than necessary — just a boolean <code>is_over_18</code> or the year alone may suffice.</p>
+<h3>Purpose Limitation</h3>
+<p>Data collected for one purpose should not be repurposed for another without explicit consent. A common database smell: an <code>events</code> table collected for usage analytics that slowly becomes the source of truth for user profile data, fraud detection, and marketing — all without the user&#39;s knowledge.</p>
+<h3>Data Accuracy</h3>
+<p>Personal data that is incorrect can cause real harm (denial of services, financial errors, legal problems). Provide mechanisms for users to correct their data, and don&#39;t over-denormalize personal fields — a single authoritative location is easier to correct than copies scattered across ten tables.</p>
+<h2>Implementing Right to Erasure (&quot;Right to be Forgotten&quot;)</h2>
+<p>GDPR Article 17 grants users the right to have their personal data deleted. In a relational database, this is harder than it sounds:</p>
+<ul>
+<li>The user&#39;s email address may be in <code>users</code>, <code>email_campaigns</code>, <code>audit_logs</code>, <code>orders</code>, <code>support_tickets</code>, and a dozen other tables.</li>
+<li>Foreign key constraints may prevent deletion of parent records while children exist.</li>
+<li>Backup tapes and data warehouse snapshots may contain the data even after it is deleted from the live database.</li>
+</ul>
+<p>A practical approach uses <strong>pseudonymization rather than deletion</strong> for records that are referenced by other data:</p>
+<pre><code class="language-sql">-- Replace PII with anonymized values; preserve referential integrity
 UPDATE users
 SET
-  email         = 'deleted-' || id || '@anonymized.invalid',
-  full_name     = 'Deleted User',
+  email         = &#39;deleted-&#39; || id || &#39;@anonymized.invalid&#39;,
+  full_name     = &#39;Deleted User&#39;,
   phone         = NULL,
   date_of_birth = NULL,
-  deleted_at    = strftime('%Y-%m-%dT%H:%M:%S', 'now')
+  deleted_at    = strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;, &#39;now&#39;)
 WHERE id = :user_id;
-```
-
-The user's orders and financial records (needed for accounting and legal compliance) remain intact and linked by `user_id`, but the personal identifiers are gone.
-
-### Tracking Erasure Requests
-
-Maintain a table that records each erasure request and its status — regulators can ask you to prove that you honored the request:
-
-```sql
-CREATE TABLE erasure_requests (
+</code></pre>
+<p>The user&#39;s orders and financial records (needed for accounting and legal compliance) remain intact and linked by <code>user_id</code>, but the personal identifiers are gone.</p>
+<h3>Tracking Erasure Requests</h3>
+<p>Maintain a table that records each erasure request and its status — regulators can ask you to prove that you honored the request:</p>
+<pre><code class="language-sql">CREATE TABLE erasure_requests (
   id           SERIAL PRIMARY KEY,
   user_id      INTEGER NOT NULL,
   requested_at TEXT NOT NULL,
   completed_at TEXT,
-  status       TEXT NOT NULL DEFAULT 'pending'
+  status       TEXT NOT NULL DEFAULT &#39;pending&#39;
 );
-```
-
+</code></pre>
 <figure class="diagram">
 <svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Data lifecycle: collection, active use, retention period, anonymization or deletion — PII flows through each stage with a retention policy governing how long it stays">
   <defs>
     <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
     </marker>
-  </defs>
-
-  <!-- Stages -->
+  </defs>  <!-- Stages -->
   <rect x="10" y="100" width="110" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="65" y="127" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Collect</text>
-  <text x="65" y="145" text-anchor="middle" font-size="10" fill="var(--muted)">Minimal PII only</text>
-
-  <rect x="155" y="100" width="110" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="65" y="145" text-anchor="middle" font-size="10" fill="var(--muted)">Minimal PII only</text>  <rect x="155" y="100" width="110" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="210" y="127" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Active Use</text>
-  <text x="210" y="145" text-anchor="middle" font-size="10" fill="var(--muted)">Encrypted + RLS</text>
-
-  <rect x="300" y="100" width="120" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="210" y="145" text-anchor="middle" font-size="10" fill="var(--muted)">Encrypted + RLS</text>  <rect x="300" y="100" width="120" height="60" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="360" y="127" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Retention</text>
-  <text x="360" y="145" text-anchor="middle" font-size="10" fill="var(--muted)">Policy enforced</text>
-
-  <!-- Fork: Anonymize or Delete -->
+  <text x="360" y="145" text-anchor="middle" font-size="10" fill="var(--muted)">Policy enforced</text>  <!-- Fork: Anonymize or Delete -->
   <rect x="480" y="65" width="110" height="55" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="535" y="89" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">Anonymize</text>
-  <text x="535" y="107" text-anchor="middle" font-size="10" fill="var(--muted)">Keep structure</text>
-
-  <rect x="480" y="145" width="110" height="55" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="535" y="107" text-anchor="middle" font-size="10" fill="var(--muted)">Keep structure</text>  <rect x="480" y="145" width="110" height="55" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="535" y="169" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">Delete</text>
-  <text x="535" y="186" text-anchor="middle" font-size="10" fill="var(--muted)">No references</text>
-
-  <!-- Arrows -->
+  <text x="535" y="186" text-anchor="middle" font-size="10" fill="var(--muted)">No references</text>  <!-- Arrows -->
   <line x1="120" y1="130" x2="153" y2="130" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
   <line x1="265" y1="130" x2="298" y2="130" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
   <line x1="420" y1="118" x2="478" y2="92" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
-  <line x1="420" y1="142" x2="478" y2="168" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
-
-  <!-- Timeline bar -->
+  <line x1="420" y1="142" x2="478" y2="168" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>  <!-- Timeline bar -->
   <rect x="10" y="210" width="580" height="18" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <rect x="10" y="210" width="200" height="18" rx="4" fill="var(--accent)" opacity="0.3"/>
   <text x="110" y="223" text-anchor="middle" font-size="10" fill="var(--text)">Active period</text>
-  <text x="430" y="223" text-anchor="middle" font-size="10" fill="var(--muted)">Retention period → Erase/Anonymize</text>
-
-  <text x="340" y="280" text-anchor="middle" font-size="11" fill="var(--muted)">Retention policy defines when each data category moves from Active to Erase/Anonymize</text>
-</svg>
+  <text x="430" y="223" text-anchor="middle" font-size="10" fill="var(--muted)">Retention period → Erase/Anonymize</text><p>  <text x="340" y="280" text-anchor="middle" font-size="11" fill="var(--muted)">Retention policy defines when each data category moves from Active to Erase/Anonymize</text>
+</svg></p>
 <figcaption>PII flows through a defined lifecycle. A retention policy determines when data transitions from active use to anonymization or deletion — both GDPR and CCPA require this to be explicit and enforceable.</figcaption>
-</figure>
-
-## Data Retention Policies
-
-A **retention policy** defines: for each category of data, how long it is kept, and what happens to it afterward. Common retention periods:
-
-| Data category | Typical retention | Regulation |
-|---|---|---|
-| User PII (names, emails) | Duration of account + 30 days post-deletion | GDPR |
-| Financial transaction records | 7 years | Tax law (varies by country) |
-| Audit logs | 1–7 years | SOC 2, PCI-DSS |
-| Server / application logs | 90 days | Common practice; some regs require longer |
-| Health records | 7–10 years (adults) | HIPAA |
-| Marketing consent records | 3 years after consent | GDPR recital 171 |
-
-### Enforcing Retention with Scheduled Deletions
-
-```sql
--- Soft-deleted accounts older than 30 days: anonymize PII
+</figure><h2>Data Retention Policies</h2>
+<p>A <strong>retention policy</strong> defines: for each category of data, how long it is kept, and what happens to it afterward. Common retention periods:</p>
+<table>
+<thead>
+<tr>
+<th>Data category</th>
+<th>Typical retention</th>
+<th>Regulation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>User PII (names, emails)</td>
+<td>Duration of account + 30 days post-deletion</td>
+<td>GDPR</td>
+</tr>
+<tr>
+<td>Financial transaction records</td>
+<td>7 years</td>
+<td>Tax law (varies by country)</td>
+</tr>
+<tr>
+<td>Audit logs</td>
+<td>1–7 years</td>
+<td>SOC 2, PCI-DSS</td>
+</tr>
+<tr>
+<td>Server / application logs</td>
+<td>90 days</td>
+<td>Common practice; some regs require longer</td>
+</tr>
+<tr>
+<td>Health records</td>
+<td>7–10 years (adults)</td>
+<td>HIPAA</td>
+</tr>
+<tr>
+<td>Marketing consent records</td>
+<td>3 years after consent</td>
+<td>GDPR recital 171</td>
+</tr>
+</tbody></table>
+<h3>Enforcing Retention with Scheduled Deletions</h3>
+<pre><code class="language-sql">-- Soft-deleted accounts older than 30 days: anonymize PII
 UPDATE users
-SET email = 'anon-' || id || '@deleted.invalid',
-    full_name = 'Deleted',
+SET email = &#39;anon-&#39; || id || &#39;@deleted.invalid&#39;,
+    full_name = &#39;Deleted&#39;,
     phone = NULL
 WHERE deleted_at IS NOT NULL
-  AND deleted_at < strftime('%Y-%m-%dT%H:%M:%S', 'now', '-30 days');
+  AND deleted_at &lt; strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;, &#39;now&#39;, &#39;-30 days&#39;);
 
 -- Purge log rows older than retention period
 DELETE FROM app_logs
-WHERE created_at < strftime('%Y-%m-%dT%H:%M:%S', 'now', '-90 days');
-```
-
-Run these as scheduled jobs (cron, pg_cron, cloud scheduler). Make them idempotent so a failed run can be re-executed without harm.
-
-## Data Masking for Non-Production Environments
-
-A significant percentage of data breaches involve development, staging, or analytics environments — which often receive production data copies without the same controls. **Data masking** replaces PII with realistic but fake values before populating non-production databases:
-
-| Field | Original | Masked |
-|---|---|---|
-| email | alice@example.com | anon_4921@test.invalid |
-| phone | +1-555-234-5678 | +1-555-000-0001 |
-| SSN | 123-45-6789 | XXX-XX-6789 |
-| credit card | 4111-1111-1111-1111 | 4000-XXXX-XXXX-0000 |
-
-Tools like `faker` libraries, Delphix, or AWS DMS data transformation rules automate masking during database refresh.
-
-## Interactive Example
-
+WHERE created_at &lt; strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;, &#39;now&#39;, &#39;-90 days&#39;);
+</code></pre>
+<p>Run these as scheduled jobs (cron, pg_cron, cloud scheduler). Make them idempotent so a failed run can be re-executed without harm.</p>
+<h2>Data Masking for Non-Production Environments</h2>
+<p>A significant percentage of data breaches involve development, staging, or analytics environments — which often receive production data copies without the same controls. <strong>Data masking</strong> replaces PII with realistic but fake values before populating non-production databases:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Original</th>
+<th>Masked</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>email</td>
+<td><a href="mailto:alice@example.com">alice@example.com</a></td>
+<td><a href="mailto:anon_4921@test.invalid">anon_4921@test.invalid</a></td>
+</tr>
+<tr>
+<td>phone</td>
+<td>+1-555-234-5678</td>
+<td>+1-555-000-0001</td>
+</tr>
+<tr>
+<td>SSN</td>
+<td>123-45-6789</td>
+<td>XXX-XX-6789</td>
+</tr>
+<tr>
+<td>credit card</td>
+<td>4111-1111-1111-1111</td>
+<td>4000-XXXX-XXXX-0000</td>
+</tr>
+</tbody></table>
+<p>Tools like <code>faker</code> libraries, Delphix, or AWS DMS data transformation rules automate masking during database refresh.</p>
+<h2>Interactive Example</h2>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Anonymization and Retention</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT, full_name TEXT, phone TEXT, created_at TEXT, deleted_at TEXT); INSERT INTO users VALUES (1, 'alice@example.com', 'Alice Smith', '+1-555-0001', '2022-01-15', NULL); INSERT INTO users VALUES (2, 'bob@example.com', 'Bob Jones', '+1-555-0002', '2022-03-01', '2024-01-01'); INSERT INTO users VALUES (3, 'carol@example.com', 'Carol White', NULL, '2023-06-10', '2024-05-01'); INSERT INTO users VALUES (4, 'dave@example.com', 'Dave Brown', '+1-555-0004', '2023-11-01', NULL);" rows="20">-- Find accounts deleted more than 30 days ago that still have PII
+    <textarea data-setup="CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT, full_name TEXT, phone TEXT, created_at TEXT, deleted_at TEXT); INSERT INTO users VALUES (1, 'alice@example.com', 'Alice Smith', '+1-555-0001', '2022-01-15', NULL); INSERT INTO users VALUES (2, 'bob@example.com', 'Bob Jones', '+1-555-0002', '2022-03-01', '2024-01-01'); INSERT INTO users VALUES (3, 'carol@example.com', 'Carol White', NULL, '2023-06-10', '2024-05-01'); INSERT INTO users VALUES (4, 'dave@example.com', 'Dave Brown', '+1-555-0004', '2023-11-01', NULL);" rows="10">-- Find accounts deleted more than 30 days ago that still have PII
 SELECT id, email, full_name, deleted_at
 FROM users
 WHERE deleted_at IS NOT NULL
@@ -189,17 +189,18 @@ WHERE deleted_at IS NOT NULL
 -- Active users: still have PII
 -- SELECT id, email, full_name FROM users WHERE deleted_at IS NULL;</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li><strong>Minimize collection</strong>: every personal data field is a liability — collect only what you need, store it only as long as you need it.</li>
+<li>Implement <strong>pseudonymization on deletion</strong>: nullify or replace PII when an account is deleted, but keep the record shell for referential integrity and legal records.</li>
+<li>Define and enforce <strong>retention policies per data category</strong>: automate the cleanup with scheduled jobs so it actually runs.</li>
+<li><strong>Mask PII before copying to non-production environments</strong> — staging and dev databases are a common breach vector.</li>
+<li>Maintain an <strong>erasure request log</strong> to demonstrate compliance; regulators expect proof that you honored deletion requests.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- **Minimize collection**: every personal data field is a liability — collect only what you need, store it only as long as you need it.
-- Implement **pseudonymization on deletion**: nullify or replace PII when an account is deleted, but keep the record shell for referential integrity and legal records.
-- Define and enforce **retention policies per data category**: automate the cleanup with scheduled jobs so it actually runs.
-- **Mask PII before copying to non-production environments** — staging and dev databases are a common breach vector.
-- Maintain an **erasure request log** to demonstrate compliance; regulators expect proof that you honored deletion requests.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="247-sql-injection-and-safe-queries.html"><span class="dir">← Previous</span><span class="ttl">SQL injection and safe queries</span></a><a class="next" href="249-secure-database-habits.html"><span class="dir">Next →</span><span class="ttl">Secure database habits</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

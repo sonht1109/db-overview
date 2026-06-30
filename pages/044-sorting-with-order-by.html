@@ -5,117 +5,123 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sorting with ORDER BY — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 5. A Gentle Introduction to SQL</p>
   <h1 class="content-title">Sorting with ORDER BY</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="043-filtering-rows-with-where.html"><span class="dir">← Previous</span><span class="ttl">Filtering rows with WHERE</span></a><a class="next" href="045-limiting-results.html"><span class="dir">Next →</span><span class="ttl">Limiting results</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When you run a plain `SELECT`, the database engine returns rows in whatever order it finds convenient — usually the order they were written to disk. That order is **not guaranteed** and can change between queries. If you care about the sequence of results (and most of the time you do), you need `ORDER BY`.
-
-## The Basic Syntax
-
-Append `ORDER BY <column>` to your `SELECT` statement:
-
-```sql
-SELECT name, salary
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 160" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,10)">
+    <rect x="0" y="0" width="690" height="135" rx="10" fill="#fff" stroke="#e2e6ec" filter="url(#sh)"/>
+    <text x="345" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#1c2330">ORDER BY — Sorting Rows</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <rect x="15" y="48" width="330" height="22" rx="4" fill="#e8f0ff"/><text x="180" y="63" text-anchor="middle" font-size="9" fill="#2f6df6">ORDER BY salary DESC — highest first</text>
+    <rect x="355" y="48" width="330" height="22" rx="4" fill="#dcfce7"/><text x="520" y="63" text-anchor="middle" font-size="9" fill="#16a34a">ORDER BY dept, salary DESC — multi-level</text>
+    <rect x="15" y="76" width="660" height="22" rx="4" fill="#f9fafb"/>
+    <text x="345" y="91" text-anchor="middle" font-size="9" fill="#5a6678">Tables have NO inherent order — you must ask for one with ORDER BY</text>
+    <rect x="15" y="106" width="660" height="22" rx="4" fill="#fef3c7"/>
+    <text x="345" y="121" text-anchor="middle" font-size="9" fill="#d97706">⚠ ORDER BY without LIMIT on large tables → expensive sort. Index on sort column helps!</text>
+  </g>
+</svg>
+<figcaption>ORDER BY imposes a sort order on query results. Tables are unordered by default — the same query can return rows in different order without ORDER BY.</figcaption>
+</figure>
+<p>When you run a plain <code>SELECT</code>, the database engine returns rows in whatever order it finds convenient — usually the order they were written to disk. That order is <strong>not guaranteed</strong> and can change between queries. If you care about the sequence of results (and most of the time you do), you need <code>ORDER BY</code>.</p>
+<h2>The Basic Syntax</h2>
+<p>Append <code>ORDER BY &lt;column&gt;</code> to your <code>SELECT</code> statement:</p>
+<pre><code class="language-sql">SELECT name, salary
 FROM employees
 ORDER BY salary;
-```
-
-By default the sort is **ascending** (`ASC`) — smallest to largest for numbers, earliest to latest for dates, and `A → Z` for text. Flip it with `DESC`:
-
-```sql
-SELECT name, salary
+</code></pre>
+<p>By default the sort is <strong>ascending</strong> (<code>ASC</code>) — smallest to largest for numbers, earliest to latest for dates, and <code>A → Z</code> for text. Flip it with <code>DESC</code>:</p>
+<pre><code class="language-sql">SELECT name, salary
 FROM employees
 ORDER BY salary DESC;
-```
-
-> **Note:** `ORDER BY` always goes at the very end of a `SELECT` statement — after `WHERE`, `GROUP BY`, and `HAVING` if those clauses are present.
-
-## Sorting by Multiple Columns
-
-You can pass a comma-separated list of columns. The database sorts by the first column, then breaks ties using the second, and so on:
-
-```sql
-SELECT department, name, salary
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> <code>ORDER BY</code> always goes at the very end of a <code>SELECT</code> statement — after <code>WHERE</code>, <code>GROUP BY</code>, and <code>HAVING</code> if those clauses are present.</p>
+</blockquote>
+<h2>Sorting by Multiple Columns</h2>
+<p>You can pass a comma-separated list of columns. The database sorts by the first column, then breaks ties using the second, and so on:</p>
+<pre><code class="language-sql">SELECT department, name, salary
 FROM employees
 ORDER BY department ASC, salary DESC;
-```
-
-Here every employee is grouped by department alphabetically, and within each department the highest earner appears first. Each column can have its own `ASC`/`DESC` direction.
-
-| department | name    | salary |
-|------------|---------|--------|
-| Engineering | Alice  | 95000  |
-| Engineering | Bob    | 82000  |
-| Marketing   | Carol  | 78000  |
-| Marketing   | Dave   | 71000  |
-
-## Sorting by Position and Expressions
-
-SQL also lets you refer to a column by its **position** in the `SELECT` list (counting from 1):
-
-```sql
-SELECT name, salary
+</code></pre>
+<p>Here every employee is grouped by department alphabetically, and within each department the highest earner appears first. Each column can have its own <code>ASC</code>/<code>DESC</code> direction.</p>
+<table>
+<thead>
+<tr>
+<th>department</th>
+<th>name</th>
+<th>salary</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Engineering</td>
+<td>Alice</td>
+<td>95000</td>
+</tr>
+<tr>
+<td>Engineering</td>
+<td>Bob</td>
+<td>82000</td>
+</tr>
+<tr>
+<td>Marketing</td>
+<td>Carol</td>
+<td>78000</td>
+</tr>
+<tr>
+<td>Marketing</td>
+<td>Dave</td>
+<td>71000</td>
+</tr>
+</tbody></table>
+<h2>Sorting by Position and Expressions</h2>
+<p>SQL also lets you refer to a column by its <strong>position</strong> in the <code>SELECT</code> list (counting from 1):</p>
+<pre><code class="language-sql">SELECT name, salary
 FROM employees
 ORDER BY 2 DESC;   -- same as ORDER BY salary DESC
-```
-
-This shortcut is handy in an interactive session but makes code harder to read when shared — prefer explicit column names in production queries.
-
-You can also sort on an **expression** that does not appear in the `SELECT` list:
-
-```sql
-SELECT name, hire_date
+</code></pre>
+<p>This shortcut is handy in an interactive session but makes code harder to read when shared — prefer explicit column names in production queries.</p>
+<p>You can also sort on an <strong>expression</strong> that does not appear in the <code>SELECT</code> list:</p>
+<pre><code class="language-sql">SELECT name, hire_date
 FROM employees
 ORDER BY LOWER(name);   -- case-insensitive alphabetical
-```
-
-SQLite and most databases evaluate the expression per-row just for ordering purposes.
-
-## NULL Values and Sort Order
-
-`NULL` means "unknown," so where does it sort? The answer varies by database:
-
-- **SQLite and PostgreSQL** treat `NULL` as **larger than any non-NULL value**, so NULLs appear last with `ASC` and first with `DESC`.
-- **MySQL** treats `NULL` as smaller than any non-NULL value — the opposite.
-
-PostgreSQL lets you control this explicitly with `NULLS FIRST` or `NULLS LAST`. SQLite does not support that syntax, but you can work around it:
-
-```sql
--- Push NULLs to the bottom in SQLite, even with DESC
+</code></pre>
+<p>SQLite and most databases evaluate the expression per-row just for ordering purposes.</p>
+<h2>NULL Values and Sort Order</h2>
+<p><code>NULL</code> means &quot;unknown,&quot; so where does it sort? The answer varies by database:</p>
+<ul>
+<li><strong>SQLite and PostgreSQL</strong> treat <code>NULL</code> as <strong>larger than any non-NULL value</strong>, so NULLs appear last with <code>ASC</code> and first with <code>DESC</code>.</li>
+<li><strong>MySQL</strong> treats <code>NULL</code> as smaller than any non-NULL value — the opposite.</li>
+</ul>
+<p>PostgreSQL lets you control this explicitly with <code>NULLS FIRST</code> or <code>NULLS LAST</code>. SQLite does not support that syntax, but you can work around it:</p>
+<pre><code class="language-sql">-- Push NULLs to the bottom in SQLite, even with DESC
 ORDER BY (bonus IS NULL) ASC, bonus DESC;
-```
-
-> **Note:** Always test NULL behavior in your specific database if sort order around missing values matters for your application.
-
----
-
-Try it yourself. The widget below seeds a small `products` table. Run the default query, then experiment: change `ASC` to `DESC`, add a second sort column, or try sorting by an expression like `LOWER(category)`.
-
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Always test NULL behavior in your specific database if sort order around missing values matters for your application.</p>
+</blockquote>
+<hr>
+<p>Try it yourself. The widget below seeds a small <code>products</code> table. Run the default query, then experiment: change <code>ASC</code> to <code>DESC</code>, add a second sort column, or try sorting by an expression like <code>LOWER(category)</code>.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · ORDER BY</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL, stock INTEGER); INSERT INTO products VALUES (1, 'Wireless Mouse', 'Electronics', 29.99, 150); INSERT INTO products VALUES (2, 'Mechanical Keyboard', 'Electronics', 89.99, 60); INSERT INTO products VALUES (3, 'Desk Lamp', 'Office', 34.99, 200); INSERT INTO products VALUES (4, 'Notebook', 'Stationery', 4.99, 500); INSERT INTO products VALUES (5, 'USB Hub', 'Electronics', 19.99, 80); INSERT INTO products VALUES (6, 'Stapler', 'Stationery', 9.99, 120); INSERT INTO products VALUES (7, 'Monitor Stand', 'Office', 49.99, 45); INSERT INTO products VALUES (8, 'Ballpoint Pens', 'Stationery', 2.99, 1000);" rows="20">SELECT name, category, price
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL, stock INTEGER); INSERT INTO products VALUES (1, 'Wireless Mouse', 'Electronics', 29.99, 150); INSERT INTO products VALUES (2, 'Mechanical Keyboard', 'Electronics', 89.99, 60); INSERT INTO products VALUES (3, 'Desk Lamp', 'Office', 34.99, 200); INSERT INTO products VALUES (4, 'Notebook', 'Stationery', 4.99, 500); INSERT INTO products VALUES (5, 'USB Hub', 'Electronics', 19.99, 80); INSERT INTO products VALUES (6, 'Stapler', 'Stationery', 9.99, 120); INSERT INTO products VALUES (7, 'Monitor Stand', 'Office', 49.99, 45); INSERT INTO products VALUES (8, 'Ballpoint Pens', 'Stationery', 2.99, 1000);" rows="10">SELECT name, category, price
 FROM products
 ORDER BY category ASC, price DESC;</textarea>
   </div>
+</div><p>Once you are comfortable with ordering, the next topic introduces <code>LIMIT</code> and <code>OFFSET</code> — useful for paginating through sorted results one page at a time.</p>
+
 </div>
-
-Once you are comfortable with ordering, the next topic introduces `LIMIT` and `OFFSET` — useful for paginating through sorted results one page at a time.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="043-filtering-rows-with-where.html"><span class="dir">← Previous</span><span class="ttl">Filtering rows with WHERE</span></a><a class="next" href="045-limiting-results.html"><span class="dir">Next →</span><span class="ttl">Limiting results</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

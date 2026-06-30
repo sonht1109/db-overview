@@ -5,114 +5,102 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Conflict handling — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part IV. Distributed Systems</p>
   <p class="chapter-label">Chapter 15. Replication</p>
   <h1 class="content-title">Conflict handling</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="145-failover-and-promotion.html"><span class="dir">← Previous</span><span class="ttl">Failover and promotion</span></a><a class="next" href="147-multi-leader-systems.html"><span class="dir">Next →</span><span class="ttl">Multi-leader systems</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When multiple nodes in a replicated system can accept writes, you gain availability and geographic flexibility — but you also open the door to **write conflicts**. A conflict occurs when two nodes accept different writes to the same row (or key) before they have had a chance to synchronize. Both writes are valid locally, but they contradict each other globally. Resolving that contradiction without losing data or corrupting state is the central challenge of multi-master (multi-primary) replication.
-
-## What a Conflict Looks Like
-
-Imagine an order management system replicated across two data centers — US and EU. A customer's loyalty-points balance starts at 200.
-
-1. At 10:00:00, the EU node records a purchase and **subtracts 50 points** → balance becomes 150.
-2. At 10:00:01, the US node records a different purchase and **subtracts 80 points** → balance becomes 120.
-3. Neither node knew about the other's write when it happened.
-
-When replication catches up, both nodes see two conflicting updates. The correct answer — 70 points remaining — is not what either node computed. A naive resolution (e.g., "last write wins") silently drops one transaction.
-
+  <div id="rendered" class="content">
+<p>When multiple nodes in a replicated system can accept writes, you gain availability and geographic flexibility — but you also open the door to <strong>write conflicts</strong>. A conflict occurs when two nodes accept different writes to the same row (or key) before they have had a chance to synchronize. Both writes are valid locally, but they contradict each other globally. Resolving that contradiction without losing data or corrupting state is the central challenge of multi-master (multi-primary) replication.</p>
+<h2>What a Conflict Looks Like</h2>
+<p>Imagine an order management system replicated across two data centers — US and EU. A customer&#39;s loyalty-points balance starts at 200.</p>
+<ol>
+<li>At 10:00:00, the EU node records a purchase and <strong>subtracts 50 points</strong> → balance becomes 150.</li>
+<li>At 10:00:01, the US node records a different purchase and <strong>subtracts 80 points</strong> → balance becomes 120.</li>
+<li>Neither node knew about the other&#39;s write when it happened.</li>
+</ol>
+<p>When replication catches up, both nodes see two conflicting updates. The correct answer — 70 points remaining — is not what either node computed. A naive resolution (e.g., &quot;last write wins&quot;) silently drops one transaction.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing two concurrent conflicting writes on EU and US nodes before replication sync">
   <!-- Timeline axis -->
   <line x1="60" y1="60" x2="580" y2="60" stroke="var(--border)" stroke-width="2"/>
-  <line x1="60" y1="200" x2="580" y2="200" stroke="var(--border)" stroke-width="2"/>
-
-  <!-- Node labels -->
-  <text x="30" y="64" font-size="13" fill="var(--text)" text-anchor="middle">EU</text>
-  <text x="30" y="204" font-size="13" fill="var(--text)" text-anchor="middle">US</text>
-
+  <line x1="60" y1="200" x2="580" y2="200" stroke="var(--border)" stroke-width="2"/>  <!-- Node labels -->
+<p>  <text x="30" y="64" font-size="13" fill="var(--text)" text-anchor="middle">EU</text>
+  <text x="30" y="204" font-size="13" fill="var(--text)" text-anchor="middle">US</text></p>
   <!-- Time markers -->
-  <text x="160" y="40" font-size="12" fill="var(--text)" text-anchor="middle">t=10:00:00</text>
+<p>  <text x="160" y="40" font-size="12" fill="var(--text)" text-anchor="middle">t=10:00:00</text>
   <text x="320" y="40" font-size="12" fill="var(--text)" text-anchor="middle">t=10:00:01</text>
-  <text x="490" y="40" font-size="12" fill="var(--text)" text-anchor="middle">t=10:00:05 (sync)</text>
-
+  <text x="490" y="40" font-size="12" fill="var(--text)" text-anchor="middle">t=10:00:05 (sync)</text></p>
   <!-- EU write event -->
   <circle cx="160" cy="60" r="6" fill="var(--accent)"/>
   <rect x="110" y="70" width="110" height="34" rx="4" fill="var(--surface-2)" stroke="var(--border)"/>
   <text x="165" y="87" font-size="12" fill="var(--text)" text-anchor="middle">200 − 50 = 150</text>
-  <text x="165" y="100" font-size="11" fill="var(--text)" text-anchor="middle">EU balance: 150</text>
-
-  <!-- US write event -->
+  <text x="165" y="100" font-size="11" fill="var(--text)" text-anchor="middle">EU balance: 150</text>  <!-- US write event -->
   <circle cx="320" cy="200" r="6" fill="var(--accent)"/>
   <rect x="268" y="210" width="110" height="34" rx="4" fill="var(--surface-2)" stroke="var(--border)"/>
   <text x="323" y="227" font-size="12" fill="var(--text)" text-anchor="middle">200 − 80 = 120</text>
-  <text x="323" y="240" font-size="11" fill="var(--text)" text-anchor="middle">US balance: 120</text>
-
-  <!-- Sync arrows -->
+  <text x="323" y="240" font-size="11" fill="var(--text)" text-anchor="middle">US balance: 120</text>  <!-- Sync arrows -->
   <line x1="490" y1="65" x2="490" y2="195" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5,3"/>
   <polygon points="490,190 485,178 495,178" fill="var(--accent)"/>
-  <polygon points="490,70 485,82 495,82" fill="var(--accent)"/>
-
-  <!-- Conflict label -->
+  <polygon points="490,70 485,82 495,82" fill="var(--accent)"/>  <!-- Conflict label -->
   <rect x="430" y="118" width="100" height="28" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="480" y="136" font-size="12" fill="var(--accent)" text-anchor="middle" font-weight="bold">CONFLICT</text>
 </svg>
 <figcaption>Two nodes write different updates to the same row before replicating — a classic write conflict.</figcaption>
-</figure>
-
-> **Note:** Single-leader replication avoids this entirely because only one node accepts writes. Conflicts are a trade-off you accept in exchange for multi-primary availability.
-
-## Conflict Detection
-
-Before you can resolve a conflict you have to know one happened. Common detection strategies:
-
-| Strategy | How it works | Typical use |
-|---|---|---|
-| **Timestamps / wall clock** | Compare `updated_at` timestamps | Simple but vulnerable to clock skew |
-| **Version vectors** | Each replica tracks a logical counter per peer; compare vectors | CouchDB, Riak |
-| **Operational transformation** | Track the intent of each operation, not just the value | Collaborative editors (Google Docs) |
-| **Application-layer locks** | Serialize writes through a coordinator for critical rows | Financial systems |
-
-Vector clocks (sometimes called version vectors) are the most rigorous approach: they let a system determine whether two writes are causally related (one happened *before* the other) or truly concurrent (neither knew about the other). Only concurrent writes produce a genuine conflict.
-
-## Conflict Resolution Strategies
-
-Once a conflict is detected, the system must pick a winner or merge the changes. There is no universally correct answer — the right strategy depends on your data semantics.
-
-### Last Write Wins (LWW)
-
-The write with the latest timestamp is kept; the other is discarded. It is dead simple and widely used (Cassandra defaults to it), but it **silently drops data**. In the loyalty-points example, the EU deduction would be lost entirely if the US timestamp is later.
-
-Use LWW only when losing concurrent writes is acceptable — for example, a "last seen online" timestamp where the most recent value genuinely supersedes earlier ones.
-
-### Merge / CRDT
-
-A **Conflict-free Replicated Data Type (CRDT)** is a data structure designed so that all concurrent updates can always be merged automatically into a consistent result. Common examples:
-
-- **G-Counter** (grow-only counter): each replica tracks its own increment; the total is the sum of all replicas.
-- **LWW-Register**: a register that applies last-write-wins per key.
-- **OR-Set** (observed-remove set): a set where adds and removes can be merged without conflict.
-
-CRDTs work because the merge operation is commutative, associative, and idempotent — it doesn't matter what order replicas exchange their updates.
-
-### Application-Defined Resolution
-
-Many systems expose the conflict to the application layer and let the business logic decide. CouchDB, for instance, stores all conflicting revisions and lets the application read them and write back a resolved version. This is the most flexible approach — and the most work.
-
-```sql
--- Pseudo-code: application resolves loyalty-point conflict
+</figure><blockquote>
+<p><strong>Note:</strong> Single-leader replication avoids this entirely because only one node accepts writes. Conflicts are a trade-off you accept in exchange for multi-primary availability.</p>
+</blockquote>
+<h2>Conflict Detection</h2>
+<p>Before you can resolve a conflict you have to know one happened. Common detection strategies:</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>How it works</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Timestamps / wall clock</strong></td>
+<td>Compare <code>updated_at</code> timestamps</td>
+<td>Simple but vulnerable to clock skew</td>
+</tr>
+<tr>
+<td><strong>Version vectors</strong></td>
+<td>Each replica tracks a logical counter per peer; compare vectors</td>
+<td>CouchDB, Riak</td>
+</tr>
+<tr>
+<td><strong>Operational transformation</strong></td>
+<td>Track the intent of each operation, not just the value</td>
+<td>Collaborative editors (Google Docs)</td>
+</tr>
+<tr>
+<td><strong>Application-layer locks</strong></td>
+<td>Serialize writes through a coordinator for critical rows</td>
+<td>Financial systems</td>
+</tr>
+</tbody></table>
+<p>Vector clocks (sometimes called version vectors) are the most rigorous approach: they let a system determine whether two writes are causally related (one happened <em>before</em> the other) or truly concurrent (neither knew about the other). Only concurrent writes produce a genuine conflict.</p>
+<h2>Conflict Resolution Strategies</h2>
+<p>Once a conflict is detected, the system must pick a winner or merge the changes. There is no universally correct answer — the right strategy depends on your data semantics.</p>
+<h3>Last Write Wins (LWW)</h3>
+<p>The write with the latest timestamp is kept; the other is discarded. It is dead simple and widely used (Cassandra defaults to it), but it <strong>silently drops data</strong>. In the loyalty-points example, the EU deduction would be lost entirely if the US timestamp is later.</p>
+<p>Use LWW only when losing concurrent writes is acceptable — for example, a &quot;last seen online&quot; timestamp where the most recent value genuinely supersedes earlier ones.</p>
+<h3>Merge / CRDT</h3>
+<p>A <strong>Conflict-free Replicated Data Type (CRDT)</strong> is a data structure designed so that all concurrent updates can always be merged automatically into a consistent result. Common examples:</p>
+<ul>
+<li><strong>G-Counter</strong> (grow-only counter): each replica tracks its own increment; the total is the sum of all replicas.</li>
+<li><strong>LWW-Register</strong>: a register that applies last-write-wins per key.</li>
+<li><strong>OR-Set</strong> (observed-remove set): a set where adds and removes can be merged without conflict.</li>
+</ul>
+<p>CRDTs work because the merge operation is commutative, associative, and idempotent — it doesn&#39;t matter what order replicas exchange their updates.</p>
+<h3>Application-Defined Resolution</h3>
+<p>Many systems expose the conflict to the application layer and let the business logic decide. CouchDB, for instance, stores all conflicting revisions and lets the application read them and write back a resolved version. This is the most flexible approach — and the most work.</p>
+<pre><code class="language-sql">-- Pseudo-code: application resolves loyalty-point conflict
 -- Both writes are visible; application merges by computing the correct delta
 SELECT balance, version
 FROM loyalty_points_revisions
@@ -121,20 +109,15 @@ ORDER BY version;
 
 -- Application computes: 200 - 50 - 80 = 70, writes resolved value
 UPDATE loyalty_points SET balance = 70, version = 3 WHERE user_id = 42;
-```
-
-### Custom Merge Functions
-
-Some databases (like DynamoDB with Lambda triggers, or PostgreSQL logical replication with conflict-resolution plugins) let you register a server-side function that runs automatically when a conflict is detected — keeping the logic close to the data without exposing raw conflicts to every application client.
-
-## Trying It Out
-
-The widget below simulates a simplified conflict log — the kind of table a multi-primary system might maintain before resolution runs. Explore the data, then try the query that mimics a Last Write Wins resolution.
-
+</code></pre>
+<h3>Custom Merge Functions</h3>
+<p>Some databases (like DynamoDB with Lambda triggers, or PostgreSQL logical replication with conflict-resolution plugins) let you register a server-side function that runs automatically when a conflict is detected — keeping the logic close to the data without exposing raw conflicts to every application client.</p>
+<h2>Trying It Out</h2>
+<p>The widget below simulates a simplified conflict log — the kind of table a multi-primary system might maintain before resolution runs. Explore the data, then try the query that mimics a Last Write Wins resolution.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Conflict Resolution</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE conflict_log (conflict_id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, node TEXT NOT NULL, new_balance INTEGER NOT NULL, written_at TEXT NOT NULL); INSERT INTO conflict_log VALUES (1, 42, 'EU', 150, '2024-06-01 10:00:00'); INSERT INTO conflict_log VALUES (2, 42, 'US', 120, '2024-06-01 10:00:01'); INSERT INTO conflict_log VALUES (3, 99, 'EU', 300, '2024-06-01 10:05:00'); INSERT INTO conflict_log VALUES (4, 99, 'US', 290, '2024-06-01 10:04:58');" rows="20">-- Last Write Wins: pick the row with the latest written_at per user
+    <textarea data-setup="CREATE TABLE conflict_log (conflict_id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, node TEXT NOT NULL, new_balance INTEGER NOT NULL, written_at TEXT NOT NULL); INSERT INTO conflict_log VALUES (1, 42, 'EU', 150, '2024-06-01 10:00:00'); INSERT INTO conflict_log VALUES (2, 42, 'US', 120, '2024-06-01 10:00:01'); INSERT INTO conflict_log VALUES (3, 99, 'EU', 300, '2024-06-01 10:05:00'); INSERT INTO conflict_log VALUES (4, 99, 'US', 290, '2024-06-01 10:04:58');" rows="10">-- Last Write Wins: pick the row with the latest written_at per user
 SELECT user_id,
        node        AS winning_node,
        new_balance AS resolved_balance,
@@ -150,19 +133,18 @@ ORDER BY user_id;
 -- Notice user 99: the EU write arrives LATER even though it has a lower balance.
 -- LWW picks it silently -- potentially wrong for a debit scenario.</textarea>
   </div>
+</div><p>Notice how LWW chooses EU&#39;s balance of 300 for user 99, even though the US had the lower (and arguably more &quot;correct&quot;) debit applied first. This illustrates why LWW is dangerous for anything involving money or inventory.</p>
+<h2>Preventing Conflicts</h2>
+<p>Resolution is always imperfect — the best strategy is often to minimize conflicts in the first place:</p>
+<ul>
+<li><strong>Shard writes by owner</strong>: route all writes for a given user, order, or tenant to a single primary. That primary replicates to others read-only, eliminating conflicts for that partition.</li>
+<li><strong>Use single-leader for sensitive rows</strong>: even in a multi-primary cluster, designate one leader per resource for writes that demand strict consistency.</li>
+<li><strong>Commutative operations</strong>: design updates as deltas (<code>balance = balance - 50</code>) rather than absolute assignments (<code>balance = 150</code>). Two concurrent delta updates can be applied in any order and still converge — though you still need to guard against double-application.</li>
+</ul>
+
 </div>
-
-Notice how LWW chooses EU's balance of 300 for user 99, even though the US had the lower (and arguably more "correct") debit applied first. This illustrates why LWW is dangerous for anything involving money or inventory.
-
-## Preventing Conflicts
-
-Resolution is always imperfect — the best strategy is often to minimize conflicts in the first place:
-
-- **Shard writes by owner**: route all writes for a given user, order, or tenant to a single primary. That primary replicates to others read-only, eliminating conflicts for that partition.
-- **Use single-leader for sensitive rows**: even in a multi-primary cluster, designate one leader per resource for writes that demand strict consistency.
-- **Commutative operations**: design updates as deltas (`balance = balance - 50`) rather than absolute assignments (`balance = 150`). Two concurrent delta updates can be applied in any order and still converge — though you still need to guard against double-application.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="145-failover-and-promotion.html"><span class="dir">← Previous</span><span class="ttl">Failover and promotion</span></a><a class="next" href="147-multi-leader-systems.html"><span class="dir">Next →</span><span class="ttl">Multi-leader systems</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

@@ -5,64 +5,83 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Record identifiers — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Record identifiers</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="086-free-space-management.html"><span class="dir">← Previous</span><span class="ttl">Free space management</span></a><a class="next" href="088-updates-and-fragmentation.html"><span class="dir">Next →</span><span class="ttl">Updates and fragmentation</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every record stored in a database needs an address — a way for the engine to say "go fetch *that specific row* off disk." The previous page showed how slotted pages give each record a slot number. Now we zoom out: how does the rest of the database — indexes, the query executor, foreign key constraints — refer to a record? The answer is the **record identifier**, also called a **RID**, **TID** (tuple ID), or **rowid** depending on the system.
-
-## What a Record Identifier Is
-
-A record identifier is the physical address of a row within the storage layer. In a slotted-page heap file it is almost always a two-part value:
-
-```
-RID = (page_id, slot_number)
-```
-
-- **page_id** — which page in the file holds the record (often a file number + page number pair in multi-file engines).
-- **slot_number** — which slot in that page's slot directory points to the record's actual byte offset.
-
-Because the slot directory is the indirection layer, the slot number stays stable even when the record is moved within the page during compaction. External references — indexes, in particular — store the RID, not the raw byte offset.
-
-| Component | Size (typical) | What it means |
-|---|---|---|
-| File / segment ID | 1–2 bytes | Which physical file on disk |
-| Page number | 3–4 bytes | Which page within the file |
-| Slot number | 1–2 bytes | Which slot in that page |
-| **Total** | **~6 bytes** | The physical address of one row |
-
-> **Note:** PostgreSQL calls this a `ctid` (column tuple ID) and exposes it as a hidden system column you can query directly. SQLite uses a 64-bit integer `rowid`. InnoDB identifies rows by primary key internally — it is a *clustered* index, so there is no separate physical RID at all.
-
-## RIDs in Indexes
-
-The link between logical data and physical rows runs through the index. A typical **B-tree secondary index** stores entries of the form:
-
-```
-(indexed_value, RID)
-```
-
-When you run a query like `WHERE email = 'alice@example.com'`, the engine:
-
-1. Walks the B-tree to find the leaf entry for that email value.
-2. Reads the RID stored there.
-3. Goes directly to `(page_id, slot_number)` in the heap file and fetches the full row.
-
-This two-step process is called a **heap fetch** or **bookmark lookup**. It is fast because the RID is an exact physical address — no scanning required.
-
-The widget below simulates the concept of an index that maps values to RIDs. Run it to see how the engine would resolve a lookup.
-
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">087-record-identifiers</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 087-record-identifiers.</figcaption>
+</figure>
+<p>Every record stored in a database needs an address — a way for the engine to say &quot;go fetch <em>that specific row</em> off disk.&quot; The previous page showed how slotted pages give each record a slot number. Now we zoom out: how does the rest of the database — indexes, the query executor, foreign key constraints — refer to a record? The answer is the <strong>record identifier</strong>, also called a <strong>RID</strong>, <strong>TID</strong> (tuple ID), or <strong>rowid</strong> depending on the system.</p>
+<h2>What a Record Identifier Is</h2>
+<p>A record identifier is the physical address of a row within the storage layer. In a slotted-page heap file it is almost always a two-part value:</p>
+<pre><code>RID = (page_id, slot_number)
+</code></pre>
+<ul>
+<li><strong>page_id</strong> — which page in the file holds the record (often a file number + page number pair in multi-file engines).</li>
+<li><strong>slot_number</strong> — which slot in that page&#39;s slot directory points to the record&#39;s actual byte offset.</li>
+</ul>
+<p>Because the slot directory is the indirection layer, the slot number stays stable even when the record is moved within the page during compaction. External references — indexes, in particular — store the RID, not the raw byte offset.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Size (typical)</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>File / segment ID</td>
+<td>1–2 bytes</td>
+<td>Which physical file on disk</td>
+</tr>
+<tr>
+<td>Page number</td>
+<td>3–4 bytes</td>
+<td>Which page within the file</td>
+</tr>
+<tr>
+<td>Slot number</td>
+<td>1–2 bytes</td>
+<td>Which slot in that page</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>~6 bytes</strong></td>
+<td>The physical address of one row</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> PostgreSQL calls this a <code>ctid</code> (column tuple ID) and exposes it as a hidden system column you can query directly. SQLite uses a 64-bit integer <code>rowid</code>. InnoDB identifies rows by primary key internally — it is a <em>clustered</em> index, so there is no separate physical RID at all.</p>
+</blockquote>
+<h2>RIDs in Indexes</h2>
+<p>The link between logical data and physical rows runs through the index. A typical <strong>B-tree secondary index</strong> stores entries of the form:</p>
+<pre><code>(indexed_value, RID)
+</code></pre>
+<p>When you run a query like <code>WHERE email = &#39;alice@example.com&#39;</code>, the engine:</p>
+<ol>
+<li>Walks the B-tree to find the leaf entry for that email value.</li>
+<li>Reads the RID stored there.</li>
+<li>Goes directly to <code>(page_id, slot_number)</code> in the heap file and fetches the full row.</li>
+</ol>
+<p>This two-step process is called a <strong>heap fetch</strong> or <strong>bookmark lookup</strong>. It is fast because the RID is an exact physical address — no scanning required.</p>
+<p>The widget below simulates the concept of an index that maps values to RIDs. Run it to see how the engine would resolve a lookup.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index-to-RID lookup</span></div>
   <div class="widget-body">
@@ -75,7 +94,7 @@ CREATE TABLE email_index (email TEXT PRIMARY KEY, page_id INTEGER, slot_num INTE
 INSERT INTO email_index VALUES ('alice@example.com', 3, 0);
 INSERT INTO email_index VALUES ('bob@example.com', 3, 1);
 INSERT INTO email_index VALUES ('carol@example.com', 5, 0);
-INSERT INTO email_index VALUES ('dave@example.com', 5, 2);" rows="20">-- Step 1: look up the RID in the index
+INSERT INTO email_index VALUES ('dave@example.com', 5, 2);" rows="10">-- Step 1: look up the RID in the index
 -- Step 2: use it to fetch the row from the 'heap'
 SELECT
   i.email,
@@ -87,37 +106,29 @@ JOIN heap_pages AS h
   ON h.page_id = i.page_id AND h.slot_num = i.slot_num
 WHERE i.email = 'carol@example.com';</textarea>
   </div>
+</div><p>Try changing the <code>WHERE</code> clause to look up a different email. Notice that the join on <code>(page_id, slot_num)</code> is the exact operation the storage engine performs when it follows a RID — your SQL just makes the two-step explicit.</p>
+<h2>When RIDs Become Unstable</h2>
+<p>RIDs are physical addresses, so anything that <em>moves a row to a different page</em> breaks them. This matters in two common situations:</p>
+<p><strong>1. VACUUM / page reorganization across pages.</strong>
+If the engine moves a row from one page to another (not just within the same page), it must leave a <em>forwarding pointer</em> in the old slot so that existing index entries still work. The next time an index uses the old RID, the engine follows the forwarding pointer to the new location — one extra I/O. After a while, stale forwarding pointers are cleaned up, and index entries are updated to the new RID. PostgreSQL calls this <code>VACUUM</code>; SQL Server calls it a <em>ghost record</em> sweep.</p>
+<p><strong>2. Clustered (index-organized) tables.</strong>
+InnoDB (MySQL/MariaDB) and SQL Server&#39;s clustered indexes do not use a heap at all. Rows are stored <em>inside</em> the B-tree leaf pages, ordered by primary key. There is no separate heap RID; the primary key value itself is the row locator. Secondary indexes store the primary key value rather than a physical RID, which means:</p>
+<ul>
+<li>Secondary index lookups do two B-tree traversals (secondary index → primary key → row).</li>
+<li>Rows never have forwarding pointers — moving a row during a page split just updates the B-tree structure.</li>
+</ul>
+<details class="reveal"><summary>Reveal: Why do secondary indexes in InnoDB store the primary key, not a physical RID?</summary><div class="reveal-body"><p>Because InnoDB rows live inside the primary-key B-tree, their physical location changes every time the B-tree splits or merges pages. If secondary indexes stored physical RIDs they would become stale constantly. Storing the primary key value instead means the address is always logically correct — the engine just does a second B-tree lookup to resolve it. This is why choosing a short, stable primary key matters so much in InnoDB: every secondary index entry carries a copy of it.</p>
+</div></details><h2>Key Takeaways</h2>
+<ul>
+<li>A <strong>record identifier (RID)</strong> is the physical address <code>(page_id, slot_number)</code> that pinpoints a row in a heap file.</li>
+<li>Secondary indexes store RIDs so they can jump directly to the right slot after a B-tree lookup.</li>
+<li>RIDs are stable <em>within</em> a page because of the slot-directory indirection layer, but become stale if a row migrates to a different page — the engine handles this with forwarding pointers.</li>
+<li>Clustered tables (InnoDB, SQL Server) skip the heap entirely: the primary key <em>is</em> the locator, and secondary indexes store the primary key value rather than a physical address.</li>
+</ul>
+
 </div>
-
-Try changing the `WHERE` clause to look up a different email. Notice that the join on `(page_id, slot_num)` is the exact operation the storage engine performs when it follows a RID — your SQL just makes the two-step explicit.
-
-## When RIDs Become Unstable
-
-RIDs are physical addresses, so anything that *moves a row to a different page* breaks them. This matters in two common situations:
-
-**1. VACUUM / page reorganization across pages.**
-If the engine moves a row from one page to another (not just within the same page), it must leave a *forwarding pointer* in the old slot so that existing index entries still work. The next time an index uses the old RID, the engine follows the forwarding pointer to the new location — one extra I/O. After a while, stale forwarding pointers are cleaned up, and index entries are updated to the new RID. PostgreSQL calls this `VACUUM`; SQL Server calls it a *ghost record* sweep.
-
-**2. Clustered (index-organized) tables.**
-InnoDB (MySQL/MariaDB) and SQL Server's clustered indexes do not use a heap at all. Rows are stored *inside* the B-tree leaf pages, ordered by primary key. There is no separate heap RID; the primary key value itself is the row locator. Secondary indexes store the primary key value rather than a physical RID, which means:
-
-- Secondary index lookups do two B-tree traversals (secondary index → primary key → row).
-- Rows never have forwarding pointers — moving a row during a page split just updates the B-tree structure.
-
-<details class="reveal"><summary>Reveal: Why do secondary indexes in InnoDB store the primary key, not a physical RID?</summary><div class="reveal-body">
-
-Because InnoDB rows live inside the primary-key B-tree, their physical location changes every time the B-tree splits or merges pages. If secondary indexes stored physical RIDs they would become stale constantly. Storing the primary key value instead means the address is always logically correct — the engine just does a second B-tree lookup to resolve it. This is why choosing a short, stable primary key matters so much in InnoDB: every secondary index entry carries a copy of it.
-
-</div></details>
-
-## Key Takeaways
-
-- A **record identifier (RID)** is the physical address `(page_id, slot_number)` that pinpoints a row in a heap file.
-- Secondary indexes store RIDs so they can jump directly to the right slot after a B-tree lookup.
-- RIDs are stable *within* a page because of the slot-directory indirection layer, but become stale if a row migrates to a different page — the engine handles this with forwarding pointers.
-- Clustered tables (InnoDB, SQL Server) skip the heap entirely: the primary key *is* the locator, and secondary indexes store the primary key value rather than a physical address.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="086-free-space-management.html"><span class="dir">← Previous</span><span class="ttl">Free space management</span></a><a class="next" href="088-updates-and-fragmentation.html"><span class="dir">Next →</span><span class="ttl">Updates and fragmentation</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

@@ -5,143 +5,98 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Range scans and ordered keys — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part V. Database Families</p>
   <p class="chapter-label">Chapter 18. Key-Value Databases</p>
   <h1 class="content-title">Range scans and ordered keys</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="172-fast-lookups-and-simple-apis.html"><span class="dir">← Previous</span><span class="ttl">Fast lookups and simple APIs</span></a><a class="next" href="174-common-storage-engines.html"><span class="dir">Next →</span><span class="ttl">Common storage engines</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Pure hash-based key-value stores are magnificent for point lookups — one key, one value, done. But the moment you ask "give me all events from the last hour" or "list every user whose ID falls between 1000 and 2000," a hash table has nothing useful to offer. That is where **ordered key-value stores** step in: by keeping keys sorted, they make range queries a first-class operation.
-
-## Why Order Matters for Ranges
-
-In a hash table, adjacent keys in the hash space have nothing to do with adjacent keys in the logical space. The hash of `"user:1000"` might land in slot 7, while `"user:1001"` lands in slot 412. To find all keys between two values you must scan every slot — O(n) work regardless of how narrow the range is.
-
-An ordered store keeps keys in **lexicographic (sorted) order** on disk and in memory. Keys that sort near each other are stored physically near each other. A range query then becomes a single seek to the start key followed by a sequential read to the end key — far cheaper than a full scan.
-
+  <div id="rendered" class="content">
+<p>Pure hash-based key-value stores are magnificent for point lookups — one key, one value, done. But the moment you ask &quot;give me all events from the last hour&quot; or &quot;list every user whose ID falls between 1000 and 2000,&quot; a hash table has nothing useful to offer. That is where <strong>ordered key-value stores</strong> step in: by keeping keys sorted, they make range queries a first-class operation.</p>
+<h2>Why Order Matters for Ranges</h2>
+<p>In a hash table, adjacent keys in the hash space have nothing to do with adjacent keys in the logical space. The hash of <code>&quot;user:1000&quot;</code> might land in slot 7, while <code>&quot;user:1001&quot;</code> lands in slot 412. To find all keys between two values you must scan every slot — O(n) work regardless of how narrow the range is.</p>
+<p>An ordered store keeps keys in <strong>lexicographic (sorted) order</strong> on disk and in memory. Keys that sort near each other are stored physically near each other. A range query then becomes a single seek to the start key followed by a sequential read to the end key — far cheaper than a full scan.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Comparison of hash table vs sorted key layout for range scans">
   <defs>
     <marker id="ra" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
     </marker>
-  </defs>
-
-  <!-- Left panel: Hash table -->
+  </defs>  <!-- Left panel: Hash table -->
   <rect x="10" y="10" width="290" height="260" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="155" y="34" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Hash Table</text>
-  <text x="155" y="52" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">(unordered slots)</text>
-
-  <rect x="30" y="62" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="155" y="52" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">(unordered slots)</text>  <rect x="30" y="62" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="40" y="80" font-size="11" fill="var(--text)" opacity="0.5">slot 0</text>
-  <text x="110" y="80" font-size="11" fill="var(--text)">event:2024-03-01</text>
-
-  <rect x="30" y="94" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="110" y="80" font-size="11" fill="var(--text)">event:2024-03-01</text>  <rect x="30" y="94" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="40" y="112" font-size="11" fill="var(--text)" opacity="0.5">slot 1</text>
-  <text x="110" y="112" font-size="11" fill="var(--text)">event:2024-01-15</text>
-
-  <rect x="30" y="126" width="250" height="26" rx="4" fill="var(--accent)" opacity="0.2" stroke="var(--border)" stroke-width="1"/>
+  <text x="110" y="112" font-size="11" fill="var(--text)">event:2024-01-15</text>  <rect x="30" y="126" width="250" height="26" rx="4" fill="var(--accent)" opacity="0.2" stroke="var(--border)" stroke-width="1"/>
   <text x="40" y="144" font-size="11" fill="var(--text)" opacity="0.5">slot 2</text>
-  <text x="110" y="144" font-size="11" fill="var(--text)">event:2024-03-10 ✓</text>
-
-  <rect x="30" y="158" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="110" y="144" font-size="11" fill="var(--text)">event:2024-03-10 ✓</text>  <rect x="30" y="158" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="40" y="176" font-size="11" fill="var(--text)" opacity="0.5">slot 3</text>
-  <text x="110" y="176" font-size="11" fill="var(--text)">event:2023-12-01</text>
-
-  <rect x="30" y="190" width="250" height="26" rx="4" fill="var(--accent)" opacity="0.2" stroke="var(--border)" stroke-width="1"/>
+  <text x="110" y="176" font-size="11" fill="var(--text)">event:2023-12-01</text>  <rect x="30" y="190" width="250" height="26" rx="4" fill="var(--accent)" opacity="0.2" stroke="var(--border)" stroke-width="1"/>
   <text x="40" y="208" font-size="11" fill="var(--text)" opacity="0.5">slot 4</text>
-  <text x="110" y="208" font-size="11" fill="var(--text)">event:2024-03-05 ✓</text>
-
-  <rect x="30" y="222" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="110" y="208" font-size="11" fill="var(--text)">event:2024-03-05 ✓</text>  <rect x="30" y="222" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="40" y="240" font-size="11" fill="var(--text)" opacity="0.5">slot 5</text>
-  <text x="110" y="240" font-size="11" fill="var(--text)">event:2024-02-20</text>
-
-  <text x="155" y="262" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.55">Must scan ALL slots to find range</text>
-
+  <text x="110" y="240" font-size="11" fill="var(--text)">event:2024-02-20</text><p>  <text x="155" y="262" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.55">Must scan ALL slots to find range</text></p>
   <!-- Right panel: Sorted store -->
   <rect x="340" y="10" width="290" height="260" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="485" y="34" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Ordered Store</text>
-  <text x="485" y="52" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">(sorted by key)</text>
-
-  <rect x="360" y="62" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
-  <text x="370" y="80" font-size="11" fill="var(--text)">event:2023-12-01</text>
-
-  <rect x="360" y="94" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
-  <text x="370" y="112" font-size="11" fill="var(--text)">event:2024-01-15</text>
-
-  <rect x="360" y="126" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
-  <text x="370" y="144" font-size="11" fill="var(--text)">event:2024-02-20</text>
-
-  <rect x="358" y="157" width="254" height="62" rx="4" fill="var(--accent)" opacity="0.12" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="485" y="52" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">(sorted by key)</text>  <rect x="360" y="62" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="370" y="80" font-size="11" fill="var(--text)">event:2023-12-01</text>  <rect x="360" y="94" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="370" y="112" font-size="11" fill="var(--text)">event:2024-01-15</text>  <rect x="360" y="126" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="370" y="144" font-size="11" fill="var(--text)">event:2024-02-20</text>  <rect x="358" y="157" width="254" height="62" rx="4" fill="var(--accent)" opacity="0.12" stroke="var(--accent)" stroke-width="1.5"/>
   <rect x="360" y="158" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
-  <text x="370" y="176" font-size="11" font-weight="600" fill="var(--accent)">event:2024-03-01 ✓</text>
-
-  <rect x="360" y="190" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
-  <text x="370" y="208" font-size="11" font-weight="600" fill="var(--accent)">event:2024-03-05 ✓</text>
-
-  <rect x="360" y="222" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
-  <text x="370" y="240" font-size="11" fill="var(--text)">event:2024-03-10</text>
-
-  <text x="485" y="262" text-anchor="middle" font-size="11" fill="var(--accent)" opacity="0.85">Seek once, read contiguous block</text>
-</svg>
+  <text x="370" y="176" font-size="11" font-weight="600" fill="var(--accent)">event:2024-03-01 ✓</text>  <rect x="360" y="190" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="370" y="208" font-size="11" font-weight="600" fill="var(--accent)">event:2024-03-05 ✓</text>  <rect x="360" y="222" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+  <text x="370" y="240" font-size="11" fill="var(--text)">event:2024-03-10</text><p>  <text x="485" y="262" text-anchor="middle" font-size="11" fill="var(--accent)" opacity="0.85">Seek once, read contiguous block</text>
+</svg></p>
 <figcaption>A hash table scatters keys randomly across slots; an ordered store keeps them sorted so a range query reads a contiguous segment.</figcaption>
-</figure>
-
-## Key Design: Putting Order to Work
-
-Because the sort is lexicographic (byte-by-byte, like dictionary order), you can engineer ranges directly into the structure of your keys. This is the single most important design skill in ordered key-value stores.
-
-### Composite keys and natural ranges
-
-Consider an event log for a multi-tenant application. By composing the key as:
-
-```
-<tenant_id>:<ISO-8601-timestamp>:<event_id>
-```
-
-...you get three useful range queries for free:
-
-| Query goal | Key prefix / range |
-|---|---|
-| All events for tenant `acme` | `SCAN "acme:" … "acme:~"` |
-| Events for `acme` in March 2024 | `SCAN "acme:2024-03-" … "acme:2024-03-~"` |
-| Single event by exact ID | `GET "acme:2024-03-10T14:22:01Z:evt_991"` |
-
-The key insight: **ISO 8601 timestamps sort correctly as plain strings** (`"2024-03"` < `"2024-04"` lexicographically), so no special date logic is needed. Numeric IDs need zero-padding for the same reason (`"007"` < `"010"` whereas `"7"` > `"10"`).
-
-> **Note:** RocksDB, LevelDB, and FoundationDB — three widely-used ordered key-value stores — all expose this exact `SCAN(start, end)` primitive. Redis sorted sets offer a similar capability through `ZRANGEBYLEX`.
-
-### The prefix scan pattern
-
-A prefix scan retrieves every key that starts with a given string. Implementations typically express the open end of the range by appending the highest sentinel character after the prefix:
-
-```
-start = "acme:2024-03-"
-end   = "acme:2024-03~"   -- '~' (ASCII 126) sits above all printable alphanum chars
-```
-
-This pattern appears everywhere — from namespace isolation in multi-tenant stores to per-user data shards in distributed systems.
-
-## Simulating an Ordered Key-Value Store in SQLite
-
-SQLite's `TEXT` type compares strings lexicographically with `<` and `>`, making it a perfect sandbox for practicing ordered key patterns. The widget below seeds an event log and lets you explore range queries.
-
-Try the default query first, then modify the `BETWEEN` bounds to narrow or widen the range. Notice that the query only touches the rows it returns — no full scan needed when there is an index on the key column.
-
+</figure><h2>Key Design: Putting Order to Work</h2>
+<p>Because the sort is lexicographic (byte-by-byte, like dictionary order), you can engineer ranges directly into the structure of your keys. This is the single most important design skill in ordered key-value stores.</p>
+<h3>Composite keys and natural ranges</h3>
+<p>Consider an event log for a multi-tenant application. By composing the key as:</p>
+<pre><code>&lt;tenant_id&gt;:&lt;ISO-8601-timestamp&gt;:&lt;event_id&gt;
+</code></pre>
+<p>...you get three useful range queries for free:</p>
+<table>
+<thead>
+<tr>
+<th>Query goal</th>
+<th>Key prefix / range</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>All events for tenant <code>acme</code></td>
+<td><code>SCAN &quot;acme:&quot; … &quot;acme:~&quot;</code></td>
+</tr>
+<tr>
+<td>Events for <code>acme</code> in March 2024</td>
+<td><code>SCAN &quot;acme:2024-03-&quot; … &quot;acme:2024-03-~&quot;</code></td>
+</tr>
+<tr>
+<td>Single event by exact ID</td>
+<td><code>GET &quot;acme:2024-03-10T14:22:01Z:evt_991&quot;</code></td>
+</tr>
+</tbody></table>
+<p>The key insight: <strong>ISO 8601 timestamps sort correctly as plain strings</strong> (<code>&quot;2024-03&quot;</code> &lt; <code>&quot;2024-04&quot;</code> lexicographically), so no special date logic is needed. Numeric IDs need zero-padding for the same reason (<code>&quot;007&quot;</code> &lt; <code>&quot;010&quot;</code> whereas <code>&quot;7&quot;</code> &gt; <code>&quot;10&quot;</code>).</p>
+<blockquote>
+<p><strong>Note:</strong> RocksDB, LevelDB, and FoundationDB — three widely-used ordered key-value stores — all expose this exact <code>SCAN(start, end)</code> primitive. Redis sorted sets offer a similar capability through <code>ZRANGEBYLEX</code>.</p>
+</blockquote>
+<h3>The prefix scan pattern</h3>
+<p>A prefix scan retrieves every key that starts with a given string. Implementations typically express the open end of the range by appending the highest sentinel character after the prefix:</p>
+<pre><code>start = &quot;acme:2024-03-&quot;
+end   = &quot;acme:2024-03~&quot;   -- &#39;~&#39; (ASCII 126) sits above all printable alphanum chars
+</code></pre>
+<p>This pattern appears everywhere — from namespace isolation in multi-tenant stores to per-user data shards in distributed systems.</p>
+<h2>Simulating an Ordered Key-Value Store in SQLite</h2>
+<p>SQLite&#39;s <code>TEXT</code> type compares strings lexicographically with <code>&lt;</code> and <code>&gt;</code>, making it a perfect sandbox for practicing ordered key patterns. The widget below seeds an event log and lets you explore range queries.</p>
+<p>Try the default query first, then modify the <code>BETWEEN</code> bounds to narrow or widen the range. Notice that the query only touches the rows it returns — no full scan needed when there is an index on the key column.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Ordered Key Range Scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv_log (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO kv_log VALUES ('acme:2024-01-05T09:00:00Z:evt_001', 'login'); INSERT INTO kv_log VALUES ('acme:2024-01-20T11:30:00Z:evt_002', 'purchase'); INSERT INTO kv_log VALUES ('acme:2024-02-14T08:15:00Z:evt_003', 'refund'); INSERT INTO kv_log VALUES ('acme:2024-03-01T10:00:00Z:evt_004', 'login'); INSERT INTO kv_log VALUES ('acme:2024-03-10T14:22:00Z:evt_005', 'purchase'); INSERT INTO kv_log VALUES ('acme:2024-03-28T17:05:00Z:evt_006', 'logout'); INSERT INTO kv_log VALUES ('acme:2024-04-02T09:45:00Z:evt_007', 'login'); INSERT INTO kv_log VALUES ('beta:2024-03-15T12:00:00Z:evt_001', 'login'); INSERT INTO kv_log VALUES ('beta:2024-03-22T16:30:00Z:evt_002', 'purchase');" rows="20">-- Range scan: all events for tenant 'acme' in March 2024
+    <textarea data-setup="CREATE TABLE kv_log (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO kv_log VALUES ('acme:2024-01-05T09:00:00Z:evt_001', 'login'); INSERT INTO kv_log VALUES ('acme:2024-01-20T11:30:00Z:evt_002', 'purchase'); INSERT INTO kv_log VALUES ('acme:2024-02-14T08:15:00Z:evt_003', 'refund'); INSERT INTO kv_log VALUES ('acme:2024-03-01T10:00:00Z:evt_004', 'login'); INSERT INTO kv_log VALUES ('acme:2024-03-10T14:22:00Z:evt_005', 'purchase'); INSERT INTO kv_log VALUES ('acme:2024-03-28T17:05:00Z:evt_006', 'logout'); INSERT INTO kv_log VALUES ('acme:2024-04-02T09:45:00Z:evt_007', 'login'); INSERT INTO kv_log VALUES ('beta:2024-03-15T12:00:00Z:evt_001', 'login'); INSERT INTO kv_log VALUES ('beta:2024-03-22T16:30:00Z:evt_002', 'purchase');" rows="10">-- Range scan: all events for tenant 'acme' in March 2024
 -- Key format: &lt;tenant&gt;:&lt;timestamp&gt;:&lt;event_id&gt;
 SELECT key, value
 FROM kv_log
@@ -152,33 +107,56 @@ ORDER BY key;
 -- All beta events:         WHERE key BETWEEN 'beta:' AND 'beta~'
 -- Single lookup:           WHERE key = 'acme:2024-03-10T14:22:00Z:evt_005'</textarea>
   </div>
+</div><p>The tilde <code>~</code> (ASCII 126) sits just above all printable alphanumeric characters, making it a reliable &quot;end of prefix&quot; sentinel for open-ended scans.</p>
+<h2>Trade-offs and When to Use Them</h2>
+<p>Maintaining sort order is not free. Ordered stores typically use a <strong>B-tree</strong> or an <strong>LSM-tree</strong> (log-structured merge-tree), both of which incur more write overhead than a simple hash table. Random inserts in a B-tree require page splits; LSM-trees batch writes but run background <strong>compaction</strong> to merge sorted runs.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Hash KV (e.g. Redis)</th>
+<th>Ordered KV (e.g. RocksDB)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Point lookup</td>
+<td>O(1) average</td>
+<td>O(log n)</td>
+</tr>
+<tr>
+<td>Range scan</td>
+<td>O(n) — full scan</td>
+<td>O(log n + k) where k = result size</td>
+</tr>
+<tr>
+<td>Write throughput</td>
+<td>Very high</td>
+<td>High (LSM) / moderate (B-tree)</td>
+</tr>
+<tr>
+<td>Key ordering</td>
+<td>None</td>
+<td>Lexicographic</td>
+</tr>
+<tr>
+<td>Typical use case</td>
+<td>Caching, sessions</td>
+<td>Event logs, time-series, sorted leaderboards</td>
+</tr>
+</tbody></table>
+<p>Choose an ordered key-value store when your queries are naturally range-shaped — time windows, alphabetical sweeps, prefix lookups — and you are willing to encode that shape into your key design. Choose a hash store when you always know the exact key and need the lowest possible latency for point reads.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li><strong>Hash tables</strong> scatter keys randomly — range queries require a full scan.</li>
+<li><strong>Ordered stores</strong> keep keys in lexicographic order so range queries read a contiguous segment in O(log n + k).</li>
+<li>Key design is everything: timestamps, zero-padded numbers, and composite prefixes let you engineer range access patterns up front.</li>
+<li>ISO 8601 timestamps and zero-padded integers are self-ordering as plain strings — use them freely.</li>
+<li>The prefix-scan sentinel pattern (<code>prefix~</code>) is a widely used idiom for expressing open-ended ranges.</li>
+</ul>
+
 </div>
-
-The tilde `~` (ASCII 126) sits just above all printable alphanumeric characters, making it a reliable "end of prefix" sentinel for open-ended scans.
-
-## Trade-offs and When to Use Them
-
-Maintaining sort order is not free. Ordered stores typically use a **B-tree** or an **LSM-tree** (log-structured merge-tree), both of which incur more write overhead than a simple hash table. Random inserts in a B-tree require page splits; LSM-trees batch writes but run background **compaction** to merge sorted runs.
-
-| Property | Hash KV (e.g. Redis) | Ordered KV (e.g. RocksDB) |
-|---|---|---|
-| Point lookup | O(1) average | O(log n) |
-| Range scan | O(n) — full scan | O(log n + k) where k = result size |
-| Write throughput | Very high | High (LSM) / moderate (B-tree) |
-| Key ordering | None | Lexicographic |
-| Typical use case | Caching, sessions | Event logs, time-series, sorted leaderboards |
-
-Choose an ordered key-value store when your queries are naturally range-shaped — time windows, alphabetical sweeps, prefix lookups — and you are willing to encode that shape into your key design. Choose a hash store when you always know the exact key and need the lowest possible latency for point reads.
-
-## Key Takeaways
-
-- **Hash tables** scatter keys randomly — range queries require a full scan.
-- **Ordered stores** keep keys in lexicographic order so range queries read a contiguous segment in O(log n + k).
-- Key design is everything: timestamps, zero-padded numbers, and composite prefixes let you engineer range access patterns up front.
-- ISO 8601 timestamps and zero-padded integers are self-ordering as plain strings — use them freely.
-- The prefix-scan sentinel pattern (`prefix~`) is a widely used idiom for expressing open-ended ranges.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="172-fast-lookups-and-simple-apis.html"><span class="dir">← Previous</span><span class="ttl">Fast lookups and simple APIs</span></a><a class="next" href="174-common-storage-engines.html"><span class="dir">Next →</span><span class="ttl">Common storage engines</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

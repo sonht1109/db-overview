@@ -5,36 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Start from workload, not fashion — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VI. Engineering Practice</p>
   <p class="chapter-label">Chapter 26. Choosing a Database</p>
   <h1 class="content-title">Start from workload, not fashion</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="249-secure-database-habits.html"><span class="dir">← Previous</span><span class="ttl">Secure database habits</span></a><a class="next" href="252-questions-to-ask-before-choosing.html"><span class="dir">Next →</span><span class="ttl">Questions to ask before choosing</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every year a new database system arrives with compelling benchmarks and enthusiastic blog posts. Teams that chase those signals — adopting the newest store because it's exciting, or because a conference talk made it sound inevitable — often find themselves fighting their tooling instead of building their product. The antidote is a simple discipline: **start from the workload, not from the technology**.
-
-## What "Workload" Actually Means
-
-A workload is the specific combination of reads, writes, queries, and access patterns your application produces. It has measurable properties:
-
-- **Read/write ratio** — mostly reads (a product catalog), mostly writes (an event log), or balanced (a transactional ledger)?
-- **Access pattern** — exact-key lookups, range scans, full-text search, graph traversal, aggregate analytics?
-- **Dataset size** — fits in RAM, fits on one disk, requires sharding across many machines?
-- **Latency requirements** — milliseconds (user-facing), seconds (reporting), minutes (batch)?
-- **Consistency requirements** — must every read see the latest write, or is eventual consistency acceptable?
-
-None of these properties can be answered by reading a database's marketing page. They come from understanding your own application.
-
+  <div id="rendered" class="content">
+<p>Every year a new database system arrives with compelling benchmarks and enthusiastic blog posts. Teams that chase those signals — adopting the newest store because it&#39;s exciting, or because a conference talk made it sound inevitable — often find themselves fighting their tooling instead of building their product. The antidote is a simple discipline: <strong>start from the workload, not from the technology</strong>.</p>
+<h2>What &quot;Workload&quot; Actually Means</h2>
+<p>A workload is the specific combination of reads, writes, queries, and access patterns your application produces. It has measurable properties:</p>
+<ul>
+<li><strong>Read/write ratio</strong> — mostly reads (a product catalog), mostly writes (an event log), or balanced (a transactional ledger)?</li>
+<li><strong>Access pattern</strong> — exact-key lookups, range scans, full-text search, graph traversal, aggregate analytics?</li>
+<li><strong>Dataset size</strong> — fits in RAM, fits on one disk, requires sharding across many machines?</li>
+<li><strong>Latency requirements</strong> — milliseconds (user-facing), seconds (reporting), minutes (batch)?</li>
+<li><strong>Consistency requirements</strong> — must every read see the latest write, or is eventual consistency acceptable?</li>
+</ul>
+<p>None of these properties can be answered by reading a database&#39;s marketing page. They come from understanding your own application.</p>
 <figure class="diagram">
 <svg viewBox="0 0 660 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Workload properties feed into database selection, not the other way around">
   <defs>
@@ -51,24 +41,16 @@ None of these properties can be answered by reading a database's marketing page.
   <text x="120" y="158" text-anchor="middle" font-size="12" fill="var(--muted)">latency budget</text>
   <text x="120" y="180" text-anchor="middle" font-size="12" fill="var(--muted)">consistency needs</text>
   <text x="120" y="202" text-anchor="middle" font-size="12" fill="var(--muted)">concurrency level</text>
-  <text x="120" y="224" text-anchor="middle" font-size="12" fill="var(--muted)">growth trajectory</text>
-
-  <!-- Arrow -->
+  <text x="120" y="224" text-anchor="middle" font-size="12" fill="var(--muted)">growth trajectory</text>  <!-- Arrow -->
   <line x1="222" y1="150" x2="298" y2="150" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr)"/>
-  <text x="260" y="142" text-anchor="middle" font-size="11" fill="var(--accent)">drives</text>
-
-  <!-- Decision box -->
+  <text x="260" y="142" text-anchor="middle" font-size="11" fill="var(--accent)">drives</text>  <!-- Decision box -->
   <rect x="300" y="80" width="160" height="140" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="380" y="108" text-anchor="middle" font-size="13" font-weight="600" fill="var(--accent)">Database</text>
   <text x="380" y="130" text-anchor="middle" font-size="12" fill="var(--muted)">Selection</text>
   <text x="380" y="158" text-anchor="middle" font-size="11" fill="var(--text)">fit the workload</text>
   <text x="380" y="176" text-anchor="middle" font-size="11" fill="var(--text)">not the hype</text>
-  <text x="380" y="200" text-anchor="middle" font-size="11" fill="var(--text)">not the trend</text>
-
-  <!-- Arrow to outcomes -->
-  <line x1="462" y1="150" x2="538" y2="150" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
-
-  <!-- Outcomes box -->
+  <text x="380" y="200" text-anchor="middle" font-size="11" fill="var(--text)">not the trend</text>  <!-- Arrow to outcomes -->
+  <line x1="462" y1="150" x2="538" y2="150" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>  <!-- Outcomes box -->
   <rect x="540" y="80" width="100" height="140" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="590" y="108" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Outcomes</text>
   <text x="590" y="132" text-anchor="middle" font-size="11" fill="var(--muted)">performance</text>
@@ -77,30 +59,23 @@ None of these properties can be answered by reading a database's marketing page.
   <text x="590" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">low ops cost</text>
 </svg>
 <figcaption>Workload properties should drive database selection — not conference buzz, not what another company uses.</figcaption>
-</figure>
-
-## The Danger of Fashion-Driven Selection
-
-Fashion-driven selection happens in two directions:
-
-**Chasing novelty.** A graph database sounds exciting when you're building a social feature. But if your "graph" is a hundred users with an average of three connections each, a single `friends` table in PostgreSQL with a self-join handles it fine — forever. You've added an operational dependency and a new query language for no performance gain.
-
-**Clinging to familiarity.** The opposite error is equally common: reaching for the relational database you already know when the workload is genuinely a poor fit. Writing time-series sensor data to a normalized OLTP schema — with a new row per reading, a `timestamp` column, and a query that does `GROUP BY hour` — works, but a time-series database like TimescaleDB or InfluxDB will store, compress, and query that data an order of magnitude more efficiently.
-
-> **Rule of thumb:** If you cannot describe your workload in concrete numbers — rows per second, query latency target, expected dataset size in 12 months — you are not ready to choose a database.
-
-## Workload First in Practice
-
-A useful exercise before any database decision:
-
-1. **Write down the five most-frequent queries or writes** your application will issue. Not abstract descriptions — actual examples with realistic data shapes.
-2. **Estimate the volume.** How many times per second will each occur at peak load?
-3. **Identify the bottleneck.** Is it read latency? Write throughput? Storage size? Query expressiveness?
-4. **Match to a category.** Key-value if you always know the full key. Column-family if you're appending time-ordered events. Relational if you need ad-hoc joins and transactions. Document if your schema evolves frequently and values are deeply nested.
-5. **Prototype under load.** Benchmarks from the vendor's website use their ideal workload, not yours. A 30-minute proof-of-concept with your actual data shapes more often than not reveals surprises.
-
-```
-Workload description checklist
+</figure><h2>The Danger of Fashion-Driven Selection</h2>
+<p>Fashion-driven selection happens in two directions:</p>
+<p><strong>Chasing novelty.</strong> A graph database sounds exciting when you&#39;re building a social feature. But if your &quot;graph&quot; is a hundred users with an average of three connections each, a single <code>friends</code> table in PostgreSQL with a self-join handles it fine — forever. You&#39;ve added an operational dependency and a new query language for no performance gain.</p>
+<p><strong>Clinging to familiarity.</strong> The opposite error is equally common: reaching for the relational database you already know when the workload is genuinely a poor fit. Writing time-series sensor data to a normalized OLTP schema — with a new row per reading, a <code>timestamp</code> column, and a query that does <code>GROUP BY hour</code> — works, but a time-series database like TimescaleDB or InfluxDB will store, compress, and query that data an order of magnitude more efficiently.</p>
+<blockquote>
+<p><strong>Rule of thumb:</strong> If you cannot describe your workload in concrete numbers — rows per second, query latency target, expected dataset size in 12 months — you are not ready to choose a database.</p>
+</blockquote>
+<h2>Workload First in Practice</h2>
+<p>A useful exercise before any database decision:</p>
+<ol>
+<li><strong>Write down the five most-frequent queries or writes</strong> your application will issue. Not abstract descriptions — actual examples with realistic data shapes.</li>
+<li><strong>Estimate the volume.</strong> How many times per second will each occur at peak load?</li>
+<li><strong>Identify the bottleneck.</strong> Is it read latency? Write throughput? Storage size? Query expressiveness?</li>
+<li><strong>Match to a category.</strong> Key-value if you always know the full key. Column-family if you&#39;re appending time-ordered events. Relational if you need ad-hoc joins and transactions. Document if your schema evolves frequently and values are deeply nested.</li>
+<li><strong>Prototype under load.</strong> Benchmarks from the vendor&#39;s website use their ideal workload, not yours. A 30-minute proof-of-concept with your actual data shapes more often than not reveals surprises.</li>
+</ol>
+<pre><code>Workload description checklist
 ──────────────────────────────
 [ ] Primary access pattern (point, range, graph, aggregate)
 [ ] Read:write ratio (e.g. 95:5 reads heavy)
@@ -110,19 +85,15 @@ Workload description checklist
 [ ] Dataset size today / in 12 months
 [ ] Consistency requirement (strong / eventual / session)
 [ ] Durability requirement (sync / async replication)
-[ ] Team's existing operational expertise
-```
-
-## The Right Default
-
-For most new products — where the schema is evolving, queries are unpredictable, and team size is small — a general-purpose relational database (PostgreSQL or similar) is the correct default. It supports ACID transactions, rich queries, joins, and a mature ecosystem of tools. You can add a specialized store later, precisely, when a specific workload proves that it's necessary.
-
-The pattern to avoid: designing your data layer around a database's interesting features rather than around what your application actually does.
-
+[ ] Team&#39;s existing operational expertise
+</code></pre>
+<h2>The Right Default</h2>
+<p>For most new products — where the schema is evolving, queries are unpredictable, and team size is small — a general-purpose relational database (PostgreSQL or similar) is the correct default. It supports ACID transactions, rich queries, joins, and a mature ecosystem of tools. You can add a specialized store later, precisely, when a specific workload proves that it&#39;s necessary.</p>
+<p>The pattern to avoid: designing your data layer around a database&#39;s interesting features rather than around what your application actually does.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Workload Analysis</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE workload_profile (id INTEGER PRIMARY KEY, query_name TEXT, frequency_per_sec REAL, access_pattern TEXT, latency_target_ms INTEGER); INSERT INTO workload_profile VALUES (1,'Get user session',850,'point-lookup',5); INSERT INTO workload_profile VALUES (2,'List recent orders',120,'range-scan',50); INSERT INTO workload_profile VALUES (3,'Product search',60,'full-text',100); INSERT INTO workload_profile VALUES (4,'Daily revenue report',2,'aggregate',5000); INSERT INTO workload_profile VALUES (5,'Friend recommendations',5,'graph-traversal',200);" rows="20">-- Which queries dominate and what do they demand?
+    <textarea data-setup="CREATE TABLE workload_profile (id INTEGER PRIMARY KEY, query_name TEXT, frequency_per_sec REAL, access_pattern TEXT, latency_target_ms INTEGER); INSERT INTO workload_profile VALUES (1,'Get user session',850,'point-lookup',5); INSERT INTO workload_profile VALUES (2,'List recent orders',120,'range-scan',50); INSERT INTO workload_profile VALUES (3,'Product search',60,'full-text',100); INSERT INTO workload_profile VALUES (4,'Daily revenue report',2,'aggregate',5000); INSERT INTO workload_profile VALUES (5,'Friend recommendations',5,'graph-traversal',200);" rows="10">-- Which queries dominate and what do they demand?
 SELECT
   query_name,
   frequency_per_sec,
@@ -134,16 +105,17 @@ ORDER BY frequency_per_sec DESC;
 -- The dominant pattern (point-lookup at 850/s) suggests a key-value cache layer
 -- would handle most traffic, leaving complex queries to a relational DB.</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li>A workload has measurable properties: access pattern, volume, latency budget, consistency needs.</li>
+<li>Fashion-driven selection — chasing novelty or clinging to familiarity — leads to mismatched tooling.</li>
+<li>Describe your workload in concrete numbers before evaluating any database.</li>
+<li>Default to a general-purpose relational database; add specialized stores only when a specific workload justifies the operational cost.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- A workload has measurable properties: access pattern, volume, latency budget, consistency needs.
-- Fashion-driven selection — chasing novelty or clinging to familiarity — leads to mismatched tooling.
-- Describe your workload in concrete numbers before evaluating any database.
-- Default to a general-purpose relational database; add specialized stores only when a specific workload justifies the operational cost.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="249-secure-database-habits.html"><span class="dir">← Previous</span><span class="ttl">Secure database habits</span></a><a class="next" href="252-questions-to-ask-before-choosing.html"><span class="dir">Next →</span><span class="ttl">Questions to ask before choosing</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

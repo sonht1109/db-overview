@@ -5,76 +5,112 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Primary keys and foreign keys — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 3. The Relational Model</p>
   <h1 class="content-title">Primary keys and foreign keys</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="021-relations-tuples-and-attributes.html"><span class="dir">← Previous</span><span class="ttl">Relations, tuples, and attributes</span></a><a class="next" href="023-set-based-thinking.html"><span class="dir">Next →</span><span class="ttl">Set-based thinking</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every table in a relational database needs a way to tell its rows apart, and every relationship between tables needs a way to express "this row over here belongs with that row over there." Primary keys and foreign keys are the two mechanisms that make both of those things possible — and together they form the backbone of the relational model.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2f6df6"/></marker>
+  </defs>
+  <g transform="translate(10,15)">
+    <!-- Table orders -->
+    <rect x="0" y="0" width="320" height="160" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <rect x="0" y="0" width="320" height="32" rx="10" fill="#e8f0ff"/>
+    <text x="160" y="21" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">📦 orders</text>
+    <rect x="10" y="40" width="70" height="22" rx="4" fill="#fef3c7"/><text x="45" y="55" text-anchor="middle" font-size="9" font-weight="700" fill="#d97706">id 🔑 PK</text>
+    <rect x="85" y="40" width="105" height="22" rx="4" fill="#f0f2f5"/><text x="137" y="55" text-anchor="middle" font-size="9" fill="#5a6678">customer_id FK</text>
+    <rect x="195" y="40" width="115" height="22" rx="4" fill="#f0f2f5"/><text x="252" y="55" text-anchor="middle" font-size="9" fill="#5a6678">total</text>
+    <rect x="10" y="68" width="300" height="18" rx="3" fill="#f9fafb"/><text x="160" y="81" text-anchor="middle" font-size="9" fill="#1c2330">1 | 101 | 42.50</text>
+    <rect x="10" y="90" width="300" height="18" rx="3" fill="#f9fafb"/><text x="160" y="103" text-anchor="middle" font-size="9" fill="#1c2330">2 | 102 | 18.00</text>
+    <rect x="10" y="112" width="300" height="18" rx="3" fill="#f9fafb"/><text x="160" y="125" text-anchor="middle" font-size="9" fill="#1c2330">3 | 101 | 67.30</text>
+    <text x="160" y="148" text-anchor="middle" font-size="9" fill="#9aa6b8">PK: Unique per row ✓</text>
+    <text x="160" y="162" text-anchor="middle" font-size="9" fill="#9aa6b8">FK: Must exist in customers.id</text>
 
-## Primary Keys: The Identity of a Row
+    <!-- Arrow FK → PK -->
+    <line x1="320" y1="95" x2="380" y2="95" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+    <text x="350" y="86" text-anchor="middle" font-size="9" fill="#2f6df6" font-weight="600">FK references</text>
+    <text x="350" y="108" text-anchor="middle" font-size="9" fill="#2f6df6" font-weight="600">PK</text>
 
-A **primary key** is a column (or combination of columns) whose value uniquely identifies each row in a table. Three rules apply:
-
-- **Unique** — no two rows may share the same primary key value.
-- **Not null** — every row must have one; a missing identity makes no sense.
-- **Stable** — the value should not change after the row is created (though the database doesn't always enforce this automatically).
-
-Consider a `customers` table:
-
-| customer_id | name         | email                  |
-|-------------|--------------|------------------------|
-| 1           | Alice Mwangi | alice@example.com      |
-| 2           | Ben Okafor   | ben@example.com        |
-| 3           | Clara Souza  | clara@example.com      |
-
-`customer_id` is the primary key. Even if two customers share a name, their IDs keep them distinct.
-
-### Surrogate vs. Natural Keys
-
-You have two broad choices for what to use as a primary key:
-
-- **Surrogate key** — a value invented purely for identification, usually an auto-incrementing integer (`1, 2, 3, …`) or a UUID. It carries no real-world meaning.
-- **Natural key** — a value that already exists in the domain, such as a national ID number, an ISBN, or an email address.
-
-Surrogate keys are the more common default because they stay stable even when the real-world data changes (a customer can update their email without breaking anything). Natural keys can be useful when the identifier is truly permanent and unique, like an ISBN for a book.
-
-## Foreign Keys: References Between Tables
-
-A **foreign key** is a column in one table whose values must match a primary key value in another table. It expresses a relationship — "this order belongs to that customer."
-
-```sql
-CREATE TABLE orders (
+    <!-- Table customers -->
+    <rect x="390" y="0" width="320" height="160" rx="10" fill="#fff" stroke="#16a34a" stroke-width="2" filter="url(#sh)"/>
+    <rect x="390" y="0" width="320" height="32" rx="10" fill="#dcfce7"/>
+    <text x="550" y="21" text-anchor="middle" font-size="14" font-weight="700" fill="#16a34a">👤 customers</text>
+    <rect x="400" y="40" width="70" height="22" rx="4" fill="#fef3c7"/><text x="435" y="55" text-anchor="middle" font-size="9" font-weight="700" fill="#d97706">id 🔑 PK</text>
+    <rect x="475" y="40" width="230" height="22" rx="4" fill="#f0f2f5"/><text x="590" y="55" text-anchor="middle" font-size="9" fill="#5a6678">name</text>
+    <rect x="400" y="68" width="300" height="18" rx="3" fill="#f9fafb"/><text x="550" y="81" text-anchor="middle" font-size="9" fill="#1c2330">101 | Alice</text>
+    <rect x="400" y="90" width="300" height="18" rx="3" fill="#f9fafb"/><text x="550" y="103" text-anchor="middle" font-size="9" fill="#1c2330">102 | Bob</text>
+    <text x="550" y="148" text-anchor="middle" font-size="9" fill="#9aa6b8">PK: Unique ✓ Not NULL ✓</text>
+    <text x="550" y="162" text-anchor="middle" font-size="9" fill="#9aa6b8">Referential integrity enforced</text>
+  </g>
+</svg>
+<figcaption>Primary keys uniquely identify each row. Foreign keys link one table to another, enforcing referential integrity — every FK value must exist as a PK in the referenced table.</figcaption>
+</figure>
+<p>Every table in a relational database needs a way to tell its rows apart, and every relationship between tables needs a way to express &quot;this row over here belongs with that row over there.&quot; Primary keys and foreign keys are the two mechanisms that make both of those things possible — and together they form the backbone of the relational model.</p>
+<h2>Primary Keys: The Identity of a Row</h2>
+<p>A <strong>primary key</strong> is a column (or combination of columns) whose value uniquely identifies each row in a table. Three rules apply:</p>
+<ul>
+<li><strong>Unique</strong> — no two rows may share the same primary key value.</li>
+<li><strong>Not null</strong> — every row must have one; a missing identity makes no sense.</li>
+<li><strong>Stable</strong> — the value should not change after the row is created (though the database doesn&#39;t always enforce this automatically).</li>
+</ul>
+<p>Consider a <code>customers</code> table:</p>
+<table>
+<thead>
+<tr>
+<th>customer_id</th>
+<th>name</th>
+<th>email</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Alice Mwangi</td>
+<td><a href="mailto:alice@example.com">alice@example.com</a></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Ben Okafor</td>
+<td><a href="mailto:ben@example.com">ben@example.com</a></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Clara Souza</td>
+<td><a href="mailto:clara@example.com">clara@example.com</a></td>
+</tr>
+</tbody></table>
+<p><code>customer_id</code> is the primary key. Even if two customers share a name, their IDs keep them distinct.</p>
+<h3>Surrogate vs. Natural Keys</h3>
+<p>You have two broad choices for what to use as a primary key:</p>
+<ul>
+<li><strong>Surrogate key</strong> — a value invented purely for identification, usually an auto-incrementing integer (<code>1, 2, 3, …</code>) or a UUID. It carries no real-world meaning.</li>
+<li><strong>Natural key</strong> — a value that already exists in the domain, such as a national ID number, an ISBN, or an email address.</li>
+</ul>
+<p>Surrogate keys are the more common default because they stay stable even when the real-world data changes (a customer can update their email without breaking anything). Natural keys can be useful when the identifier is truly permanent and unique, like an ISBN for a book.</p>
+<h2>Foreign Keys: References Between Tables</h2>
+<p>A <strong>foreign key</strong> is a column in one table whose values must match a primary key value in another table. It expresses a relationship — &quot;this order belongs to that customer.&quot;</p>
+<pre><code class="language-sql">CREATE TABLE orders (
   order_id    INTEGER PRIMARY KEY,
   customer_id INTEGER NOT NULL,
   placed_at   TEXT    NOT NULL,
   FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
 );
-```
-
-The `FOREIGN KEY … REFERENCES` clause tells the database engine to enforce **referential integrity**: you cannot insert an order for `customer_id = 99` unless a customer with that ID already exists, and you cannot delete a customer who still has orders (unless you tell the database what to do in that case via `ON DELETE CASCADE` or similar).
-
-> **Note:** SQLite parses foreign key syntax but does not enforce it by default. You must run `PRAGMA foreign_keys = ON;` at the start of each connection to activate enforcement. Most other databases enforce foreign keys automatically.
-
-### What Happens Without Foreign Keys?
-
-Without a foreign key constraint, the database has no way to catch **orphan rows** — orders that reference a customer that no longer exists, or never existed. Queries that join the two tables would silently produce wrong results, or no results at all. Foreign keys move this class of bug from application logic into the database itself, where it can be caught at every entry point.
-
-## Seeing It in Action
-
-The widget below sets up a small `customers` / `orders` schema and seeds it with sample data. Try the default query to see how a join uses the foreign key relationship, then experiment — for example, try inserting an order with a `customer_id` that doesn't exist (`99`) and observe what happens with `PRAGMA foreign_keys = ON`.
-
+</code></pre>
+<p>The <code>FOREIGN KEY … REFERENCES</code> clause tells the database engine to enforce <strong>referential integrity</strong>: you cannot insert an order for <code>customer_id = 99</code> unless a customer with that ID already exists, and you cannot delete a customer who still has orders (unless you tell the database what to do in that case via <code>ON DELETE CASCADE</code> or similar).</p>
+<blockquote>
+<p><strong>Note:</strong> SQLite parses foreign key syntax but does not enforce it by default. You must run <code>PRAGMA foreign_keys = ON;</code> at the start of each connection to activate enforcement. Most other databases enforce foreign keys automatically.</p>
+</blockquote>
+<h3>What Happens Without Foreign Keys?</h3>
+<p>Without a foreign key constraint, the database has no way to catch <strong>orphan rows</strong> — orders that reference a customer that no longer exists, or never existed. Queries that join the two tables would silently produce wrong results, or no results at all. Foreign keys move this class of bug from application logic into the database itself, where it can be caught at every entry point.</p>
+<h2>Seeing It in Action</h2>
+<p>The widget below sets up a small <code>customers</code> / <code>orders</code> schema and seeds it with sample data. Try the default query to see how a join uses the foreign key relationship, then experiment — for example, try inserting an order with a <code>customer_id</code> that doesn&#39;t exist (<code>99</code>) and observe what happens with <code>PRAGMA foreign_keys = ON</code>.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Primary &amp; Foreign Keys</span></div>
   <div class="widget-body">
@@ -97,7 +133,7 @@ INSERT INTO customers VALUES (3, 'Clara Souza',  'clara@example.com');
 INSERT INTO orders VALUES (101, 1, 'Laptop',  999.00);
 INSERT INTO orders VALUES (102, 1, 'Mouse',    29.00);
 INSERT INTO orders VALUES (103, 2, 'Keyboard', 79.00);
-INSERT INTO orders VALUES (104, 3, 'Monitor', 349.00);" rows="20">-- Join orders with customers using the foreign key relationship
+INSERT INTO orders VALUES (104, 3, 'Monitor', 349.00);" rows="10">-- Join orders with customers using the foreign key relationship
 SELECT
   o.order_id,
   c.name        AS customer_name,
@@ -107,28 +143,21 @@ FROM orders o
 JOIN customers c ON o.customer_id = c.customer_id
 ORDER BY o.order_id;</textarea>
   </div>
-</div>
-
-## Composite Primary Keys
-
-Sometimes no single column is unique on its own, but a *combination* of columns is. For example, a table tracking which students are enrolled in which courses might use both columns together as the primary key:
-
-```sql
-CREATE TABLE enrollments (
+</div><h2>Composite Primary Keys</h2>
+<p>Sometimes no single column is unique on its own, but a <em>combination</em> of columns is. For example, a table tracking which students are enrolled in which courses might use both columns together as the primary key:</p>
+<pre><code class="language-sql">CREATE TABLE enrollments (
   student_id INTEGER NOT NULL,
   course_id  INTEGER NOT NULL,
   enrolled_on TEXT   NOT NULL,
   PRIMARY KEY (student_id, course_id)
 );
-```
+</code></pre>
+<p>This is called a <strong>composite primary key</strong>. It guarantees that a student can enroll in a given course only once, while still allowing the same student in many courses and many students in the same course.</p>
+<details class="reveal"><summary>Reveal: Can a foreign key point to a composite primary key?</summary><div class="reveal-body">Yes. A foreign key can reference a composite primary key, but it must include all the same columns. For example, a <code>grades</code> table that references <code>enrollments</code> would need both <code>student_id</code> and <code>course_id</code> as its foreign key columns. In practice, many designers prefer to add a surrogate key to such tables to keep foreign key references simple.</div></details><p>Primary keys and foreign keys are not just database bookkeeping — they encode the rules of your data model directly in the schema, making those rules enforceable and self-documenting for anyone who reads the table definitions.</p>
 
-This is called a **composite primary key**. It guarantees that a student can enroll in a given course only once, while still allowing the same student in many courses and many students in the same course.
-
-<details class="reveal"><summary>Reveal: Can a foreign key point to a composite primary key?</summary><div class="reveal-body">Yes. A foreign key can reference a composite primary key, but it must include all the same columns. For example, a <code>grades</code> table that references <code>enrollments</code> would need both <code>student_id</code> and <code>course_id</code> as its foreign key columns. In practice, many designers prefer to add a surrogate key to such tables to keep foreign key references simple.</div></details>
-
-Primary keys and foreign keys are not just database bookkeeping — they encode the rules of your data model directly in the schema, making those rules enforceable and self-documenting for anyone who reads the table definitions.
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="021-relations-tuples-and-attributes.html"><span class="dir">← Previous</span><span class="ttl">Relations, tuples, and attributes</span></a><a class="next" href="023-set-based-thinking.html"><span class="dir">Next →</span><span class="ttl">Set-based thinking</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

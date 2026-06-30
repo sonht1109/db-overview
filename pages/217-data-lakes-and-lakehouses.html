@@ -5,74 +5,81 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Data lakes and lakehouses — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part V. Database Families</p>
   <p class="chapter-label">Chapter 22. Analytical Databases and Warehouses</p>
   <h1 class="content-title">Data lakes and lakehouses</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="216-materialized-views.html"><span class="dir">← Previous</span><span class="ttl">Materialized views</span></a><a class="next" href="218-why-analytics-engines-feel-different.html"><span class="dir">Next →</span><span class="ttl">Why analytics engines feel different</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-The history of analytical data storage is a story of two opposing forces: the need to query data quickly and the need to store it cheaply. Data warehouses solved the speed problem by enforcing rigid schemas on expensive proprietary storage. Data lakes solved the cost problem by dumping everything raw into cheap object storage — and created a different set of headaches. The **lakehouse** is the current attempt to have both.
-
-## The Data Warehouse: Fast but Rigid
-
-A traditional data warehouse (Redshift, Snowflake, BigQuery, Teradata) stores data in a highly curated, transformed state. Raw operational data is cleaned, typed, and loaded through an **ETL pipeline** before analysts ever see it.
-
-| Property | Data Warehouse |
-|---|---|
-| Schema | Enforced at write time (schema-on-write) |
-| Storage format | Proprietary columnar (or managed Parquet) |
-| Storage cost | High — often $200–$500/TB/month |
-| Query latency | Fast — seconds to minutes |
-| Data types | Structured only |
-| Flexibility | Low — schema changes require migrations |
-
-The warehouse excels for known, recurring queries: weekly revenue reports, monthly cohort dashboards, quarterly regulatory filings. But it struggles when:
-- You want to store semi-structured or unstructured data (JSON logs, images, ML training data)
-- Schema requirements change frequently
-- Raw data volume is enormous and you only query a fraction of it
-- You need to keep data for years at minimal cost
-
-## The Data Lake: Cheap but Chaotic
-
-The data lake emerged around 2010–2014, driven by Hadoop and later cloud object storage (Amazon S3, Google Cloud Storage, Azure Blob). The idea: **land everything raw, figure out structure later**.
-
-```
-s3://my-company-lake/
+  <div id="rendered" class="content">
+<p>The history of analytical data storage is a story of two opposing forces: the need to query data quickly and the need to store it cheaply. Data warehouses solved the speed problem by enforcing rigid schemas on expensive proprietary storage. Data lakes solved the cost problem by dumping everything raw into cheap object storage — and created a different set of headaches. The <strong>lakehouse</strong> is the current attempt to have both.</p>
+<h2>The Data Warehouse: Fast but Rigid</h2>
+<p>A traditional data warehouse (Redshift, Snowflake, BigQuery, Teradata) stores data in a highly curated, transformed state. Raw operational data is cleaned, typed, and loaded through an <strong>ETL pipeline</strong> before analysts ever see it.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Data Warehouse</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Schema</td>
+<td>Enforced at write time (schema-on-write)</td>
+</tr>
+<tr>
+<td>Storage format</td>
+<td>Proprietary columnar (or managed Parquet)</td>
+</tr>
+<tr>
+<td>Storage cost</td>
+<td>High — often $200–$500/TB/month</td>
+</tr>
+<tr>
+<td>Query latency</td>
+<td>Fast — seconds to minutes</td>
+</tr>
+<tr>
+<td>Data types</td>
+<td>Structured only</td>
+</tr>
+<tr>
+<td>Flexibility</td>
+<td>Low — schema changes require migrations</td>
+</tr>
+</tbody></table>
+<p>The warehouse excels for known, recurring queries: weekly revenue reports, monthly cohort dashboards, quarterly regulatory filings. But it struggles when:</p>
+<ul>
+<li>You want to store semi-structured or unstructured data (JSON logs, images, ML training data)</li>
+<li>Schema requirements change frequently</li>
+<li>Raw data volume is enormous and you only query a fraction of it</li>
+<li>You need to keep data for years at minimal cost</li>
+</ul>
+<h2>The Data Lake: Cheap but Chaotic</h2>
+<p>The data lake emerged around 2010–2014, driven by Hadoop and later cloud object storage (Amazon S3, Google Cloud Storage, Azure Blob). The idea: <strong>land everything raw, figure out structure later</strong>.</p>
+<pre><code>s3://my-company-lake/
   events/year=2024/month=01/day=15/part-00001.json.gz
   events/year=2024/month=01/day=15/part-00002.json.gz
   clickstream/2024-01-15T00:00:00.parquet
   ml-models/churn/v3/model.pkl
   raw-postgres-dumps/orders/2024-01-15.csv.gz
-```
-
-**Schema-on-read**: the structure is imposed only when you run a query. You can store JSON blobs, CSV, Avro, Parquet — anything. A Spark or Hive job reads the files and applies a schema at query time.
-
-### Why Data Lakes Became "Data Swamps"
-
-The flexibility that made lakes appealing also made them dangerous:
-
-- **No ACID transactions**: two writers can corrupt the same partition simultaneously. A failed job leaves partial data.
-- **No schema enforcement**: a pipeline change adds a new field, drops an old one, changes a type — downstream consumers silently break.
-- **Poor query performance**: reading raw JSON or unoptimized Parquet across thousands of small files is slow. No statistics, no indexes.
-- **No time travel or versioning**: once data is overwritten, the previous state is gone.
-- **Discovery nightmare**: nobody knows what files are current, which are test data, which are backfills.
-
-> **Note:** The term "data swamp" was coined to describe data lakes where governance broke down — nobody could find reliable, current data, and nobody trusted what they found.
-
-## The Lakehouse: Merging Both Worlds
-
-The lakehouse architecture adds a **metadata and transaction layer** on top of cheap object storage, giving you warehouse-grade reliability without abandoning the lake's cost and flexibility benefits.
-
+</code></pre>
+<p><strong>Schema-on-read</strong>: the structure is imposed only when you run a query. You can store JSON blobs, CSV, Avro, Parquet — anything. A Spark or Hive job reads the files and applies a schema at query time.</p>
+<h3>Why Data Lakes Became &quot;Data Swamps&quot;</h3>
+<p>The flexibility that made lakes appealing also made them dangerous:</p>
+<ul>
+<li><strong>No ACID transactions</strong>: two writers can corrupt the same partition simultaneously. A failed job leaves partial data.</li>
+<li><strong>No schema enforcement</strong>: a pipeline change adds a new field, drops an old one, changes a type — downstream consumers silently break.</li>
+<li><strong>Poor query performance</strong>: reading raw JSON or unoptimized Parquet across thousands of small files is slow. No statistics, no indexes.</li>
+<li><strong>No time travel or versioning</strong>: once data is overwritten, the previous state is gone.</li>
+<li><strong>Discovery nightmare</strong>: nobody knows what files are current, which are test data, which are backfills.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> The term &quot;data swamp&quot; was coined to describe data lakes where governance broke down — nobody could find reliable, current data, and nobody trusted what they found.</p>
+</blockquote>
+<h2>The Lakehouse: Merging Both Worlds</h2>
+<p>The lakehouse architecture adds a <strong>metadata and transaction layer</strong> on top of cheap object storage, giving you warehouse-grade reliability without abandoning the lake&#39;s cost and flexibility benefits.</p>
 <figure class="diagram">
 <svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three-tier evolution from data lake to data warehouse to lakehouse combining both">
   <defs>
@@ -135,18 +142,11 @@ The lakehouse architecture adds a **metadata and transaction layer** on top of c
   <text x="482" y="170" text-anchor="middle" font-size="10" fill="var(--muted)">adds</text>
 </svg>
 <figcaption>Evolution from raw data lake and rigid data warehouse to the lakehouse architecture that combines the best of both.</figcaption>
-</figure>
-
-## Open Table Formats: The Key Enabler
-
-The lakehouse idea works because of **open table formats**: metadata layers that sit on top of ordinary Parquet files in object storage and add transaction semantics.
-
-### Delta Lake (Databricks)
-
-Delta Lake stores a `_delta_log/` directory alongside Parquet data files. Each commit appends a JSON or Parquet checkpoint file listing which data files are part of the current table version.
-
-```
-s3://my-bucket/orders/
+</figure><h2>Open Table Formats: The Key Enabler</h2>
+<p>The lakehouse idea works because of <strong>open table formats</strong>: metadata layers that sit on top of ordinary Parquet files in object storage and add transaction semantics.</p>
+<h3>Delta Lake (Databricks)</h3>
+<p>Delta Lake stores a <code>_delta_log/</code> directory alongside Parquet data files. Each commit appends a JSON or Parquet checkpoint file listing which data files are part of the current table version.</p>
+<pre><code>s3://my-bucket/orders/
   _delta_log/
     00000000000000000000.json   ← initial commit
     00000000000000000001.json   ← add rows
@@ -154,91 +154,99 @@ s3://my-bucket/orders/
     00000000000000000010.checkpoint.parquet
   part-00001-abc.parquet
   part-00002-def.parquet
-```
-
-### Apache Iceberg
-
-Iceberg uses a more sophisticated multi-level metadata tree: a **catalog** points to a **metadata file**, which points to **manifest lists**, which point to **manifest files**, which finally list individual data files. This structure enables:
-
-- **Partition evolution**: change how data is partitioned without rewriting old files
-- **Hidden partitioning**: users query by column value; Iceberg handles partition pruning transparently
-- **Row-level deletes**: store delete vectors separately instead of rewriting entire files
-
-### Apache Hudi
-
-Hudi (Hadoop Upserts Deletes and Incrementals) specializes in **streaming upserts** — efficiently applying CDC (change data capture) streams from operational databases into a lakehouse table. It maintains an index mapping record keys to file locations.
-
-## What Time Travel Looks Like
-
-All three formats support **time travel**: querying a table as it existed at a previous point in time or transaction version.
-
-```sql
--- Delta Lake syntax
+</code></pre>
+<h3>Apache Iceberg</h3>
+<p>Iceberg uses a more sophisticated multi-level metadata tree: a <strong>catalog</strong> points to a <strong>metadata file</strong>, which points to <strong>manifest lists</strong>, which point to <strong>manifest files</strong>, which finally list individual data files. This structure enables:</p>
+<ul>
+<li><strong>Partition evolution</strong>: change how data is partitioned without rewriting old files</li>
+<li><strong>Hidden partitioning</strong>: users query by column value; Iceberg handles partition pruning transparently</li>
+<li><strong>Row-level deletes</strong>: store delete vectors separately instead of rewriting entire files</li>
+</ul>
+<h3>Apache Hudi</h3>
+<p>Hudi (Hadoop Upserts Deletes and Incrementals) specializes in <strong>streaming upserts</strong> — efficiently applying CDC (change data capture) streams from operational databases into a lakehouse table. It maintains an index mapping record keys to file locations.</p>
+<h2>What Time Travel Looks Like</h2>
+<p>All three formats support <strong>time travel</strong>: querying a table as it existed at a previous point in time or transaction version.</p>
+<pre><code class="language-sql">-- Delta Lake syntax
 SELECT * FROM orders VERSION AS OF 5;
-SELECT * FROM orders TIMESTAMP AS OF '2024-01-15 09:00:00';
+SELECT * FROM orders TIMESTAMP AS OF &#39;2024-01-15 09:00:00&#39;;
 
 -- Apache Iceberg syntax
 SELECT * FROM orders FOR VERSION AS OF 12345;
-SELECT * FROM orders FOR SYSTEM_TIME AS OF TIMESTAMP '2024-01-15 09:00:00';
-```
-
-This makes rollbacks, auditing, and reproducible ML training sets straightforward — capabilities that were impossible in a raw data lake.
-
-## Schema Evolution Without Pain
-
-Traditional warehouses require `ALTER TABLE` migrations that lock tables and may fail on incompatible changes. Lakehouse formats handle common evolution patterns gracefully:
-
-| Change type | Handling |
-|---|---|
-| Add nullable column | Safe — old files return NULL for new column |
-| Rename column | Tracked in metadata; old files still readable |
-| Change column type (widening) | Safe — e.g., INT → BIGINT |
-| Change column type (narrowing) | Blocked — e.g., BIGINT → INT would lose data |
-| Drop column | Soft delete in metadata; old files unchanged |
-| Add partition | New data uses new partition; old data unchanged |
-
-## The Storage Layer: Parquet
-
-All major lakehouse formats build on **Apache Parquet**, a columnar binary format. Key properties:
-
-- **Columnar layout**: values for each column stored contiguously, enabling column pruning (only read the columns you need)
-- **Row groups**: files split into row groups (~128 MB each), with per-column statistics (min, max, null count) stored in the footer
-- **Encoding**: dictionary encoding, run-length encoding, and bit packing applied per column
-- **Compression**: Snappy, ZSTD, or LZ4 applied per column chunk
-
-A query `SELECT SUM(amount) FROM orders WHERE region = 'APAC'` on a Parquet file can:
-1. Skip entire row groups where `region` statistics show no 'APAC' values (predicate pushdown)
-2. Read only the `amount` and `region` columns (column pruning)
-
-This can reduce I/O by 90%+ compared to reading raw CSV.
-
+SELECT * FROM orders FOR SYSTEM_TIME AS OF TIMESTAMP &#39;2024-01-15 09:00:00&#39;;
+</code></pre>
+<p>This makes rollbacks, auditing, and reproducible ML training sets straightforward — capabilities that were impossible in a raw data lake.</p>
+<h2>Schema Evolution Without Pain</h2>
+<p>Traditional warehouses require <code>ALTER TABLE</code> migrations that lock tables and may fail on incompatible changes. Lakehouse formats handle common evolution patterns gracefully:</p>
+<table>
+<thead>
+<tr>
+<th>Change type</th>
+<th>Handling</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Add nullable column</td>
+<td>Safe — old files return NULL for new column</td>
+</tr>
+<tr>
+<td>Rename column</td>
+<td>Tracked in metadata; old files still readable</td>
+</tr>
+<tr>
+<td>Change column type (widening)</td>
+<td>Safe — e.g., INT → BIGINT</td>
+</tr>
+<tr>
+<td>Change column type (narrowing)</td>
+<td>Blocked — e.g., BIGINT → INT would lose data</td>
+</tr>
+<tr>
+<td>Drop column</td>
+<td>Soft delete in metadata; old files unchanged</td>
+</tr>
+<tr>
+<td>Add partition</td>
+<td>New data uses new partition; old data unchanged</td>
+</tr>
+</tbody></table>
+<h2>The Storage Layer: Parquet</h2>
+<p>All major lakehouse formats build on <strong>Apache Parquet</strong>, a columnar binary format. Key properties:</p>
+<ul>
+<li><strong>Columnar layout</strong>: values for each column stored contiguously, enabling column pruning (only read the columns you need)</li>
+<li><strong>Row groups</strong>: files split into row groups (~128 MB each), with per-column statistics (min, max, null count) stored in the footer</li>
+<li><strong>Encoding</strong>: dictionary encoding, run-length encoding, and bit packing applied per column</li>
+<li><strong>Compression</strong>: Snappy, ZSTD, or LZ4 applied per column chunk</li>
+</ul>
+<p>A query <code>SELECT SUM(amount) FROM orders WHERE region = &#39;APAC&#39;</code> on a Parquet file can:</p>
+<ol>
+<li>Skip entire row groups where <code>region</code> statistics show no &#39;APAC&#39; values (predicate pushdown)</li>
+<li>Read only the <code>amount</code> and <code>region</code> columns (column pruning)</li>
+</ol>
+<p>This can reduce I/O by 90%+ compared to reading raw CSV.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Time travel with CTEs</span></div>
   <div class="widget-body">
     <textarea data-setup="CREATE TABLE orders_v1 (id INTEGER, customer TEXT, amount DECIMAL(10,2), status TEXT);
 INSERT INTO orders_v1 VALUES (1, &apos;Alice&apos;, 250.00, &apos;completed&apos;);
 INSERT INTO orders_v1 VALUES (2, &apos;Bob&apos;, 180.50, &apos;completed&apos;);
-INSERT INTO orders_v1 VALUES (3, &apos;Carol&apos;, 420.00, &apos;completed&apos;);
-
--- Simulate a &quot;version 2&quot; snapshot after some updates
+INSERT INTO orders_v1 VALUES (3, &apos;Carol&apos;, 420.00, &apos;completed&apos;);<p>-- Simulate a &quot;version 2&quot; snapshot after some updates
 CREATE TABLE orders_v2 AS SELECT * FROM orders_v1;
 UPDATE orders_v2 SET status = &apos;refunded&apos;, amount = 0 WHERE id = 2;
-INSERT INTO orders_v2 VALUES (4, &apos;Dave&apos;, 310.75, &apos;completed&apos;);
-
--- Simulate a &quot;version 3&quot; snapshot
+INSERT INTO orders_v2 VALUES (4, &apos;Dave&apos;, 310.75, &apos;completed&apos;);</p>
+<p>-- Simulate a &quot;version 3&quot; snapshot
 CREATE TABLE orders_v3 AS SELECT * FROM orders_v2;
-DELETE FROM orders_v3 WHERE id = 3;" rows="20">-- Time travel: compare revenue across &quot;versions&quot;
+DELETE FROM orders_v3 WHERE id = 3;&quot; rows=&quot;20&quot;&gt;-- Time travel: compare revenue across &quot;versions&quot;
 -- This simulates what lakehouse time travel gives you
 WITH v1_revenue AS (
   SELECT &apos;Version 1 (baseline)&apos; AS snapshot,
-         COUNT(*) AS order_count,
+         COUNT(<em>) AS order_count,
          SUM(amount) AS total_revenue
   FROM orders_v1
   WHERE status = &apos;completed&apos;
 ),
 v2_revenue AS (
   SELECT &apos;Version 2 (after refund)&apos; AS snapshot,
-         COUNT(*) AS order_count,
+         COUNT(</em>) AS order_count,
          SUM(amount) AS total_revenue
   FROM orders_v2
   WHERE status = &apos;completed&apos;
@@ -253,31 +261,30 @@ v3_revenue AS (
 SELECT * FROM v1_revenue
 UNION ALL SELECT * FROM v2_revenue
 UNION ALL SELECT * FROM v3_revenue;</textarea>
-  </div>
+  </div></p>
+</div><h2>Lakehouse Query Engines</h2>
+<p>The metadata layer is engine-agnostic. You can query the same Iceberg or Delta table from multiple engines:</p>
+<ul>
+<li><strong>Apache Spark</strong>: the original home of Delta/Hudi, best for large-scale batch transformations</li>
+<li><strong>Trino / Presto</strong>: low-latency federated SQL across many sources</li>
+<li><strong>DuckDB</strong>: embedded analytical engine, excellent for local development against S3</li>
+<li><strong>Snowflake / BigQuery</strong>: managed warehouses that can read Iceberg tables directly via external table features</li>
+<li><strong>Apache Flink</strong>: stream processing that writes into lakehouse tables incrementally</li>
+</ul>
+<p>This <strong>decoupling of storage and compute</strong> is one of the lakehouse&#39;s most powerful properties. You&#39;re not locked into one vendor&#39;s query engine.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li><strong>Data lakes</strong> offer cheap, flexible storage but lack ACID guarantees, schema enforcement, and query performance — leading to &quot;data swamps.&quot;</li>
+<li><strong>Data warehouses</strong> offer fast, reliable queries but are expensive, rigid, and unsuitable for unstructured data.</li>
+<li><strong>Lakehouses</strong> combine cheap open storage (Parquet on S3/GCS) with a metadata transaction layer (Delta Lake, Iceberg, or Hudi) to get the best of both.</li>
+<li><strong>Open table formats</strong> add ACID transactions, time travel, schema evolution, and statistics to plain Parquet files.</li>
+<li><strong>Parquet&#39;s columnar layout</strong> with row-group statistics enables aggressive predicate pushdown and column pruning — reducing I/O by 90%+ versus row-based formats.</li>
+<li>The decoupling of storage and compute means you can query the same lakehouse table from Spark, Trino, DuckDB, or a managed warehouse without duplication.</li>
+</ul>
+
 </div>
-
-## Lakehouse Query Engines
-
-The metadata layer is engine-agnostic. You can query the same Iceberg or Delta table from multiple engines:
-
-- **Apache Spark**: the original home of Delta/Hudi, best for large-scale batch transformations
-- **Trino / Presto**: low-latency federated SQL across many sources
-- **DuckDB**: embedded analytical engine, excellent for local development against S3
-- **Snowflake / BigQuery**: managed warehouses that can read Iceberg tables directly via external table features
-- **Apache Flink**: stream processing that writes into lakehouse tables incrementally
-
-This **decoupling of storage and compute** is one of the lakehouse's most powerful properties. You're not locked into one vendor's query engine.
-
-## Key Takeaways
-
-- **Data lakes** offer cheap, flexible storage but lack ACID guarantees, schema enforcement, and query performance — leading to "data swamps."
-- **Data warehouses** offer fast, reliable queries but are expensive, rigid, and unsuitable for unstructured data.
-- **Lakehouses** combine cheap open storage (Parquet on S3/GCS) with a metadata transaction layer (Delta Lake, Iceberg, or Hudi) to get the best of both.
-- **Open table formats** add ACID transactions, time travel, schema evolution, and statistics to plain Parquet files.
-- **Parquet's columnar layout** with row-group statistics enables aggressive predicate pushdown and column pruning — reducing I/O by 90%+ versus row-based formats.
-- The decoupling of storage and compute means you can query the same lakehouse table from Spark, Trino, DuckDB, or a managed warehouse without duplication.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="216-materialized-views.html"><span class="dir">← Previous</span><span class="ttl">Materialized views</span></a><a class="next" href="218-why-analytics-engines-feel-different.html"><span class="dir">Next →</span><span class="ttl">Why analytics engines feel different</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

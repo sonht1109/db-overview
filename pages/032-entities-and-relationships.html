@@ -5,55 +5,76 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Entities and relationships — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 4. Schemas and Data Modeling</p>
   <h1 class="content-title">Entities and relationships</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="031-from-real-world-to-schema.html"><span class="dir">← Previous</span><span class="ttl">From real world to schema</span></a><a class="next" href="033-one-to-one-one-to-many-many-to-many.html"><span class="dir">Next →</span><span class="ttl">One-to-one, one-to-many, many-to-many</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Every real-world domain is full of *things* that matter and *connections* between them. Data modeling is the art of naming those things precisely and deciding how they relate — before you write a single `CREATE TABLE`. Get this step right and everything downstream (queries, indexes, application logic) becomes easier. Get it wrong and you spend months untangling it.
-
-## Entities: the things you track
-
-An **entity** is any distinct object or concept worth storing information about. In an online bookstore you might identify:
-
-- **Book** — title, ISBN, year published
-- **Author** — name, nationality
-- **Customer** — email, shipping address
-- **Order** — date placed, total amount
-
-Each entity becomes a table. Each *instance* of that entity (a specific book, a specific customer) becomes a row. The properties you record about an entity are its **attributes**, which map to columns.
-
-> **Note:** Not every noun deserves its own entity. A book's *genre* might just be a column if it is a simple string; it warrants its own table only when you need to store extra facts about genres or link them in complex ways.
-
-## Relationships: how entities connect
-
-Entities rarely live in isolation. The interesting work is capturing how they relate. Every relationship has a **cardinality** — the maximum number of instances on each side.
-
-| Cardinality | Real-world example | How you implement it |
-|---|---|---|
-| One-to-many (1 : N) | One author writes many books | Foreign key on the "many" side |
-| Many-to-many (M : N) | Many authors co-write many books | Junction (bridge) table |
-| One-to-one (1 : 1) | One customer has one loyalty profile | Foreign key + UNIQUE constraint |
-
-One-to-many is by far the most common. You saw foreign keys in Chapter 2.2 — they are the mechanical expression of a relationship in a relational database.
-
-### Junction tables for many-to-many
-
-When the relationship itself carries data (for example, *which role* an author played on a book — writer, editor, translator), a junction table is the right tool. It holds foreign keys to both sides plus any attributes of the relationship itself.
-
-```sql
--- Entities
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(50,15)">
+    <rect x="0" y="10" width="130" height="50" rx="8" fill="#2f6df6" filter="url(#sh)"/>
+    <text x="65" y="40" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Customer</text>
+    <rect x="450" y="10" width="130" height="50" rx="8" fill="#16a34a" filter="url(#sh)"/>
+    <text x="515" y="40" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Order</text>
+    <line x1="130" y1="35" x2="450" y2="35" stroke="#d97706" stroke-width="2"/>
+    <text x="290" y="28" text-anchor="middle" font-size="10" font-weight="700" fill="#d97706">places</text>
+    <text x="290" y="55" text-anchor="middle" font-size="9" fill="#5a6678">1:N relationship</text>
+    <rect x="100" y="90" width="380" height="35" rx="6" fill="#f0f2f5" stroke="#e2e6ec"/>
+    <text x="290" y="107" text-anchor="middle" font-size="10" fill="#1c2330">Entity = "a thing we track" (noun)   |   Relationship = "how things connect" (verb)</text>
+    <text x="290" y="122" text-anchor="middle" font-size="9" fill="#5a6678">Customer — places → Order — contains → LineItem — part of → Product</text>
+  </g>
+</svg>
+<figcaption>Entities are the nouns of your data model (Customer, Order). Relationships are the verbs (places, contains) connecting them. This drives your table design.</figcaption>
+</figure>
+<p>Every real-world domain is full of <em>things</em> that matter and <em>connections</em> between them. Data modeling is the art of naming those things precisely and deciding how they relate — before you write a single <code>CREATE TABLE</code>. Get this step right and everything downstream (queries, indexes, application logic) becomes easier. Get it wrong and you spend months untangling it.</p>
+<h2>Entities: the things you track</h2>
+<p>An <strong>entity</strong> is any distinct object or concept worth storing information about. In an online bookstore you might identify:</p>
+<ul>
+<li><strong>Book</strong> — title, ISBN, year published</li>
+<li><strong>Author</strong> — name, nationality</li>
+<li><strong>Customer</strong> — email, shipping address</li>
+<li><strong>Order</strong> — date placed, total amount</li>
+</ul>
+<p>Each entity becomes a table. Each <em>instance</em> of that entity (a specific book, a specific customer) becomes a row. The properties you record about an entity are its <strong>attributes</strong>, which map to columns.</p>
+<blockquote>
+<p><strong>Note:</strong> Not every noun deserves its own entity. A book&#39;s <em>genre</em> might just be a column if it is a simple string; it warrants its own table only when you need to store extra facts about genres or link them in complex ways.</p>
+</blockquote>
+<h2>Relationships: how entities connect</h2>
+<p>Entities rarely live in isolation. The interesting work is capturing how they relate. Every relationship has a <strong>cardinality</strong> — the maximum number of instances on each side.</p>
+<table>
+<thead>
+<tr>
+<th>Cardinality</th>
+<th>Real-world example</th>
+<th>How you implement it</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>One-to-many (1 : N)</td>
+<td>One author writes many books</td>
+<td>Foreign key on the &quot;many&quot; side</td>
+</tr>
+<tr>
+<td>Many-to-many (M : N)</td>
+<td>Many authors co-write many books</td>
+<td>Junction (bridge) table</td>
+</tr>
+<tr>
+<td>One-to-one (1 : 1)</td>
+<td>One customer has one loyalty profile</td>
+<td>Foreign key + UNIQUE constraint</td>
+</tr>
+</tbody></table>
+<p>One-to-many is by far the most common. You saw foreign keys in Chapter 2.2 — they are the mechanical expression of a relationship in a relational database.</p>
+<h3>Junction tables for many-to-many</h3>
+<p>When the relationship itself carries data (for example, <em>which role</em> an author played on a book — writer, editor, translator), a junction table is the right tool. It holds foreign keys to both sides plus any attributes of the relationship itself.</p>
+<pre><code class="language-sql">-- Entities
 CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
 CREATE TABLE books   (id INTEGER PRIMARY KEY, title TEXT NOT NULL);
 
@@ -61,24 +82,20 @@ CREATE TABLE books   (id INTEGER PRIMARY KEY, title TEXT NOT NULL);
 CREATE TABLE book_authors (
     author_id INTEGER REFERENCES authors(id),
     book_id   INTEGER REFERENCES books(id),
-    role      TEXT DEFAULT 'writer',   -- attribute of the relationship
+    role      TEXT DEFAULT &#39;writer&#39;,   -- attribute of the relationship
     PRIMARY KEY (author_id, book_id)
 );
-```
-
-The composite primary key `(author_id, book_id)` ensures no duplicate pairing is recorded.
-
-## From diagram to tables
-
-Designers often sketch an **Entity-Relationship (ER) diagram** before writing SQL — boxes for entities, lines (with crow's-foot or UML notation) for relationships. The translation rules are mechanical:
-
-1. Each entity box → one table.
-2. Each 1:N line → foreign key column on the N side.
-3. Each M:N line → new junction table with two foreign keys.
-4. Relationship attributes → columns on the junction table.
-
-Try the widget below to see a small bookstore schema in action. The `JOIN` stitches the relationship back together at query time.
-
+</code></pre>
+<p>The composite primary key <code>(author_id, book_id)</code> ensures no duplicate pairing is recorded.</p>
+<h2>From diagram to tables</h2>
+<p>Designers often sketch an <strong>Entity-Relationship (ER) diagram</strong> before writing SQL — boxes for entities, lines (with crow&#39;s-foot or UML notation) for relationships. The translation rules are mechanical:</p>
+<ol>
+<li>Each entity box → one table.</li>
+<li>Each 1:N line → foreign key column on the N side.</li>
+<li>Each M:N line → new junction table with two foreign keys.</li>
+<li>Relationship attributes → columns on the junction table.</li>
+</ol>
+<p>Try the widget below to see a small bookstore schema in action. The <code>JOIN</code> stitches the relationship back together at query time.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Entities &amp; Relationships</span></div>
   <div class="widget-body">
@@ -87,7 +104,7 @@ CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT NOT NULL, year INTEGER);
 CREATE TABLE book_authors (author_id INTEGER, book_id INTEGER, role TEXT DEFAULT 'writer', PRIMARY KEY (author_id, book_id));
 INSERT INTO authors VALUES (1, 'Gabriel García Márquez'), (2, 'Isabel Allende'), (3, 'Mario Vargas Llosa');
 INSERT INTO books VALUES (1, 'One Hundred Years of Solitude', 1967), (2, 'Love in the Time of Cholera', 1985), (3, 'The House of the Spirits', 1982), (4, 'The City and the Dogs', 1963);
-INSERT INTO book_authors VALUES (1, 1, 'writer'), (1, 2, 'writer'), (2, 3, 'writer'), (3, 4, 'writer');" rows="20">-- List each book with its author and their role in the relationship
+INSERT INTO book_authors VALUES (1, 1, 'writer'), (1, 2, 'writer'), (2, 3, 'writer'), (3, 4, 'writer');" rows="10">-- List each book with its author and their role in the relationship
 SELECT
     b.title,
     b.year,
@@ -98,15 +115,13 @@ JOIN book_authors ba ON ba.book_id   = b.id
 JOIN authors      a  ON a.id         = ba.author_id
 ORDER BY b.year;</textarea>
   </div>
+</div><p>Try adding a second author to one of the books — insert a row into <code>book_authors</code> with the same <code>book_id</code> but a different <code>author_id</code> and <code>role</code>, then re-run the query to see how the junction table fans out.</p>
+<h2>Why modeling matters before coding</h2>
+<p>Skipping the modeling step and jumping straight to <code>CREATE TABLE</code> statements is tempting but costly. Structural mistakes — like storing multiple values in one column, or conflating two distinct entities — are hard to fix once data accumulates. Taking even thirty minutes to list your entities, name their attributes, and draw the relationships on a whiteboard pays dividends every time you write a query.</p>
+
 </div>
-
-Try adding a second author to one of the books — insert a row into `book_authors` with the same `book_id` but a different `author_id` and `role`, then re-run the query to see how the junction table fans out.
-
-## Why modeling matters before coding
-
-Skipping the modeling step and jumping straight to `CREATE TABLE` statements is tempting but costly. Structural mistakes — like storing multiple values in one column, or conflating two distinct entities — are hard to fix once data accumulates. Taking even thirty minutes to list your entities, name their attributes, and draw the relationships on a whiteboard pays dividends every time you write a query.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="031-from-real-world-to-schema.html"><span class="dir">← Previous</span><span class="ttl">From real world to schema</span></a><a class="next" href="033-one-to-one-one-to-many-many-to-many.html"><span class="dir">Next →</span><span class="ttl">One-to-one, one-to-many, many-to-many</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

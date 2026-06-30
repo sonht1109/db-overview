@@ -5,36 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Eventual consistency — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part IV. Distributed Systems</p>
   <p class="chapter-label">Chapter 17. Consistency in Distributed Databases</p>
   <h1 class="content-title">Eventual consistency</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="161-strong-consistency.html"><span class="dir">← Previous</span><span class="ttl">Strong consistency</span></a><a class="next" href="163-read-your-writes.html"><span class="dir">Next →</span><span class="ttl">Read-your-writes</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-In a single-node database, consistency is straightforward: write a value, read it back, and you get what you wrote. Distributed databases shatter that guarantee. When your data lives on multiple nodes spread across data centers — possibly on different continents — keeping every replica perfectly in sync at all times is either impossible or too expensive to be practical. **Eventual consistency** is the pragmatic answer: all replicas will agree *eventually*, but reads during the convergence window may return stale data.
-
-## Why "eventual" and not "immediate"?
-
-The CAP theorem (covered in Chapter 16) showed that a distributed system can guarantee at most two of: Consistency, Availability, and Partition Tolerance. Choosing availability and partition tolerance means relaxing strong consistency. But there is a spectrum between "always perfectly in sync" and "total chaos."
-
-Eventual consistency says: **if no new writes occur, all replicas will converge to the same value in finite time.** It makes no promise about *how long* convergence takes, and it makes no promise that any given read will see the latest write.
-
-> **Note:** "Eventual" is a minimum guarantee, not a maximum. Many systems that are *technically* eventually consistent converge in milliseconds under normal conditions. The gap between theory and practice is often smaller than you'd fear.
-
-## A concrete timeline
-
-The diagram below shows two replicas diverging after a write, then reconciling.
-
+  <div id="rendered" class="content">
+<p>In a single-node database, consistency is straightforward: write a value, read it back, and you get what you wrote. Distributed databases shatter that guarantee. When your data lives on multiple nodes spread across data centers — possibly on different continents — keeping every replica perfectly in sync at all times is either impossible or too expensive to be practical. <strong>Eventual consistency</strong> is the pragmatic answer: all replicas will agree <em>eventually</em>, but reads during the convergence window may return stale data.</p>
+<h2>Why &quot;eventual&quot; and not &quot;immediate&quot;?</h2>
+<p>The CAP theorem (covered in Chapter 16) showed that a distributed system can guarantee at most two of: Consistency, Availability, and Partition Tolerance. Choosing availability and partition tolerance means relaxing strong consistency. But there is a spectrum between &quot;always perfectly in sync&quot; and &quot;total chaos.&quot;</p>
+<p>Eventual consistency says: <strong>if no new writes occur, all replicas will converge to the same value in finite time.</strong> It makes no promise about <em>how long</em> convergence takes, and it makes no promise that any given read will see the latest write.</p>
+<blockquote>
+<p><strong>Note:</strong> &quot;Eventual&quot; is a minimum guarantee, not a maximum. Many systems that are <em>technically</em> eventually consistent converge in milliseconds under normal conditions. The gap between theory and practice is often smaller than you&#39;d fear.</p>
+</blockquote>
+<h2>A concrete timeline</h2>
+<p>The diagram below shows two replicas diverging after a write, then reconciling.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing write to Replica A, replication lag, then convergence with Replica B">
   <!-- timeline axis -->
@@ -47,10 +35,8 @@ The diagram below shows two replicas diverging after a write, then reconciling.
   <line x1="60" y1="45" x2="60" y2="55" stroke="var(--border)" stroke-width="2"/>
   <line x1="220" y1="45" x2="220" y2="55" stroke="var(--border)" stroke-width="2"/>
   <line x1="380" y1="45" x2="380" y2="55" stroke="var(--border)" stroke-width="2"/>
-  <line x1="540" y1="45" x2="540" y2="55" stroke="var(--border)" stroke-width="2"/>
-
-  <!-- Replica A row -->
-  <text x="30" y="105" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">A</text>
+  <line x1="540" y1="45" x2="540" y2="55" stroke="var(--border)" stroke-width="2"/>  <!-- Replica A row -->
+<p>  <text x="30" y="105" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">A</text>
   <rect x="45" y="85" width="130" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)"/>
   <text x="110" y="108" font-size="13" fill="var(--text)" text-anchor="middle">balance = 100</text>
   <!-- write event -->
@@ -61,10 +47,9 @@ The diagram below shows two replicas diverging after a write, then reconciling.
   <rect x="365" y="85" width="130" height="36" rx="6" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)"/>
   <text x="430" y="108" font-size="13" fill="var(--text)" text-anchor="middle">balance = 80</text>
   <rect x="525" y="85" width="70" height="36" rx="6" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)"/>
-  <text x="560" y="108" font-size="13" fill="var(--text)" text-anchor="middle">= 80</text>
-
+  <text x="560" y="108" font-size="13" fill="var(--text)" text-anchor="middle">= 80</text></p>
   <!-- Replica B row -->
-  <text x="30" y="185" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">B</text>
+<p>  <text x="30" y="185" font-size="13" fill="var(--text)" text-anchor="middle" font-weight="bold">B</text>
   <rect x="45" y="165" width="130" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)"/>
   <text x="110" y="188" font-size="13" fill="var(--text)" text-anchor="middle">balance = 100</text>
   <!-- B still stale at t=1 -->
@@ -77,12 +62,10 @@ The diagram below shows two replicas diverging after a write, then reconciling.
   <rect x="365" y="165" width="130" height="36" rx="6" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)"/>
   <text x="430" y="188" font-size="13" fill="var(--text)" text-anchor="middle">balance = 80</text>
   <rect x="525" y="165" width="70" height="36" rx="6" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)"/>
-  <text x="560" y="188" font-size="13" fill="var(--text)" text-anchor="middle">= 80</text>
-
+  <text x="560" y="188" font-size="13" fill="var(--text)" text-anchor="middle">= 80</text></p>
   <!-- converged label -->
-  <text x="560" y="235" font-size="12" fill="var(--accent)" text-anchor="middle" font-weight="bold">Converged</text>
-  <line x1="525" y1="121" x2="525" y2="163" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
-
+<p>  <text x="560" y="235" font-size="12" fill="var(--accent)" text-anchor="middle" font-weight="bold">Converged</text>
+  <line x1="525" y1="121" x2="525" y2="163" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/></p>
   <defs>
     <marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
       <path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/>
@@ -90,40 +73,53 @@ The diagram below shows two replicas diverging after a write, then reconciling.
   </defs>
 </svg>
 <figcaption>Replica B briefly serves stale data (balance=100) after the write lands on Replica A; once replication arrives at t=2 both replicas converge.</figcaption>
-</figure>
-
-## Real-world patterns that use eventual consistency
-
-Most large-scale systems accept eventual consistency for certain workloads while using stronger guarantees only where needed.
-
-| System / Use case | Why eventual consistency is acceptable |
-|---|---|
-| DNS propagation | A stale IP record causes a temporary miss, not data corruption |
-| Shopping cart totals | Slightly stale subtotals are fine; inventory check happens at checkout |
-| Social media likes/views | Off-by-a-few is invisible to users |
-| Cassandra (tunable) | Wide-area replication with low-latency writes trumps perfect sync |
-| DynamoDB (default reads) | Eventual reads are cheaper; use strongly-consistent reads only when needed |
-
-Notice the pattern: eventual consistency shines when **the cost of a stale read is low** and **the cost of coordination is high**.
-
-## Conflicts: when replicas disagree
-
-If two clients write to the same key on two different replicas before replication has a chance to sync, both replicas accept the write. Now the system has **conflicting versions**. Eventually consistent systems use one of several strategies to resolve this:
-
-- **Last-Write-Wins (LWW):** each write carries a timestamp; the higher timestamp survives. Simple, but can silently drop data if clocks drift.
-- **Version vectors / vector clocks:** each replica tracks a logical counter. The system can detect *that* a conflict happened and surface it to the application for resolution.
-- **CRDTs (Conflict-free Replicated Data Types):** data structures (counters, sets, maps) designed so that any merge order produces the same result — no human resolution needed.
-
-> **Note:** Last-Write-Wins is the default in many systems (Cassandra, DynamoDB) because it requires no extra bookkeeping. Use it only when losing a concurrent write is acceptable — which rules out financial balances, stock levels, and most counters.
-
-## Seeing eventual consistency in SQLite (simulated)
-
-SQLite is a single-node engine so it is always strongly consistent — but you can *simulate* a replication lag by modeling two replicas as separate tables and applying writes asynchronously. Try this exercise to see how a stale read can slip through before replication catches up.
-
+</figure><h2>Real-world patterns that use eventual consistency</h2>
+<p>Most large-scale systems accept eventual consistency for certain workloads while using stronger guarantees only where needed.</p>
+<table>
+<thead>
+<tr>
+<th>System / Use case</th>
+<th>Why eventual consistency is acceptable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DNS propagation</td>
+<td>A stale IP record causes a temporary miss, not data corruption</td>
+</tr>
+<tr>
+<td>Shopping cart totals</td>
+<td>Slightly stale subtotals are fine; inventory check happens at checkout</td>
+</tr>
+<tr>
+<td>Social media likes/views</td>
+<td>Off-by-a-few is invisible to users</td>
+</tr>
+<tr>
+<td>Cassandra (tunable)</td>
+<td>Wide-area replication with low-latency writes trumps perfect sync</td>
+</tr>
+<tr>
+<td>DynamoDB (default reads)</td>
+<td>Eventual reads are cheaper; use strongly-consistent reads only when needed</td>
+</tr>
+</tbody></table>
+<p>Notice the pattern: eventual consistency shines when <strong>the cost of a stale read is low</strong> and <strong>the cost of coordination is high</strong>.</p>
+<h2>Conflicts: when replicas disagree</h2>
+<p>If two clients write to the same key on two different replicas before replication has a chance to sync, both replicas accept the write. Now the system has <strong>conflicting versions</strong>. Eventually consistent systems use one of several strategies to resolve this:</p>
+<ul>
+<li><strong>Last-Write-Wins (LWW):</strong> each write carries a timestamp; the higher timestamp survives. Simple, but can silently drop data if clocks drift.</li>
+<li><strong>Version vectors / vector clocks:</strong> each replica tracks a logical counter. The system can detect <em>that</em> a conflict happened and surface it to the application for resolution.</li>
+<li><strong>CRDTs (Conflict-free Replicated Data Types):</strong> data structures (counters, sets, maps) designed so that any merge order produces the same result — no human resolution needed.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> Last-Write-Wins is the default in many systems (Cassandra, DynamoDB) because it requires no extra bookkeeping. Use it only when losing a concurrent write is acceptable — which rules out financial balances, stock levels, and most counters.</p>
+</blockquote>
+<h2>Seeing eventual consistency in SQLite (simulated)</h2>
+<p>SQLite is a single-node engine so it is always strongly consistent — but you can <em>simulate</em> a replication lag by modeling two replicas as separate tables and applying writes asynchronously. Try this exercise to see how a stale read can slip through before replication catches up.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating stale reads</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replica_a (key TEXT PRIMARY KEY, value INTEGER, updated_at INTEGER); CREATE TABLE replica_b (key TEXT PRIMARY KEY, value INTEGER, updated_at INTEGER); INSERT INTO replica_a VALUES ('balance', 100, 1); INSERT INTO replica_b VALUES ('balance', 100, 1); /* Simulate a write that reached replica_a but NOT yet replica_b */ UPDATE replica_a SET value = 80, updated_at = 2 WHERE key = 'balance';" rows="20">
+    <textarea data-setup="CREATE TABLE replica_a (key TEXT PRIMARY KEY, value INTEGER, updated_at INTEGER); CREATE TABLE replica_b (key TEXT PRIMARY KEY, value INTEGER, updated_at INTEGER); INSERT INTO replica_a VALUES ('balance', 100, 1); INSERT INTO replica_b VALUES ('balance', 100, 1); /* Simulate a write that reached replica_a but NOT yet replica_b */ UPDATE replica_a SET value = 80, updated_at = 2 WHERE key = 'balance';" rows="10">
 -- Read from both replicas right after the write.
 -- Replica B hasn't synced yet, so it returns stale data.
 SELECT 'replica_a' AS replica, value, updated_at FROM replica_a WHERE key = 'balance'
@@ -131,30 +127,27 @@ UNION ALL
 SELECT 'replica_b' AS replica, value, updated_at FROM replica_b WHERE key = 'balance';
 </textarea>
   </div>
-</div>
-
-Now try manually "applying" the replication to Replica B and re-running the SELECT:
-
-```sql
--- Replication arrives: bring replica_b up to date
-UPDATE replica_b SET value = 80, updated_at = 2 WHERE key = 'balance';
+</div><p>Now try manually &quot;applying&quot; the replication to Replica B and re-running the SELECT:</p>
+<pre><code class="language-sql">-- Replication arrives: bring replica_b up to date
+UPDATE replica_b SET value = 80, updated_at = 2 WHERE key = &#39;balance&#39;;
 
 -- Both replicas now agree — converged!
-SELECT 'replica_a' AS replica, value FROM replica_a WHERE key = 'balance'
+SELECT &#39;replica_a&#39; AS replica, value FROM replica_a WHERE key = &#39;balance&#39;
 UNION ALL
-SELECT 'replica_b' AS replica, value FROM replica_b WHERE key = 'balance';
-```
+SELECT &#39;replica_b&#39; AS replica, value FROM replica_b WHERE key = &#39;balance&#39;;
+</code></pre>
+<p>This toy example mirrors what a real replication pipeline does: the write journal from the primary is replayed on each replica until all copies converge.</p>
+<h2>Key takeaways</h2>
+<ul>
+<li>Eventual consistency trades <strong>perfect synchrony for availability and performance</strong>.</li>
+<li>Stale reads are a feature, not a bug — when the workload can tolerate them.</li>
+<li>Conflict resolution strategy is a critical design decision; LWW, vector clocks, and CRDTs each have distinct tradeoffs.</li>
+<li>Many systems make consistency <em>tunable</em> per operation — you can opt into a stronger guarantee only where you need it.</li>
+</ul>
 
-This toy example mirrors what a real replication pipeline does: the write journal from the primary is replayed on each replica until all copies converge.
-
-## Key takeaways
-
-- Eventual consistency trades **perfect synchrony for availability and performance**.
-- Stale reads are a feature, not a bug — when the workload can tolerate them.
-- Conflict resolution strategy is a critical design decision; LWW, vector clocks, and CRDTs each have distinct tradeoffs.
-- Many systems make consistency *tunable* per operation — you can opt into a stronger guarantee only where you need it.
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="161-strong-consistency.html"><span class="dir">← Previous</span><span class="ttl">Strong consistency</span></a><a class="next" href="163-read-your-writes.html"><span class="dir">Next →</span><span class="ttl">Read-your-writes</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

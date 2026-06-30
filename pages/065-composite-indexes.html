@@ -5,75 +5,98 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Composite indexes — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 7. Indexes</p>
   <h1 class="content-title">Composite indexes</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="064-hash-indexes.html"><span class="dir">← Previous</span><span class="ttl">Hash indexes</span></a><a class="next" href="066-covering-indexes.html"><span class="dir">Next →</span><span class="ttl">Covering indexes</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-A single-column index helps the database find rows by one attribute — but real queries rarely filter on just one column. A **composite index** (also called a multi-column or compound index) covers two or more columns in a defined order, letting the database narrow a search across several dimensions at once.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(10,10)">
+    <rect x="0" y="0" width="700" height="145" rx="10" fill="#e8f0ff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="350" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">CREATE INDEX idx_emp_dept_salary ON employees (department, salary)</text>
+    <line x1="15" y1="38" x2="685" y2="38" stroke="#bfdbfe"/>
+    <!-- B-tree sorted visualization -->
+    <text x="25" y="60" font-size="9" fill="#5a6678">Index sorted by (department, salary):</text>
+    <rect x="15" y="68" width="170" height="22" rx="4" fill="#fff"/><text x="100" y="83" text-anchor="middle" font-size="9" fill="#1c2330">('Eng', 75000) → row</text>
+    <rect x="195" y="68" width="170" height="22" rx="4" fill="#fff"/><text x="280" y="83" text-anchor="middle" font-size="9" fill="#1c2330">('Eng', 95000) → row</text>
+    <rect x="375" y="68" width="170" height="22" rx="4" fill="#fff"/><text x="460" y="83" text-anchor="middle" font-size="9" fill="#1c2330">('Eng', 105000) → row</text>
+    <rect x="15" y="94" width="170" height="22" rx="4" fill="#fff"/><text x="100" y="109" text-anchor="middle" font-size="9" fill="#1c2330">('Res', 88000) → row</text>
+    <rect x="195" y="94" width="170" height="22" rx="4" fill="#fff"/><text x="280" y="109" text-anchor="middle" font-size="9" fill="#1c2330">('Res', 92000) → row</text>
+    <!-- Rules -->
+    <rect x="15" y="126" width="670" height="22" rx="4" fill="#dcfce7"/>
+    <text x="350" y="141" text-anchor="middle" font-size="9" fill="#16a34a">✓ Leftmost prefix rule: index on (A,B,C) serves queries on A; A+B; A+B+C. NOT B alone, NOT C alone.</text>
+  </g>
+</svg>
+<figcaption>Composite indexes on (department, salary) are sorted first by department, then by salary within each department. The leftmost prefix rule determines which queries can use the index.</figcaption>
+</figure>
+<p>A single-column index helps the database find rows by one attribute — but real queries rarely filter on just one column. A <strong>composite index</strong> (also called a multi-column or compound index) covers two or more columns in a defined order, letting the database narrow a search across several dimensions at once.</p>
+<h2>How a Composite Index Is Built</h2>
+<p>Imagine you have an <code>orders</code> table with columns <code>customer_id</code>, <code>status</code>, and <code>created_at</code>. A composite index on <code>(customer_id, status)</code> sorts rows first by <code>customer_id</code>, then by <code>status</code> within each customer. The result is a single B-tree whose keys look like:</p>
+<pre><code>(42, &#39;pending&#39;)
+(42, &#39;shipped&#39;)
+(99, &#39;cancelled&#39;)
+(99, &#39;pending&#39;)
+(99, &#39;shipped&#39;)
+</code></pre>
+<p>The database can leap directly to the right <code>customer_id</code> bucket and scan only the matching <code>status</code> entries — two filters served by one index seek.</p>
+<h2>The Left-Prefix Rule</h2>
+<p>This is the most important rule about composite indexes: <strong>the index is useful only when your query references a leading prefix of the indexed columns.</strong> If the index is on <code>(a, b, c)</code>, these filters can use it:</p>
+<table>
+<thead>
+<tr>
+<th>Query filter</th>
+<th>Uses index?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>WHERE a = 1</code></td>
+<td>Yes — leftmost column only</td>
+</tr>
+<tr>
+<td><code>WHERE a = 1 AND b = 2</code></td>
+<td>Yes — first two columns</td>
+</tr>
+<tr>
+<td><code>WHERE a = 1 AND b = 2 AND c = 3</code></td>
+<td>Yes — all three columns</td>
+</tr>
+<tr>
+<td><code>WHERE b = 2</code></td>
+<td>No — skips <code>a</code></td>
+</tr>
+<tr>
+<td><code>WHERE b = 2 AND c = 3</code></td>
+<td>No — skips <code>a</code></td>
+</tr>
+<tr>
+<td><code>WHERE a = 1 AND c = 3</code></td>
+<td>Partial — uses <code>a</code>, cannot skip to <code>c</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> The rule is about the <em>prefix</em>, not the order you write the conditions in SQL. <code>WHERE b = 2 AND a = 1</code> is the same as <code>WHERE a = 1 AND b = 2</code> — the optimizer reorders them. What matters is that the leftmost column(s) of the index are present in the filter.</p>
+</blockquote>
+<h2>Range Conditions Stop the Prefix</h2>
+<p>Equality predicates (<code>=</code>) let the index continue scanning into the next column. A range predicate (<code>&gt;</code>, <code>&lt;</code>, <code>BETWEEN</code>, <code>LIKE &#39;x%&#39;</code>) <strong>stops</strong> the index&#39;s ability to prune further columns. For an index on <code>(customer_id, created_at, status)</code>:</p>
+<pre><code class="language-sql">-- Uses all three columns
+WHERE customer_id = 42 AND created_at = &#39;2024-01-15&#39; AND status = &#39;shipped&#39;
 
-## How a Composite Index Is Built
-
-Imagine you have an `orders` table with columns `customer_id`, `status`, and `created_at`. A composite index on `(customer_id, status)` sorts rows first by `customer_id`, then by `status` within each customer. The result is a single B-tree whose keys look like:
-
-```
-(42, 'pending')
-(42, 'shipped')
-(99, 'cancelled')
-(99, 'pending')
-(99, 'shipped')
-```
-
-The database can leap directly to the right `customer_id` bucket and scan only the matching `status` entries — two filters served by one index seek.
-
-## The Left-Prefix Rule
-
-This is the most important rule about composite indexes: **the index is useful only when your query references a leading prefix of the indexed columns.** If the index is on `(a, b, c)`, these filters can use it:
-
-| Query filter | Uses index? |
-|---|---|
-| `WHERE a = 1` | Yes — leftmost column only |
-| `WHERE a = 1 AND b = 2` | Yes — first two columns |
-| `WHERE a = 1 AND b = 2 AND c = 3` | Yes — all three columns |
-| `WHERE b = 2` | No — skips `a` |
-| `WHERE b = 2 AND c = 3` | No — skips `a` |
-| `WHERE a = 1 AND c = 3` | Partial — uses `a`, cannot skip to `c` |
-
-> **Note:** The rule is about the *prefix*, not the order you write the conditions in SQL. `WHERE b = 2 AND a = 1` is the same as `WHERE a = 1 AND b = 2` — the optimizer reorders them. What matters is that the leftmost column(s) of the index are present in the filter.
-
-## Range Conditions Stop the Prefix
-
-Equality predicates (`=`) let the index continue scanning into the next column. A range predicate (`>`, `<`, `BETWEEN`, `LIKE 'x%'`) **stops** the index's ability to prune further columns. For an index on `(customer_id, created_at, status)`:
-
-```sql
--- Uses all three columns
-WHERE customer_id = 42 AND created_at = '2024-01-15' AND status = 'shipped'
-
--- Uses first two; 'status' cannot be filtered via the index
-WHERE customer_id = 42 AND created_at > '2024-01-01' AND status = 'shipped'
-```
-
-This means column order in a composite index matters: put equality-filtered columns first, range-filtered columns last.
-
-## Try It: Composite Index in Action
-
-The widget below creates an `orders` table and two indexes. Run the first query, observe the query plan, then try the queries in the comments to see which index gets used.
-
+-- Uses first two; &#39;status&#39; cannot be filtered via the index
+WHERE customer_id = 42 AND created_at &gt; &#39;2024-01-01&#39; AND status = &#39;shipped&#39;
+</code></pre>
+<p>This means column order in a composite index matters: put equality-filtered columns first, range-filtered columns last.</p>
+<h2>Try It: Composite Index in Action</h2>
+<p>The widget below creates an <code>orders</code> table and two indexes. Run the first query, observe the query plan, then try the queries in the comments to see which index gets used.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Composite indexes</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, created_at TEXT, amount REAL); INSERT INTO orders VALUES (1, 42, 'pending',   '2024-01-10', 99.00); INSERT INTO orders VALUES (2, 42, 'shipped',   '2024-01-15', 149.50); INSERT INTO orders VALUES (3, 42, 'cancelled', '2024-02-01', 29.99); INSERT INTO orders VALUES (4, 99, 'pending',   '2024-01-20', 59.00); INSERT INTO orders VALUES (5, 99, 'shipped',   '2024-02-05', 210.00); INSERT INTO orders VALUES (6, 7,  'shipped',   '2024-01-08', 75.00); CREATE INDEX idx_cust_status ON orders (customer_id, status); CREATE INDEX idx_cust_date  ON orders (customer_id, created_at);" rows="20">-- Uses idx_cust_status (leading prefix match)
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, created_at TEXT, amount REAL); INSERT INTO orders VALUES (1, 42, 'pending',   '2024-01-10', 99.00); INSERT INTO orders VALUES (2, 42, 'shipped',   '2024-01-15', 149.50); INSERT INTO orders VALUES (3, 42, 'cancelled', '2024-02-01', 29.99); INSERT INTO orders VALUES (4, 99, 'pending',   '2024-01-20', 59.00); INSERT INTO orders VALUES (5, 99, 'shipped',   '2024-02-05', 210.00); INSERT INTO orders VALUES (6, 7,  'shipped',   '2024-01-08', 75.00); CREATE INDEX idx_cust_status ON orders (customer_id, status); CREATE INDEX idx_cust_date  ON orders (customer_id, created_at);" rows="10">-- Uses idx_cust_status (leading prefix match)
 EXPLAIN QUERY PLAN
 SELECT * FROM orders
 WHERE customer_id = 42 AND status = 'shipped';
@@ -85,33 +108,27 @@ WHERE customer_id = 42 AND status = 'shipped';
 -- SELECT * FROM orders
 -- WHERE customer_id = 42 AND created_at > '2024-01-12';</textarea>
   </div>
-</div>
-
-Look for `USING INDEX` in the output. When you uncomment the second query (filter on `status` alone), you'll see a full table scan instead — proof that skipping the leftmost column defeats the index.
-
-## Composite Indexes and Sorting
-
-A composite index can also eliminate a sort step. If your query orders by the same columns in the same direction as the index, the database reads them in order for free:
-
-```sql
--- idx_cust_date covers both the filter and the sort
+</div><p>Look for <code>USING INDEX</code> in the output. When you uncomment the second query (filter on <code>status</code> alone), you&#39;ll see a full table scan instead — proof that skipping the leftmost column defeats the index.</p>
+<h2>Composite Indexes and Sorting</h2>
+<p>A composite index can also eliminate a sort step. If your query orders by the same columns in the same direction as the index, the database reads them in order for free:</p>
+<pre><code class="language-sql">-- idx_cust_date covers both the filter and the sort
 SELECT * FROM orders
 WHERE customer_id = 42
 ORDER BY created_at;
-```
+</code></pre>
+<p>This is one reason composite indexes are so valuable in reporting queries: one index can satisfy <code>WHERE</code>, <code>ORDER BY</code>, and sometimes even <code>SELECT</code> (a covering index) in a single pass.</p>
+<h2>Choosing Column Order</h2>
+<p>A practical checklist for ordering columns in a composite index:</p>
+<ol>
+<li><strong>Equality first</strong> — columns you filter with <code>=</code> should come before range columns.</li>
+<li><strong>Selectivity matters</strong> — among equality columns, higher-cardinality columns first can reduce the scan size.</li>
+<li><strong>Cover your <code>ORDER BY</code></strong> — if a common query sorts by a column, include it at the end of the index.</li>
+<li><strong>Don&#39;t over-index</strong> — each index costs write overhead. Prefer a well-ordered composite index over many narrow single-column indexes.</li>
+</ol>
 
-This is one reason composite indexes are so valuable in reporting queries: one index can satisfy `WHERE`, `ORDER BY`, and sometimes even `SELECT` (a covering index) in a single pass.
-
-## Choosing Column Order
-
-A practical checklist for ordering columns in a composite index:
-
-1. **Equality first** — columns you filter with `=` should come before range columns.
-2. **Selectivity matters** — among equality columns, higher-cardinality columns first can reduce the scan size.
-3. **Cover your `ORDER BY`** — if a common query sorts by a column, include it at the end of the index.
-4. **Don't over-index** — each index costs write overhead. Prefer a well-ordered composite index over many narrow single-column indexes.
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="064-hash-indexes.html"><span class="dir">← Previous</span><span class="ttl">Hash indexes</span></a><a class="next" href="066-covering-indexes.html"><span class="dir">Next →</span><span class="ttl">Covering indexes</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

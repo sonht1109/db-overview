@@ -5,105 +5,168 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>B-tree indexes — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 7. Indexes</p>
   <h1 class="content-title">B-tree indexes</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="062-what-an-index-really-is.html"><span class="dir">← Previous</span><span class="ttl">What an index really is</span></a><a class="next" href="064-hash-indexes.html"><span class="dir">Next →</span><span class="ttl">Hash indexes</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-A database index is a separate data structure the engine keeps alongside a table so it can answer certain queries without reading every row. The most common index type — the one created when you write `CREATE INDEX` with no further qualification — is the **B-tree** (balanced tree). Understanding how it works lets you predict when an index will help, when it will be ignored, and why.
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(40,10)">
+    <!-- Root -->
+    <rect x="260" y="0" width="160" height="42" rx="8" fill="#2f6df6" filter="url(#sh)"/>
+    <text x="340" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Root (internal node)</text>
+    <text x="340" y="34" text-anchor="middle" font-size="9" fill="#bfdbfe">keys: [50]</text>
+    <!-- Lines from root -->
+    <line x1="290" y1="42" x2="140" y2="65" stroke="#2f6df6" stroke-width="1.5"/>
+    <line x1="390" y1="42" x2="540" y2="65" stroke="#2f6df6" stroke-width="1.5"/>
+    <text x="200" y="58" font-size="8" fill="#5a6678">&lt; 50</text>
+    <text x="475" y="58" font-size="8" fill="#5a6678">&gt; 50</text>
 
-## The Core Idea: Trading Space for Lookup Speed
+    <!-- Internal node left -->
+    <rect x="60" y="68" width="160" height="35" rx="6" fill="#93c5fd" filter="url(#sh)"/>
+    <text x="140" y="84" text-anchor="middle" font-size="10" font-weight="700" fill="#1c2330">Internal node</text>
+    <text x="140" y="97" text-anchor="middle" font-size="8" fill="#1e3a5f">keys: [20, 35]</text>
+    <!-- Internal node right -->
+    <rect x="460" y="68" width="160" height="35" rx="6" fill="#93c5fd" filter="url(#sh)"/>
+    <text x="540" y="84" text-anchor="middle" font-size="10" font-weight="700" fill="#1c2330">Internal node</text>
+    <text x="540" y="97" text-anchor="middle" font-size="8" fill="#1e3a5f">keys: [70, 90]</text>
 
-Without an index, finding rows that match `WHERE email = 'alice@example.com'` means scanning the entire table. On a million-row table that is a million comparisons. A B-tree index solves this by keeping a sorted copy of the indexed column(s), organized as a shallow, wide tree where every lookup takes at most *O(log n)* steps.
+    <!-- Lines to leaves -->
+    <line x1="100" y1="103" x2="30" y2="130" stroke="#93c5fd" stroke-width="1.2"/>
+    <line x1="140" y1="103" x2="140" y2="130" stroke="#93c5fd" stroke-width="1.2"/>
+    <line x1="180" y1="103" x2="250" y2="130" stroke="#93c5fd" stroke-width="1.2"/>
+    <line x1="500" y1="103" x2="430" y2="130" stroke="#93c5fd" stroke-width="1.2"/>
+    <line x1="540" y1="103" x2="540" y2="130" stroke="#93c5fd" stroke-width="1.2"/>
+    <line x1="580" y1="103" x2="650" y2="130" stroke="#93c5fd" stroke-width="1.2"/>
 
-A B-tree is made of **nodes**, each holding an ordered list of keys and pointers:
+    <!-- Leaf nodes -->
+    <rect x="0" y="132" width="65" height="35" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="32" y="155" text-anchor="middle" font-size="9" fill="#16a34a">10,15</text>
+    <rect x="108" y="132" width="65" height="35" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="140" y="155" text-anchor="middle" font-size="9" fill="#16a34a">20,25,30</text>
+    <rect x="218" y="132" width="65" height="35" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="250" y="155" text-anchor="middle" font-size="9" fill="#16a34a">35,45</text>
+    <rect x="398" y="132" width="65" height="35" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="430" y="155" text-anchor="middle" font-size="9" fill="#16a34a">55,65</text>
+    <rect x="508" y="132" width="65" height="35" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="540" y="155" text-anchor="middle" font-size="9" fill="#16a34a">70,80,85</text>
+    <rect x="618" y="132" width="65" height="35" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="650" y="155" text-anchor="middle" font-size="9" fill="#16a34a">90,99</text>
 
-- **Leaf nodes** hold the actual index keys plus a pointer (row ID / page address) back to the matching row in the table.
-- **Internal nodes** hold separator keys and pointers to child nodes.
-- All leaf nodes are linked left-to-right, making range scans efficient.
+    <!-- Linked list line at bottom -->
+    <line x1="32" y1="168" x2="140" y2="168" stroke="#86efac" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="205" y1="168" x2="250" y2="168" stroke="#86efac" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="430" y1="168" x2="540" y2="168" stroke="#86efac" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="605" y1="168" x2="650" y2="168" stroke="#86efac" stroke-width="1" stroke-dasharray="3,2"/>
 
-A rough sketch for an index on `last_name`:
-
-```
-              [Morris]
+    <!-- Annotations -->
+    <text x="340" y="195" text-anchor="middle" font-size="9" fill="#5a6678">Internal nodes: guide search (keys + child pointers)   |   Leaves: hold actual row pointers (sorted, linked)</text>
+    <text x="340" y="210" text-anchor="middle" font-size="9" fill="#9aa6b8">O(log n) lookup · O(log n) insert · Self-balancing · Range scan via leaf chain</text>
+  </g>
+</svg>
+<figcaption>A B-tree: internal nodes hold keys that guide the search downward; leaf nodes hold actual key-pointer pairs in sorted order, linked for fast range scans.</figcaption>
+</figure>
+<p>A database index is a separate data structure the engine keeps alongside a table so it can answer certain queries without reading every row. The most common index type — the one created when you write <code>CREATE INDEX</code> with no further qualification — is the <strong>B-tree</strong> (balanced tree). Understanding how it works lets you predict when an index will help, when it will be ignored, and why.</p>
+<h2>The Core Idea: Trading Space for Lookup Speed</h2>
+<p>Without an index, finding rows that match <code>WHERE email = &#39;alice@example.com&#39;</code> means scanning the entire table. On a million-row table that is a million comparisons. A B-tree index solves this by keeping a sorted copy of the indexed column(s), organized as a shallow, wide tree where every lookup takes at most <em>O(log n)</em> steps.</p>
+<p>A B-tree is made of <strong>nodes</strong>, each holding an ordered list of keys and pointers:</p>
+<ul>
+<li><strong>Leaf nodes</strong> hold the actual index keys plus a pointer (row ID / page address) back to the matching row in the table.</li>
+<li><strong>Internal nodes</strong> hold separator keys and pointers to child nodes.</li>
+<li>All leaf nodes are linked left-to-right, making range scans efficient.</li>
+</ul>
+<p>A rough sketch for an index on <code>last_name</code>:</p>
+<pre><code>              [Morris]
              /        \
     [Davis | Kim]    [Park | Zhang]
     /      |     \     ...
  rows    rows   rows
-```
-
-To find `'Kim'`, the engine reads three nodes (root → internal → leaf) instead of scanning every row. On a table with 1 million rows, a balanced B-tree is roughly 3–4 levels deep — the difference between 4 reads and 1,000,000.
-
-> **Note:** SQLite, PostgreSQL, and MySQL all use B-tree variants as their default index structure. The details differ (PostgreSQL calls its flavor B+tree), but the lookup semantics are the same.
-
-## What B-tree Indexes Are Good At
-
-Because the index is sorted, B-trees naturally support several operation types:
-
-| Query pattern | Example | Works? |
-|---|---|---|
-| Equality | `WHERE id = 42` | Yes |
-| Range | `WHERE age BETWEEN 18 AND 35` | Yes |
-| Prefix match | `WHERE name LIKE 'Ali%'` | Yes |
-| Suffix / contains | `WHERE name LIKE '%ali%'` | No — B-tree can't help |
-| ORDER BY (same column) | `ORDER BY created_at` | Yes — already sorted |
-| Arbitrary function | `WHERE LOWER(email) = 'a@b.com'` | No — unless indexed on the expression |
-
-The rule of thumb: if the query can use the sort order of the index, the index can help. If it cannot, the engine falls back to a full table scan.
-
-## Composite Indexes and Column Order
-
-You can index multiple columns together: `CREATE INDEX idx ON orders(customer_id, status)`. This is a **composite index** — the rows are sorted first by `customer_id`, then by `status` within each customer group.
-
-The **leading-column rule** governs when a composite index is usable:
-
-- Filtering on `customer_id` alone — index used.
-- Filtering on `customer_id` AND `status` — index used.
-- Filtering on `status` alone — index **not** used (the leading column is skipped).
-
-Think of a phone book sorted by last name, then first name: you can look up "Smith, Alice" or all "Smiths", but you cannot efficiently find all "Alices" without knowing the last name.
-
-## Seeing It in Action
-
-The widget below creates a small `orders` table, runs the same query with and without an index, and lets you inspect the query plan. Try running the `EXPLAIN QUERY PLAN` first to see `SCAN orders` (full table scan), then create the index and run it again — the plan should switch to `SEARCH orders USING INDEX`.
-
+</code></pre>
+<p>To find <code>&#39;Kim&#39;</code>, the engine reads three nodes (root → internal → leaf) instead of scanning every row. On a table with 1 million rows, a balanced B-tree is roughly 3–4 levels deep — the difference between 4 reads and 1,000,000.</p>
+<blockquote>
+<p><strong>Note:</strong> SQLite, PostgreSQL, and MySQL all use B-tree variants as their default index structure. The details differ (PostgreSQL calls its flavor B+tree), but the lookup semantics are the same.</p>
+</blockquote>
+<h2>What B-tree Indexes Are Good At</h2>
+<p>Because the index is sorted, B-trees naturally support several operation types:</p>
+<table>
+<thead>
+<tr>
+<th>Query pattern</th>
+<th>Example</th>
+<th>Works?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Equality</td>
+<td><code>WHERE id = 42</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Range</td>
+<td><code>WHERE age BETWEEN 18 AND 35</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Prefix match</td>
+<td><code>WHERE name LIKE &#39;Ali%&#39;</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Suffix / contains</td>
+<td><code>WHERE name LIKE &#39;%ali%&#39;</code></td>
+<td>No — B-tree can&#39;t help</td>
+</tr>
+<tr>
+<td>ORDER BY (same column)</td>
+<td><code>ORDER BY created_at</code></td>
+<td>Yes — already sorted</td>
+</tr>
+<tr>
+<td>Arbitrary function</td>
+<td><code>WHERE LOWER(email) = &#39;a@b.com&#39;</code></td>
+<td>No — unless indexed on the expression</td>
+</tr>
+</tbody></table>
+<p>The rule of thumb: if the query can use the sort order of the index, the index can help. If it cannot, the engine falls back to a full table scan.</p>
+<h2>Composite Indexes and Column Order</h2>
+<p>You can index multiple columns together: <code>CREATE INDEX idx ON orders(customer_id, status)</code>. This is a <strong>composite index</strong> — the rows are sorted first by <code>customer_id</code>, then by <code>status</code> within each customer group.</p>
+<p>The <strong>leading-column rule</strong> governs when a composite index is usable:</p>
+<ul>
+<li>Filtering on <code>customer_id</code> alone — index used.</li>
+<li>Filtering on <code>customer_id</code> AND <code>status</code> — index used.</li>
+<li>Filtering on <code>status</code> alone — index <strong>not</strong> used (the leading column is skipped).</li>
+</ul>
+<p>Think of a phone book sorted by last name, then first name: you can look up &quot;Smith, Alice&quot; or all &quot;Smiths&quot;, but you cannot efficiently find all &quot;Alices&quot; without knowing the last name.</p>
+<h2>Seeing It in Action</h2>
+<p>The widget below creates a small <code>orders</code> table, runs the same query with and without an index, and lets you inspect the query plan. Try running the <code>EXPLAIN QUERY PLAN</code> first to see <code>SCAN orders</code> (full table scan), then create the index and run it again — the plan should switch to <code>SEARCH orders USING INDEX</code>.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · B-tree index vs. full scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, amount REAL); INSERT INTO orders VALUES (1,101,'shipped',250.0),(2,101,'pending',80.0),(3,102,'shipped',430.0),(4,103,'shipped',90.0),(5,103,'pending',310.0),(6,104,'shipped',75.0),(7,105,'shipped',520.0),(8,105,'pending',60.0),(9,106,'shipped',180.0),(10,107,'pending',95.0);" rows="20">-- Step 1: see the plan WITHOUT an index (look for SCAN orders)
+    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, amount REAL); INSERT INTO orders VALUES (1,101,'shipped',250.0),(2,101,'pending',80.0),(3,102,'shipped',430.0),(4,103,'shipped',90.0),(5,103,'pending',310.0),(6,104,'shipped',75.0),(7,105,'shipped',520.0),(8,105,'pending',60.0),(9,106,'shipped',180.0),(10,107,'pending',95.0);" rows="10">-- Step 1: see the plan WITHOUT an index (look for SCAN orders)
 EXPLAIN QUERY PLAN
 SELECT * FROM orders WHERE customer_id = 103;
 -- Step 2: create the index, then re-run the EXPLAIN above
 -- CREATE INDEX idx_orders_customer ON orders(customer_id);</textarea>
   </div>
-</div>
-
-Once you create `idx_orders_customer` and re-run the explain, SQLite reports `SEARCH orders USING INDEX idx_orders_customer` — it walks the B-tree to find only the rows where `customer_id = 103` instead of reading the whole table.
-
-## The Cost of an Index
-
-Indexes are not free:
-
-- **Extra storage** — the index is a separate on-disk structure, roughly proportional in size to the indexed column(s) and row count.
-- **Write overhead** — every `INSERT`, `UPDATE`, or `DELETE` must also update each affected index. A table with five indexes pays five extra writes per inserted row.
-- **Optimizer choices** — the query planner may choose a different (sometimes worse) plan when many indexes are present. Indexes should be added deliberately, not speculatively.
-
-A good rule: create an index when you have a real query that is slow and the column appears in a `WHERE`, `JOIN ON`, or `ORDER BY` clause with high selectivity (many distinct values). An index on a boolean column with two possible values is rarely worth the overhead.
-
+</div><p>Once you create <code>idx_orders_customer</code> and re-run the explain, SQLite reports <code>SEARCH orders USING INDEX idx_orders_customer</code> — it walks the B-tree to find only the rows where <code>customer_id = 103</code> instead of reading the whole table.</p>
+<h2>The Cost of an Index</h2>
+<p>Indexes are not free:</p>
+<ul>
+<li><strong>Extra storage</strong> — the index is a separate on-disk structure, roughly proportional in size to the indexed column(s) and row count.</li>
+<li><strong>Write overhead</strong> — every <code>INSERT</code>, <code>UPDATE</code>, or <code>DELETE</code> must also update each affected index. A table with five indexes pays five extra writes per inserted row.</li>
+<li><strong>Optimizer choices</strong> — the query planner may choose a different (sometimes worse) plan when many indexes are present. Indexes should be added deliberately, not speculatively.</li>
+</ul>
+<p>A good rule: create an index when you have a real query that is slow and the column appears in a <code>WHERE</code>, <code>JOIN ON</code>, or <code>ORDER BY</code> clause with high selectivity (many distinct values). An index on a boolean column with two possible values is rarely worth the overhead.</p>
 <details class="reveal"><summary>Reveal: Why does LIKE '%term%' skip the B-tree?</summary><div class="reveal-body">A B-tree is sorted left-to-right by the full key value. A leading wildcard (<code>%term</code>) means the engine has no starting point in the sorted order — matching rows could be anywhere in the tree. It would have to visit every leaf node anyway, making the index useless. Only prefix patterns like <code>term%</code> benefit, because the engine can seek to the first key that starts with "term" and stop when the prefix no longer matches.</div></details>
-
-</script>
+</div>
+  <nav class="pagenav"><a class="prev" href="062-what-an-index-really-is.html"><span class="dir">← Previous</span><span class="ttl">What an index really is</span></a><a class="next" href="064-hash-indexes.html"><span class="dir">Next →</span><span class="ttl">Hash indexes</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

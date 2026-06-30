@@ -5,32 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How rows are found on disk — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">How rows are found on disk</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="088-updates-and-fragmentation.html"><span class="dir">← Previous</span><span class="ttl">Updates and fragmentation</span></a><a class="next" href="091-b-tree-structure-in-detail.html"><span class="dir">Next →</span><span class="ttl">B-tree structure in detail</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-When you run `SELECT * FROM employees WHERE id = 712`, the database engine has to physically locate that one row on disk — possibly among millions. This chapter explains the machinery that makes that possible: how rows live inside pages, how the engine navigates from a query down to a specific byte offset, and what happens when there is no shortcut.
-
-## Pages Are the Unit of I/O
-
-The engine never reads a single row directly from disk. It always reads a **page** — a fixed-size block, typically 4 KB to 16 KB depending on the engine. A page is the smallest unit the storage layer moves between disk and memory (the buffer pool).
-
-Inside each page, rows are stored as **records** — a sequence of fields, with a small header describing things like which columns are NULL, and the length of any variable-width data (like `TEXT`). At the start of the page is a **slot array**: a compact list of offsets pointing to where each record begins within that page.
-
-```
-┌─────────────────────────────────────────┐  Page 7
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(15,15)">
+    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">089-how-rows-are-found-on-disk</text>
+    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
+    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
+    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
+    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+  </g>
+</svg>
+<figcaption>Visual overview of 089-how-rows-are-found-on-disk.</figcaption>
+</figure>
+<p>When you run <code>SELECT * FROM employees WHERE id = 712</code>, the database engine has to physically locate that one row on disk — possibly among millions. This chapter explains the machinery that makes that possible: how rows live inside pages, how the engine navigates from a query down to a specific byte offset, and what happens when there is no shortcut.</p>
+<h2>Pages Are the Unit of I/O</h2>
+<p>The engine never reads a single row directly from disk. It always reads a <strong>page</strong> — a fixed-size block, typically 4 KB to 16 KB depending on the engine. A page is the smallest unit the storage layer moves between disk and memory (the buffer pool).</p>
+<p>Inside each page, rows are stored as <strong>records</strong> — a sequence of fields, with a small header describing things like which columns are NULL, and the length of any variable-width data (like <code>TEXT</code>). At the start of the page is a <strong>slot array</strong>: a compact list of offsets pointing to where each record begins within that page.</p>
+<pre><code>┌─────────────────────────────────────────┐  Page 7
 │ Page header (page id, free space, ...)  │
 │─────────────────────────────────────────│
 │ Slot array: [slot 0 → offset 120,       │
@@ -43,45 +45,53 @@ Inside each page, rows are stored as **records** — a sequence of fields, with 
 │ Record 1  (row 2 of the table)          │  ← offset 185
 │ Record 0  (row 1 of the table)          │  ← offset 120
 └─────────────────────────────────────────┘
-```
-
-A row's **physical address** is therefore a pair: `(page_number, slot_number)`. In PostgreSQL this is called a `ctid`. In other engines the concept is the same even if it goes by a different name.
-
-## Finding a Row: Two Paths
-
-### Path 1 — Table Scan (No Index)
-
-Without an index, the engine has no shortcut. It reads every page of the table from the first to the last, checks each record against the `WHERE` predicate, and returns any that match. This is called a **sequential scan** or **full table scan**.
-
-For large tables a sequential scan is expensive — but it is always *correct*. It is the fallback that guarantees any row can be found.
-
-### Path 2 — Index Lookup
-
-An index is a separate on-disk structure (usually a B-tree) that maps a column's values to physical row addresses. When the engine uses an index, the process has two steps:
-
-1. **Traverse the index** to find the physical address `(page, slot)` for the matching key.
-2. **Fetch the page** that contains that slot, then read the record.
-
-Step 2 is called a **heap fetch** (or in PostgreSQL, a "heap access"). It is a random I/O — the index tells you exactly which page to load, so you load only that page rather than all of them.
-
-| Access method | Pages read (example: 1 row in 1 M-row table) | When the engine chooses it |
-|---|---|---|
-| Sequential scan | All pages (~8,000 for 8 KB pages, 1 M rows) | No usable index, or query returns many rows |
-| Index + heap fetch | 2–4 pages (index levels + 1 data page) | Selective filter with a matching index |
-| Index-only scan | 1–3 pages (index only, no heap) | All needed columns are in the index |
-
-> **Note:** An **index-only scan** skips the heap fetch entirely — it reads the answer directly out of the index leaf. This only works when every column the query needs is stored in the index itself. PostgreSQL additionally checks a visibility map to confirm the row's commit status before skipping the heap.
-
-## Watching It Happen in SQLite
-
-SQLite stores each table as a B-tree of rows keyed by the `rowid` (an implicit 64-bit integer). A lookup by `rowid` is a B-tree traversal directly into the table — no separate heap fetch needed. A lookup on any other column without an index is a full scan.
-
-The query below seeds a small `products` table and looks up a row. Try running `EXPLAIN QUERY PLAN` variants to see SQLite describe the access path it chose.
-
+</code></pre>
+<p>A row&#39;s <strong>physical address</strong> is therefore a pair: <code>(page_number, slot_number)</code>. In PostgreSQL this is called a <code>ctid</code>. In other engines the concept is the same even if it goes by a different name.</p>
+<h2>Finding a Row: Two Paths</h2>
+<h3>Path 1 — Table Scan (No Index)</h3>
+<p>Without an index, the engine has no shortcut. It reads every page of the table from the first to the last, checks each record against the <code>WHERE</code> predicate, and returns any that match. This is called a <strong>sequential scan</strong> or <strong>full table scan</strong>.</p>
+<p>For large tables a sequential scan is expensive — but it is always <em>correct</em>. It is the fallback that guarantees any row can be found.</p>
+<h3>Path 2 — Index Lookup</h3>
+<p>An index is a separate on-disk structure (usually a B-tree) that maps a column&#39;s values to physical row addresses. When the engine uses an index, the process has two steps:</p>
+<ol>
+<li><strong>Traverse the index</strong> to find the physical address <code>(page, slot)</code> for the matching key.</li>
+<li><strong>Fetch the page</strong> that contains that slot, then read the record.</li>
+</ol>
+<p>Step 2 is called a <strong>heap fetch</strong> (or in PostgreSQL, a &quot;heap access&quot;). It is a random I/O — the index tells you exactly which page to load, so you load only that page rather than all of them.</p>
+<table>
+<thead>
+<tr>
+<th>Access method</th>
+<th>Pages read (example: 1 row in 1 M-row table)</th>
+<th>When the engine chooses it</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Sequential scan</td>
+<td>All pages (~8,000 for 8 KB pages, 1 M rows)</td>
+<td>No usable index, or query returns many rows</td>
+</tr>
+<tr>
+<td>Index + heap fetch</td>
+<td>2–4 pages (index levels + 1 data page)</td>
+<td>Selective filter with a matching index</td>
+</tr>
+<tr>
+<td>Index-only scan</td>
+<td>1–3 pages (index only, no heap)</td>
+<td>All needed columns are in the index</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> An <strong>index-only scan</strong> skips the heap fetch entirely — it reads the answer directly out of the index leaf. This only works when every column the query needs is stored in the index itself. PostgreSQL additionally checks a visibility map to confirm the row&#39;s commit status before skipping the heap.</p>
+</blockquote>
+<h2>Watching It Happen in SQLite</h2>
+<p>SQLite stores each table as a B-tree of rows keyed by the <code>rowid</code> (an implicit 64-bit integer). A lookup by <code>rowid</code> is a B-tree traversal directly into the table — no separate heap fetch needed. A lookup on any other column without an index is a full scan.</p>
+<p>The query below seeds a small <code>products</code> table and looks up a row. Try running <code>EXPLAIN QUERY PLAN</code> variants to see SQLite describe the access path it chose.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Heap scan vs. index lookup</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, sku TEXT NOT NULL, name TEXT, price REAL); INSERT INTO products VALUES (1, 'A100', 'Wireless Mouse', 29.99); INSERT INTO products VALUES (2, 'B200', 'USB Hub', 19.99); INSERT INTO products VALUES (3, 'C300', 'Mechanical Keyboard', 89.99); INSERT INTO products VALUES (4, 'D400', 'Monitor Stand', 49.99); INSERT INTO products VALUES (5, 'E500', 'Webcam', 74.99);" rows="20">-- Lookup by primary key: SQLite walks the rowid B-tree directly.
+    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, sku TEXT NOT NULL, name TEXT, price REAL); INSERT INTO products VALUES (1, 'A100', 'Wireless Mouse', 29.99); INSERT INTO products VALUES (2, 'B200', 'USB Hub', 19.99); INSERT INTO products VALUES (3, 'C300', 'Mechanical Keyboard', 89.99); INSERT INTO products VALUES (4, 'D400', 'Monitor Stand', 49.99); INSERT INTO products VALUES (5, 'E500', 'Webcam', 74.99);" rows="10">-- Lookup by primary key: SQLite walks the rowid B-tree directly.
 EXPLAIN QUERY PLAN
 SELECT name, price FROM products WHERE id = 3;
 -- Now try a lookup by sku (no index yet):
@@ -92,19 +102,15 @@ SELECT name, price FROM products WHERE id = 3;
 -- EXPLAIN QUERY PLAN
 -- SELECT name, price FROM products WHERE sku = 'C300';</textarea>
   </div>
+</div><p>Uncomment and run the <code>sku</code> queries one at a time. Before the index exists, SQLite reports <code>SCAN products</code> — every page, every row. After <code>CREATE INDEX</code>, it reports <code>SEARCH products USING INDEX idx_sku</code> — it jumps straight to the matching leaf.</p>
+<h2>Deleted Rows and Free Space</h2>
+<p>When a row is deleted, the engine marks its slot as free but does not immediately reclaim the space on disk. The page now has a <strong>hole</strong>. Over time, pages accumulate holes and the engine can reuse that space for new inserts, a process called <strong>compaction</strong> or (in PostgreSQL) <strong>VACUUM</strong>.</p>
+<p>This means a row&#39;s physical address can become stale. Indexes that store physical addresses must handle this — PostgreSQL&#39;s B-tree indexes store <code>ctid</code> values and tolerate the need to re-check the heap. SQLite&#39;s B-tree tables store the data directly in the tree, so a deleted key simply disappears from the tree with no dangling pointer.</p>
+<p>Understanding this chain — from SQL predicate, to index lookup, to page number, to slot, to bytes on disk — is what separates guessing about performance from reasoning about it.</p>
+
 </div>
-
-Uncomment and run the `sku` queries one at a time. Before the index exists, SQLite reports `SCAN products` — every page, every row. After `CREATE INDEX`, it reports `SEARCH products USING INDEX idx_sku` — it jumps straight to the matching leaf.
-
-## Deleted Rows and Free Space
-
-When a row is deleted, the engine marks its slot as free but does not immediately reclaim the space on disk. The page now has a **hole**. Over time, pages accumulate holes and the engine can reuse that space for new inserts, a process called **compaction** or (in PostgreSQL) **VACUUM**.
-
-This means a row's physical address can become stale. Indexes that store physical addresses must handle this — PostgreSQL's B-tree indexes store `ctid` values and tolerate the need to re-check the heap. SQLite's B-tree tables store the data directly in the tree, so a deleted key simply disappears from the tree with no dangling pointer.
-
-Understanding this chain — from SQL predicate, to index lookup, to page number, to slot, to bytes on disk — is what separates guessing about performance from reasoning about it.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="088-updates-and-fragmentation.html"><span class="dir">← Previous</span><span class="ttl">Updates and fragmentation</span></a><a class="next" href="091-b-tree-structure-in-detail.html"><span class="dir">Next →</span><span class="ttl">B-tree structure in detail</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>

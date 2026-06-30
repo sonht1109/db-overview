@@ -5,51 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Add recovery — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>
-  <button id="toggle" class="toggle-btn">View markdown</button>
-</div></div>
+  <a class="home-link" href="../index.html">← All topics</a></div></div>
 <main class="wrap">
   <p class="eyebrow">Part VII. Building Understanding</p>
   <p class="chapter-label">Chapter 27. A Tiny Database from Scratch</p>
   <h1 class="content-title">Add recovery</h1>
-  <div id="rendered" class="content"></div>
-  <div id="raw"><pre></pre></div>
-  <nav class="pagenav"><a class="prev" href="266-add-transactions.html"><span class="dir">← Previous</span><span class="ttl">Add transactions</span></a><a class="next" href="268-add-concurrency-control.html"><span class="dir">Next →</span><span class="ttl">Add concurrency control</span></a></nav>
-</main>
-<script id="page-md" type="text/markdown">
-Our transaction implementation achieves atomicity in the happy path — but it is not crash-safe. If the process dies halfway through a commit, the data file ends up in an inconsistent state: some rows written, some not, with no way to tell which half of a multi-row transaction made it to disk. **Recovery** is the machinery that fixes this. The solution, used by virtually every serious database, is a **write-ahead log (WAL)**.
-
-## The Write-Ahead Log Principle
-
-The WAL rule is simple and profound:
-
-> **Before changing any data on disk, write what you are about to do to the log. The log record must reach durable storage before the data change does.**
-
-Because the log is written sequentially (append-only), it is faster than random data file writes. Because it is written before the data, the database can always reconstruct the correct state after a crash by replaying or undoing log records.
-
-```
-CRASH SCENARIO WITHOUT WAL:
+  <div id="rendered" class="content">
+<p>Our transaction implementation achieves atomicity in the happy path — but it is not crash-safe. If the process dies halfway through a commit, the data file ends up in an inconsistent state: some rows written, some not, with no way to tell which half of a multi-row transaction made it to disk. <strong>Recovery</strong> is the machinery that fixes this. The solution, used by virtually every serious database, is a <strong>write-ahead log (WAL)</strong>.</p>
+<h2>The Write-Ahead Log Principle</h2>
+<p>The WAL rule is simple and profound:</p>
+<blockquote>
+<p><strong>Before changing any data on disk, write what you are about to do to the log. The log record must reach durable storage before the data change does.</strong></p>
+</blockquote>
+<p>Because the log is written sequentially (append-only), it is faster than random data file writes. Because it is written before the data, the database can always reconstruct the correct state after a crash by replaying or undoing log records.</p>
+<pre><code>CRASH SCENARIO WITHOUT WAL:
   data file: [Row0][Row1][PARTIAL Row2]   ← corrupt, no clue what happened
 
 CRASH SCENARIO WITH WAL:
   log file:  [BEGIN txn1][INSERT Row2][INSERT Row3][COMMIT txn1]
   data file: [Row0][Row1]                ← may be behind, but log is truth
   → recovery replays log → data file ends up correct
-```
-
-## Log Record Format
-
-Each log record is a fixed-size header plus a variable payload:
-
-```python
-import struct, json
+</code></pre>
+<h2>Log Record Format</h2>
+<p>Each log record is a fixed-size header plus a variable payload:</p>
+<pre><code class="language-python">import struct, json
 
 # Header: 4B record length, 1B record type, 4B transaction id
-LOG_HEADER = struct.Struct(">IBI")
+LOG_HEADER = struct.Struct(&quot;&gt;IBI&quot;)
 LOG_HDR_SIZE = LOG_HEADER.size  # 9 bytes
 
 LOG_BEGIN  = 0x01
@@ -57,7 +42,7 @@ LOG_INSERT = 0x02
 LOG_COMMIT = 0x03
 LOG_ABORT  = 0x04
 
-def write_log_record(log_fh, rec_type: int, txn_id: int, payload: bytes = b""):
+def write_log_record(log_fh, rec_type: int, txn_id: int, payload: bytes = b&quot;&quot;):
     header = LOG_HEADER.pack(len(payload), rec_type, txn_id)
     log_fh.write(header + payload)
     log_fh.flush()   # force OS to write to durable storage
@@ -66,19 +51,15 @@ def read_log_records(log_fh):
     log_fh.seek(0)
     while True:
         hdr = log_fh.read(LOG_HDR_SIZE)
-        if len(hdr) < LOG_HDR_SIZE:
+        if len(hdr) &lt; LOG_HDR_SIZE:
             break
         plen, rec_type, txn_id = LOG_HEADER.unpack(hdr)
         payload = log_fh.read(plen)
         yield rec_type, txn_id, payload
-```
-
-## WAL-Enabled Transaction
-
-Now we rewrite `Transaction.commit()` to log-before-write:
-
-```python
-class WalTransaction:
+</code></pre>
+<h2>WAL-Enabled Transaction</h2>
+<p>Now we rewrite <code>Transaction.commit()</code> to log-before-write:</p>
+<pre><code class="language-python">class WalTransaction:
     def __init__(self, table, log_fh, txn_id: int):
         self.table   = table
         self.log_fh  = log_fh
@@ -101,8 +82,7 @@ class WalTransaction:
     def rollback(self):
         write_log_record(self.log_fh, LOG_ABORT, self.txn_id)
         self._writes.clear()
-```
-
+</code></pre>
 <figure class="diagram">
 <svg viewBox="0 0 660 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="WAL write sequence: log records written before data file; crash recovery replays log">
   <defs>
@@ -112,61 +92,44 @@ class WalTransaction:
     <marker id="arrm" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
     </marker>
-  </defs>
-
-  <!-- Transaction box -->
+  </defs>  <!-- Transaction box -->
   <rect x="10" y="80" width="130" height="80" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="75" y="104" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Transaction</text>
   <text x="75" y="122" text-anchor="middle" font-size="10" fill="var(--muted)">INSERT Row2</text>
   <text x="75" y="137" text-anchor="middle" font-size="10" fill="var(--muted)">INSERT Row3</text>
-  <text x="75" y="152" text-anchor="middle" font-size="10" fill="var(--muted)">COMMIT</text>
-
-  <!-- Arrow to WAL -->
+  <text x="75" y="152" text-anchor="middle" font-size="10" fill="var(--muted)">COMMIT</text>  <!-- Arrow to WAL -->
   <line x1="142" y1="110" x2="188" y2="90" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr)"/>
-  <text x="162" y="90" text-anchor="middle" font-size="10" fill="var(--accent)">1. log first</text>
-
-  <!-- WAL file -->
+  <text x="162" y="90" text-anchor="middle" font-size="10" fill="var(--accent)">1. log first</text>  <!-- WAL file -->
   <rect x="190" y="40" width="160" height="130" rx="6" fill="var(--accent)" opacity="0.08" stroke="var(--accent)" stroke-width="2"/>
   <text x="270" y="62" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">WAL (log file)</text>
   <text x="270" y="80" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="monospace">BEGIN  txn1</text>
   <text x="270" y="95" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="monospace">INSERT txn1 Row2</text>
   <text x="270" y="110" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="monospace">INSERT txn1 Row3</text>
   <text x="270" y="125" text-anchor="middle" font-size="10" fill="var(--accent)" font-family="monospace" font-weight="600">COMMIT txn1 ←durable</text>
-  <text x="270" y="155" text-anchor="middle" font-size="10" fill="var(--muted)">sequential append</text>
-
-  <!-- Arrow to data file -->
+  <text x="270" y="155" text-anchor="middle" font-size="10" fill="var(--muted)">sequential append</text>  <!-- Arrow to data file -->
   <line x1="352" y1="100" x2="398" y2="100" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrm)"/>
   <text x="372" y="91" text-anchor="middle" font-size="10" fill="var(--muted)">2. data write</text>
-  <text x="372" y="115" text-anchor="middle" font-size="10" fill="var(--muted)">(may crash)</text>
-
-  <!-- Data file -->
+  <text x="372" y="115" text-anchor="middle" font-size="10" fill="var(--muted)">(may crash)</text>  <!-- Data file -->
   <rect x="400" y="60" width="130" height="90" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="465" y="83" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Data File</text>
   <text x="465" y="101" text-anchor="middle" font-size="10" fill="var(--muted)">Row 0</text>
   <text x="465" y="116" text-anchor="middle" font-size="10" fill="var(--muted)">Row 1</text>
-  <text x="465" y="131" text-anchor="middle" font-size="10" fill="var(--muted)">Row 2 ← may be partial</text>
-
-  <!-- Recovery arrow -->
+  <text x="465" y="131" text-anchor="middle" font-size="10" fill="var(--muted)">Row 2 ← may be partial</text>  <!-- Recovery arrow -->
   <line x1="270" y1="172" x2="270" y2="205" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrm)"/>
   <rect x="190" y="207" width="160" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="270" y="226" text-anchor="middle" font-size="11" fill="var(--text)">Recovery: replay log →</text>
 </svg>
 <figcaption>The log is written and flushed before the data file. On crash, recovery reads the log and replays any committed transaction that did not fully reach the data file.</figcaption>
-</figure>
-
-## Recovery Algorithm (ARIES-lite)
-
-After a crash, we scan the log forward and redo any committed transaction that is incomplete in the data file:
-
-```python
-def recover(table: TableFile, log_fh) -> None:
-    """
+</figure><h2>Recovery Algorithm (ARIES-lite)</h2>
+<p>After a crash, we scan the log forward and redo any committed transaction that is incomplete in the data file:</p>
+<pre><code class="language-python">def recover(table: TableFile, log_fh) -&gt; None:
+    &quot;&quot;&quot;
     Simple redo-only recovery:
     - Find all committed transactions in the log.
     - Re-apply their inserts if the data file is behind.
-    """
+    &quot;&quot;&quot;
     committed = set()
-    pending   = {}   # txn_id -> [rows]
+    pending   = {}   # txn_id -&gt; [rows]
 
     for rec_type, txn_id, payload in read_log_records(log_fh):
         if rec_type == LOG_BEGIN:
@@ -184,29 +147,25 @@ def recover(table: TableFile, log_fh) -> None:
     rows_written = 0
     for txn_id in committed:
         for row in pending.get(txn_id, []):
-            if rows_written >= current_rows:   # data file is behind
+            if rows_written &gt;= current_rows:   # data file is behind
                 table.write_row(row)
             rows_written += 1
-```
-
-> **Note:** Real recovery (ARIES) is far more sophisticated — it has an analysis phase, a redo phase, and an undo phase. Our toy does redo-only because we do not support in-place updates (inserts only, no deletes). The concept is the same.
-
-## Log Compaction (Checkpointing)
-
-Without compaction, the log grows forever. Databases periodically write a **checkpoint** record to the log that says "everything before this point is already reflected in the data file — you do not need to redo it." Recovery then starts from the most recent checkpoint, not from the beginning of the log.
-
-```python
-def checkpoint(table: TableFile, log_fh):
-    """Mark the current data file position as stable."""
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Real recovery (ARIES) is far more sophisticated — it has an analysis phase, a redo phase, and an undo phase. Our toy does redo-only because we do not support in-place updates (inserts only, no deletes). The concept is the same.</p>
+</blockquote>
+<h2>Log Compaction (Checkpointing)</h2>
+<p>Without compaction, the log grows forever. Databases periodically write a <strong>checkpoint</strong> record to the log that says &quot;everything before this point is already reflected in the data file — you do not need to redo it.&quot; Recovery then starts from the most recent checkpoint, not from the beginning of the log.</p>
+<pre><code class="language-python">def checkpoint(table: TableFile, log_fh):
+    &quot;&quot;&quot;Mark the current data file position as stable.&quot;&quot;&quot;
     position = table.num_rows()
     write_log_record(log_fh, LOG_CHECKPOINT, 0,
-                     struct.pack(">I", position))
-```
-
+                     struct.pack(&quot;&gt;I&quot;, position))
+</code></pre>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · WAL and Recovery Simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE wal_log (seq INTEGER PRIMARY KEY, txn_id INTEGER, rec_type TEXT, payload TEXT); INSERT INTO wal_log VALUES (1,1,'BEGIN',''),(2,1,'INSERT','{id:6,name:Frank}'),(3,1,'INSERT','{id:7,name:Grace}'),(4,1,'COMMIT',''),(5,2,'BEGIN',''),(6,2,'INSERT','{id:8,name:Heidi}'),(7,2,'ABORT',''); CREATE TABLE data_file (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO data_file VALUES (6,'Frank');" rows="20">-- WAL log contents
+    <textarea data-setup="CREATE TABLE wal_log (seq INTEGER PRIMARY KEY, txn_id INTEGER, rec_type TEXT, payload TEXT); INSERT INTO wal_log VALUES (1,1,'BEGIN',''),(2,1,'INSERT','{id:6,name:Frank}'),(3,1,'INSERT','{id:7,name:Grace}'),(4,1,'COMMIT',''),(5,2,'BEGIN',''),(6,2,'INSERT','{id:8,name:Heidi}'),(7,2,'ABORT',''); CREATE TABLE data_file (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO data_file VALUES (6,'Frank');" rows="10">-- WAL log contents
 SELECT * FROM wal_log;
 -- Data file (simulates a partial crash — only Row 6 made it)
 -- SELECT * FROM data_file;
@@ -215,17 +174,18 @@ SELECT * FROM wal_log;
 -- WHERE rec_type = 'COMMIT'
 --   AND txn_id NOT IN (SELECT DISTINCT 2 FROM data_file WHERE id = 7);</textarea>
   </div>
+</div><h2>Key Takeaways</h2>
+<ul>
+<li>The <strong>write-ahead log</strong> rule: write the log record to durable storage before modifying the data file. This makes crash recovery possible.</li>
+<li><strong>Recovery</strong> replays committed log records to bring the data file up to date, and discards in-progress transactions.</li>
+<li><strong>Checkpointing</strong> bounds the amount of log that recovery must replay, keeping startup time manageable.</li>
+<li>Log records are <strong>sequential appends</strong> — far cheaper than the random writes needed to update a B-tree or data file directly, which is why WAL is so universally adopted.</li>
+<li>Next we add <strong>concurrency control</strong>, so multiple transactions can run simultaneously without corrupting each other&#39;s data.</li>
+</ul>
+
 </div>
-
-## Key Takeaways
-
-- The **write-ahead log** rule: write the log record to durable storage before modifying the data file. This makes crash recovery possible.
-- **Recovery** replays committed log records to bring the data file up to date, and discards in-progress transactions.
-- **Checkpointing** bounds the amount of log that recovery must replay, keeping startup time manageable.
-- Log records are **sequential appends** — far cheaper than the random writes needed to update a B-tree or data file directly, which is why WAL is so universally adopted.
-- Next we add **concurrency control**, so multiple transactions can run simultaneously without corrupting each other's data.
-
-</script>
+  <nav class="pagenav"><a class="prev" href="266-add-transactions.html"><span class="dir">← Previous</span><span class="ttl">Add transactions</span></a><a class="next" href="268-add-concurrency-control.html"><span class="dir">Next →</span><span class="ttl">Add concurrency control</span></a></nav>
+</main>
 <script src="assets/app.js"></script>
 </body>
 </html>
