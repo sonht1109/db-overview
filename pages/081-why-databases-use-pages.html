@@ -8,25 +8,84 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Why databases use pages</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">081-why-databases-use-pages</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5a6678"/></marker>
+  </defs>
+  <g transform="translate(15,10)">
+    <!-- Header -->
+    <text x="345" y="18" text-anchor="middle" font-size="13" font-weight="700" fill="#1c2330">Fixed-Size Pages vs. Arbitrary Byte Ranges</text>
+
+    <!-- LEFT: Page-based storage -->
+    <rect x="0" y="30" width="340" height="255" rx="10" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <rect x="0" y="30" width="340" height="30" rx="10" fill="#dcfce7"/>
+    <text x="170" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="#16a34a">Page-Based Storage (Database)</text>
+    <!-- Disk visualization -->
+    <rect x="20" y="70" width="300" height="72" rx="6" fill="#fff" stroke="#86efac"/>
+    <text x="170" y="88" text-anchor="middle" font-size="10" font-weight="600" fill="#1c2330">Disk organized as fixed-size pages (8 KB)</text>
+    <!-- Pages -->
+    <rect x="30" y="96" width="55" height="36" rx="3" fill="#dcfce7" stroke="#86efac"/>
+    <text x="57" y="112" text-anchor="middle" font-size="8" fill="#16a34a">Page 0</text>
+    <text x="57" y="124" text-anchor="middle" font-size="7" fill="#5a6678">8 KB</text>
+    <rect x="95" y="96" width="55" height="36" rx="3" fill="#dcfce7" stroke="#86efac"/>
+    <text x="122" y="112" text-anchor="middle" font-size="8" fill="#16a34a">Page 1</text>
+    <text x="122" y="124" text-anchor="middle" font-size="7" fill="#5a6678">8 KB</text>
+    <rect x="160" y="96" width="55" height="36" rx="3" fill="#dcfce7" stroke="#86efac"/>
+    <text x="187" y="112" text-anchor="middle" font-size="8" fill="#16a34a">Page 2</text>
+    <text x="187" y="124" text-anchor="middle" font-size="7" fill="#5a6678">8 KB</text>
+    <rect x="225" y="96" width="55" height="36" rx="3" fill="#dcfce7" stroke="#86efac"/>
+    <text x="252" y="112" text-anchor="middle" font-size="8" fill="#16a34a">Page 3</text>
+    <text x="252" y="124" text-anchor="middle" font-size="7" fill="#5a6678">8 KB</text>
+    <rect x="290" y="96" width="25" height="36" rx="3" fill="#e2e6ec" stroke="#d1d5db"/>
+    <text x="302" y="118" text-anchor="middle" font-size="7" fill="#5a6678">...</text>
+
+    <!-- Benefits -->
+    <text x="170" y="160" text-anchor="middle" font-size="10" font-weight="700" fill="#1c2330">Key Benefits:</text>
+    <text x="170" y="180" text-anchor="middle" font-size="9" fill="#5a6678">✓ I/O in multiples of page size (OS-friendly)</text>
+    <text x="170" y="196" text-anchor="middle" font-size="9" fill="#5a6678">✓ Buffer pool caches pages in memory</text>
+    <text x="170" y="212" text-anchor="middle" font-size="9" fill="#5a6678">✓ B-tree nodes fit exactly in pages</text>
+    <text x="170" y="228" text-anchor="middle" font-size="9" fill="#5a6678">✓ Page header tracks free space &amp; records</text>
+    <text x="170" y="244" text-anchor="middle" font-size="9" fill="#5a6678">✓ Reads: 1 page = 1 I/O (predictable)</text>
+    <text x="170" y="260" text-anchor="middle" font-size="9" fill="#5a6678">✓ Writes: dirty pages flushed in bulk</text>
+    <text x="170" y="278" text-anchor="middle" font-size="8" fill="#16a34a">Page ID → (filename, offset/8KB) — direct mapping</text>
+
+    <!-- RIGHT: Arbitrary byte ranges -->
+    <rect x="360" y="30" width="340" height="255" rx="10" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <rect x="360" y="30" width="340" height="30" rx="10" fill="#fee2e2"/>
+    <text x="530" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="#dc2626">Arbitrary Byte Ranges (Naive)</text>
+    <!-- Messy disk -->
+    <rect x="380" y="70" width="300" height="72" rx="6" fill="#fff" stroke="#fca5a5"/>
+    <text x="530" y="95" text-anchor="middle" font-size="10" font-weight="600" fill="#1c2330">Records scattered at arbitrary offsets</text>
+    <rect x="390" y="100" width="70" height="18" rx="2" fill="#fee2e2" stroke="#fca5a5"/>
+    <text x="425" y="113" text-anchor="middle" font-size="7" fill="#dc2626">rec A @ 0x04</text>
+    <rect x="470" y="98" width="90" height="20" rx="2" fill="#fee2e2" stroke="#fca5a5"/>
+    <text x="515" y="112" text-anchor="middle" font-size="7" fill="#dc2626">rec B @ 0x12</text>
+    <rect x="570" y="103" width="60" height="15" rx="2" fill="#fee2e2" stroke="#fca5a5"/>
+    <text x="600" y="114" text-anchor="middle" font-size="7" fill="#dc2626">rec C @ 0x2F</text>
+    <rect x="400" y="120" width="100" height="16" rx="2" fill="#fee2e2" stroke="#fca5a5"/>
+    <text x="450" y="132" text-anchor="middle" font-size="7" fill="#dc2626">rec D @ 0x0A</text>
+    <text x="530" y="140" text-anchor="middle" font-size="7" fill="#9aa6b8">(variable sizes, no alignment)</text>
+
+    <text x="530" y="164" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">Problems:</text>
+    <text x="530" y="184" text-anchor="middle" font-size="9" fill="#5a6678">✗ OS reads in page-sized chunks anyway</text>
+    <text x="530" y="200" text-anchor="middle" font-size="9" fill="#5a6678">✗ No caching strategy — unpredictable</text>
+    <text x="530" y="216" text-anchor="middle" font-size="9" fill="#5a6678">✗ index → file offset → read 100 bytes — 4 KB wasted</text>
+    <text x="530" y="232" text-anchor="middle" font-size="9" fill="#5a6678">✗ Fragmentation from deletes/updates</text>
+    <text x="530" y="248" text-anchor="middle" font-size="9" fill="#5a6678">✗ No atomic page writes — corruption risk</text>
+    <text x="530" y="264" text-anchor="middle" font-size="9" fill="#5a6678">✗ Buffer manager must handle many sizes</text>
+    <text x="530" y="280" text-anchor="middle" font-size="8" fill="#dc2626">Every read hits a different disk location → no predictability</text>
   </g>
 </svg>
-<figcaption>Visual overview of 081-why-databases-use-pages.</figcaption>
+<figcaption>Databases use fixed-size pages (typically 8 KB) as the unit of I/O — this aligns with OS/HW behaviour, enables efficient caching, and simplifies space management.</figcaption>
 </figure>
 <p>Every database stores its data somewhere on disk. But it does not write raw bytes one row at a time — instead, the storage engine groups data into fixed-size chunks called <strong>pages</strong> (sometimes called <em>blocks</em>). Understanding why pages exist unlocks almost everything else about how databases read, write, index, and cache data.</p>
 <h2>The Physics of Disk I/O</h2>
@@ -101,5 +160,6 @@ ORDER BY row_bytes;</textarea>
   <nav class="pagenav"><a class="prev" href="079-practical-query-tuning.html"><span class="dir">← Previous</span><span class="ttl">Practical query tuning</span></a><a class="next" href="082-heap-files-and-page-layouts.html"><span class="dir">Next →</span><span class="ttl">Heap files and page layouts</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

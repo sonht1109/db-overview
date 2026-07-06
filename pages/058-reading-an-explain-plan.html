@@ -8,25 +8,66 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 6. How Query Processing Works</p>
   <h1 class="content-title">Reading an explain plan</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">058-reading-an-explain-plan</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+  </defs>
+  <g transform="translate(15,8)">
+    <!-- Mock EXPLAIN output -->
+    <rect x="0" y="0" width="430" height="240" rx="10" fill="#1c2330" filter="url(#sh)"/>
+    <text x="215" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a">EXPLAIN (ANALYZE) output</text>
+    <line x1="15" y1="32" x2="415" y2="32" stroke="#374151"/>
+    <text x="25" y="52" font-size="9" fill="#e2e6ec" font-family="monospace">Hash Join  (cost=12.50..38.80 rows=120 width=72)</text>
+    <text x="45" y="68" font-size="9" fill="#e2e6ec" font-family="monospace">Hash Cond: (o.customer_id = c.id)</text>
+    <text x="45" y="86" font-size="9" fill="#e2e6ec" font-family="monospace">-&gt;  Seq Scan on orders o</text>
+    <text x="65" y="102" font-size="9" fill="#5a6678" font-family="monospace">(cost=0.00..18.40 rows=840)</text>
+    <text x="45" y="120" font-size="9" fill="#e2e6ec" font-family="monospace">-&gt;  Hash</text>
+    <text x="65" y="136" font-size="9" fill="#5a6678" font-family="monospace">(cost=8.20..8.20 rows=370)</text>
+    <text x="85" y="154" font-size="9" fill="#e2e6ec" font-family="monospace">-&gt;  Seq Scan on customers c</text>
+    <text x="105" y="170" font-size="9" fill="#5a6678" font-family="monospace">(cost=0.00..8.20 rows=370)</text>
+    <line x1="15" y1="182" x2="415" y2="182" stroke="#374151"/>
+    <text x="215" y="200" text-anchor="middle" font-size="9" fill="#5a6678" font-family="monospace">Planning Time: 0.152 ms</text>
+    <text x="215" y="216" text-anchor="middle" font-size="9" fill="#5a6678" font-family="monospace">Execution Time: 2.847 ms</text>
+
+    <!-- Annotations on right -->
+    <text x="460" y="22" font-size="10" font-weight="700" fill="#2f6df6">How to read it:</text>
+
+    <!-- Annotation 1 -->
+    <line x1="430" y1="48" x2="460" y2="48" stroke="#2f6df6" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="465" y="48" font-size="8" fill="#2f6df6">Node type — what it does</text>
+
+    <!-- Annotation 2 -->
+    <line x1="190" y1="98" x2="460" y2="98" stroke="#d97706" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="465" y="98" font-size="8" fill="#d97706">cost=N..M — startup cost N,</text>
+    <text x="465" y="110" font-size="8" fill="#d97706">total cost M (arbitrary units)</text>
+
+    <!-- Annotation 3 -->
+    <line x1="215" y1="132" x2="460" y2="132" stroke="#16a34a" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="465" y="132" font-size="8" fill="#16a34a">rows=K — estimated rows</text>
+    <text x="465" y="144" font-size="8" fill="#16a34a">(compare estimate vs actual)</text>
+
+    <!-- Annotation 4 -->
+    <line x1="430" y1="166" x2="460" y2="166" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="465" y="166" font-size="8" fill="#dc2626">Indentation = tree depth</text>
+    <text x="465" y="178" font-size="8" fill="#dc2626">Read innermost first</text>
+
+    <!-- Quick tips -->
+    <rect x="460" y="195" width="245" height="70" rx="6" fill="#e8f0ff" stroke="#bfdbfe"/>
+    <text x="582" y="213" text-anchor="middle" font-size="9" font-weight="700" fill="#2f6df6">Red Flags to Spot</text>
+    <text x="582" y="230" text-anchor="middle" font-size="8" fill="#1c2330">Seq Scan on million-row table + WHERE id=1</text>
+    <text x="582" y="244" text-anchor="middle" font-size="8" fill="#1c2330">Nested Loop with both sides &gt;100K rows</text>
+    <text x="582" y="258" text-anchor="middle" font-size="8" fill="#1c2330">Estimate 10 rows, Actual 100K (stale stats)</text>
   </g>
 </svg>
-<figcaption>Visual overview of 058-reading-an-explain-plan.</figcaption>
+<figcaption>An EXPLAIN plan shows the optimizer's chosen execution strategy as a tree of operators annotated with cost estimates, row counts, and scan types. Read from innermost indent outward, and watch for seq scans where indexes should be used.</figcaption>
 </figure>
 <p>When something runs slowly, the first thing a database engineer reaches for is the explain plan. You saw <code>EXPLAIN QUERY PLAN</code> in the previous section — this page goes one level deeper: how to read the numbers, what each term signals, and how to recognize the patterns that warn you a query is in trouble.</p>
 <h2>What an Explain Plan Actually Shows</h2>
@@ -131,5 +172,6 @@ GROUP BY c.name;
   <nav class="pagenav"><a class="prev" href="057-why-the-same-query-can-run-differently.html"><span class="dir">← Previous</span><span class="ttl">Why the same query can run differently</span></a><a class="next" href="059-query-planning-mistakes.html"><span class="dir">Next →</span><span class="ttl">Query planning mistakes</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

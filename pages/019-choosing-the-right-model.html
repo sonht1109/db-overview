@@ -8,25 +8,78 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part I. Foundations</p>
   <p class="chapter-label">Chapter 2. How Data Is Organized</p>
   <h1 class="content-title">Choosing the right model</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">019-choosing-the-right-model</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5a6678"/></marker>
+  </defs>
+  <g transform="translate(15,10)">
+    <!-- Title -->
+    <text x="345" y="20" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">Which Data Model Fits Your Problem?</text>
+    <text x="345" y="38" text-anchor="middle" font-size="10" fill="#5a6678">Each model optimizes for a different access pattern — pick the one that matches HOW you will query</text>
+
+    <!-- Relational -->
+    <rect x="0" y="52" width="165" height="145" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="82" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#2f6df6">Relational</text>
+    <line x1="15" y1="88" x2="150" y2="88" stroke="#bfdbfe"/>
+    <rect x="12" y="96" width="141" height="22" rx="5" fill="#fff"/><text x="82" y="111" text-anchor="middle" font-size="8" fill="#1c2330">employees</text>
+    <rect x="12" y="122" width="141" height="22" rx="5" fill="#fff"/><text x="82" y="137" text-anchor="middle" font-size="8" fill="#1c2330">departments (FK)</text>
+    <rect x="12" y="148" width="141" height="22" rx="5" fill="#fff"/><text x="82" y="163" text-anchor="middle" font-size="8" fill="#1c2330">salaries (FK)</text>
+    <text x="82" y="186" text-anchor="middle" font-size="8" fill="#5a6678">Tables + keys + joins</text>
+
+    <!-- Document -->
+    <rect x="180" y="52" width="165" height="145" rx="10" fill="#f0fdf4" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="262" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a">Document</text>
+    <line x1="195" y1="88" x2="330" y2="88" stroke="#86efac"/>
+    <rect x="192" y="96" width="141" height="40" rx="5" fill="#fff"/><text x="262" y="111" text-anchor="middle" font-size="8" fill="#1c2330">{ user: "Alice",</text><text x="262" y="126" text-anchor="middle" font-size="8" fill="#1c2330">  orders: [...] }</text>
+    <rect x="192" y="142" width="141" height="40" rx="5" fill="#fff"/><text x="262" y="158" text-anchor="middle" font-size="8" fill="#1c2330">{ product: "TV",</text><text x="262" y="172" text-anchor="middle" font-size="8" fill="#1c2330">  specs: {...} }</text>
+    <text x="262" y="196" text-anchor="middle" font-size="8" fill="#5a6678">Nested JSON objects</text>
+
+    <!-- Key-Value -->
+    <rect x="360" y="52" width="165" height="145" rx="10" fill="#fef3c7" stroke="#d97706" filter="url(#sh)"/>
+    <text x="442" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#d97706">Key-Value</text>
+    <line x1="375" y1="88" x2="510" y2="88" stroke="#fcd34d"/>
+    <rect x="372" y="96" width="141" height="22" rx="5" fill="#fff"/><text x="442" y="111" text-anchor="middle" font-size="8" fill="#1c2330">session:abc → {data}</text>
+    <rect x="372" y="122" width="141" height="22" rx="5" fill="#fff"/><text x="442" y="137" text-anchor="middle" font-size="8" fill="#1c2330">cache:home → &lt;html&gt;</text>
+    <rect x="372" y="148" width="141" height="22" rx="5" fill="#fff"/><text x="442" y="163" text-anchor="middle" font-size="8" fill="#1c2330">flag:dark → true</text>
+    <text x="442" y="186" text-anchor="middle" font-size="8" fill="#5a6678">O(1) by key only</text>
+
+    <!-- Graph -->
+    <rect x="540" y="52" width="165" height="145" rx="10" fill="#faf5ff" stroke="#9333ea" filter="url(#sh)"/>
+    <text x="622" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#9333ea">Graph</text>
+    <line x1="555" y1="88" x2="690" y2="88" stroke="#d8b4fe"/>
+    <circle cx="590" cy="112" r="12" fill="#e8f0ff" stroke="#2f6df6"/><text x="590" y="116" text-anchor="middle" font-size="7" fill="#2f6df6">A</text>
+    <circle cx="655" cy="112" r="12" fill="#e8f0ff" stroke="#2f6df6"/><text x="655" y="116" text-anchor="middle" font-size="7" fill="#2f6df6">B</text>
+    <circle cx="622" cy="148" r="12" fill="#e8f0ff" stroke="#2f6df6"/><text x="622" y="152" text-anchor="middle" font-size="7" fill="#2f6df6">C</text>
+    <line x1="600" y1="118" x2="645" y2="118" stroke="#9333ea" stroke-width="1.5"/><text x="622" y="115" text-anchor="middle" font-size="6" fill="#9333ea">KNOWS</text>
+    <line x1="590" y1="124" x2="612" y2="138" stroke="#9333ea" stroke-width="1.5"/><text x="598" y="135" text-anchor="middle" font-size="6" fill="#9333ea">BOUGHT</text>
+    <line x1="632" y1="138" x2="655" y2="124" stroke="#9333ea" stroke-width="1.5"/><text x="646" y="135" text-anchor="middle" font-size="6" fill="#9333ea">LIKES</text>
+    <text x="622" y="186" text-anchor="middle" font-size="8" fill="#5a6678">Nodes + edges</text>
+
+    <!-- Decision branch -->
+    <rect x="280" y="215" width="155" height="28" rx="14" fill="#2f6df6" filter="url(#sh)"/>
+    <text x="357" y="233" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">What to choose?</text>
+    <line x1="357" y1="243" x2="82" y2="260" stroke="#5a6678" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="357" y1="243" x2="262" y2="260" stroke="#5a6678" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="357" y1="243" x2="442" y2="260" stroke="#5a6678" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="357" y1="243" x2="622" y2="260" stroke="#5a6678" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <!-- Decision labels -->
+    <text x="82" y="278" text-anchor="middle" font-size="8" fill="#5a6678">Need joins + integrity?</text>
+    <text x="262" y="278" text-anchor="middle" font-size="8" fill="#5a6678">Variable schema?</text>
+    <text x="442" y="278" text-anchor="middle" font-size="8" fill="#5a6678">Pure key lookup?</text>
+    <text x="622" y="278" text-anchor="middle" font-size="8" fill="#5a6678">Relationships are data?</text>
   </g>
 </svg>
-<figcaption>Visual overview of 019-choosing-the-right-model.</figcaption>
+<figcaption>The four major data models each trade off query power, flexibility, and speed. Start with relational for most applications; reach for the others only when a specific access pattern demands it.</figcaption>
 </figure>
 <p>By now you know what tables, rows, columns, keys, constraints, and NULL are. But the relational model — tables with fixed schemas and foreign-key relationships — is not the only way to organize data. Several other models exist, each making different trade-offs. Picking the wrong one early can cost weeks of painful migration later. This page gives you a clear map for making that call.</p>
 <h2>The Major Data Models at a Glance</h2>
@@ -129,5 +182,6 @@ ORDER BY o.total_cents DESC;</textarea>
   <nav class="pagenav"><a class="prev" href="018-documents-graphs-and-key-value-shapes.html"><span class="dir">← Previous</span><span class="ttl">Documents, graphs, and key-value shapes</span></a><a class="next" href="021-relations-tuples-and-attributes.html"><span class="dir">Next →</span><span class="ttl">Relations, tuples, and attributes</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

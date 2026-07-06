@@ -8,25 +8,63 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 6. How Query Processing Works</p>
   <h1 class="content-title">Rule-based and cost-based planning</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">056-rule-based-and-cost-based-planning</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+  </defs>
+  <g transform="translate(15,10)">
+    <!-- RBO Side -->
+    <rect x="0" y="0" width="340" height="225" rx="10" fill="#fef3c7" stroke="#d97706" filter="url(#sh)"/>
+    <text x="170" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#d97706">Rule-Based Optimization (RBO)</text>
+    <line x1="15" y1="38" x2="325" y2="38" stroke="#fcd34d"/>
+    <text x="170" y="58" text-anchor="middle" font-size="10" fill="#5a6678">Fixed rules, no data awareness</text>
+
+    <rect x="20" y="68" width="300" height="30" rx="5" fill="#fff"/>
+    <text x="170" y="87" text-anchor="middle" font-size="10" fill="#1c2330">Rule 1: Push WHERE filters down</text>
+    <rect x="20" y="104" width="300" height="30" rx="5" fill="#fff"/>
+    <text x="170" y="123" text-anchor="middle" font-size="10" fill="#1c2330">Rule 2: Eliminate unused columns</text>
+    <rect x="20" y="140" width="300" height="30" rx="5" fill="#fff"/>
+    <text x="170" y="159" text-anchor="middle" font-size="10" fill="#1c2330">Rule 3: Flatten subqueries to joins</text>
+    <rect x="20" y="176" width="300" height="30" rx="5" fill="#fff"/>
+    <text x="170" y="195" text-anchor="middle" font-size="10" fill="#1c2330">Rule 4: Prefer index over scan</text>
+
+    <!-- RBO pros/cons -->
+    <text x="170" y="218" text-anchor="middle" font-size="8" fill="#16a34a">✓ Predictable</text>
+    <text x="170" y="230" text-anchor="middle" font-size="8" fill="#dc2626">✗ Ignores data size</text>
+
+    <!-- CBO Side -->
+    <rect x="365" y="0" width="340" height="225" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="535" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">Cost-Based Optimization (CBO)</text>
+    <line x1="380" y1="38" x2="690" y2="38" stroke="#bfdbfe"/>
+    <text x="535" y="58" text-anchor="middle" font-size="10" fill="#5a6678">Estimates cost using statistics</text>
+
+    <rect x="385" y="68" width="300" height="30" rx="5" fill="#fff"/>
+    <text x="535" y="87" text-anchor="middle" font-size="10" fill="#1c2330">Step 1: Enumerate candidate plans</text>
+    <rect x="385" y="104" width="300" height="30" rx="5" fill="#fff"/>
+    <text x="535" y="123" text-anchor="middle" font-size="10" fill="#1c2330">Step 2: Estimate cost of each</text>
+    <rect x="385" y="140" width="300" height="30" rx="5" fill="#fff"/>
+    <text x="535" y="159" text-anchor="middle" font-size="10" fill="#1c2330">Step 3: Pick the cheapest plan</text>
+    <rect x="385" y="176" width="300" height="30" rx="5" fill="#dcfce7" stroke="#86efac"/>
+    <text x="535" y="195" text-anchor="middle" font-size="10" fill="#16a34a">Uses: row counts, histograms, MCV</text>
+
+    <!-- CBO pros/cons -->
+    <text x="535" y="218" text-anchor="middle" font-size="8" fill="#16a34a">✓ Data-aware</text>
+    <text x="535" y="230" text-anchor="middle" font-size="8" fill="#dc2626">✗ Depends on fresh stats</text>
+
+    <!-- Bottom: hybrid -->
+    <rect x="190" y="235" width="325" height="22" rx="6" fill="#2f6df6"/>
+    <text x="352" y="250" text-anchor="middle" font-size="10" fill="#fff">Modern engines: RBO rewrites first → CBO chooses among physical alternatives</text>
   </g>
 </svg>
-<figcaption>Visual overview of 056-rule-based-and-cost-based-planning.</figcaption>
+<figcaption>Rule-based optimization applies deterministic rewrites regardless of data; cost-based optimization estimates I/O and CPU from statistics to pick the cheapest physical plan. Modern databases use both in sequence.</figcaption>
 </figure>
 <p>Once the optimizer has a logical plan, it faces a decision: which of the many equivalent ways to execute that plan is the fastest? Historically, databases answered this question in two very different ways — one by following hand-crafted rules, the other by estimating the cost of every realistic option. Most modern engines blend both approaches, so understanding the distinction helps you read query plans and write queries that the optimizer can handle well.</p>
 <h2>Rule-Based Optimization (RBO)</h2>
@@ -102,5 +140,6 @@ GROUP BY c.id, c.name;
   <nav class="pagenav"><a class="prev" href="055-cost-estimation.html"><span class="dir">← Previous</span><span class="ttl">Cost estimation</span></a><a class="next" href="057-why-the-same-query-can-run-differently.html"><span class="dir">Next →</span><span class="ttl">Why the same query can run differently</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

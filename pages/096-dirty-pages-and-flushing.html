@@ -8,25 +8,86 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 10. Trees, Logs, and Internal Structures</p>
   <h1 class="content-title">Dirty pages and flushing</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">096-dirty-pages-and-flushing</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#dc2626"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
+    <marker id="ab" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2f6df6"/></marker>
+  </defs>
+  <g transform="translate(10,5)">
+    <!-- Buffer Pool -->
+    <rect x="10" y="0" width="340" height="150" rx="8" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="180" y="20" text-anchor="middle" font-size="12" font-weight="700" fill="#2f6df6">Buffer Pool (RAM)</text>
+    <line x1="25" y1="28" x2="335" y2="28" stroke="#e2e6ec"/>
+
+    <!-- Clean frames -->
+    <rect x="22" y="36" width="70" height="32" rx="4" fill="#f0fdf4"/>
+    <text x="57" y="50" text-anchor="middle" font-size="8" font-weight="600" fill="#16a34a">[F0] pg 4</text>
+    <text x="57" y="62" text-anchor="middle" font-size="7" fill="#16a34a">CLEAN</text>
+
+    <rect x="98" y="36" width="70" height="32" rx="4" fill="#f0fdf4"/>
+    <text x="133" y="50" text-anchor="middle" font-size="8" font-weight="600" fill="#16a34a">[F1] pg 8</text>
+    <text x="133" y="62" text-anchor="middle" font-size="7" fill="#16a34a">CLEAN</text>
+
+    <!-- Dirty frames -->
+    <rect x="174" y="36" width="70" height="32" rx="4" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="209" y="50" text-anchor="middle" font-size="8" font-weight="600" fill="#dc2626">[F2] pg 12</text>
+    <text x="209" y="62" text-anchor="middle" font-size="7" fill="#dc2626">DIRTY</text>
+
+    <rect x="250" y="36" width="70" height="32" rx="4" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="285" y="50" text-anchor="middle" font-size="8" font-weight="600" fill="#dc2626">[F3] pg 7</text>
+    <text x="285" y="62" text-anchor="middle" font-size="7" fill="#dc2626">DIRTY</text>
+
+    <!-- Dirty flags row -->
+    <rect x="22" y="76" width="298" height="18" rx="3" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="171" y="89" text-anchor="middle" font-size="7" fill="#dc2626">Dirty flag = page modified in RAM, not yet written to disk</text>
+
+    <!-- Background writer -->
+    <rect x="130" y="102" width="130" height="40" rx="6" fill="#d97706" filter="url(#sh)"/>
+    <text x="195" y="120" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">Background Writer</text>
+    <text x="195" y="136" text-anchor="middle" font-size="7" fill="#fef3c7">Periodic flusher</text>
+
+    <line x1="209" y1="142" x2="209" y2="168" stroke="#d97706" stroke-width="1.5" marker-end="url(#ar)"/>
+
+    <!-- Disk -->
+    <rect x="50" y="172" width="260" height="45" rx="6" fill="#f0f2f5" stroke="#5a6678" filter="url(#sh)"/>
+    <text x="180" y="192" text-anchor="middle" font-size="10" font-weight="600" fill="#1c2330">Disk: dirty pages flushed</text>
+    <text x="180" y="210" text-anchor="middle" font-size="8" fill="#5a6678">page 12 (from F2) ✓  page 7 (from F3) ✓</text>
+
+    <!-- WAL relationship side -->
+    <rect x="380" y="0" width="320" height="70" rx="6" fill="#fff" stroke="#d97706" stroke-width="2" filter="url(#sh)"/>
+    <text x="540" y="18" text-anchor="middle" font-size="10" font-weight="700" fill="#d97706">WAL Relationship</text>
+    <line x1="395" y1="26" x2="685" y2="26" stroke="#e2e6ec"/>
+    <text x="540" y="42" text-anchor="middle" font-size="9" fill="#1c2330">WAL written before page marked DIRTY</text>
+    <text x="540" y="58" text-anchor="middle" font-size="9" fill="#1c2330">WAL flushed before page cleaned to disk</text>
+    <text x="540" y="70" text-anchor="middle" font-size="8" fill="#9aa6b8">Rule: dirtied page's WAL record must be on disk first</text>
+
+    <!-- Flushing detail -->
+    <rect x="380" y="88" width="320" height="60" rx="6" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="540" y="106" text-anchor="middle" font-size="10" font-weight="600" fill="#2f6df6">When pages are flushed:</text>
+    <text x="395" y="124" font-size="9" fill="#1c2330">1. CKPT — checkpoint forces all dirties out</text>
+    <text x="395" y="140" font-size="9" fill="#1c2330">2. EVICT — need a frame, dirty must be flushed first</text>
+
+    <!-- Clean to dirty transformation -->
+    <rect x="380" y="162" width="320" height="55" rx="6" fill="#fefce8" stroke="#facc15" filter="url(#sh)"/>
+    <text x="540" y="180" text-anchor="middle" font-size="10" font-weight="600" fill="#d97706">Page lifecycle:</text>
+    <text x="540" y="197" text-anchor="middle" font-size="9" fill="#1c2330">LOAD → CLEAN → (UPDATE) → DIRTY → (FLUSH) → CLEAN</text>
+    <text x="540" y="213" text-anchor="middle" font-size="8" fill="#5a6678">Writing every change immediately = no buffering benefit</text>
+
+    <text x="350" y="245" text-anchor="middle" font-size="9" fill="#9aa6b8">Dirty pages let reads/writes hit RAM first, but must be flushed before eviction or checkpoint</text>
+    <text x="350" y="262" text-anchor="middle" font-size="9" fill="#9aa6b8">Dirty pages surviving crash = data loss — WAL exists precisely to prevent this</text>
   </g>
 </svg>
-<figcaption>Visual overview of 096-dirty-pages-and-flushing.</figcaption>
+<figcaption>Dirty pages in the buffer pool are modified in RAM but not yet on disk — the background writer periodically flushes them, coordinated with WAL guarantees.</figcaption>
 </figure>
 <p>Every database engine keeps a pool of memory pages — the <strong>buffer pool</strong> — so it can serve reads from RAM instead of disk. When a transaction modifies data, it changes the in-memory copy of a page first. That page is now out of sync with what is on disk. A page in that state is called a <strong>dirty page</strong>. Getting it back to disk is called <strong>flushing</strong>. Understanding this cycle is the key to understanding write performance, crash recovery, and checkpoint mechanics.</p>
 <h2>What Makes a Page &quot;Dirty&quot;</h2>
@@ -125,5 +186,6 @@ SELECT id, kind, payload FROM events ORDER BY id;</textarea>
   <nav class="pagenav"><a class="prev" href="095-buffer-pools.html"><span class="dir">← Previous</span><span class="ttl">Buffer pools</span></a><a class="next" href="097-crash-recovery-overview.html"><span class="dir">Next →</span><span class="ttl">Crash recovery overview</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

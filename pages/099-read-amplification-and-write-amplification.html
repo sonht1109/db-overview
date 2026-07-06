@@ -8,25 +8,95 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 10. Trees, Logs, and Internal Structures</p>
   <h1 class="content-title">Read amplification and write amplification</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">099-read-amplification-and-write-amplification</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 330" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#dc2626"/></marker>
+  </defs>
+  <g transform="translate(10,5)">
+    <!-- Read Amplification -->
+    <rect x="10" y="0" width="340" height="160" rx="8" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="180" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">READ AMPLIFICATION</text>
+    <line x1="25" y1="30" x2="335" y2="30" stroke="#e2e6ec"/>
+
+    <rect x="20" y="40" width="150" height="32" rx="5" fill="#dcfce7"/>
+    <text x="95" y="54" text-anchor="middle" font-size="9" font-weight="600" fill="#16a34a">Logical Read</text>
+    <text x="95" y="66" text-anchor="middle" font-size="8" fill="#5a6678">SELECT 1 row by PK</text>
+
+    <text x="180" y="62" font-size="20" fill="#5a6678">➔</text>
+
+    <rect x="190" y="40" width="150" height="32" rx="5" fill="#fef2f2"/>
+    <text x="265" y="54" text-anchor="middle" font-size="9" font-weight="600" fill="#dc2626">Physical I/O</text>
+    <text x="265" y="66" text-anchor="middle" font-size="8" fill="#5a6678">3—5 page reads</text>
+
+    <text x="180" y="55" text-anchor="middle" font-size="12" font-weight="800" fill="#d97706">RA = 3—5x</text>
+
+    <text x="25" y="92" font-size="9" fill="#5a6678">Why so many reads?</text>
+    <text x="25" y="108" font-size="9" fill="#1c2330">1. B-tree root page read</text>
+    <text x="25" y="122" font-size="9" fill="#1c2330">2. B-tree internal node read</text>
+    <text x="25" y="136" font-size="9" fill="#1c2330">3. B-tree leaf page read</text>
+    <text x="25" y="150" font-size="9" fill="#1c2330">4. Heap page read (row data)</text>
+
+    <!-- Write Amplification -->
+    <rect x="370" y="0" width="340" height="160" rx="8" fill="#fff" stroke="#dc2626" stroke-width="2" filter="url(#sh)"/>
+    <text x="540" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#dc2626">WRITE AMPLIFICATION</text>
+    <line x1="385" y1="30" x2="695" y2="30" stroke="#e2e6ec"/>
+
+    <rect x="380" y="40" width="150" height="32" rx="5" fill="#dcfce7"/>
+    <text x="455" y="54" text-anchor="middle" font-size="9" font-weight="600" fill="#16a34a">Logical Write</text>
+    <text x="455" y="66" text-anchor="middle" font-size="8" fill="#5a6678">UPDATE 1 row (100 B)</text>
+
+    <text x="540" y="62" font-size="20" fill="#5a6678">➔</text>
+
+    <rect x="550" y="40" width="150" height="32" rx="5" fill="#fef2f2"/>
+    <text x="625" y="54" text-anchor="middle" font-size="9" font-weight="600" fill="#dc2626">Physical I/O</text>
+    <text x="625" y="66" text-anchor="middle" font-size="8" fill="#5a6678">2—12 KB written</text>
+
+    <text x="540" y="55" text-anchor="middle" font-size="12" font-weight="800" fill="#d97706">WA = 20—120x</text>
+
+    <text x="385" y="92" font-size="9" fill="#5a6678">What gets written on disk:</text>
+    <text x="385" y="108" font-size="9" fill="#1c2330">1. WAL record (~50—200 B)</text>
+    <text x="385" y="122" font-size="9" fill="#1c2330">2. Data page (8—16 KB)</text>
+    <text x="385" y="136" font-size="9" fill="#1c2330">3. Index page update (8—16 KB)</text>
+    <text x="385" y="150" font-size="9" fill="#1c2330">4. FSM/VIS map updates</text>
+
+    <!-- Comparison table -->
+    <rect x="10" y="175" width="700" height="75" rx="8" fill="#fff" stroke="#e2e6ec" filter="url(#sh)"/>
+    <text x="360" y="193" text-anchor="middle" font-size="11" font-weight="700" fill="#1c2330">Amplification by Storage Engine Type</text>
+    <line x1="25" y1="201" x2="695" y2="201" stroke="#e2e6ec"/>
+
+    <text x="50" y="220" font-size="9" fill="#5a6678">Structure</text>
+    <text x="230" y="220" text-anchor="middle" font-size="9" fill="#5a6678">Read Amp.</text>
+    <text x="440" y="220" text-anchor="middle" font-size="9" fill="#5a6678">Write Amp.</text>
+    <text x="590" y="220" text-anchor="middle" font-size="9" fill="#5a6678">Best For</text>
+
+    <text x="50" y="240" font-size="9" fill="#1c2330">B-tree (heap)</text>
+    <text x="230" y="240" text-anchor="middle" font-size="9" fill="#16a34a">Low (~3—5)</text>
+    <text x="440" y="240" text-anchor="middle" font-size="9" fill="#dc2626">High (~20—200)</text>
+    <text x="590" y="240" text-anchor="middle" font-size="9" fill="#5a6678">Read-heavy OLTP</text>
+
+    <text x="50" y="256" font-size="9" fill="#1c2330">LSM-tree</text>
+    <text x="230" y="256" text-anchor="middle" font-size="9" fill="#dc2626">Higher (~5—20)</text>
+    <text x="440" y="256" text-anchor="middle" font-size="9" fill="#16a34a">Low (~5—10)</text>
+    <text x="590" y="256" text-anchor="middle" font-size="9" fill="#5a6678">Write-heavy / inserts</text>
+
+    <!-- Insight -->
+    <rect x="50" y="265" width="620" height="35" rx="6" fill="#1c2330" filter="url(#sh)"/>
+    <text x="360" y="283" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">You cannot minimize all three amplifications at once — every engine is a trade-off</text>
+    <text x="360" y="296" text-anchor="middle" font-size="9" fill="#9aa6b8">Space x Read x Write: optimize for your workload</text>
+
+    <text x="360" y="315" text-anchor="middle" font-size="8" fill="#9aa6b8">The amplification triad (space, read, write) defines every storage engine's performance profile</text>
   </g>
 </svg>
-<figcaption>Visual overview of 099-read-amplification-and-write-amplification.</figcaption>
+<figcaption>Read and write amplification: B-trees favor reads (low RA), LSM-trees favor writes (low WA) — every engine trades off one amplification for another.</figcaption>
 </figure>
 <p>Every storage structure makes trade-offs. B-trees are fast for point reads but impose overhead on writes; LSM-trees (Log-Structured Merge-trees) absorb writes cheaply but do extra work at read time. The two metrics that capture these trade-offs with precision are <strong>read amplification</strong> and <strong>write amplification</strong> — ratios that measure how much extra I/O the engine does compared to what the application logically requested.</p>
 <h2>The Two Amplification Factors</h2>
@@ -117,5 +187,6 @@ ORDER BY rows, branching_factor;
   <nav class="pagenav"><a class="prev" href="098-space-amplification.html"><span class="dir">← Previous</span><span class="ttl">Space amplification</span></a><a class="next" href="101-why-transactions-exist.html"><span class="dir">Next →</span><span class="ttl">Why transactions exist</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

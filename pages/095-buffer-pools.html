@@ -8,25 +8,87 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 10. Trees, Logs, and Internal Structures</p>
   <h1 class="content-title">Buffer pools</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">095-buffer-pools</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2f6df6"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
+  </defs>
+  <g transform="translate(15,10)">
+    <!-- Disk -->
+    <rect x="60" y="0" width="200" height="55" rx="8" fill="#f0f2f5" stroke="#5a6678" filter="url(#sh)"/>
+    <text x="160" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#1c2330">Disk (slow)</text>
+    <text x="160" y="40" text-anchor="middle" font-size="9" fill="#5a6678">Pages 1, 2, 3, 4, 5, 6, 7, 8, 9...</text>
+
+    <!-- Arrow disk to buffer pool -->
+    <line x1="260" y1="27" x2="98" y2="78" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="165" y="60" font-size="8" fill="#5a6678">read on miss</text>
+
+    <!-- Buffer pool -->
+    <rect x="10" y="80" width="280" height="125" rx="8" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="150" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#2f6df6">Buffer Pool (RAM)</text>
+    <line x1="25" y1="108" x2="275" y2="108" stroke="#e2e6ec"/>
+
+    <!-- Frames -->
+    <rect x="18" y="114" width="60" height="28" rx="4" fill="#e8f0ff"/>
+    <text x="48" y="125" text-anchor="middle" font-size="8" fill="#2f6df6">[F0]</text>
+    <text x="48" y="138" text-anchor="middle" font-size="7" fill="#5a6678">pg 7</text>
+
+    <rect x="82" y="114" width="60" height="28" rx="4" fill="#dcfce7"/>
+    <text x="112" y="125" text-anchor="middle" font-size="8" fill="#16a34a">[F1] pin:Q1</text>
+    <text x="112" y="138" text-anchor="middle" font-size="7" fill="#5a6678">pg 2</text>
+
+    <rect x="146" y="114" width="60" height="28" rx="4" fill="#f0f2f5"/>
+    <text x="176" y="125" text-anchor="middle" font-size="8" fill="#9aa6b8">[F2] free</text>
+
+    <rect x="210" y="114" width="60" height="28" rx="4" fill="#dcfce7"/>
+    <text x="240" y="125" text-anchor="middle" font-size="8" fill="#16a34a">[F3] pin:Q2</text>
+    <text x="240" y="138" text-anchor="middle" font-size="7" fill="#5a6678">pg 9</text>
+
+    <!-- Hash table -->
+    <rect x="18" y="150" width="252" height="26" rx="4" fill="#fff" stroke="#e2e6ec"/>
+    <text x="144" y="160" text-anchor="middle" font-size="8" fill="#5a6678">Hash: (file,pg) → frame index</text>
+    <text x="144" y="172" text-anchor="middle" font-size="7" fill="#9aa6b8">(0,7)→F0 (0,2)→F1 (0,9)→F3</text>
+
+    <!-- Eviction / replacement pointer -->
+    <rect x="18" y="183" width="252" height="20" rx="4" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="144" y="196" text-anchor="middle" font-size="8" fill="#dc2626">LRU: next to evict = F0 (page 7)</text>
+
+    <!-- Queries on the right -->
+    <rect x="420" y="10" width="260" height="42" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="550" y="27" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">Query 1: SELECT ... WHERE id=42</text>
+    <text x="550" y="42" text-anchor="middle" font-size="8" fill="#5a6678">pinned F1 (page 2)</text>
+
+    <rect x="420" y="62" width="260" height="42" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="550" y="79" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">Query 2: scan departments</text>
+    <text x="550" y="94" text-anchor="middle" font-size="8" fill="#5a6678">pinned F3 (page 9)</text>
+
+    <line x1="420" y1="31" x2="292" y2="120" stroke="#86efac" stroke-width="1.2" stroke-dasharray="4,2"/>
+    <line x1="420" y1="83" x2="292" y2="120" stroke="#86efac" stroke-width="1.2" stroke-dasharray="4,2"/>
+
+    <!-- Cache hit box -->
+    <rect x="420" y="120" width="260" height="40" rx="6" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="550" y="137" text-anchor="middle" font-size="9" font-weight="600" fill="#2f6df6">Cache hit: page 2 already in F1</text>
+    <text x="550" y="153" text-anchor="middle" font-size="8" fill="#5a6678">No disk I/O — return directly from RAM</text>
+
+    <!-- Cache miss box -->
+    <rect x="420" y="172" width="260" height="40" rx="6" fill="#fefce8" stroke="#facc15" filter="url(#sh)"/>
+    <text x="550" y="189" text-anchor="middle" font-size="9" font-weight="600" fill="#d97706">Cache miss: page 5 not in pool</text>
+    <text x="550" y="205" text-anchor="middle" font-size="8" fill="#5a6678">Evict F0 (LRU) → read page 5 from disk</text>
+
+    <text x="350" y="240" text-anchor="middle" font-size="9" fill="#9aa6b8">Buffer pool = O(1) hash lookup + pinning for active queries + LRU eviction for replacement</text>
+    <text x="350" y="255" text-anchor="middle" font-size="9" fill="#9aa6b8">Huge perf impact: RAM access is ~1000—100000x faster than disk</text>
   </g>
 </svg>
-<figcaption>Visual overview of 095-buffer-pools.</figcaption>
+<figcaption>The buffer pool caches pages in RAM: hash lookup finds frames, active queries pin them, and LRU replacement evicts the least recently used.</figcaption>
 </figure>
 <p>Every database page you read about in the previous sections — heap pages, B-tree nodes, WAL records — lives on disk. But disk is slow: even a fast NVMe drive is thousands of times slower than RAM. The <strong>buffer pool</strong> is the database engine&#39;s main memory cache. It sits between your queries and the disk, and almost every read or write passes through it.</p>
 <h2>What a Buffer Pool Is</h2>
@@ -117,5 +179,6 @@ FROM access_log;
   <nav class="pagenav"><a class="prev" href="094-checkpoints.html"><span class="dir">← Previous</span><span class="ttl">Checkpoints</span></a><a class="next" href="096-dirty-pages-and-flushing.html"><span class="dir">Next →</span><span class="ttl">Dirty pages and flushing</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

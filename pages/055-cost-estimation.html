@@ -8,25 +8,68 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 6. How Query Processing Works</p>
   <h1 class="content-title">Cost estimation</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">055-cost-estimation</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2f6df6"/></marker>
+  </defs>
+  <g transform="translate(15,10)">
+    <!-- Left: Statistics box -->
+    <rect x="0" y="15" width="220" height="175" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="110" y="42" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">Table Statistics</text>
+    <line x1="15" y1="52" x2="205" y2="52" stroke="#bfdbfe"/>
+    <text x="110" y="72" text-anchor="middle" font-size="10" fill="#1c2330">rows: 1,000,000</text>
+    <text x="110" y="92" text-anchor="middle" font-size="10" fill="#1c2330">pages: ~10,000</text>
+    <text x="110" y="117" text-anchor="middle" font-size="10" fill="#1c2330">n_distinct(salary): 800</text>
+    <text x="110" y="137" text-anchor="middle" font-size="10" fill="#1c2330">null_frac: 0.02</text>
+    <text x="110" y="157" text-anchor="middle" font-size="10" fill="#1c2330">MCV: [35K, 42K, 58K]</text>
+    <text x="110" y="177" text-anchor="middle" font-size="10" fill="#5a6678">Histogram: ▁▂▃▅▇▃▁</text>
+
+    <!-- Arrow -->
+    <line x1="220" y1="100" x2="280" y2="100" stroke="#2f6df6" stroke-width="2" marker-end="url(#arr)"/>
+    <text x="250" y="93" text-anchor="middle" font-size="8" fill="#5a6678">feeds</text>
+
+    <!-- Center: Optimizer -->
+    <rect x="285" y="15" width="160" height="175" rx="10" fill="#fff" stroke="#d97706" stroke-width="2" filter="url(#sh)"/>
+    <text x="365" y="42" text-anchor="middle" font-size="13" font-weight="700" fill="#d97706">Cost Estimator</text>
+    <line x1="300" y1="52" x2="430" y2="52" stroke="#fcd34d"/>
+    <text x="365" y="72" text-anchor="middle" font-size="10" fill="#5a6678">For each candidate plan:</text>
+    <text x="365" y="95" text-anchor="middle" font-size="9" fill="#1c2330">Selectivity = filter_rows</text>
+    <text x="365" y="110" text-anchor="middle" font-size="9" fill="#1c2330">        / total_rows</text>
+    <text x="365" y="130" text-anchor="middle" font-size="9" fill="#1c2330">I/O cost = pages_read</text>
+    <text x="365" y="145" text-anchor="middle" font-size="9" fill="#1c2330">CPU cost = rows * ops</text>
+    <text x="365" y="165" text-anchor="middle" font-size="10" fill="#d97706" font-weight="700">Pick cheapest plan!</text>
+
+    <!-- Arrow -->
+    <line x1="445" y1="100" x2="505" y2="100" stroke="#d97706" stroke-width="2" marker-end="url(#arr)"/>
+    <text x="475" y="93" text-anchor="middle" font-size="8" fill="#5a6678">chooses</text>
+
+    <!-- Right: Plans comparison -->
+    <rect x="510" y="15" width="195" height="175" rx="10" fill="#f0fdf4" stroke="#16a34a" filter="url(#sh)"/>
+    <text x="607" y="42" text-anchor="middle" font-size="13" font-weight="700" fill="#16a34a">Plan Comparison</text>
+    <line x1="525" y1="52" x2="690" y2="52" stroke="#86efac"/>
+    <rect x="518" y="60" width="180" height="40" rx="5" fill="#fff"/>
+    <text x="608" y="77" text-anchor="middle" font-size="9" fill="#1c2330">Plan A: idx_scan + hash_join</text>
+    <text x="608" y="92" text-anchor="middle" font-size="8" fill="#16a34a">cost = 245.3 ✓</text>
+    <rect x="518" y="108" width="180" height="40" rx="5" fill="#fff"/>
+    <text x="608" y="125" text-anchor="middle" font-size="9" fill="#1c2330">Plan B: seq_scan + nested_loop</text>
+    <text x="608" y="140" text-anchor="middle" font-size="8" fill="#dc2626">cost = 8,420.7</text>
+    <rect x="518" y="155" width="180" height="28" rx="5" fill="#dcfce7"/>
+    <text x="608" y="173" text-anchor="middle" font-size="10" fill="#16a34a">Winner: Plan A</text>
+
+    <!-- Bottom annotation -->
+    <text x="362" y="210" text-anchor="middle" font-size="9" fill="#9aa6b8">Cost model = I/O reads (disk pages) + CPU operations · Estimated from statistics, not measured at runtime</text>
   </g>
 </svg>
-<figcaption>Visual overview of 055-cost-estimation.</figcaption>
+<figcaption>The optimizer estimates plan costs using statistics (row counts, distinct values, histograms). It compares candidates and picks the one with the lowest estimated I/O and CPU cost, not the smallest query text.</figcaption>
 </figure>
 <p>Once the optimizer has a logical plan and a set of physical alternatives to consider, it needs a way to compare them. Running every candidate plan against real data to see which one is fastest would be absurdly expensive — a query with five joins already has hundreds of possible orderings. Instead, the optimizer <strong>estimates</strong> the cost of each plan using statistics it has collected about the data. The winning plan is the one with the lowest estimated cost, not necessarily the one that looks simplest to a human.</p>
 <h2>What &quot;Cost&quot; Actually Means</h2>
@@ -86,5 +129,6 @@ GROUP BY customer_id;
   <nav class="pagenav"><a class="prev" href="054-operators-such-as-scan-filter-join.html"><span class="dir">← Previous</span><span class="ttl">Operators such as scan, filter, join</span></a><a class="next" href="056-rule-based-and-cost-based-planning.html"><span class="dir">Next →</span><span class="ttl">Rule-based and cost-based planning</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

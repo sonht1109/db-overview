@@ -8,25 +8,74 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Fixed-length and variable-length records</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">084-fixed-length-and-variable-length-records</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5a6678"/></marker>
+  </defs>
+  <g transform="translate(15,10)">
+    <!-- LEFT: Fixed-length -->
+    <rect x="0" y="0" width="340" height="265" rx="10" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <rect x="0" y="0" width="340" height="30" rx="10" fill="#dcfce7"/>
+    <text x="170" y="20" text-anchor="middle" font-size="13" font-weight="700" fill="#16a34a">Fixed-Length Records</text>
+
+    <!-- Record layout -->
+    <text x="170" y="50" text-anchor="middle" font-size="10" font-weight="600" fill="#1c2330">Schema: id INT (4B) | age INT (4B) | salary INT (8B)</text>
+    <text x="170" y="64" text-anchor="middle" font-size="9" fill="#5a6678">Every record = exactly 16 bytes</text>
+
+    <!-- Record boxes all same size -->
+    <rect x="15" y="74" width="310" height="28" rx="4" fill="#fff" stroke="#86efac"/>
+    <text x="170" y="92" text-anchor="middle" font-size="9" fill="#1c2330">Rec 0: [ id: 1 | age: 30 | salary: 95000 ]  → 16 B</text>
+    <rect x="15" y="106" width="310" height="28" rx="4" fill="#fff" stroke="#86efac"/>
+    <text x="170" y="124" text-anchor="middle" font-size="9" fill="#1c2330">Rec 1: [ id: 2 | age: 25 | salary: 72000 ]  → 16 B</text>
+    <rect x="15" y="138" width="310" height="28" rx="4" fill="#fff" stroke="#86efac"/>
+    <text x="170" y="156" text-anchor="middle" font-size="9" fill="#1c2330">Rec 2: [ id: 3 | age: 41 | salary: 88000 ]  → 16 B</text>
+    <rect x="15" y="170" width="310" height="28" rx="4" fill="#fff" stroke="#86efac"/>
+    <text x="170" y="188" text-anchor="middle" font-size="9" fill="#1c2330">Rec 3: [ id: 4 | age: 33 | salary: 65000 ]  → 16 B</text>
+
+    <!-- Offset calculation -->
+    <text x="170" y="216" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">Simple offset calculation:</text>
+    <rect x="50" y="224" width="240" height="20" rx="3" fill="#dcfce7"/>
+    <text x="170" y="238" text-anchor="middle" font-size="9" fill="#16a34a">Nth record @ offset = N × 16</text>
+    <text x="170" y="258" text-anchor="middle" font-size="8" fill="#5a6678">Pros: fast random access · no fragmentation · simple</text>
+    <text x="170" y="270" text-anchor="middle" font-size="8" fill="#5a6678">Cons: wastes space · no TEXT/VARCHAR</text>
+
+    <!-- RIGHT: Variable-length -->
+    <rect x="350" y="0" width="355" height="265" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <rect x="350" y="0" width="355" height="30" rx="10" fill="#e8f0ff"/>
+    <text x="527" y="20" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">Variable-Length Records</text>
+
+    <text x="527" y="50" text-anchor="middle" font-size="10" font-weight="600" fill="#1c2330">Schema: id INT (4B) | name VARCHAR | bio TEXT</text>
+    <text x="527" y="64" text-anchor="middle" font-size="9" fill="#5a6678">Records have different sizes</text>
+
+    <!-- Variable record layouts -->
+    <rect x="365" y="74" width="325" height="24" rx="4" fill="#fff" stroke="#93c5fd"/>
+    <text x="527" y="90" text-anchor="middle" font-size="9" fill="#1c2330">Rec 0: [ 4B:1 | 2B:len | "Ada" | 2B:len | bio_short... ] → 58 B</text>
+    <rect x="365" y="102" width="325" height="28" rx="4" fill="#fff" stroke="#93c5fd"/>
+    <text x="527" y="119" text-anchor="middle" font-size="9" fill="#1c2330">Rec 1: [ 4B:2 | 2B:len | "Chidi" | 2B:len | very long bio... ] → 142 B</text>
+    <rect x="365" y="134" width="325" height="42" rx="4" fill="#fff" stroke="#93c5fd"/>
+    <text x="527" y="150" text-anchor="middle" font-size="9" fill="#1c2330">Rec 2: [ 4B:3 | 2B:len | "Bola" | 2B:len | bio... | bio cont'd ]</text>
+    <text x="527" y="167" text-anchor="middle" font-size="8" fill="#5a6678">→ 88 B (note: different height = different length)</text>
+    <rect x="365" y="180" width="325" height="22" rx="4" fill="#fff" stroke="#93c5fd"/>
+    <text x="527" y="195" text-anchor="middle" font-size="9" fill="#1c2330">Rec 3: [ 4B:4 | 2B:len | "Zara" | 2B:len | NULL ] → 34 B</text>
+
+    <!-- Footer -->
+    <text x="527" y="216" text-anchor="middle" font-size="10" font-weight="700" fill="#2f6df6">Length prefix + offset directory:</text>
+    <rect x="390" y="224" width="280" height="20" rx="3" fill="#e8f0ff"/>
+    <text x="530" y="238" text-anchor="middle" font-size="9" fill="#2f6df6">Record sizes: [58, 142, 88, 34] — offsets: [0, 58, 200, 288]</text>
+    <text x="527" y="258" text-anchor="middle" font-size="8" fill="#5a6678">Pros: efficient storage · native TEXT/VARCHAR</text>
+    <text x="527" y="270" text-anchor="middle" font-size="8" fill="#5a6678">Cons: no O(1) direct jump · TOAST for > 2KB values</text>
   </g>
 </svg>
-<figcaption>Visual overview of 084-fixed-length-and-variable-length-records.</figcaption>
+<figcaption>Fixed-length records are all the same size, enabling O(1) offset calculation; variable-length records need length prefixes and a slot directory for lookup.</figcaption>
 </figure>
 <p>Every row in a table must eventually live somewhere on disk. How the database engine lays out the bytes for that row is determined by whether its fields have <em>fixed</em> or <em>variable</em> lengths — a design decision with real consequences for storage efficiency, read speed, and update cost.</p>
 <h2>Fixed-Length Records</h2>
@@ -136,5 +185,6 @@ ORDER BY approx_row_bytes;</textarea>
   <nav class="pagenav"><a class="prev" href="083-row-stores-and-column-stores.html"><span class="dir">← Previous</span><span class="ttl">Row stores and column stores</span></a><a class="next" href="085-slotted-pages.html"><span class="dir">Next →</span><span class="ttl">Slotted pages</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

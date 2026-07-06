@@ -8,25 +8,84 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 8. Joins, Aggregation, and Sorting</p>
   <h1 class="content-title">External sort</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">075-external-sort</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2f6df6"/></marker>
+    <marker id="arG" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#16a34a"/></marker>
+  </defs>
+  <g transform="translate(15,10)">
+    <!-- Phase 1: Unsorted data -->
+    <rect x="0" y="0" width="150" height="55" rx="8" fill="#f8fafc" stroke="#e2e6ec" filter="url(#sh)"/>
+    <text x="75" y="22" text-anchor="middle" font-size="10" font-weight="700" fill="#1c2330">Unsorted Data</text>
+    <text x="75" y="40" text-anchor="middle" font-size="9" fill="#5a6678">9, 3, 7, 1, 5, 2, 8, 4, 6</text>
+
+    <!-- Arrow -->
+    <line x1="155" y1="27" x2="200" y2="27" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+    <text x="177" y="20" text-anchor="middle" font-size="8" fill="#2f6df6" font-weight="600">PASS 1</text>
+    <text x="177" y="38" text-anchor="middle" font-size="7" fill="#5a6678">sort chunks in RAM</text>
+
+    <!-- Sorted Runs (disk I/O) -->
+    <rect x="205" y="0" width="220" height="55" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="315" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="#2f6df6">Sorted Runs (on disk)</text>
+    <text x="315" y="32" text-anchor="middle" font-size="9" fill="#1c2330">Run 1: [1,3,7,9]  Run 2: [2,4,5,8]  Run 3: [6]</text>
+    <text x="315" y="46" text-anchor="middle" font-size="8" fill="#5a6678">🗄️ /tmp/sort_run_1  🗄️ /tmp/sort_run_2  🗄️ /tmp/sort_run_3</text>
+
+    <!-- Arrow -->
+    <line x1="430" y1="27" x2="475" y2="27" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+    <text x="452" y="20" text-anchor="middle" font-size="8" fill="#2f6df6" font-weight="600">PASS 2</text>
+    <text x="452" y="38" text-anchor="middle" font-size="7" fill="#5a6678">merge runs</text>
+
+    <!-- Merged (still possibly on disk) -->
+    <rect x="480" y="0" width="210" height="55" rx="8" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="585" y="22" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">Merge: 2-way or K-way</text>
+    <text x="585" y="40" text-anchor="middle" font-size="9" fill="#1c2330">Heap: pointers to runs → emit smallest</text>
+
+    <!-- Final output -->
+    <rect x="200" y="75" width="290" height="40" rx="8" fill="#16a34a" filter="url(#sh)"/>
+    <text x="345" y="93" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Sorted Output: [1, 2, 3, 4, 5, 6, 7, 8, 9] ✓</text>
+    <text x="345" y="109" text-anchor="middle" font-size="9" fill="#bbf7d0">O(n log n) comparisons · O(n) I/O per pass · ⌈log₂(chunks)⌉ merge passes</text>
+
+    <!-- Memory vs Disk visualization -->
+    <rect x="0" y="130" width="690" height="135" rx="10" fill="#f8fafc" stroke="#e2e6ec"/>
+    <text x="345" y="152" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2330">Memory ↔ Disk Interaction</text>
+
+    <!-- Memory buffer -->
+    <rect x="20" y="162" width="200" height="90" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="120" y="185" text-anchor="middle" font-size="11" font-weight="700" fill="#2f6df6">🧠 Sort Memory</text>
+    <text x="120" y="200" text-anchor="middle" font-size="9" fill="#5a6678">(work_mem)</text>
+    <rect x="35" y="210" width="170" height="18" rx="3" fill="#93c5fd"/>
+    <text x="120" y="223" text-anchor="middle" font-size="8" fill="#1c2330">Quicksort chunk in RAM</text>
+    <rect x="35" y="232" width="170" height="18" rx="3" fill="#93c5fd"/>
+    <text x="120" y="245" text-anchor="middle" font-size="8" fill="#1c2330">Read N pages per merge input</text>
+
+    <!-- Arrows between -->
+    <line x1="225" y1="207" x2="260" y2="207" stroke="#5a6678" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="242" y="200" text-anchor="middle" font-size="7" fill="#5a6678">write</text>
+    <line x1="260" y1="222" x2="225" y2="222" stroke="#5a6678" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="242" y="238" text-anchor="middle" font-size="7" fill="#5a6678">read</text>
+
+    <!-- Disk temp files -->
+    <rect x="265" y="162" width="400" height="90" rx="8" fill="#fff" stroke="#e2e6ec" filter="url(#sh)"/>
+    <text x="465" y="185" text-anchor="middle" font-size="11" font-weight="700" fill="#5a6678">💿 Temp Files (Disk)</text>
+    <text x="465" y="200" text-anchor="middle" font-size="9" fill="#5a6678">pgsql_tmp/ directory or temp tablespace</text>
+    <rect x="280" y="210" width="180" height="18" rx="3" fill="#f0f2f5" stroke="#e2e6ec"/>
+    <text x="370" y="223" text-anchor="middle" font-size="8" fill="#5a6678">sort_run_1.dat (already sorted)</text>
+    <rect x="470" y="210" width="180" height="18" rx="3" fill="#f0f2f5" stroke="#e2e6ec"/>
+    <text x="560" y="223" text-anchor="middle" font-size="8" fill="#5a6678">sort_run_2.dat (already sorted)</text>
+    <rect x="280" y="232" width="370" height="18" rx="3" fill="#f0f2f5" stroke="#e2e6ec"/>
+    <text x="465" y="245" text-anchor="middle" font-size="8" fill="#5a6678">Each run fits in work_mem; merge phase reads all runs concurrently</text>
   </g>
 </svg>
-<figcaption>Visual overview of 075-external-sort.</figcaption>
+<figcaption>External merge sort: sort chunks that fit in work_mem, write sorted runs to disk, then merge them — only O(n) memory needed per pass regardless of total data size.</figcaption>
 </figure>
 <p>Sorting a handful of rows in memory is trivial. Sorting a table that is larger than available RAM is not — and databases face exactly that challenge whenever you write <code>ORDER BY</code> on a big result set, or when the engine needs sorted input for a merge join or a <code>GROUP BY</code>. The solution is <strong>external sort</strong>, a classic algorithm that does the work in two phases, shuttling data between memory and disk.</p>
 <h2>Why &quot;External&quot;?</h2>
@@ -95,5 +154,6 @@ SELECT region, amount FROM sales ORDER BY amount DESC;
   <nav class="pagenav"><a class="prev" href="074-grouping-and-aggregation.html"><span class="dir">← Previous</span><span class="ttl">Grouping and aggregation</span></a><a class="next" href="076-memory-limits-and-spill-to-disk.html"><span class="dir">Next →</span><span class="ttl">Memory limits and spill to disk</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

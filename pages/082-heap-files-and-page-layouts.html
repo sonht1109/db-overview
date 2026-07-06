@@ -8,25 +8,100 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Heap files and page layouts</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">082-heap-files-and-page-layouts</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 330" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2f6df6"/></marker>
+  </defs>
+  <g transform="translate(20,10)">
+    <!-- Heap file -->
+    <text x="340" y="18" text-anchor="middle" font-size="13" font-weight="700" fill="#1c2330">Heap File: employees.dat</text>
+
+    <!-- Four pages side by side -->
+    <!-- Page 0 -->
+    <rect x="0" y="30" width="155" height="230" rx="8" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <rect x="0" y="30" width="155" height="26" rx="8" fill="#e8f0ff"/>
+    <text x="77" y="48" text-anchor="middle" font-size="10" font-weight="700" fill="#2f6df6">Page 0 (header)</text>
+    <!-- Header fields -->
+    <text x="77" y="70" text-anchor="middle" font-size="8" fill="#5a6678">LSN: 0xA1C4</text>
+    <text x="77" y="82" text-anchor="middle" font-size="8" fill="#5a6678">checksum: 0x3F2A</text>
+    <text x="77" y="94" text-anchor="middle" font-size="8" fill="#5a6678">flags: 0x0001</text>
+    <text x="77" y="106" text-anchor="middle" font-size="8" fill="#5a6678">lower: 36</text>
+    <text x="77" y="118" text-anchor="middle" font-size="8" fill="#5a6678">upper: 7800</text>
+    <line x1="15" y1="126" x2="140" y2="126" stroke="#e2e6ec"/>
+    <!-- Records -->
+    <rect x="10" y="134" width="135" height="22" rx="3" fill="#f0f2f5" stroke="#d1d5db"/>
+    <text x="77" y="149" text-anchor="middle" font-size="7" fill="#5a6678">(1) Ada | Eng | 95k</text>
+    <rect x="10" y="160" width="135" height="22" rx="3" fill="#f0f2f5" stroke="#d1d5db"/>
+    <text x="77" y="175" text-anchor="middle" font-size="7" fill="#5a6678">(2) Bola | Mkt | 72k</text>
+    <rect x="10" y="186" width="135" height="22" rx="3" fill="#f0f2f5" stroke="#d1d5db"/>
+    <text x="77" y="201" text-anchor="middle" font-size="7" fill="#5a6678">(3) Chidi | Eng | 88k</text>
+    <rect x="10" y="212" width="135" height="22" rx="3" fill="#f0f2f5" stroke="#d1d5db"/>
+    <text x="77" y="227" text-anchor="middle" font-size="7" fill="#5a6678">(4) Zara | Mkt | 65k</text>
+    <text x="77" y="248" text-anchor="middle" font-size="7" fill="#9aa6b8">… more records …</text>
+    <text x="77" y="258" text-anchor="middle" font-size="7" fill="#9aa6b8">free space after</text>
+
+    <!-- Page 1 -->
+    <rect x="170" y="30" width="155" height="230" rx="8" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <rect x="170" y="30" width="155" height="26" rx="8" fill="#e8f0ff"/>
+    <text x="247" y="48" text-anchor="middle" font-size="10" font-weight="700" fill="#2f6df6">Page 1</text>
+    <text x="247" y="70" text-anchor="middle" font-size="8" fill="#5a6678">LSN: 0xA1C8</text>
+    <text x="247" y="82" text-anchor="middle" font-size="8" fill="#5a6678">lower: 36</text>
+    <text x="247" y="94" text-anchor="middle" font-size="8" fill="#5a6678">upper: 7800</text>
+    <line x1="185" y1="102" x2="310" y2="102" stroke="#e2e6ec"/>
+    <rect x="180" y="110" width="135" height="22" rx="3" fill="#f0f2f5" stroke="#d1d5db"/>
+    <text x="247" y="125" text-anchor="middle" font-size="7" fill="#5a6678">(5) Kai | Res | 82k</text>
+    <rect x="180" y="136" width="135" height="22" rx="3" fill="#f0f2f5" stroke="#d1d5db"/>
+    <text x="247" y="151" text-anchor="middle" font-size="7" fill="#5a6678">(6) Lina | Res | 78k</text>
+    <rect x="180" y="162" width="135" height="22" rx="3" fill="#f0f2f5" stroke="#d1d5db"/>
+    <text x="247" y="177" text-anchor="middle" font-size="7" fill="#5a6678">(7) Omar | Eng | 91k</text>
+    <rect x="180" y="188" width="135" height="22" rx="3" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="247" y="203" text-anchor="middle" font-size="7" fill="#dc2626">(8) DELETED</text>
+    <text x="247" y="224" text-anchor="middle" font-size="7" fill="#9aa6b8">gap (deleted slot)</text>
+    <text x="247" y="248" text-anchor="middle" font-size="7" fill="#9aa6b8">free space</text>
+    <text x="247" y="258" text-anchor="middle" font-size="7" fill="#9aa6b8">after slot 8</text>
+
+    <!-- Page 2 -->
+    <rect x="340" y="30" width="155" height="230" rx="8" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <rect x="340" y="30" width="155" height="26" rx="8" fill="#e8f0ff"/>
+    <text x="417" y="48" text-anchor="middle" font-size="10" font-weight="700" fill="#2f6df6">Page 2</text>
+    <text x="417" y="70" text-anchor="middle" font-size="8" fill="#5a6678">lower: 36</text>
+    <text x="417" y="82" text-anchor="middle" font-size="8" fill="#5a6678">upper: 7800</text>
+    <line x1="355" y1="92" x2="480" y2="92" stroke="#e2e6ec"/>
+    <rect x="350" y="100" width="135" height="22" rx="3" fill="#f0f2f5" stroke="#d1d5db"/>
+    <text x="417" y="115" text-anchor="middle" font-size="7" fill="#5a6678">(9) Priya | Mkt | 74k</text>
+    <rect x="350" y="126" width="135" height="22" rx="3" fill="#f0f2f5" stroke="#d1d5db"/>
+    <text x="417" y="141" text-anchor="middle" font-size="7" fill="#5a6678">(10) Quinn | Eng | 86k</text>
+    <text x="417" y="174" text-anchor="middle" font-size="7" fill="#9aa6b8">… free space …</text>
+    <text x="417" y="200" text-anchor="middle" font-size="7" fill="#9aa6b8">(partially full page)</text>
+
+    <!-- Page 3 -->
+    <rect x="510" y="30" width="155" height="230" rx="8" fill="#fff" stroke="#e2e6ec" stroke-dasharray="5,4" filter="url(#sh)"/>
+    <text x="587" y="55" text-anchor="middle" font-size="10" font-weight="700" fill="#9aa6b8">Page 3 (empty)</text>
+    <text x="587" y="90" text-anchor="middle" font-size="8" fill="#9aa6b8">No records</text>
+    <text x="587" y="110" text-anchor="middle" font-size="8" fill="#9aa6b8">yet — available</text>
+    <text x="587" y="130" text-anchor="middle" font-size="8" fill="#9aa6b8">for new INSERTs</text>
+
+    <!-- Arrow showing insert order -->
+    <line x1="155" y1="145" x2="170" y2="145" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#ar)"/>
+    <line x1="325" y1="145" x2="340" y2="145" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#ar)"/>
+    <line x1="495" y1="145" x2="510" y2="145" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#ar)"/>
+
+    <!-- Bottom explanation -->
+    <rect x="0" y="275" width="680" height="42" rx="8" fill="#f8fafc" stroke="#e2e6ec"/>
+    <text x="340" y="294" text-anchor="middle" font-size="10" fill="#1c2330">Heap file: unordered collection of pages — records stored in insertion order</text>
+    <text x="340" y="309" text-anchor="middle" font-size="9" fill="#5a6678">No ordering guarantee · New rows go to the last page with free space · Deleted rows leave gaps · VACUUM reclaims space</text>
   </g>
 </svg>
-<figcaption>Visual overview of 082-heap-files-and-page-layouts.</figcaption>
+<figcaption>A heap file is a linked collection of fixed-size pages; records are appended in insertion order across pages, with no inherent ordering.</figcaption>
 </figure>
 <p>When a database writes a row to disk, it does not just append text to a file the way a spreadsheet might. It places the row inside a precisely structured unit called a <strong>page</strong>, and those pages are collected into a <strong>heap file</strong>. Understanding this physical layer explains why databases behave the way they do — why some queries scan millions of rows quickly, why deleting a row does not instantly reclaim space, and why &quot;bloat&quot; is a real operational concern.</p>
 <h2>The Heap File: An Unordered Collection of Pages</h2>
@@ -108,5 +183,6 @@ FROM pragma_page_count(), pragma_page_size();</textarea>
   <nav class="pagenav"><a class="prev" href="081-why-databases-use-pages.html"><span class="dir">← Previous</span><span class="ttl">Why databases use pages</span></a><a class="next" href="083-row-stores-and-column-stores.html"><span class="dir">Next →</span><span class="ttl">Row stores and column stores</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

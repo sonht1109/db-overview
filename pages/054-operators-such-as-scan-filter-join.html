@@ -8,25 +8,82 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 6. How Query Processing Works</p>
   <h1 class="content-title">Operators such as scan, filter, join</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">054-operators-such-as-scan-filter-join</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5a6678"/></marker>
+  </defs>
+  <g transform="translate(15,10)">
+    <!-- Title -->
+    <text x="345" y="20" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">Data Flow Pipeline: Operators Compose Into a Tree</text>
+    <text x="345" y="38" text-anchor="middle" font-size="9" fill="#5a6678">Rows flow bottom-up through operators — each consumes a stream and emits a stream</text>
+
+    <!-- Scan operator -->
+    <rect x="30" y="135" width="140" height="48" rx="8" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="100" y="155" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">Scan</text>
+    <text x="100" y="172" text-anchor="middle" font-size="8" fill="#5a6678">Read raw rows from disk</text>
+    <text x="100" y="55" text-anchor="middle" font-size="8" fill="#9aa6b8">customers: 3 rows</text>
+    <text x="240" y="55" text-anchor="middle" font-size="8" fill="#9aa6b8">orders: 5 rows</text>
+
+    <!-- Scan 2 -->
+    <rect x="160" y="135" width="140" height="48" rx="8" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="230" y="155" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">Scan</text>
+    <text x="230" y="172" text-anchor="middle" font-size="8" fill="#5a6678">Read raw rows from disk</text>
+
+    <!-- Arrows up to join -->
+    <line x1="100" y1="135" x2="100" y2="105" stroke="#5a6678" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="230" y1="135" x2="230" y2="105" stroke="#5a6678" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Join -->
+    <rect x="290" y="98" width="150" height="60" rx="8" fill="#2f6df6" filter="url(#sh)"/>
+    <text x="365" y="118" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Join</text>
+    <text x="365" y="134" text-anchor="middle" font-size="8" fill="#bfdbfe">Hash Join on</text>
+    <text x="365" y="148" text-anchor="middle" font-size="8" fill="#bfdbfe">c.id = o.customer_id</text>
+    <text x="365" y="78" text-anchor="middle" font-size="8" fill="#9aa6b8">Combined: 4 rows</text>
+
+    <!-- Arrow up to filter -->
+    <line x1="365" y1="98" x2="365" y2="73" stroke="#5a6678" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Filter -->
+    <rect x="310" y="52" width="110" height="45" rx="8" fill="#fef3c7" stroke="#fcd34d" filter="url(#sh)"/>
+    <text x="365" y="70" text-anchor="middle" font-size="11" font-weight="700" fill="#d97706">Filter</text>
+    <text x="365" y="87" text-anchor="middle" font-size="8" fill="#5a6678">amount &gt; 500</text>
+    <text x="365" y="40" text-anchor="middle" font-size="8" fill="#9aa6b8">Filtered: 2 rows</text>
+
+    <!-- Arrow up to sort -->
+    <line x1="365" y1="52" x2="365" y2="32" stroke="#5a6678" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Sort -->
+    <rect x="320" y="5" width="90" height="38" rx="8" fill="#e8f0ff" stroke="#93c5fd" filter="url(#sh)"/>
+    <text x="365" y="27" text-anchor="middle" font-size="10" font-weight="700" fill="#2f6df6">Sort</text>
+    <text x="365" y="37" text-anchor="middle" font-size="7" fill="#5a6678">ORDER BY amount</text>
+
+    <!-- Arrow to output -->
+    <line x1="410" y1="20" x2="475" y2="20" stroke="#5a6678" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Output -->
+    <rect x="480" y="5" width="90" height="64" rx="8" fill="#fff" stroke="#16a34a" stroke-width="2" filter="url(#sh)"/>
+    <text x="525" y="25" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">Output</text>
+    <text x="525" y="42" text-anchor="middle" font-size="8" fill="#5a6678">Alice | 850</text>
+    <text x="525" y="55" text-anchor="middle" font-size="8" fill="#5a6678">Bob   | 610</text>
+
+    <!-- Table data hints -->
+    <rect x="590" y="138" width="115" height="65" rx="6" fill="#e8f0ff" stroke="#bfdbfe"/>
+    <text x="647" y="155" text-anchor="middle" font-size="9" fill="#2f6df6">INFO</text>
+    <text x="647" y="172" text-anchor="middle" font-size="8" fill="#5a6678">Scan: O(table pages)</text>
+    <text x="647" y="186" text-anchor="middle" font-size="8" fill="#5a6678">Filter: CPU only</text>
+    <text x="647" y="200" text-anchor="middle" font-size="8" fill="#5a6678">Join: O(n*m) worst</text>
   </g>
 </svg>
-<figcaption>Visual overview of 054-operators-such-as-scan-filter-join.</figcaption>
+<figcaption>The fundamental database operators: Scan reads raw data, Filter discards rows, Join combines relations, Sort orders results. They compose into a tree where data flows bottom-up and operators consume/produce row streams.</figcaption>
 </figure>
 <p>When a database receives a SQL query, it does not execute it as a single monolithic step. Instead, the query is decomposed into a tree of <strong>physical operators</strong> — small, composable units that each do one thing well. Understanding these operators is the key to reading query plans, diagnosing slow queries, and building better intuitions about how engines work.</p>
 <h2>The Three Fundamental Operators</h2>
@@ -122,5 +179,6 @@ ORDER BY o.amount DESC;</textarea>
   <nav class="pagenav"><a class="prev" href="053-physical-plans.html"><span class="dir">← Previous</span><span class="ttl">Physical plans</span></a><a class="next" href="055-cost-estimation.html"><span class="dir">Next →</span><span class="ttl">Cost estimation</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

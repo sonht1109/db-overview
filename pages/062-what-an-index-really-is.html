@@ -8,7 +8,8 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 7. Indexes</p>
@@ -130,5 +131,6 @@ SELECT * FROM orders WHERE customer_email = 'alice@example.com';
   <nav class="pagenav"><a class="prev" href="061-why-scanning-everything-is-slow.html"><span class="dir">← Previous</span><span class="ttl">Why scanning everything is slow</span></a><a class="next" href="063-b-tree-indexes.html"><span class="dir">Next →</span><span class="ttl">B-tree indexes</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

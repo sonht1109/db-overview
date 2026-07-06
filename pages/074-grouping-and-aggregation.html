@@ -8,25 +8,86 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 8. Joins, Aggregation, and Sorting</p>
   <h1 class="content-title">Grouping and aggregation</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">074-grouping-and-aggregation</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2f6df6"/></marker>
+  </defs>
+  <g transform="translate(15,10)">
+    <!-- Rows input -->
+    <text x="345" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2330">SELECT dept, COUNT(*), AVG(salary), SUM(salary) FROM employees GROUP BY dept;</text>
+
+    <!-- Source rows -->
+    <rect x="0" y="26" width="180" height="90" rx="10" fill="#fff" stroke="#93c5fd" filter="url(#sh)"/>
+    <text x="90" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#2f6df6">Source Rows</text>
+    <line x1="15" y1="58" x2="165" y2="58" stroke="#e2e6ec"/>
+    <text x="90" y="74" text-anchor="middle" font-size="9" fill="#5a6678">Eng | Ada | 95k</text>
+    <text x="90" y="88" text-anchor="middle" font-size="9" fill="#5a6678">Eng | Chidi | 88k</text>
+    <text x="90" y="102" text-anchor="middle" font-size="9" fill="#5a6678">Mkt | Bola | 72k</text>
+    <text x="90" y="116" text-anchor="middle" font-size="9" fill="#5a6678">Mkt | Zara | 65k</text>
+
+    <!-- Arrow -->
+    <line x1="185" y1="71" x2="230" y2="71" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+    <text x="207" y="64" text-anchor="middle" font-size="9" fill="#2f6df6" font-weight="600">GROUP BY dept</text>
+    <text x="207" y="82" text-anchor="middle" font-size="8" fill="#5a6678">(sort or hash)</text>
+
+    <!-- Buckets -->
+    <rect x="235" y="26" width="220" height="90" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="345" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#2f6df6">Buckets (groups)</text>
+    <line x1="250" y1="58" x2="440" y2="58" stroke="#2f6df6"/>
+    <rect x="245" y="66" width="200" height="20" rx="4" fill="#fff" stroke="#93c5fd"/>
+    <text x="345" y="80" text-anchor="middle" font-size="9" fill="#1c2330">Eng: {Ada,Chidi} → 2 rows</text>
+    <rect x="245" y="90" width="200" height="20" rx="4" fill="#fff" stroke="#93c5fd"/>
+    <text x="345" y="104" text-anchor="middle" font-size="9" fill="#1c2330">Mkt: {Bola,Zara} → 2 rows</text>
+
+    <!-- Arrow -->
+    <line x1="460" y1="71" x2="505" y2="71" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+    <text x="482" y="64" text-anchor="middle" font-size="9" fill="#2f6df6" font-weight="600">COUNT, SUM, AVG</text>
+
+    <!-- Aggregate functions applied -->
+    <rect x="510" y="26" width="180" height="90" rx="10" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="600" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">Result Table</text>
+    <line x1="525" y1="58" x2="675" y2="58" stroke="#e2e6ec"/>
+    <text x="600" y="74" text-anchor="middle" font-size="9" fill="#1c2330">Eng | 2 | 91,500 | 183,000</text>
+    <text x="600" y="90" text-anchor="middle" font-size="9" fill="#1c2330">Mkt | 2 | 68,500 | 137,000</text>
+
+    <!-- Details below -->
+    <rect x="0" y="130" width="690" height="155" rx="10" fill="#f8fafc" stroke="#e2e6ec"/>
+    <text x="345" y="155" text-anchor="middle" font-size="13" font-weight="700" fill="#1c2330">How GROUP BY Works Internally</text>
+    <line x1="50" y1="163" x2="640" y2="163" stroke="#e2e6ec"/>
+    <!-- Steps -->
+    <rect x="15" y="172" width="155" height="45" rx="6" fill="#fff" stroke="#93c5fd"/>
+    <text x="92" y="192" text-anchor="middle" font-size="10" font-weight="600" fill="#2f6df6">Step 1</text>
+    <text x="92" y="207" text-anchor="middle" font-size="9" fill="#5a6678">Scan rows from table</text>
+
+    <rect x="185" y="172" width="155" height="45" rx="6" fill="#fff" stroke="#93c5fd"/>
+    <text x="262" y="192" text-anchor="middle" font-size="10" font-weight="600" fill="#2f6df6">Step 2</text>
+    <text x="262" y="207" text-anchor="middle" font-size="9" fill="#5a6678">Partition into groups</text>
+    <text x="262" y="217" text-anchor="middle" font-size="8" fill="#9aa6b8">(sort or hash)</text>
+
+    <rect x="355" y="172" width="155" height="45" rx="6" fill="#fff" stroke="#93c5fd"/>
+    <text x="432" y="192" text-anchor="middle" font-size="10" font-weight="600" fill="#2f6df6">Step 3</text>
+    <text x="432" y="207" text-anchor="middle" font-size="9" fill="#5a6678">Compute aggregates</text>
+    <text x="432" y="217" text-anchor="middle" font-size="8" fill="#9aa6b8">(COUNT,SUM,AVG,MIN,MAX)</text>
+
+    <rect x="525" y="172" width="155" height="45" rx="6" fill="#dcfce7" stroke="#86efac"/>
+    <text x="602" y="192" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">Step 4</text>
+    <text x="602" y="207" text-anchor="middle" font-size="9" fill="#16a34a">Return result set</text>
+    <text x="602" y="217" text-anchor="middle" font-size="8" fill="#5a6678">HAVING filter applied</text>
+
+    <text x="345" y="260" text-anchor="middle" font-size="10" fill="#5a6678">Hash aggregate: maintains an in-memory hash table of buckets  ·  Sort aggregate: sorts by group key then scans linearly</text>
+    <text x="345" y="278" text-anchor="middle" font-size="9" fill="#9aa6b8">The optimizer picks the cheapest strategy based on available memory and estimated group count</text>
   </g>
 </svg>
-<figcaption>Visual overview of 074-grouping-and-aggregation.</figcaption>
+<figcaption>GROUP BY splits rows into buckets by key, then each aggregate function folds each bucket's values into a single scalar — one output row per group.</figcaption>
 </figure>
 <p>So far you have filtered rows with <code>WHERE</code> and sorted them with <code>ORDER BY</code>. Those operations work on individual rows. <strong>Aggregation</strong> is different: it collapses many rows into a single summary value — a count, a sum, an average, a minimum, or a maximum. <strong>Grouping</strong> lets you compute those summaries separately for each subset of your data. Together, <code>GROUP BY</code> and the aggregate functions are among the most practically useful tools in SQL.</p>
 <h2>Aggregate Functions</h2>
@@ -135,5 +196,6 @@ ORDER BY revenue DESC;</textarea>
   <nav class="pagenav"><a class="prev" href="073-merge-joins.html"><span class="dir">← Previous</span><span class="ttl">Merge joins</span></a><a class="next" href="075-external-sort.html"><span class="dir">Next →</span><span class="ttl">External sort</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

@@ -8,25 +8,62 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 8. Joins, Aggregation, and Sorting</p>
   <h1 class="content-title">Practical query tuning</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">079-practical-query-tuning</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2f6df6"/></marker>
+    <marker id="arG" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#16a34a"/></marker>
+  </defs>
+  <g transform="translate(15,10)">
+    <!-- Step 1: Slow query -->
+    <rect x="0" y="0" width="320" height="48" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="160" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="#dc2626">① Find the slow query</text>
+    <text x="160" y="38" text-anchor="middle" font-size="9" fill="#5a6678">pg_stat_statements · slow query log · monitoring</text>
+
+    <!-- Arrow -->
+    <line x1="325" y1="24" x2="365" y2="24" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+
+    <!-- Step 2: EXPLAIN -->
+    <rect x="370" y="0" width="320" height="48" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="530" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="#2f6df6">② EXPLAIN (ANALYZE, BUFFERS)</text>
+    <text x="530" y="38" text-anchor="middle" font-size="9" fill="#5a6678">Read the plan: Seq Scan? Nested Loop? High rows?</text>
+
+    <!-- Arrow down -->
+    <line x1="530" y1="48" x2="530" y2="65" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+
+    <!-- Step 3: Identify bottleneck -->
+    <rect x="370" y="68" width="320" height="56" rx="8" fill="#fffbeb" stroke="#fcd34d" filter="url(#sh)"/>
+    <text x="530" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#d97706">③ Identify the bottleneck</text>
+    <text x="530" y="108" text-anchor="middle" font-size="9" fill="#5a6678">Missing index? Bad join order? Too many rows?</text>
+    <text x="530" y="120" text-anchor="middle" font-size="8" fill="#5a6678">Check: actual vs estimated rows · buffer reads · loops</text>
+
+    <!-- Arrow to fix -->
+    <line x1="530" y1="124" x2="530" y2="142" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+
+    <!-- Step 4: Fix -->
+    <rect x="370" y="145" width="320" height="56" rx="8" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="530" y="167" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">④ Apply the fix</text>
+    <text x="530" y="183" text-anchor="middle" font-size="9" fill="#5a6678">CREATE INDEX · rewrite query · increase work_mem</text>
+    <text x="530" y="197" text-anchor="middle" font-size="8" fill="#5a6678">· UPDATE STATISTICS · add composite index</text>
+
+    <!-- Arrow left back to step 2 (cycle) -->
+    <line x1="370" y1="173" x2="30" y2="173" stroke="#16a34a" stroke-width="2" marker-end="url(#arG)" stroke-dasharray="6,3"/>
+    <text x="200" y="166" text-anchor="middle" font-size="9" fill="#16a34a" font-weight="600">⑤ VERIFY — Run EXPLAIN again, check improvement</text>
+
+    <!-- Bottom: Before/After comparison -->
+    <rect x="0" y="215" width="690" height="42" rx="8" fill="#1c2330"/>
+    <text x="345" y="239" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Before: 4.2 sec (Seq Scan on orders, 500K rows)  →  After: 12 ms (Index Scan, 3 rows)  —  350× faster</text>
   </g>
 </svg>
-<figcaption>Visual overview of 079-practical-query-tuning.</figcaption>
+<figcaption>The query tuning cycle: find the slow query, explain its plan, identify the bottleneck, apply a targeted fix, then verify improvement — repeat as needed.</figcaption>
 </figure>
 <p>Writing a query that returns the right rows is step one. Writing a query that returns them <em>fast</em> is step two — and step two matters a lot once your tables grow past a few thousand rows. Query tuning is the craft of reading what the database is actually doing and nudging it toward something cheaper.</p>
 <h2>Understand What the Engine Is Doing</h2>
@@ -131,5 +168,6 @@ ORDER BY revenue DESC;</textarea>
   <nav class="pagenav"><a class="prev" href="078-cardinality-and-row-counts.html"><span class="dir">← Previous</span><span class="ttl">Cardinality and row counts</span></a><a class="next" href="081-why-databases-use-pages.html"><span class="dir">Next →</span><span class="ttl">Why databases use pages</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

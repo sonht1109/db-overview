@@ -8,25 +8,85 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 8. Joins, Aggregation, and Sorting</p>
   <h1 class="content-title">Join order matters</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">077-join-order-matters</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2f6df6"/></marker>
+    <marker id="arR" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#dc2626"/></marker>
+  </defs>
+  <g transform="translate(25,10)">
+    <!-- Three tables -->
+    <rect x="0" y="5" width="120" height="40" rx="6" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="60" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#2f6df6">A: orders</text>
+    <text x="60" y="38" text-anchor="middle" font-size="9" fill="#5a6678">10 rows</text>
+
+    <rect x="300" y="5" width="120" height="40" rx="6" fill="#fffbeb" stroke="#fcd34d" filter="url(#sh)"/>
+    <text x="360" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#d97706">B: customers</text>
+    <text x="360" y="38" text-anchor="middle" font-size="9" fill="#5a6678">1,000 rows</text>
+
+    <rect x="600" y="5" width="120" height="40" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="660" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">C: items</text>
+    <text x="660" y="38" text-anchor="middle" font-size="9" fill="#5a6678">100 rows</text>
+
+    <!-- BAD join order -->
+    <text x="170" y="70" text-anchor="middle" font-size="11" font-weight="700" fill="#dc2626">❌ BAD ORDER: (A ⋈ B) ⋈ C</text>
+    <rect x="0" y="80" width="100" height="32" rx="5" fill="#e8f0ff" stroke="#2f6df6"/>
+    <text x="50" y="100" text-anchor="middle" font-size="9" fill="#2f6df6">A (10)</text>
+    <circle cx="100" cy="96" r="10" fill="#e2e6ec" stroke="#5a6678"/>
+    <text x="100" y="100" text-anchor="middle" font-size="9" fill="#5a6678">⋈</text>
+    <rect x="110" y="80" width="120" height="32" rx="5" fill="#fffbeb" stroke="#fcd34d"/>
+    <text x="170" y="100" text-anchor="middle" font-size="9" fill="#d97706">B (1,000)</text>
+    <!-- Arrow to intermediate -->
+    <line x1="235" y1="96" x2="275" y2="96" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arR)"/>
+    <rect x="280" y="80" width="130" height="32" rx="5" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="345" y="100" text-anchor="middle" font-size="9" fill="#dc2626">~200 rows</text>
+    <!-- Second arrow -->
+    <line x1="415" y1="96" x2="455" y2="96" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arR)"/>
+    <circle cx="465" cy="96" r="10" fill="#e2e6ec" stroke="#5a6678"/>
+    <text x="465" y="100" text-anchor="middle" font-size="9" fill="#5a6678">⋈</text>
+    <rect x="475" y="80" width="100" height="32" rx="5" fill="#dcfce7" stroke="#86efac"/>
+    <text x="525" y="100" text-anchor="middle" font-size="9" fill="#16a34a">C (100)</text>
+    <line x1="580" y1="96" x2="615" y2="96" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arR)"/>
+    <rect x="620" y="80" width="85" height="32" rx="5" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="662" y="100" text-anchor="middle" font-size="9" fill="#dc2626">~25 rows</text>
+    <text x="170" y="120" text-anchor="middle" font-size="8" fill="#dc2626">200-row intermediate × 100 = 20,000 comparisons</text>
+
+    <!-- GOOD join order -->
+    <text x="170" y="148" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">✅ GOOD ORDER: (A ⋈ C) ⋈ B</text>
+    <rect x="0" y="158" width="100" height="32" rx="5" fill="#e8f0ff" stroke="#2f6df6"/>
+    <text x="50" y="178" text-anchor="middle" font-size="9" fill="#2f6df6">A (10)</text>
+    <circle cx="100" cy="174" r="10" fill="#e2e6ec" stroke="#5a6678"/>
+    <text x="100" y="178" text-anchor="middle" font-size="9" fill="#5a6678">⋈</text>
+    <rect x="110" y="158" width="100" height="32" rx="5" fill="#dcfce7" stroke="#86efac"/>
+    <text x="160" y="178" text-anchor="middle" font-size="9" fill="#16a34a">C (100)</text>
+    <line x1="215" y1="174" x2="255" y2="174" stroke="#16a34a" stroke-width="1.5" marker-end="url(#ar)"/>
+    <rect x="260" y="158" width="130" height="32" rx="5" fill="#f0fdf4" stroke="#86efac"/>
+    <text x="325" y="178" text-anchor="middle" font-size="9" fill="#16a34a">~12 rows</text>
+    <line x1="395" y1="174" x2="435" y2="174" stroke="#16a34a" stroke-width="1.5" marker-end="url(#ar)"/>
+    <circle cx="445" cy="174" r="10" fill="#e2e6ec" stroke="#5a6678"/>
+    <text x="445" y="178" text-anchor="middle" font-size="9" fill="#5a6678">⋈</text>
+    <rect x="455" y="158" width="120" height="32" rx="5" fill="#fffbeb" stroke="#fcd34d"/>
+    <text x="515" y="178" text-anchor="middle" font-size="9" fill="#d97706">B (1,000)</text>
+    <line x1="580" y1="174" x2="615" y2="174" stroke="#16a34a" stroke-width="1.5" marker-end="url(#ar)"/>
+    <rect x="620" y="158" width="85" height="32" rx="5" fill="#dcfce7" stroke="#86efac"/>
+    <text x="662" y="178" text-anchor="middle" font-size="9" fill="#16a34a">~25 rows</text>
+    <text x="170" y="198" text-anchor="middle" font-size="8" fill="#16a34a">12-row intermediate × 1,000 = 12,000 comparisons</text>
+
+    <!-- Bottom summary -->
+    <rect x="80" y="218" width="560" height="38" rx="8" fill="#1c2330"/>
+    <text x="360" y="236" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Same final result — but (A⋈C)⋈B does 40% fewer comparisons. Join early on small tables!</text>
+    <text x="360" y="252" text-anchor="middle" font-size="9" fill="#9aa6b8">The optimizer evaluates many join orders using cardinality estimates — keeping intermediate results small is the core strategy.</text>
   </g>
 </svg>
-<figcaption>Visual overview of 077-join-order-matters.</figcaption>
+<figcaption>Join order dramatically affects performance — starting with the smallest tables keeps intermediate result sets small and reduces total comparisons.</figcaption>
 </figure>
 <p>When you write a multi-table query, the database engine has to decide <em>how</em> to combine those tables internally — which table to read first, which to probe into next, and what algorithm to use at each step. This sequence of decisions is called the <strong>join order</strong>, and it can be the difference between a query that finishes in milliseconds and one that crawls for minutes on the exact same data.</p>
 <h2>Why the sequence matters</h2>
@@ -109,5 +169,6 @@ ORDER BY p.price DESC;</textarea>
   <nav class="pagenav"><a class="prev" href="076-memory-limits-and-spill-to-disk.html"><span class="dir">← Previous</span><span class="ttl">Memory limits and spill to disk</span></a><a class="next" href="078-cardinality-and-row-counts.html"><span class="dir">Next →</span><span class="ttl">Cardinality and row counts</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

@@ -8,25 +8,74 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 7. Indexes</p>
   <h1 class="content-title">Secondary indexes</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">068-secondary-indexes</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#d97706"/></marker>
+    <marker id="arB" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2f6df6"/></marker>
+  </defs>
+  <g transform="translate(25,12)">
+    <!-- Query -->
+    <rect x="180" y="0" width="310" height="26" rx="6" fill="#2f6df6"/>
+    <text x="335" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">SELECT * FROM employees WHERE name = 'Ada'</text>
+
+    <!-- Line to secondary index -->
+    <line x1="335" y1="26" x2="335" y2="42" stroke="#2f6df6" stroke-width="2" marker-end="url(#arB)"/>
+
+    <!-- Secondary Index B-tree -->
+    <rect x="80" y="46" width="510" height="80" rx="10" fill="#fff" stroke="#d97706" stroke-width="2" filter="url(#sh)"/>
+    <rect x="80" y="46" width="510" height="28" rx="10" fill="#fefce8"/>
+    <text x="335" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="#d97706">SECONDARY INDEX on name (non-clustered)</text>
+    <!-- B-tree leaves -->
+    <rect x="100" y="80" width="100" height="38" rx="5" fill="#dcfce7" stroke="#86efac"/>
+    <text x="150" y="96" text-anchor="middle" font-size="9" fill="#16a34a">Ada</text>
+    <text x="150" y="111" text-anchor="middle" font-size="8" fill="#5a6678">→ PK=1</text>
+    <rect x="230" y="80" width="100" height="38" rx="5" fill="#dcfce7" stroke="#86efac"/>
+    <text x="280" y="96" text-anchor="middle" font-size="9" fill="#16a34a">Bola</text>
+    <text x="280" y="111" text-anchor="middle" font-size="8" fill="#5a6678">→ PK=2</text>
+    <rect x="360" y="80" width="100" height="38" rx="5" fill="#dcfce7" stroke="#86efac"/>
+    <text x="410" y="96" text-anchor="middle" font-size="9" fill="#16a34a">Chidi</text>
+    <text x="410" y="111" text-anchor="middle" font-size="8" fill="#5a6678">→ PK=3</text>
+    <rect x="490" y="80" width="80" height="38" rx="5" fill="#dcfce7" stroke="#86efac"/>
+    <text x="530" y="96" text-anchor="middle" font-size="9" fill="#16a34a">...</text>
+    <text x="530" y="111" text-anchor="middle" font-size="8" fill="#5a6678">→ PK=...</text>
+
+    <!-- Arrow from secondary to primary -->
+    <line x1="150" y1="128" x2="150" y2="148" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ar)"/>
+    <text x="150" y="143" text-anchor="middle" font-size="8" fill="#d97706">lookup</text>
+
+    <!-- Arrow from secondary to primary (Bola) -->
+    <line x1="280" y1="128" x2="280" y2="148" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ar)"/>
+    <line x1="410" y1="128" x2="410" y2="148" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ar)"/>
+
+    <!-- Primary Key / Clustered Index -->
+    <rect x="80" y="152" width="510" height="80" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <rect x="80" y="152" width="510" height="28" rx="10" fill="#e8f0ff"/>
+    <text x="335" y="171" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">CLUSTERED INDEX on id (PRIMARY KEY) — contains full rows</text>
+    <!-- PK leaves with full data -->
+    <rect x="100" y="186" width="140" height="38" rx="5" fill="#fff" stroke="#93c5fd"/>
+    <text x="170" y="202" text-anchor="middle" font-size="9" fill="#2f6df6">PK=1 | Ada | Eng | 95k</text>
+    <rect x="260" y="186" width="140" height="38" rx="5" fill="#fff" stroke="#93c5fd"/>
+    <text x="330" y="202" text-anchor="middle" font-size="9" fill="#2f6df6">PK=2 | Bola | Mkt | 72k</text>
+    <rect x="420" y="186" width="140" height="38" rx="5" fill="#fff" stroke="#93c5fd"/>
+    <text x="490" y="202" text-anchor="middle" font-size="9" fill="#2f6df6">PK=3 | Chidi | Eng | 88k</text>
+
+    <!-- Explanation area -->
+    <rect x="80" y="250" width="510" height="65" rx="8" fill="#f8fafc" stroke="#e2e6ec"/>
+    <text x="335" y="270" text-anchor="middle" font-size="11" font-weight="700" fill="#1c2330">Two-step lookup</text>
+    <text x="335" y="288" text-anchor="middle" font-size="10" fill="#5a6678">1. Probe secondary index to find the primary key (or row pointer in heap-organized tables)</text>
+    <text x="335" y="304" text-anchor="middle" font-size="10" fill="#5a6678">2. Use that PK to fetch the full row from the clustered index (or heap page)</text>
   </g>
 </svg>
-<figcaption>Visual overview of 068-secondary-indexes.</figcaption>
+<figcaption>A secondary (non-clustered) index stores the indexed column plus a pointer to the primary key; retrieving the full row requires a second lookup into the clustered index or heap.</figcaption>
 </figure>
 <p>Every table has at most one primary key — a built-in way to find a row by its unique identifier. But you rarely look up a user <em>by their internal ID</em>. More often you search by email address, filter products by category, or find orders placed after a certain date. A <strong>secondary index</strong> is any index built on a column (or columns) other than the primary key. It gives the database a fast path to rows based on the values of those columns.</p>
 <h2>Primary vs. Secondary: What Changes</h2>
@@ -160,5 +209,6 @@ SELECT name, price FROM products WHERE category = &#39;electronics&#39; ORDER BY
   <nav class="pagenav"><a class="prev" href="067-unique-indexes.html"><span class="dir">← Previous</span><span class="ttl">Unique indexes</span></a><a class="next" href="069-when-indexes-hurt.html"><span class="dir">Next →</span><span class="ttl">When indexes hurt</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

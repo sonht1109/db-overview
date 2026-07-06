@@ -8,25 +8,71 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 6. How Query Processing Works</p>
   <h1 class="content-title">Query planning mistakes</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">059-query-planning-mistakes</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+  </defs>
+  <g transform="translate(15,8)">
+    <!-- Mistake 1 -->
+    <rect x="0" y="0" width="220" height="70" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="110" y="20" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">⚠ Function Wrapping</text>
+    <text x="110" y="38" text-anchor="middle" font-size="8" fill="#5a6678">WHERE YEAR(date) = 2024</text>
+    <text x="110" y="52" text-anchor="middle" font-size="8" fill="#dc2626">Index on date is bypassed!</text>
+    <text x="110" y="66" text-anchor="middle" font-size="7" fill="#16a34a">Fix: date &gt;= '2024-01-01'</text>
+
+    <!-- Mistake 2 -->
+    <rect x="235" y="0" width="220" height="70" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="345" y="20" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">⚠ Stale Statistics</text>
+    <text x="345" y="38" text-anchor="middle" font-size="8" fill="#5a6678">Planner thinks: 1000 rows</text>
+    <text x="345" y="52" text-anchor="middle" font-size="8" fill="#dc2626">Reality: 10M rows!</text>
+    <text x="345" y="66" text-anchor="middle" font-size="7" fill="#16a34a">Fix: ANALYZE table</text>
+
+    <!-- Mistake 3 -->
+    <rect x="470" y="0" width="235" height="70" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="587" y="20" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">⚠ Bad Join Order</text>
+    <text x="587" y="38" text-anchor="middle" font-size="8" fill="#5a6678">Join 1M × 1M first,</text>
+    <text x="587" y="52" text-anchor="middle" font-size="8" fill="#dc2626">then filter to 10 rows</text>
+    <text x="587" y="66" text-anchor="middle" font-size="7" fill="#16a34a">Fix: filter early, join small</text>
+
+    <!-- Mistake 4 -->
+    <rect x="0" y="85" width="220" height="70" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="110" y="105" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">⚠ Missing FK Index</text>
+    <text x="110" y="123" text-anchor="middle" font-size="8" fill="#5a6678">FK on orders.customer_id</text>
+    <text x="110" y="137" text-anchor="middle" font-size="8" fill="#dc2626">No index → full scan every join</text>
+    <text x="110" y="151" text-anchor="middle" font-size="7" fill="#16a34a">Fix: CREATE INDEX on FK col</text>
+
+    <!-- Mistake 5 -->
+    <rect x="235" y="85" width="220" height="70" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="345" y="105" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">⚠ Leading Wildcard</text>
+    <text x="345" y="123" text-anchor="middle" font-size="8" fill="#5a6678">WHERE email LIKE '%@gmail'</text>
+    <text x="345" y="137" text-anchor="middle" font-size="8" fill="#dc2626">B-tree index cannot help</text>
+    <text x="345" y="151" text-anchor="middle" font-size="7" fill="#16a34a">Fix: full-text index or redesign</text>
+
+    <!-- Mistake 6 -->
+    <rect x="470" y="85" width="235" height="70" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="587" y="105" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">⚠ Implicit Conversion</text>
+    <text x="587" y="123" text-anchor="middle" font-size="8" fill="#5a6678">WHERE id = '42' (text)</text>
+    <text x="587" y="137" text-anchor="middle" font-size="8" fill="#dc2626">Cast breaks index usage</text>
+    <text x="587" y="151" text-anchor="middle" font-size="7" fill="#16a34a">Fix: match column type exactly</text>
+
+    <!-- Bottom advice -->
+    <rect x="100" y="170" width="520" height="35" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="360" y="188" text-anchor="middle" font-size="10" font-weight="700" fill="#2f6df6">How to catch these: Run EXPLAIN after every schema change or bulk data load</text>
+    <text x="360" y="202" text-anchor="middle" font-size="9" fill="#5a6678">If you see Seq Scan where you expect Index Scan — one of these mistakes is likely the cause</text>
+
+    <!-- Legend -->
+    <text x="360" y="228" text-anchor="middle" font-size="8" fill="#9aa6b8">Each ⚠ is a real-world mistake that turns a fast query into a full scan or a bloated intermediate result</text>
   </g>
 </svg>
-<figcaption>Visual overview of 059-query-planning-mistakes.</figcaption>
+<figcaption>Six common query planning mistakes, each with its symptom and fix. The most insidious is stale statistics — the optimizer picks the right plan for the wrong data size. EXPLAIN is your diagnostic tool for all of them.</figcaption>
 </figure>
 <p>Even a perfectly correct SQL query can run slowly — or grind a database to a halt — when the query planner makes a poor decision about <em>how</em> to execute it. Understanding common planning mistakes helps you write queries that cooperate with the planner, and gives you the vocabulary to diagnose problems when something is inexplicably slow.</p>
 <h2>What the Planner Does (in One Sentence)</h2>
@@ -118,5 +164,6 @@ SELECT * FROM orders WHERE customer_id = 42;</textarea>
   <nav class="pagenav"><a class="prev" href="058-reading-an-explain-plan.html"><span class="dir">← Previous</span><span class="ttl">Reading an explain plan</span></a><a class="next" href="061-why-scanning-everything-is-slow.html"><span class="dir">Next →</span><span class="ttl">Why scanning everything is slow</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

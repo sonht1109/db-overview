@@ -8,25 +8,76 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 10. Trees, Logs, and Internal Structures</p>
   <h1 class="content-title">Write-ahead logging basics</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">093-write-ahead-logging-basics</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 330" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2f6df6"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
+  </defs>
+  <g transform="translate(10,8)">
+    <!-- Transaction box -->
+    <rect x="20" y="0" width="200" height="60" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="120" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="#2f6df6">Txn 42: Update accounts</text>
+    <text x="120" y="38" text-anchor="middle" font-size="9" fill="#1c2330">SET balance=900 WHERE id=1</text>
+    <text x="120" y="53" text-anchor="middle" font-size="9" fill="#1c2330">SET balance=1100 WHERE id=2</text>
+
+    <line x1="220" y1="30" x2="260" y2="30" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+    <text x="240" y="22" text-anchor="middle" font-size="8" font-weight="600" fill="#5a6678">1st</text>
+
+    <!-- WAL on disk -->
+    <rect x="265" y="0" width="430" height="60" rx="8" fill="#fff" stroke="#d97706" stroke-width="2" filter="url(#sh)"/>
+    <text x="480" y="18" text-anchor="middle" font-size="10" font-weight="700" fill="#d97706">WAL File (append-only, sequential)</text>
+    <line x1="280" y1="26" x2="680" y2="26" stroke="#e2e6ec"/>
+    <text x="285" y="42" font-size="9" fill="#1c2330">LSN 100: BEGIN txn 42</text>
+    <text x="285" y="56" font-size="9" fill="#1c2330">LSN 101: UPDATE page 7, slot 3 → balance=900 (old=1000)</text>
+
+    <!-- Arrow to buffer pool -->
+    <line x1="480" y1="60" x2="480" y2="90" stroke="#2f6df6" stroke-width="1.5"/>
+    <text x="500" y="80" font-size="8" fill="#5a6678">2nd (later)</text>
+
+    <!-- Buffer pool -->
+    <rect x="100" y="94" width="500" height="55" rx="8" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="350" y="112" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">Buffer Pool (RAM) — data pages modified</text>
+    <line x1="115" y1="120" x2="585" y2="120" stroke="#e2e6ec"/>
+    <text x="350" y="136" text-anchor="middle" font-size="9" fill="#1c2330">Page 7 (dirty): accounts table — balance=900 written to slot 3</text>
+    <text x="350" y="148" text-anchor="middle" font-size="9" fill="#1c2330">Page 8 (dirty): accounts table — balance=1100 written to slot 4</text>
+
+    <!-- Before/After crash -->
+    <text x="350" y="175" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2330">Crash Recovery Scenario</text>
+
+    <!-- Before crash -->
+    <rect x="20" y="188" width="330" height="65" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="185" y="207" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">After Crash (dirty pages lost from RAM)</text>
+    <text x="185" y="226" text-anchor="middle" font-size="9" fill="#5a6678">Data pages on disk: id=1 balance=1000 (stale!)</text>
+    <text x="185" y="242" text-anchor="middle" font-size="9" fill="#5a6678">But WAL has: LSN 101-102 with new values</text>
+    <text x="185" y="255" text-anchor="middle" font-size="8" fill="#9aa6b8">WAL survived — it was flushed before crash</text>
+
+    <line x1="350" y1="220" x2="370" y2="220" stroke="#16a34a" stroke-width="2" marker-end="url(#ag)"/>
+
+    <!-- After recovery -->
+    <rect x="372" y="188" width="330" height="65" rx="8" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="537" y="207" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">After Recovery (WAL replayed)</text>
+    <text x="537" y="226" text-anchor="middle" font-size="9" fill="#1c2330">Engine reads checkpoint, replays LSN 100→102</text>
+    <text x="537" y="242" text-anchor="middle" font-size="9" fill="#1c2330">Data pages now: id=1 balance=900, id=2=1100</text>
+    <text x="537" y="255" text-anchor="middle" font-size="9" fill="#16a34a">Consistent — committed txns intact</text>
+
+    <!-- Rule box -->
+    <rect x="130" y="268" width="440" height="38" rx="6" fill="#1c2330" filter="url(#sh)"/>
+    <text x="350" y="288" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">THE WRITE-AHEAD RULE:</text>
+    <text x="350" y="302" text-anchor="middle" font-size="10" fill="#9aa6b8">WAL entry must hit disk BEFORE the corresponding data page is written</text>
+
+    <text x="350" y="325" text-anchor="middle" font-size="8" fill="#9aa6b8">Key insight: log is sequential (fast) · data pages are random (slow) · WAL decouples durability from page writes</text>
   </g>
 </svg>
-<figcaption>Visual overview of 093-write-ahead-logging-basics.</figcaption>
+<figcaption>Write-ahead logging: every change hits the sequential WAL first, guaranteeing that committed transactions survive even if data pages are lost.</figcaption>
 </figure>
 <p>Before a database can promise that a committed transaction survives a crash, it needs to record what it <em>intended</em> to do before touching the data files on disk. That mechanism is <strong>write-ahead logging (WAL)</strong> — the foundation of durability in PostgreSQL, SQLite, MySQL/InnoDB, Oracle, SQL Server, and virtually every other production engine.</p>
 <h2>The Core Idea: Write the Log First</h2>
@@ -117,5 +168,6 @@ ORDER BY id;</textarea>
   <nav class="pagenav"><a class="prev" href="092-splits-merges-and-rebalancing.html"><span class="dir">← Previous</span><span class="ttl">Splits, merges, and rebalancing</span></a><a class="next" href="094-checkpoints.html"><span class="dir">Next →</span><span class="ttl">Checkpoints</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

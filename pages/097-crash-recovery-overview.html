@@ -8,25 +8,75 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 10. Trees, Logs, and Internal Structures</p>
   <h1 class="content-title">Crash recovery overview</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">097-crash-recovery-overview</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 290" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#dc2626"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
+    <marker id="ab" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2f6df6"/></marker>
+  </defs>
+  <g transform="translate(15,8)">
+    <!-- Step 0: Crash -->
+    <rect x="10" y="0" width="120" height="40" rx="8" fill="#dc2626" filter="url(#sh)"/>
+    <text x="70" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">CRASH</text>
+    <text x="70" y="33" text-anchor="middle" font-size="8" fill="#fca5a5">power loss / kill</text>
+
+    <line x1="130" y1="20" x2="165" y2="20" stroke="#dc2626" stroke-width="2" marker-end="url(#ar)"/>
+
+    <!-- Step 1: Restart -->
+    <rect x="168" y="0" width="120" height="40" rx="8" fill="#2f6df6" filter="url(#sh)"/>
+    <text x="228" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">RESTART</text>
+    <text x="228" y="33" text-anchor="middle" font-size="8" fill="#bfdbfe">DB restarts</text>
+
+    <line x1="288" y1="20" x2="325" y2="20" stroke="#2f6df6" stroke-width="2" marker-end="url(#ab)"/>
+
+    <!-- Step 2: Read checkpoint -->
+    <rect x="328" y="0" width="140" height="40" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="398" y="18" text-anchor="middle" font-size="10" font-weight="700" fill="#2f6df6">2. Read Checkpoint</text>
+    <text x="398" y="33" text-anchor="middle" font-size="8" fill="#5a6678">last CKPT = LSN 5000</text>
+
+    <line x1="468" y1="20" x2="505" y2="20" stroke="#2f6df6" stroke-width="2" marker-end="url(#ab)"/>
+
+    <!-- Step 3: Replay WAL (Redo) -->
+    <rect x="508" y="0" width="180" height="40" rx="8" fill="#d97706" filter="url(#sh)"/>
+    <text x="598" y="18" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">3. Replay WAL (REDO)</text>
+    <text x="598" y="33" text-anchor="middle" font-size="8" fill="#fef3c7">LSN 5000→latest</text>
+
+    <!-- Redo detail -->
+    <rect x="100" y="55" width="490" height="55" rx="6" fill="#fefce8" stroke="#facc15" filter="url(#sh)"/>
+    <text x="345" y="72" text-anchor="middle" font-size="10" font-weight="600" fill="#d97706">REDO phase: re-apply all committed changes from WAL</text>
+    <text x="345" y="90" text-anchor="middle" font-size="9" fill="#5a6678">LSN 5010: UPDATE page 7 slot 3 → balance=900 ✓ applied</text>
+    <text x="345" y="105" text-anchor="middle" font-size="9" fill="#5a6678">LSN 5020: UPDATE page 8 slot 4 → balance=1100 ✓ applied</text>
+
+    <!-- Arrow down -->
+    <line x1="345" y1="110" x2="345" y2="138" stroke="#16a34a" stroke-width="2" marker-end="url(#ag)"/>
+
+    <!-- Step 4: Undo uncommitted -->
+    <rect x="100" y="142" width="490" height="55" rx="6" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="345" y="159" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">UNDO phase: roll back uncommitted transactions</text>
+    <text x="345" y="177" text-anchor="middle" font-size="9" fill="#5a6678">Txn 43: had BEGIN but no COMMIT → UNDO all its changes</text>
+    <text x="345" y="192" text-anchor="middle" font-size="9" fill="#5a6678">Result: never-began or never-finished txns completely gone</text>
+
+    <!-- Arrow down -->
+    <line x1="345" y1="197" x2="345" y2="225" stroke="#16a34a" stroke-width="2" marker-end="url(#ag)"/>
+
+    <!-- Step 5: Consistent state -->
+    <rect x="200" y="228" width="290" height="45" rx="8" fill="#16a34a" filter="url(#sh)"/>
+    <text x="345" y="248" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">5. CONSISTENT STATE</text>
+    <text x="345" y="266" text-anchor="middle" font-size="9" fill="#bbf7d0">Committed txns: intact   |   Uncommitted: gone</text>
+
+    <text x="345" y="288" text-anchor="middle" font-size="8" fill="#9aa6b8">RECOVERY = CHECKPOINT + REDO (committed) + UNDO (uncommitted) → guaranteed ACID durability</text>
   </g>
 </svg>
-<figcaption>Visual overview of 097-crash-recovery-overview.</figcaption>
+<figcaption>Crash recovery in five steps: restart, find checkpoint, redo committed WAL entries, undo uncommitted transactions, and land in a consistent state.</figcaption>
 </figure>
 <p>When a database crashes — power cut, OS panic, process killed — it must restart and end up in a <strong>consistent state</strong>. That means committed transactions are fully visible, and any transaction that never finished is completely gone. Getting this right is called <strong>crash recovery</strong>, and it is one of the most carefully engineered parts of any serious database engine.</p>
 <h2>The Problem: Writes Are Not Atomic by Default</h2>
@@ -157,5 +207,6 @@ ORDER BY txn_id;</textarea>
   <nav class="pagenav"><a class="prev" href="096-dirty-pages-and-flushing.html"><span class="dir">← Previous</span><span class="ttl">Dirty pages and flushing</span></a><a class="next" href="098-space-amplification.html"><span class="dir">Next →</span><span class="ttl">Space amplification</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

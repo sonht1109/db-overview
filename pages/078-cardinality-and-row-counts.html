@@ -8,25 +8,63 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 8. Joins, Aggregation, and Sorting</p>
   <h1 class="content-title">Cardinality and row counts</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">078-cardinality-and-row-counts</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2f6df6"/></marker>
+    <marker id="arO" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#d97706"/></marker>
+  </defs>
+  <g transform="translate(15,10)">
+    <!-- EXPLAIN query plan header -->
+    <rect x="130" y="0" width="440" height="26" rx="6" fill="#2f6df6"/>
+    <text x="350" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">EXPLAIN SELECT * FROM orders WHERE status = 'pending' AND amount > 100</text>
+
+    <!-- Statistics box -->
+    <rect x="10" y="36" width="250" height="85" rx="8" fill="#f8fafc" stroke="#e2e6ec" filter="url(#sh)"/>
+    <text x="135" y="58" text-anchor="middle" font-size="11" font-weight="700" fill="#1c2330">pg_stats (table statistics)</text>
+    <line x1="25" y1="64" x2="245" y2="64" stroke="#e2e6ec"/>
+    <text x="135" y="80" text-anchor="middle" font-size="9" fill="#5a6678">n_distinct(status): 4    (25% each)</text>
+    <text x="135" y="94" text-anchor="middle" font-size="9" fill="#5a6678">n_distinct(amount): −1   (unique)</text>
+    <text x="135" y="108" text-anchor="middle" font-size="9" fill="#5a6678">n_live_tup: 100,000 rows</text>
+
+    <!-- Arrow -->
+    <line x1="265" y1="78" x2="305" y2="78" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+
+    <!-- Optimizer estimates -->
+    <rect x="310" y="36" width="380" height="85" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="500" y="58" text-anchor="middle" font-size="11" font-weight="700" fill="#2f6df6">Optimizer Estimation</text>
+    <line x1="325" y1="64" x2="675" y2="64" stroke="#93c5fd"/>
+    <text x="500" y="80" text-anchor="middle" font-size="9" fill="#1c2330">status='pending': 100,000 × 0.25 = <tspan font-weight="700" fill="#2f6df6">25,000 rows</tspan></text>
+    <text x="500" y="94" text-anchor="middle" font-size="9" fill="#1c2330">amount>100: 25,000 × 0.333 = <tspan font-weight="700" fill="#2f6df6">~8,333 rows</tspan></text>
+    <text x="500" y="108" text-anchor="middle" font-size="9" fill="#5a6678">Combined selectivity: 0.25 × 0.333 = 0.083</text>
+
+    <!-- Arrow to actual -->
+    <line x1="500" y1="121" x2="500" y2="142" stroke="#d97706" stroke-width="2" marker-end="url(#arO)"/>
+    <text x="510" y="136" font-size="8" fill="#d97706">Compares</text>
+
+    <!-- Actual rows at runtime -->
+    <rect x="310" y="146" width="380" height="55" rx="8" fill="#fffbeb" stroke="#fcd34d" filter="url(#sh)"/>
+    <text x="500" y="168" text-anchor="middle" font-size="11" font-weight="700" fill="#d97706">Actual Rows (runtime)</text>
+    <text x="500" y="186" text-anchor="middle" font-size="9" fill="#1c2330">Actual filtered rows: 7,912 (<tspan fill="#16a34a">close to estimate ✓</tspan>)</text>
+    <text x="500" y="198" text-anchor="middle" font-size="8" fill="#5a6678">Variance: ~5% — optimizer chose a good plan</text>
+
+    <!-- What happens when estimate is wrong -->
+    <rect x="10" y="215" width="680" height="72" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="350" y="238" text-anchor="middle" font-size="11" font-weight="700" fill="#dc2626">⚠ When Estimates Are Wrong</text>
+    <text x="350" y="256" text-anchor="middle" font-size="9" fill="#5a6678">Estimated 8K rows, actual 80K rows → optimizer chose nested loop (bad at 80K) instead of hash join (good at 80K)</text>
+    <text x="350" y="270" text-anchor="middle" font-size="9" fill="#5a6678">Estimated 50K rows, actual 3 rows → optimizer chose a full scan instead of using an available index</text>
+    <text x="350" y="284" text-anchor="middle" font-size="8" fill="#9aa6b8">Fix: ANALYZE to refresh stats · Extended statistics for correlated columns · SET enable_* tuning to override</text>
   </g>
 </svg>
-<figcaption>Visual overview of 078-cardinality-and-row-counts.</figcaption>
+<figcaption>The optimizer uses table statistics (n_distinct, histograms) to estimate row counts at each step — accuracy of those estimates determines whether the plan is fast or slow.</figcaption>
 </figure>
 <p>When you join two tables, the number of rows in the result is rarely what intuition suggests. Understanding <strong>cardinality</strong> — how many rows a join or aggregation produces, and why — is the single most useful mental model for reasoning about query performance and correctness.</p>
 <h2>What &quot;Cardinality&quot; Means</h2>
@@ -102,5 +140,6 @@ FROM events;</textarea>
   <nav class="pagenav"><a class="prev" href="077-join-order-matters.html"><span class="dir">← Previous</span><span class="ttl">Join order matters</span></a><a class="next" href="079-practical-query-tuning.html"><span class="dir">Next →</span><span class="ttl">Practical query tuning</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

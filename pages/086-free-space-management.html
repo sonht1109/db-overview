@@ -8,25 +8,75 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Free space management</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">086-free-space-management</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 350" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
+  </defs>
+  <g transform="translate(10,10)">
+    <!-- FSM Header -->
+    <rect x="200" y="0" width="300" height="36" rx="6" fill="#2f6df6" filter="url(#sh)"/>
+    <text x="350" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Free Space Map (FSM)</text>
+    <text x="350" y="30" text-anchor="middle" font-size="9" fill="#bfdbfe">Tracks available space per page for new inserts</text>
+
+    <!-- Pages row -->
+    <text x="80" y="55" text-anchor="middle" font-size="9" fill="#5a6678">Page 0</text>
+    <rect x="15" y="62" width="130" height="42" rx="6" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="80" y="80" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">95% full</text>
+    <text x="80" y="95" text-anchor="middle" font-size="8" fill="#5a6678">free: 400 B</text>
+
+    <text x="240" y="55" text-anchor="middle" font-size="9" fill="#5a6678">Page 1</text>
+    <rect x="175" y="62" width="130" height="42" rx="6" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="240" y="80" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">85% full</text>
+    <text x="240" y="95" text-anchor="middle" font-size="8" fill="#5a6678">free: 1.2 KB</text>
+
+    <text x="400" y="55" text-anchor="middle" font-size="9" fill="#5a6678">Page 2</text>
+    <rect x="335" y="62" width="130" height="42" rx="6" fill="#fefce8" stroke="#facc15" filter="url(#sh)"/>
+    <text x="400" y="80" text-anchor="middle" font-size="10" font-weight="600" fill="#d97706">50% free</text>
+    <text x="400" y="95" text-anchor="middle" font-size="8" fill="#5a6678">free: 4.0 KB</text>
+
+    <text x="560" y="55" text-anchor="middle" font-size="9" fill="#5a6678">Page 3</text>
+    <rect x="495" y="62" width="130" height="42" rx="6" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="560" y="80" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">20% full</text>
+    <text x="560" y="95" text-anchor="middle" font-size="8" fill="#5a6678">free: 6.4 KB</text>
+
+    <!-- FSM entries pointing to pages -->
+    <line x1="80" y1="104" x2="80" y2="130" stroke="#e2e6ec" stroke-width="1.5"/>
+    <line x1="240" y1="104" x2="240" y2="130" stroke="#e2e6ec" stroke-width="1.5"/>
+    <line x1="400" y1="104" x2="400" y2="130" stroke="#e2e6ec" stroke-width="1.5"/>
+    <line x1="560" y1="104" x2="560" y2="130" stroke="#e2e6ec" stroke-width="1.5"/>
+
+    <!-- FSM data structure below -->
+    <rect x="50" y="132" width="600" height="55" rx="8" fill="#fff" stroke="#2f6df6" stroke-width="1.5" filter="url(#sh)"/>
+    <text x="350" y="150" text-anchor="middle" font-size="10" font-weight="600" fill="#1c2330">FSM Entry per Page:</text>
+    <text x="350" y="168" text-anchor="middle" font-size="9" fill="#5a6678">[P0:1/8]  [P1:1/8]  [P2:4/8]  [P3:6/8]  [P4:8/8]  [P5:3/8]  ...</text>
+    <text x="350" y="182" text-anchor="middle" font-size="8" fill="#9aa6b8">Each entry = available space as fraction of page (e.g. 6/8 = 75% free)</text>
+
+    <!-- Insert flow -->
+    <rect x="230" y="205" width="240" height="32" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="350" y="226" text-anchor="middle" font-size="11" font-weight="600" fill="#16a34a">INSERT new 3.5 KB row</text>
+
+    <line x1="350" y1="237" x2="560" y2="260" stroke="#16a34a" stroke-width="2" marker-end="url(#arr)"/>
+
+    <rect x="495" y="262" width="130" height="38" rx="6" fill="#16a34a" filter="url(#sh)"/>
+    <text x="560" y="280" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">Route to Page 3</text>
+    <text x="560" y="294" text-anchor="middle" font-size="8" fill="#bbf7d0">6.4 KB free &gt; 3.5 KB</text>
+
+    <text x="350" y="245" text-anchor="middle" font-size="9" fill="#5a6678">FSM picks best-fit page</text>
+
+    <!-- Annotation -->
+    <text x="350" y="305" text-anchor="middle" font-size="9" fill="#9aa6b8">FSM avoids scanning pages — O(1) lookup to find room for new rows</text>
   </g>
 </svg>
-<figcaption>Visual overview of 086-free-space-management.</figcaption>
+<figcaption>Free space map (FSM) tracks how much room each page has left — the engine consults it to find the best-fit page for a new row without scanning.</figcaption>
 </figure>
 <p>When a database deletes a row or updates a variable-length value to a shorter one, it does not immediately hand that space back to the operating system. Instead, the engine tracks the now-empty area internally so it can reuse it for future inserts. That bookkeeping is called <strong>free space management</strong>, and getting it right is the difference between a healthy database that stays compact and a bloated one that wastes disk and slows down every scan.</p>
 <h2>Why Gaps Appear</h2>
@@ -109,5 +159,6 @@ FROM pragma_page_count(), pragma_page_size(), pragma_freelist_count();
   <nav class="pagenav"><a class="prev" href="085-slotted-pages.html"><span class="dir">← Previous</span><span class="ttl">Slotted pages</span></a><a class="next" href="087-record-identifiers.html"><span class="dir">Next →</span><span class="ttl">Record identifiers</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

@@ -8,25 +8,90 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 11. Transactions</p>
   <h1 class="content-title">Consistency in practice</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">103-consistency-in-practice</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ag" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#dc2626"/></marker>
+  </defs>
+  <g transform="translate(15,8)">
+    <!-- Transaction header -->
+    <rect x="80" y="0" width="540" height="36" rx="8" fill="#2f6df6" filter="url(#sh)"/>
+    <text x="350" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Transaction: Transfer $100 from Alice (id=1) to Bob (id=2)</text>
+    <text x="350" y="31" text-anchor="middle" font-size="8" fill="#bfdbfe">BEGIN … COMMIT — must be all-or-nothing and preserve consistency</text>
+
+    <line x1="350" y1="36" x2="350" y2="55" stroke="#2f6df6" stroke-width="1.5"/>
+
+    <!-- Constraint box -->
+    <rect x="80" y="58" width="245" height="40" rx="6" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="202" y="76" text-anchor="middle" font-size="9" font-weight="600" fill="#2f6df6">Constraints (engine-enforced)</text>
+    <text x="202" y="92" text-anchor="middle" font-size="8" fill="#5a6678">balance &gt;= 0 CHECK, NOT NULL</text>
+
+    <rect x="375" y="58" width="245" height="40" rx="6" fill="#fefce8" stroke="#facc15" filter="url(#sh)"/>
+    <text x="497" y="76" text-anchor="middle" font-size="9" font-weight="600" fill="#d97706">Business Rules (you enforce)</text>
+    <text x="497" y="92" text-anchor="middle" font-size="8" fill="#5a6678">sum of all balances unchanged</text>
+
+    <!-- BEFORE state -->
+    <rect x="10" y="115" width="320" height="70" rx="8" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="170" y="133" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">BEFORE (consistent)</text>
+    <line x1="25" y1="141" x2="315" y2="141" stroke="#86efac"/>
+    <text x="25" y="158" font-size="9" fill="#1c2330">accounts table:</text>
+    <text x="170" y="158" font-size="9" fill="#1c2330">Alice (id=1): $1000  |  Bob (id=2): $500</text>
+    <text x="170" y="174" font-size="9" fill="#16a34a">✓ invariant: total = $1500</text>
+
+    <!-- During transaction -->
+    <text x="350" y="155" text-anchor="middle" font-size="22" fill="#2f6df6">→</text>
+
+    <rect x="370" y="115" width="320" height="70" rx="8" fill="#fefce8" stroke="#facc15" filter="url(#sh)"/>
+    <text x="530" y="133" text-anchor="middle" font-size="10" font-weight="700" fill="#d97706">IN PROGRESS</text>
+    <line x1="385" y1="141" x2="655" y2="141" stroke="#facc15"/>
+    <text x="530" y="158" text-anchor="middle" font-size="9" fill="#1c2330">Step 1: debit Alice ($1000 → $900) ✓</text>
+    <text x="530" y="174" text-anchor="middle" font-size="9" fill="#1c2330">Step 2: credit Bob ($500 → $600) …pending</text>
+
+    <!-- Happy path -->
+    <rect x="10" y="200" width="155" height="50" rx="6" fill="#16a34a" filter="url(#sh)"/>
+    <text x="87" y="220" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">COMMIT ✓</text>
+    <text x="87" y="236" text-anchor="middle" font-size="8" fill="#bbf7d0">Alice: $900, Bob: $600</text>
+    <text x="87" y="248" text-anchor="middle" font-size="7" fill="#bbf7d0">total: $1500 (invariant holds)</text>
+
+    <line x1="165" y1="225" x2="195" y2="225" stroke="#16a34a" stroke-width="1.5" marker-end="url(#ag)"/>
+
+    <rect x="198" y="200" width="220" height="50" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="308" y="220" text-anchor="middle" font-size="9" font-weight="600" fill="#16a34a">NEW CONSISTENT STATE</text>
+    <text x="308" y="236" text-anchor="middle" font-size="8" fill="#5a6678">All constraints satisfied</text>
+    <text x="308" y="248" text-anchor="middle" font-size="8" fill="#5a6678">Business rules preserved</text>
+
+    <!-- Unhappy path -->
+    <rect x="10" y="262" width="155" height="50" rx="6" fill="#dc2626" filter="url(#sh)"/>
+    <text x="87" y="282" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">ROLLBACK ✗</text>
+    <text x="87" y="298" text-anchor="middle" font-size="8" fill="#fca5a5">Credit step fails</text>
+    <text x="87" y="310" text-anchor="middle" font-size="7" fill="#fca5a5">(e.g. Bob's account locked)</text>
+
+    <line x1="165" y1="287" x2="195" y2="287" stroke="#dc2626" stroke-width="1.5" marker-end="url(#ar)"/>
+
+    <rect x="198" y="262" width="220" height="50" rx="6" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="308" y="282" text-anchor="middle" font-size="9" font-weight="600" fill="#16a34a">ROLLED BACK TO BEFORE</text>
+    <text x="308" y="298" text-anchor="middle" font-size="8" fill="#5a6678">Alice: $1000, Bob: $500</text>
+    <text x="308" y="310" text-anchor="middle" font-size="8" fill="#5a6678">Both undone — consistency held</text>
+
+    <!-- Key insight -->
+    <rect x="440" y="205" width="255" height="50" rx="6" fill="#1c2330" filter="url(#sh)"/>
+    <text x="567" y="222" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">Atomicity + Consistency</text>
+    <text x="567" y="238" text-anchor="middle" font-size="8" fill="#9aa6b8">All-or-nothing + valid state</text>
+    <text x="567" y="252" text-anchor="middle" font-size="8" fill="#9aa6b8">DB enforces constraints; you define correctness</text>
+
+    <text x="350" y="318" text-anchor="middle" font-size="8" fill="#9aa6b8">Consistency = the database never shows you data that violates defined rules — even mid-transaction</text>
   </g>
 </svg>
-<figcaption>Visual overview of 103-consistency-in-practice.</figcaption>
+<figcaption>Consistency in a multi-table transaction: both debit and credit succeed (COMMIT) or both roll back — the database never shows an intermediate invalid state.</figcaption>
 </figure>
 <p>The <strong>C</strong> in ACID stands for Consistency, but it is the most misunderstood of the four properties. Unlike Atomicity, Isolation, and Durability — which the database engine enforces mechanically — Consistency is partly <em>your</em> responsibility. The engine provides tools; you decide what &quot;correct&quot; means for your data.</p>
 <h2>What Consistency Actually Means</h2>
@@ -115,5 +180,6 @@ SELECT SUM(balance) AS total FROM accounts;  -- must stay 800</textarea>
   <nav class="pagenav"><a class="prev" href="102-the-meaning-of-atomicity.html"><span class="dir">← Previous</span><span class="ttl">The meaning of atomicity</span></a><a class="next" href="104-isolation-and-interference.html"><span class="dir">Next →</span><span class="ttl">Isolation and interference</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

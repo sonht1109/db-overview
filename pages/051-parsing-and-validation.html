@@ -8,25 +8,73 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 6. How Query Processing Works</p>
   <h1 class="content-title">Parsing and validation</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">051-parsing-and-validation</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2f6df6"/></marker>
+    <linearGradient id="pg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#2f6df6"/><stop offset="100%" stop-color="#16a34a"/></linearGradient>
+  </defs>
+  <g transform="translate(10,10)">
+    <!-- SQL text input -->
+    <rect x="0" y="5" width="120" height="50" rx="8" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="60" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="#2f6df6">SQL Text</text>
+    <text x="60" y="42" text-anchor="middle" font-size="8" fill="#5a6678">SELECT ... FROM</text>
+
+    <!-- Arrow -->
+    <line x1="120" y1="30" x2="165" y2="30" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Tokenizer -->
+    <rect x="170" y="5" width="120" height="50" rx="8" fill="#dbeafe" stroke="#93c5fd" filter="url(#sh)"/>
+    <text x="230" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="#1e3a5f">Tokenizer</text>
+    <text x="230" y="42" text-anchor="middle" font-size="8" fill="#5a6678">[SELECT][name][,]...</text>
+
+    <!-- Arrow -->
+    <line x1="290" y1="30" x2="335" y2="30" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Parser -->
+    <rect x="340" y="5" width="120" height="50" rx="8" fill="#dbeafe" stroke="#93c5fd" filter="url(#sh)"/>
+    <text x="400" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="#1e3a5f">Parser</text>
+    <text x="400" y="42" text-anchor="middle" font-size="8" fill="#5a6678">Syntax tree (AST)</text>
+
+    <!-- Arrow -->
+    <line x1="460" y1="30" x2="505" y2="30" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- AST -->
+    <rect x="510" y="5" width="120" height="50" rx="8" fill="#fef3c7" stroke="#d97706" filter="url(#sh)"/>
+    <text x="570" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="#d97706">AST</text>
+    <text x="570" y="42" text-anchor="middle" font-size="8" fill="#5a6678">SelectStmt{...}</text>
+
+    <!-- Arrow -->
+    <line x1="630" y1="30" x2="690" y2="30" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Error markers below tokenizer/parser -->
+    <line x1="230" y1="58" x2="230" y2="100" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,3"/>
+    <rect x="175" y="102" width="110" height="22" rx="4" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="230" y="117" text-anchor="middle" font-size="8" fill="#dc2626">Syntax Error</text>
+    <text x="230" y="133" text-anchor="middle" font-size="7" fill="#5a6678">Grammar violation</text>
+
+    <!-- Validation box below -->
+    <line x1="570" y1="58" x2="570" y2="100" stroke="#16a34a" stroke-width="1" stroke-dasharray="3,3"/>
+    <rect x="515" y="102" width="110" height="22" rx="4" fill="#f0fdf4" stroke="#86efac"/>
+    <text x="570" y="117" text-anchor="middle" font-size="8" fill="#16a34a">Validation</text>
+    <text x="570" y="133" text-anchor="middle" font-size="7" fill="#5a6678">Check catalog</text>
+
+    <!-- Catalog reference -->
+    <rect x="510" y="140" width="200" height="32" rx="6" fill="#fff" stroke="#e2e6ec"/>
+    <text x="610" y="155" text-anchor="middle" font-size="9" fill="#5a6678">System Catalog (tables, columns, types)</text>
+    <text x="610" y="167" text-anchor="middle" font-size="8" fill="#9aa6b8">Validated AST → Optimizer</text>
+    <line x1="570" y1="132" x2="570" y2="140" stroke="#16a34a" stroke-width="1"/>
   </g>
 </svg>
-<figcaption>Visual overview of 051-parsing-and-validation.</figcaption>
+<figcaption>The SQL parsing pipeline: text becomes tokens, tokens become an AST, and the AST is validated against the system catalog before the optimizer takes over.</figcaption>
 </figure>
 <p>Every time you send a SQL query to a database engine, it goes through several stages before a single row of data is touched. The very first two stages — <strong>parsing</strong> and <strong>validation</strong> — turn your raw text into something the engine can reason about and check for correctness. Understanding them helps you read error messages, write better SQL, and build an accurate mental model of how the engine works.</p>
 <h2>Stage 1: Parsing — From Text to Tree</h2>
@@ -130,5 +178,6 @@ ORDER BY salary DESC;</textarea>
   <nav class="pagenav"><a class="prev" href="049-reading-sql-as-a-data-flow.html"><span class="dir">← Previous</span><span class="ttl">Reading SQL as a data flow</span></a><a class="next" href="052-logical-plans.html"><span class="dir">Next →</span><span class="ttl">Logical plans</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

@@ -8,25 +8,66 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Updates and fragmentation</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">088-updates-and-fragmentation</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 310" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#dc2626"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
+  </defs>
+  <g transform="translate(10,8)">
+    <!-- BEFORE state -->
+    <rect x="15" y="0" width="310" height="130" rx="8" fill="#fff" stroke="#e2e6ec" filter="url(#sh)"/>
+    <text x="170" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="#5a6678">BEFORE UPDATE</text>
+    <line x1="30" y1="28" x2="310" y2="28" stroke="#e2e6ec"/>
+
+    <rect x="30" y="38" width="280" height="24" rx="4" fill="#e8f0ff"/>
+    <text x="170" y="54" text-anchor="middle" font-size="9" fill="#1c2330">Row A: id=712, name="Alice", bio="Short"  (80 B)</text>
+    <rect x="30" y="67" width="280" height="24" rx="4" fill="#f0f2f5"/>
+    <text x="170" y="83" text-anchor="middle" font-size="9" fill="#1c2330">Row B: id=713, name="Bob", dept="IT"  (72 B)</text>
+    <rect x="30" y="96" width="280" height="24" rx="4" fill="#dcfce7"/>
+    <text x="170" y="112" text-anchor="middle" font-size="9" fill="#16a34a">Free space: 450 B</text>
+    <text x="170" y="127" text-anchor="middle" font-size="8" fill="#9aa6b8">Page 7 · 8 KB page</text>
+
+    <!-- UPDATE operation -->
+    <rect x="285" y="140" width="130" height="30" rx="6" fill="#dc2626" filter="url(#sh)"/>
+    <text x="350" y="160" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">UPDATE: bio="Long text..."  (250 B)</text>
+
+    <!-- Problem indicator -->
+    <rect x="300" y="182" width="100" height="26" rx="4" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="350" y="199" text-anchor="middle" font-size="9" font-weight="600" fill="#dc2626">Too large for slot!</text>
+
+    <!-- AFTER state - original page with forwarding pointer -->
+    <rect x="15" y="218" width="310" height="85" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="170" y="238" text-anchor="middle" font-size="11" font-weight="700" fill="#dc2626">AFTER UPDATE — Page 7</text>
+    <line x1="30" y1="246" x2="310" y2="246" stroke="#fca5a5"/>
+    <rect x="30" y="254" width="280" height="20" rx="3" fill="#fee2e2"/>
+    <text x="170" y="268" text-anchor="middle" font-size="9" fill="#dc2626">Row A → MOVED to Page 12, Slot 1</text>
+    <text x="170" y="286" text-anchor="middle" font-size="8" fill="#9aa6b8">(forwarding pointer left behind in old slot)</text>
+    <text x="170" y="300" text-anchor="middle" font-size="8" fill="#9aa6b8">Hole: 80 B wasted</text>
+
+    <!-- New page -->
+    <rect x="380" y="218" width="310" height="85" rx="8" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="535" y="238" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">AFTER UPDATE — Page 12</text>
+    <line x1="395" y1="246" x2="665" y2="246" stroke="#86efac"/>
+    <rect x="395" y="254" width="280" height="20" rx="3" fill="#dcfce7"/>
+    <text x="535" y="268" text-anchor="middle" font-size="9" fill="#16a34a">Row A (moved): id=712, name="Alice", bio="Long text..."  (250 B)</text>
+    <text x="535" y="286" text-anchor="middle" font-size="8" fill="#5a6678">New RID: (12, 1) — indexes updated</text>
+    <text x="535" y="300" text-anchor="middle" font-size="8" fill="#9aa6b8">Free space: 200 B</text>
+
+    <!-- Arrow connecting them -->
+    <line x1="325" y1="270" x2="378" y2="270" stroke="#d97706" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#ar)"/>
+    <text x="352" y="262" text-anchor="middle" font-size="8" fill="#d97706">forward</text>
   </g>
 </svg>
-<figcaption>Visual overview of 088-updates-and-fragmentation.</figcaption>
+<figcaption>When an UPDATE makes a row too big for its original slot, the engine moves it to a new page and leaves a forwarding pointer — creating fragmentation in the old page.</figcaption>
 </figure>
 <p>When a row is first inserted, the database writes it neatly into a page with room to spare. Updates, however, rarely arrive in the same tidy order — and over time they quietly degrade the physical layout of your data. Understanding <em>why</em> this happens, and what engines do about it, demystifies a whole class of performance problems you&#39;ll encounter in production.</p>
 <h2>What Happens During an In-Place Update</h2>
@@ -105,5 +146,6 @@ SELECT
   <nav class="pagenav"><a class="prev" href="087-record-identifiers.html"><span class="dir">← Previous</span><span class="ttl">Record identifiers</span></a><a class="next" href="089-how-rows-are-found-on-disk.html"><span class="dir">Next →</span><span class="ttl">How rows are found on disk</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

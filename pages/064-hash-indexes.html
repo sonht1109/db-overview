@@ -8,25 +8,80 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 7. Indexes</p>
   <h1 class="content-title">Hash indexes</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">064-hash-indexes</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2f6df6"/></marker>
+  </defs>
+  <g transform="translate(20,10)">
+    <!-- Input keys -->
+    <rect x="0" y="0" width="130" height="24" rx="6" fill="#e8f0ff" stroke="#bfdbfe"/>
+    <text x="65" y="16" text-anchor="middle" font-size="9" fill="#2f6df6">Key: "alice@ex.com"</text>
+    <rect x="0" y="30" width="130" height="24" rx="6" fill="#e8f0ff" stroke="#bfdbfe"/>
+    <text x="65" y="46" text-anchor="middle" font-size="9" fill="#2f6df6">Key: "bob@ex.com"</text>
+    <rect x="0" y="60" width="130" height="24" rx="6" fill="#e8f0ff" stroke="#bfdbfe"/>
+    <text x="65" y="76" text-anchor="middle" font-size="9" fill="#2f6df6">Key: "carol@ex.com"</text>
+
+    <!-- Arrow to hash function -->
+    <line x1="130" y1="12" x2="175" y2="12" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="130" y1="42" x2="175" y2="42" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="130" y1="72" x2="175" y2="72" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Hash function box -->
+    <rect x="180" y="0" width="90" height="100" rx="8" fill="#2f6df6" filter="url(#sh)"/>
+    <text x="225" y="35" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Hash</text>
+    <text x="225" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Func</text>
+    <text x="225" y="72" text-anchor="middle" font-size="7" fill="#bfdbfe">h(k) = k mod N</text>
+    <text x="225" y="90" text-anchor="middle" font-size="7" fill="#bfdbfe">O(1) compute</text>
+
+    <!-- Arrow to buckets -->
+    <line x1="270" y1="12" x2="315" y2="12" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="270" y1="42" x2="315" y2="42" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="270" y1="72" x2="315" y2="72" stroke="#2f6df6" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Buckets -->
+    <rect x="320" y="2" width="80" height="90" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="360" y="18" text-anchor="middle" font-size="9" font-weight="700" fill="#16a34a">Bucket 0</text>
+    <line x1="330" y1="26" x2="390" y2="26" stroke="#86efac"/>
+    <text x="360" y="40" text-anchor="middle" font-size="8" fill="#5a6678">[empty]</text>
+
+    <rect x="415" y="2" width="130" height="90" rx="6" fill="#fef3c7" stroke="#fcd34d" filter="url(#sh)"/>
+    <text x="480" y="18" text-anchor="middle" font-size="9" font-weight="700" fill="#d97706">Bucket 1</text>
+    <line x1="425" y1="26" x2="535" y2="26" stroke="#fcd34d"/>
+    <text x="480" y="42" text-anchor="middle" font-size="8" fill="#d97706">alice@ex.com → row 7</text>
+    <text x="480" y="58" text-anchor="middle" font-size="8" fill="#d97706">carol@ex.com → row 12</text>
+    <text x="480" y="74" text-anchor="middle" font-size="8" fill="#dc2626">↑ Collision! (chained)</text>
+    <text x="480" y="88" text-anchor="middle" font-size="7" fill="#5a6678">Scan chain for exact match</text>
+
+    <rect x="560" y="2" width="80" height="90" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="600" y="18" text-anchor="middle" font-size="9" font-weight="700" fill="#16a34a">Bucket 2</text>
+    <line x1="570" y1="26" x2="630" y2="26" stroke="#86efac"/>
+    <text x="600" y="42" text-anchor="middle" font-size="8" fill="#16a34a">bob@ex.com → row 4</text>
+    <text x="600" y="58" text-anchor="middle" font-size="7" fill="#5a6678">No collision</text>
+
+    <!-- Hash labels -->
+    <text x="305" y="18" text-anchor="middle" font-size="7" fill="#5a6678">h→1</text>
+    <text x="305" y="48" text-anchor="middle" font-size="7" fill="#5a6678">h→2</text>
+    <text x="305" y="78" text-anchor="middle" font-size="7" fill="#5a6678">h→1</text>
+
+    <!-- Bottom info -->
+    <rect x="0" y="118" width="685" height="95" rx="8" fill="#fff" stroke="#e2e6ec" filter="url(#sh)"/>
+    <text x="342" y="140" text-anchor="middle" font-size="11" font-weight="700" fill="#2f6df6">Hash Index Characteristics</text>
+    <text x="342" y="158" text-anchor="middle" font-size="9" fill="#1c2330">O(1) average lookup for exact-equality queries (=, IN) &nbsp;|&nbsp; Load factor kept ~0.75, rehash when exceeded</text>
+    <text x="342" y="176" text-anchor="middle" font-size="9" fill="#1c2330">Cannot do: range queries (&lt;, &gt;, BETWEEN), ORDER BY, prefix LIKE, sorting</text>
+    <text x="342" y="196" text-anchor="middle" font-size="8" fill="#5a6678">PostgreSQL: CREATE INDEX ... USING hash &nbsp;|&nbsp; MySQL/InnoDB: adaptive hash index (auto) &nbsp;|&nbsp; SQLite: B-tree only</text>
+    <text x="342" y="212" text-anchor="middle" font-size="8" fill="#9aa6b8">Best for: session tokens, UUIDs, email lookups — high-cardinality columns with only = queries</text>
   </g>
 </svg>
-<figcaption>Visual overview of 064-hash-indexes.</figcaption>
+<figcaption>A hash index maps keys to buckets using a hash function. O(1) average for equality lookups, but collisions chain within a bucket. Cannot support range queries, ordering, or prefix matching.</figcaption>
 </figure>
 <p>A B-tree index is great for range queries, but it is doing more work than necessary when all you ever ask is &quot;give me the row where <code>id = 42</code>.&quot; A <strong>hash index</strong> is built for exactly that case — pure equality lookups — and it does so with O(1) average-case time instead of O(log n).</p>
 <h2>How a Hash Index Works</h2>
@@ -113,5 +168,6 @@ WHERE token = 'tok_d4e5f6';
   <nav class="pagenav"><a class="prev" href="063-b-tree-indexes.html"><span class="dir">← Previous</span><span class="ttl">B-tree indexes</span></a><a class="next" href="065-composite-indexes.html"><span class="dir">Next →</span><span class="ttl">Composite indexes</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

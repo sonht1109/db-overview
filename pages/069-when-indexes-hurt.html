@@ -8,25 +8,75 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 7. Indexes</p>
   <h1 class="content-title">When indexes hurt</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">069-when-indexes-hurt</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 290" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <filter id="shR"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.12"/></filter>
+  </defs>
+  <g transform="translate(25,12)">
+    <!-- Title -->
+    <text x="335" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="#dc2626">The Hidden Costs of Indexes</text>
+
+    <!-- Three cost columns -->
+    <!-- Column 1: Write Overhead -->
+    <rect x="0" y="30" width="210" height="190" rx="10" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <rect x="0" y="30" width="210" height="30" rx="10" fill="#fecaca"/>
+    <text x="105" y="51" text-anchor="middle" font-size="12" font-weight="700" fill="#dc2626">✎ Write Overhead</text>
+    <text x="105" y="80" text-anchor="middle" font-size="10" fill="#5a6678">One INSERT updates:</text>
+    <rect x="15" y="90" width="180" height="28" rx="5" fill="#fff" stroke="#fca5a5"/>
+    <text x="105" y="109" text-anchor="middle" font-size="9" fill="#1c2330">• The table (heap)</text>
+    <rect x="15" y="123" width="180" height="28" rx="5" fill="#fff" stroke="#fca5a5"/>
+    <text x="105" y="142" text-anchor="middle" font-size="9" fill="#1c2330">• PK index (B-tree)</text>
+    <rect x="15" y="156" width="180" height="28" rx="5" fill="#fff" stroke="#fca5a5"/>
+    <text x="105" y="175" text-anchor="middle" font-size="9" fill="#1c2330">• idx_email (B-tree)</text>
+    <rect x="15" y="189" width="180" height="28" rx="5" fill="#fff" stroke="#fca5a5"/>
+    <text x="105" y="208" text-anchor="middle" font-size="9" fill="#1c2330">• idx_dept (B-tree)</text>
+    <text x="105" y="218" text-anchor="middle" font-size="8" fill="#dc2626">5 indexes = 5× write cost</text>
+
+    <!-- Column 2: Space Usage -->
+    <rect x="230" y="30" width="210" height="190" rx="10" fill="#fffbeb" stroke="#fcd34d" filter="url(#sh)"/>
+    <rect x="230" y="30" width="210" height="30" rx="10" fill="#fde68a"/>
+    <text x="335" y="51" text-anchor="middle" font-size="12" font-weight="700" fill="#d97706">💾 Space Usage</text>
+    <text x="335" y="80" text-anchor="middle" font-size="10" fill="#5a6678">Table + indexes disk usage:</text>
+    <rect x="245" y="90" width="180" height="28" rx="5" fill="#fff" stroke="#fcd34d"/>
+    <text x="335" y="109" text-anchor="middle" font-size="9" fill="#1c2330">Table data: 200 MB</text>
+    <rect x="245" y="123" width="180" height="28" rx="5" fill="#fff" stroke="#fcd34d"/>
+    <text x="335" y="142" text-anchor="middle" font-size="9" fill="#1c2330">PK index: 150 MB</text>
+    <rect x="245" y="156" width="180" height="28" rx="5" fill="#fff" stroke="#fcd34d"/>
+    <text x="335" y="175" text-anchor="middle" font-size="9" fill="#1c2330">3× secondary indexes: 450 MB</text>
+    <rect x="245" y="189" width="180" height="28" rx="5" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="335" y="208" text-anchor="middle" font-size="9" fill="#dc2626">Total: 800 MB → 4× data size</text>
+
+    <!-- Column 3: Optimizer Ignores -->
+    <rect x="460" y="30" width="210" height="190" rx="10" fill="#f8fafc" stroke="#e2e6ec" filter="url(#sh)"/>
+    <rect x="460" y="30" width="210" height="30" rx="10" fill="#e2e8f0"/>
+    <text x="565" y="51" text-anchor="middle" font-size="12" font-weight="700" fill="#5a6678">🔍 Ignored Anyway</text>
+    <text x="565" y="80" text-anchor="middle" font-size="10" fill="#5a6678">Optimizer skips index when:</text>
+    <rect x="475" y="90" width="180" height="28" rx="5" fill="#fff" stroke="#e2e6ec"/>
+    <text x="565" y="109" text-anchor="middle" font-size="9" fill="#1c2330">SELECT * FROM users</text>
+    <text x="565" y="120" text-anchor="middle" font-size="8" fill="#5a6678">(reads > 20% of table)</text>
+    <rect x="475" y="133" width="180" height="28" rx="5" fill="#fff" stroke="#e2e6ec"/>
+    <text x="565" y="152" text-anchor="middle" font-size="9" fill="#1c2330">WHERE active = true</text>
+    <text x="565" y="163" text-anchor="middle" font-size="8" fill="#5a6678">(low selectivity, 90% true)</text>
+    <rect x="475" y="176" width="180" height="28" rx="5" fill="#fff" stroke="#e2e6ec"/>
+    <text x="565" y="195" text-anchor="middle" font-size="9" fill="#1c2330">WHERE UPPER(email)</text>
+    <text x="565" y="206" text-anchor="middle" font-size="8" fill="#5a6678">(function on column)</text>
+
+    <!-- Bottom: Decision rule -->
+    <rect x="100" y="235" width="470" height="40" rx="8" fill="#1c2330"/>
+    <text x="335" y="254" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Index when: read queries >> write queries  &amp;  high selectivity (few rows match)</text>
+    <text x="335" y="271" text-anchor="middle" font-size="10" fill="#9aa6b8">Avoid when: write-heavy table  ·  low-cardinality columns  ·  unused columns</text>
   </g>
 </svg>
-<figcaption>Visual overview of 069-when-indexes-hurt.</figcaption>
+<figcaption>Indexes are not free — they cost extra writes, consume disk space, and may be ignored by the query optimizer when selectivity is too low.</figcaption>
 </figure>
 <p>Indexes are one of the most powerful tuning tools in your kit — but they are not free. Adding an index in the wrong place can slow writes, bloat storage, and even confuse the query planner into making worse decisions. Knowing when <em>not</em> to index is just as important as knowing when to.</p>
 <h2>The Cost Side of Every Index</h2>
@@ -119,5 +169,6 @@ CREATE INDEX idx_user ON page_views(user_id);
   <nav class="pagenav"><a class="prev" href="068-secondary-indexes.html"><span class="dir">← Previous</span><span class="ttl">Secondary indexes</span></a><a class="next" href="071-nested-loop-joins.html"><span class="dir">Next →</span><span class="ttl">Nested loop joins</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

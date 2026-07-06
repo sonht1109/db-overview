@@ -8,25 +8,83 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Slotted pages</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">085-slotted-pages</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 370" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#d97706"/></marker>
+  </defs>
+  <g transform="translate(20,10)">
+    <!-- Page frame -->
+    <rect x="0" y="0" width="680" height="355" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="340" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">Slotted Page Layout (8 KB Page)</text>
+
+    <!-- Page Header -->
+    <rect x="15" y="32" width="650" height="32" rx="6" fill="#e8f0ff" stroke="#93c5fd"/>
+    <text x="340" y="52" text-anchor="middle" font-size="10" fill="#2f6df6">Page Header: LSN | checksum | flags | lower=44 | upper=X | #slots=5</text>
+
+    <!-- Slot Array (growing downward from top) -->
+    <rect x="15" y="70" width="220" height="155" rx="6" fill="#fffbeb" stroke="#fcd34d"/>
+    <text x="125" y="90" text-anchor="middle" font-size="10" font-weight="700" fill="#d97706">Slot Array (grows ↓)</text>
+    <line x1="25" y1="96" x2="225" y2="96" stroke="#fcd34d"/>
+    <rect x="25" y="102" width="200" height="22" rx="3" fill="#fff" stroke="#fcd34d"/>
+    <text x="125" y="117" text-anchor="middle" font-size="8">[0] offset: 8152 | length: 40</text>
+    <rect x="25" y="128" width="200" height="22" rx="3" fill="#fff" stroke="#fcd34d"/>
+    <text x="125" y="143" text-anchor="middle" font-size="8">[1] offset: 8112 | length: 40</text>
+    <rect x="25" y="154" width="200" height="22" rx="3" fill="#fff" stroke="#fcd34d"/>
+    <text x="125" y="169" text-anchor="middle" font-size="8">[2] offset: 8064 | length: 48</text>
+    <rect x="25" y="180" width="200" height="22" rx="3" fill="#fff" stroke="#fcd34d"/>
+    <text x="125" y="195" text-anchor="middle" font-size="8">[3] offset: 8022 | length: 42</text>
+    <rect x="25" y="206" width="200" height="22" rx="3" fill="#f0fdf4" stroke="#86efac"/>
+    <text x="125" y="221" text-anchor="middle" font-size="8" fill="#16a34a">[4] offset: 7978 | length: 44</text>
+
+    <!-- Arrow annotations showing slot → record -->
+    <line x1="228" y1="113" x2="510" y2="156" stroke="#d97706" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#ar)"/>
+    <line x1="228" y1="139" x2="510" y2="193" stroke="#d97706" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#ar)"/>
+    <line x1="228" y1="165" x2="510" y2="230" stroke="#d97706" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#ar)"/>
+    <line x1="228" y1="191" x2="510" y2="267" stroke="#d97706" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#ar)"/>
+    <line x1="228" y1="217" x2="510" y2="304" stroke="#d97706" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#ar)"/>
+
+    <!-- Free Space (in middle) -->
+    <rect x="250" y="70" width="420" height="90" rx="6" fill="#f8fafc" stroke="#e2e6ec" stroke-dasharray="5,3"/>
+    <text x="460" y="110" text-anchor="middle" font-size="11" font-weight="700" fill="#9aa6b8">FREE SPACE</text>
+    <text x="460" y="130" text-anchor="middle" font-size="9" fill="#9aa6b8">Records grow ↑ from bottom · Slot array grows ↓ from top</text>
+    <text x="460" y="148" text-anchor="middle" font-size="9" fill="#9aa6b8">When they meet: page is full → need new page</text>
+
+    <!-- Records (growing upward from bottom) -->
+    <text x="460" y="165" text-anchor="middle" font-size="10" font-weight="700" fill="#5a6678">Records (grow ↑ from page end)</text>
+
+    <rect x="250" y="172" width="420" height="36" rx="4" fill="#dcfce7" stroke="#86efac"/>
+    <text x="460" y="188" text-anchor="middle" font-size="9" fill="#16a34a">Rec 0 (40 B): id=1 | name='Ada' | dept='Engineering' | salary=95000</text>
+    <text x="460" y="202" text-anchor="middle" font-size="8" fill="#5a6678">starts at offset 8152 (bottom of page)</text>
+
+    <rect x="250" y="210" width="420" height="36" rx="4" fill="#f0f2f5" stroke="#d1d5db"/>
+    <text x="460" y="226" text-anchor="middle" font-size="9" fill="#1c2330">Rec 1 (40 B): id=2 | name='Bola' | dept='Marketing' | salary=72000</text>
+    <text x="460" y="240" text-anchor="middle" font-size="8" fill="#5a6678">starts at offset 8112</text>
+
+    <rect x="250" y="248" width="420" height="36" rx="4" fill="#dcfce7" stroke="#86efac"/>
+    <text x="460" y="264" text-anchor="middle" font-size="9" fill="#16a34a">Rec 2 (48 B): id=3 | name='Chidi' | dept='Engineering' | salary=88000</text>
+    <text x="460" y="278" text-anchor="middle" font-size="8" fill="#5a6678">starts at offset 8064</text>
+
+    <rect x="250" y="286" width="420" height="36" rx="4" fill="#f0f2f5" stroke="#d1d5db"/>
+    <text x="460" y="302" text-anchor="middle" font-size="9" fill="#1c2330">Rec 3 (42 B): id=4 | name='Zara' | dept='Marketing' | salary=65000</text>
+    <text x="460" y="316" text-anchor="middle" font-size="8" fill="#5a6678">starts at offset 8022</text>
+
+    <rect x="250" y="324" width="420" height="30" rx="4" fill="#f0fdf4" stroke="#86efac" stroke-dasharray="4,3"/>
+    <text x="460" y="343" text-anchor="middle" font-size="9" fill="#16a34a">Rec 4 (44 B): NEW INSERT — slot allocated, record placed</text>
+
+    <!-- Bottom annotation -->
+    <text x="340" y="352" text-anchor="middle" font-size="8" fill="#9aa6b8">INSERT: add slot entry + place record below last record  ·  DELETE: mark slot unused, space reclaimed by VACUUM</text>
   </g>
 </svg>
-<figcaption>Visual overview of 085-slotted-pages.</figcaption>
+<figcaption>A slotted page has a header, a slot array growing downward, free space in the middle, and records growing upward from the bottom — each slot points to its record's offset and length.</figcaption>
 </figure>
 <p>When a database engine reads or writes data, it works in fixed-size chunks called <strong>pages</strong> (typically 4 KB–16 KB). Each page holds multiple records, but those records are rarely the same length — a <code>VARCHAR(1000)</code> column might store 3 bytes in one row and 900 in another. The <em>slotted page</em> format is the near-universal answer to this problem: a layout that packs variable-length records tightly while still letting the engine jump directly to any record by number.</p>
 <h2>The Layout</h2>
@@ -38,7 +96,7 @@
 ├──────────────────────────────────────────────────┤
 │                   free space                     │
 ├──────────────────────────────────────────────────┤
-│  ...← record N  ← record 1  ← record 0          │  grows ↑
+│  ...← record N  ← record 1  ← record 0           │  grows ↑
 └──────────────────────────────────────────────────┘
 </code></pre>
 <ul>
@@ -115,5 +173,6 @@ ORDER BY record_offset DESC;
   <nav class="pagenav"><a class="prev" href="084-fixed-length-and-variable-length-records.html"><span class="dir">← Previous</span><span class="ttl">Fixed-length and variable-length records</span></a><a class="next" href="086-free-space-management.html"><span class="dir">Next →</span><span class="ttl">Free space management</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>

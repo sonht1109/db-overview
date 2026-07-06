@@ -8,25 +8,61 @@
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a></div></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
 <main class="wrap">
   <p class="eyebrow">Part II. Querying and Language</p>
   <p class="chapter-label">Chapter 7. Indexes</p>
   <h1 class="content-title">Unique indexes</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 140" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
-  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(15,15)">
-    <rect x="0" y="0" width="690" height="105" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
-    <text x="345" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6df6">067-unique-indexes</text>
-    <line x1="15" y1="38" x2="675" y2="38" stroke="#e2e6ec"/>
-    <text x="345" y="65" text-anchor="middle" font-size="10" fill="#5a6678">This concept is visualized in the text above — the key principle is understanding HOW it works, not just WHAT it does.</text>
-    <rect x="15" y="78" width="660" height="22" rx="4" fill="#f0fdf4"/>
-    <text x="345" y="93" text-anchor="middle" font-size="9" fill="#16a34a">See the interactive examples and explanations throughout this page for hands-on understanding.</text>
+<svg viewBox="0 0 720 310" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2f6df6"/></marker>
+    <marker id="arG" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
+    <marker id="arR" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#dc2626"/></marker>
+  </defs>
+  <g transform="translate(20,15)">
+    <!-- INSERT label -->
+    <rect x="270" y="0" width="140" height="28" rx="6" fill="#2f6df6"/>
+    <text x="340" y="19" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">INSERT attempt</text>
+    <text x="340" y="44" text-anchor="middle" font-size="10" fill="#5a6678">INSERT INTO users (email) VALUES ('alice@ex.com')</text>
+
+    <!-- Arrow down -->
+    <line x1="340" y1="54" x2="340" y2="72" stroke="#2f6df6" stroke-width="2" marker-end="url(#ar)"/>
+
+    <!-- Unique Index box -->
+    <rect x="150" y="76" width="380" height="55" rx="10" fill="#fff" stroke="#2f6df6" stroke-width="2" filter="url(#sh)"/>
+    <text x="340" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6df6">UNIQUE INDEX on email</text>
+    <text x="340" y="118" text-anchor="middle" font-size="10" fill="#5a6678">Check: Does 'alice@ex.com' already exist?</text>
+
+    <!-- Split arrows -->
+    <line x1="230" y1="131" x2="100" y2="155" stroke="#16a34a" stroke-width="2" marker-end="url(#arG)"/>
+    <text x="155" y="150" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="600">NOT FOUND</text>
+    <line x1="450" y1="131" x2="580" y2="155" stroke="#dc2626" stroke-width="2" marker-end="url(#arR)"/>
+    <text x="525" y="150" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="600">FOUND</text>
+
+    <!-- SUCCESS path -->
+    <rect x="15" y="160" width="200" height="62" rx="10" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="115" y="185" text-anchor="middle" font-size="14" font-weight="700" fill="#16a34a">ALLOW</text>
+    <text x="115" y="203" text-anchor="middle" font-size="10" fill="#5a6678">Insert proceeds</text>
+    <text x="115" y="217" text-anchor="middle" font-size="9" fill="#9aa6b8">Index entry added atomically</text>
+
+    <!-- REJECT path -->
+    <rect x="475" y="160" width="230" height="62" rx="10" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="590" y="185" text-anchor="middle" font-size="14" font-weight="700" fill="#dc2626">REJECT</text>
+    <text x="590" y="203" text-anchor="middle" font-size="10" fill="#5a6678">ERROR: duplicate key value</text>
+    <text x="590" y="217" text-anchor="middle" font-size="9" fill="#9aa6b8">violates unique constraint</text>
+
+    <!-- Bottom explanation -->
+    <rect x="50" y="242" width="620" height="55" rx="8" fill="#f8fafc" stroke="#e2e6ec"/>
+    <text x="360" y="262" text-anchor="middle" font-size="11" font-weight="700" fill="#1c2330">How it works: B-tree with uniqueness check</text>
+    <text x="360" y="280" text-anchor="middle" font-size="10" fill="#5a6678">Same B-tree structure as a regular index, but insertion checks for key equality first — no two rows can have the same indexed value(s)</text>
+    <text x="360" y="294" text-anchor="middle" font-size="9" fill="#9aa6b8">Primary keys automatically create a unique index  ·  NULL values are treated as distinct in most engines</text>
   </g>
 </svg>
-<figcaption>Visual overview of 067-unique-indexes.</figcaption>
+<figcaption>A unique index enforces that no two rows share the same key — every INSERT or UPDATE must first probe the index and succeed only when the key is absent.</figcaption>
 </figure>
 <p>An index normally exists purely for speed — it does not care whether two rows share the same value. A <strong>unique index</strong> adds a second job: it enforces that no two rows in the table can hold the same value (or combination of values) for the indexed column(s). You get fast lookups <em>and</em> a data-integrity guarantee from a single structure.</p>
 <h2>What Makes a Unique Index Different</h2>
@@ -120,5 +156,6 @@ SELECT * FROM users;</textarea>
   <nav class="pagenav"><a class="prev" href="066-covering-indexes.html"><span class="dir">← Previous</span><span class="ttl">Covering indexes</span></a><a class="next" href="068-secondary-indexes.html"><span class="dir">Next →</span><span class="ttl">Secondary indexes</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
 </body>
 </html>
