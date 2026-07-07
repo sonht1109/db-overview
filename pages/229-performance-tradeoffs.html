@@ -30,7 +30,7 @@
   </defs>  <!-- Axis 1: Read speed vs Write speed -->
   <line x1="40" y1="60" x2="300" y2="60" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
   <text x="40" y="50" font-size="11" fill="var(--text)" font-weight="600">Read speed</text>
-  <text x="220" y="50" text-anchor="end" font-size="11" fill="var(--muted)">Write speed</text>
+  <text x="220" y="50" text-anchor="start" font-size="11" fill="var(--muted)">Write speed</text>
   <text x="170" y="78" text-anchor="middle" font-size="10" fill="var(--muted)">more indexes → faster reads, slower writes</text>  <!-- Axis 2: Consistency vs Availability -->
   <line x1="340" y1="60" x2="620" y2="60" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
   <text x="340" y="50" font-size="11" fill="var(--text)" font-weight="600">Consistency</text>
@@ -38,7 +38,7 @@
   <text x="480" y="78" text-anchor="middle" font-size="10" fill="var(--muted)">CAP theorem: cannot maximise both</text>  <!-- Axis 3: Latency vs Throughput -->
   <line x1="40" y1="145" x2="300" y2="145" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
   <text x="40" y="135" font-size="11" fill="var(--text)" font-weight="600">Low latency</text>
-  <text x="220" y="135" text-anchor="end" font-size="11" fill="var(--muted)">High throughput</text>
+  <text x="220" y="135" text-anchor="start" font-size="11" fill="var(--muted)">High throughput</text>
   <text x="170" y="163" text-anchor="middle" font-size="10" fill="var(--muted)">batching increases throughput, adds latency</text>  <!-- Axis 4: Storage cost vs Query speed -->
   <line x1="340" y1="145" x2="620" y2="145" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
   <text x="340" y="135" font-size="11" fill="var(--text)" font-weight="600">Query speed</text>
@@ -46,7 +46,7 @@
   <text x="480" y="163" text-anchor="middle" font-size="10" fill="var(--muted)">more indexes / caches = more bytes stored</text>  <!-- Axis 5: Freshness vs Cost -->
   <line x1="40" y1="230" x2="300" y2="230" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
   <text x="40" y="220" font-size="11" fill="var(--text)" font-weight="600">Data freshness</text>
-  <text x="220" y="220" text-anchor="end" font-size="11" fill="var(--muted)">Infrastructure cost</text>
+  <text x="220" y="220" text-anchor="start" font-size="11" fill="var(--muted)">Infrastructure cost</text>
   <text x="170" y="248" text-anchor="middle" font-size="10" fill="var(--muted)">real-time replication is expensive</text>  <!-- Axis 6: Simplicity vs Flexibility -->
   <line x1="340" y1="230" x2="620" y2="230" stroke="var(--accent)" stroke-width="2" marker-start="url(#arrl)" marker-end="url(#arr)"/>
   <text x="340" y="220" font-size="11" fill="var(--text)" font-weight="600">Simplicity</text>
