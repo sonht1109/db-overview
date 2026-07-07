@@ -28,6 +28,7 @@
   const input = document.querySelector(".search-input");
   let overlay = null;
   let dropdown = null;
+  let closeTimer = null;
 
   // ── Path helpers ──────────────────────────────────────
   function isContentPage() {
@@ -57,6 +58,16 @@
     dropdown = document.createElement("div");
     dropdown.className = "search-dropdown";
     document.body.appendChild(dropdown);
+
+    // Navigate on mousedown so the click isn't lost when blur hides the dropdown
+    dropdown.addEventListener("mousedown", (e) => {
+      const resultEl = e.target.closest(".search-result");
+      if (resultEl && resultEl.href) {
+        e.preventDefault();
+        clearTimeout(closeTimer);
+        window.location.href = resultEl.href;
+      }
+    });
   }
 
   function openSearch() {
@@ -66,9 +77,15 @@
   }
 
   function closeSearch() {
+    clearTimeout(closeTimer);
     if (overlay) overlay.classList.remove("active");
     if (dropdown) dropdown.style.display = "none";
     activeIdx = -1;
+  }
+
+  function closeSearchDelayed() {
+    clearTimeout(closeTimer);
+    closeTimer = setTimeout(closeSearch, 150);
   }
 
   function positionDropdown() {
@@ -380,7 +397,7 @@
     // Events
     input.addEventListener("input", onInput);
     input.addEventListener("focus", onFocus);
-    input.addEventListener("blur", closeSearch);
+    input.addEventListener("blur", closeSearchDelayed);
     document.addEventListener("keydown", onKeyDown);
     document.addEventListener("click", onClickOutside);
     window.addEventListener("resize", onResize);

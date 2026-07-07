@@ -1,63 +1,1047 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Database Overview — An Interactive Guide</title>
-<link rel="stylesheet" href="pages/assets/style.css">
-</head>
-<body>
-<div class="topbar"><div class="topbar-inner"><a class="home-link" href=".">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div></div></div>
-
-<main class="wrap">
-  <header class="hero">
-    <h1>Database Overview</h1>
-    <p>A hands-on tour of how database systems work — from records and SQL to storage engines, transactions, distribution, and the major database families.</p>
-  </header>
-  <section class="part"><h2>Part I. Foundations</h2><div class="chapter"><h3>1. What a Database System Is</h3><div class="links"><a href="pages/001-data-information-and-records.html"><span class="num">001</span><span>Data, information, and records</span></a><a href="pages/002-database-vs-file-storage.html"><span class="num">002</span><span>Database vs file storage</span></a><a href="pages/003-database-table-row-column.html"><span class="num">003</span><span>Database, table, row, column</span></a><a href="pages/004-queries-transactions-and-schemas.html"><span class="num">004</span><span>Queries, transactions, and schemas</span></a><a href="pages/005-the-role-of-the-database-engine.html"><span class="num">005</span><span>The role of the database engine</span></a><a href="pages/006-clients-servers-and-drivers.html"><span class="num">006</span><span>Clients, servers, and drivers</span></a><a href="pages/007-why-database-systems-matter.html"><span class="num">007</span><span>Why database systems matter</span></a><a href="pages/008-common-kinds-of-database-workloads.html"><span class="num">008</span><span>Common kinds of database workloads</span></a><a href="pages/009-a-first-mental-model.html"><span class="num">009</span><span>A first mental model</span></a>
-<a class="summary" href="pages/010-chapter-1-summary.html"><span class="num">010</span><span>Chapter 1 Summary</span></a></div></div><div class="chapter"><h3>2. How Data Is Organized</h3><div class="links"><a href="pages/011-logical-structure-vs-physical-structure.html"><span class="num">011</span><span>Logical structure vs physical structure</span></a><a href="pages/012-tables-and-relations.html"><span class="num">012</span><span>Tables and relations</span></a><a href="pages/013-keys-and-identifiers.html"><span class="num">013</span><span>Keys and identifiers</span></a><a href="pages/014-constraints-and-rules.html"><span class="num">014</span><span>Constraints and rules</span></a><a href="pages/015-null-and-missing-values.html"><span class="num">015</span><span>NULL and missing values</span></a><a href="pages/016-data-types-and-domains.html"><span class="num">016</span><span>Data types and domains</span></a><a href="pages/017-normalized-and-denormalized-data.html"><span class="num">017</span><span>Normalized and denormalized data</span></a><a href="pages/018-documents-graphs-and-key-value-shapes.html"><span class="num">018</span><span>Documents, graphs, and key-value shapes</span></a><a href="pages/019-choosing-the-right-model.html"><span class="num">019</span><span>Choosing the right model</span></a>
-<a class="summary" href="pages/020-chapter-2-summary.html"><span class="num">020</span><span>Chapter 2 Summary</span></a></div></div><div class="chapter"><h3>3. The Relational Model</h3><div class="links"><a href="pages/021-relations-tuples-and-attributes.html"><span class="num">021</span><span>Relations, tuples, and attributes</span></a><a href="pages/022-primary-keys-and-foreign-keys.html"><span class="num">022</span><span>Primary keys and foreign keys</span></a><a href="pages/023-set-based-thinking.html"><span class="num">023</span><span>Set-based thinking</span></a><a href="pages/024-projection-selection-and-join.html"><span class="num">024</span><span>Projection, selection, and join</span></a><a href="pages/025-why-relations-are-powerful.html"><span class="num">025</span><span>Why relations are powerful</span></a><a href="pages/026-data-independence.html"><span class="num">026</span><span>Data independence</span></a><a href="pages/027-integrity-by-design.html"><span class="num">027</span><span>Integrity by design</span></a><a href="pages/028-common-misunderstandings.html"><span class="num">028</span><span>Common misunderstandings</span></a><a href="pages/029-where-the-relational-model-shines.html"><span class="num">029</span><span>Where the relational model shines</span></a>
-<a class="summary" href="pages/030-chapter-3-summary.html"><span class="num">030</span><span>Chapter 3 Summary</span></a></div></div><div class="chapter"><h3>4. Schemas and Data Modeling</h3><div class="links"><a href="pages/031-from-real-world-to-schema.html"><span class="num">031</span><span>From real world to schema</span></a><a href="pages/032-entities-and-relationships.html"><span class="num">032</span><span>Entities and relationships</span></a><a href="pages/033-one-to-one-one-to-many-many-to-many.html"><span class="num">033</span><span>One-to-one, one-to-many, many-to-many</span></a><a href="pages/034-lookup-tables-and-enums.html"><span class="num">034</span><span>Lookup tables and enums</span></a><a href="pages/035-derived-data-and-computed-columns.html"><span class="num">035</span><span>Derived data and computed columns</span></a><a href="pages/036-naming-tables-and-columns.html"><span class="num">036</span><span>Naming tables and columns</span></a><a href="pages/037-avoiding-duplication.html"><span class="num">037</span><span>Avoiding duplication</span></a><a href="pages/038-evolving-a-schema-safely.html"><span class="num">038</span><span>Evolving a schema safely</span></a><a href="pages/039-tradeoffs-in-modeling.html"><span class="num">039</span><span>Tradeoffs in modeling</span></a>
-<a class="summary" href="pages/040-chapter-4-summary.html"><span class="num">040</span><span>Chapter 4 Summary</span></a></div></div></section><section class="part"><h2>Part II. Querying and Language</h2><div class="chapter"><h3>5. A Gentle Introduction to SQL</h3><div class="links"><a href="pages/041-what-sql-is-for.html"><span class="num">041</span><span>What SQL is for</span></a><a href="pages/042-select-insert-update-delete.html"><span class="num">042</span><span>SELECT, INSERT, UPDATE, DELETE</span></a><a href="pages/043-filtering-rows-with-where.html"><span class="num">043</span><span>Filtering rows with WHERE</span></a><a href="pages/044-sorting-with-order-by.html"><span class="num">044</span><span>Sorting with ORDER BY</span></a><a href="pages/045-limiting-results.html"><span class="num">045</span><span>Limiting results</span></a><a href="pages/046-aggregates-and-group-by.html"><span class="num">046</span><span>Aggregates and GROUP BY</span></a><a href="pages/047-joining-tables.html"><span class="num">047</span><span>Joining tables</span></a><a href="pages/048-subqueries-and-common-table-expressions.html"><span class="num">048</span><span>Subqueries and common table expressions</span></a><a href="pages/049-reading-sql-as-a-data-flow.html"><span class="num">049</span><span>Reading SQL as a data flow</span></a>
-<a class="summary" href="pages/050-chapter-5-summary.html"><span class="num">050</span><span>Chapter 5 Summary</span></a></div></div><div class="chapter"><h3>6. How Query Processing Works</h3><div class="links"><a href="pages/051-parsing-and-validation.html"><span class="num">051</span><span>Parsing and validation</span></a><a href="pages/052-logical-plans.html"><span class="num">052</span><span>Logical plans</span></a><a href="pages/053-physical-plans.html"><span class="num">053</span><span>Physical plans</span></a><a href="pages/054-operators-such-as-scan-filter-join.html"><span class="num">054</span><span>Operators such as scan, filter, join</span></a><a href="pages/055-cost-estimation.html"><span class="num">055</span><span>Cost estimation</span></a><a href="pages/056-rule-based-and-cost-based-planning.html"><span class="num">056</span><span>Rule-based and cost-based planning</span></a><a href="pages/057-why-the-same-query-can-run-differently.html"><span class="num">057</span><span>Why the same query can run differently</span></a><a href="pages/058-reading-an-explain-plan.html"><span class="num">058</span><span>Reading an explain plan</span></a><a href="pages/059-query-planning-mistakes.html"><span class="num">059</span><span>Query planning mistakes</span></a>
-<a class="summary" href="pages/060-chapter-6-summary.html"><span class="num">060</span><span>Chapter 6 Summary</span></a></div></div><div class="chapter"><h3>7. Indexes</h3><div class="links"><a href="pages/061-why-scanning-everything-is-slow.html"><span class="num">061</span><span>Why scanning everything is slow</span></a><a href="pages/062-what-an-index-really-is.html"><span class="num">062</span><span>What an index really is</span></a><a href="pages/063-b-tree-indexes.html"><span class="num">063</span><span>B-tree indexes</span></a><a href="pages/064-hash-indexes.html"><span class="num">064</span><span>Hash indexes</span></a><a href="pages/065-composite-indexes.html"><span class="num">065</span><span>Composite indexes</span></a><a href="pages/066-covering-indexes.html"><span class="num">066</span><span>Covering indexes</span></a><a href="pages/067-unique-indexes.html"><span class="num">067</span><span>Unique indexes</span></a><a href="pages/068-secondary-indexes.html"><span class="num">068</span><span>Secondary indexes</span></a><a href="pages/069-when-indexes-hurt.html"><span class="num">069</span><span>When indexes hurt</span></a>
-<a class="summary" href="pages/070-chapter-7-summary.html"><span class="num">070</span><span>Chapter 7 Summary</span></a></div></div><div class="chapter"><h3>8. Joins, Aggregation, and Sorting</h3><div class="links"><a href="pages/071-nested-loop-joins.html"><span class="num">071</span><span>Nested loop joins</span></a><a href="pages/072-hash-joins.html"><span class="num">072</span><span>Hash joins</span></a><a href="pages/073-merge-joins.html"><span class="num">073</span><span>Merge joins</span></a><a href="pages/074-grouping-and-aggregation.html"><span class="num">074</span><span>Grouping and aggregation</span></a><a href="pages/075-external-sort.html"><span class="num">075</span><span>External sort</span></a><a href="pages/076-memory-limits-and-spill-to-disk.html"><span class="num">076</span><span>Memory limits and spill to disk</span></a><a href="pages/077-join-order-matters.html"><span class="num">077</span><span>Join order matters</span></a><a href="pages/078-cardinality-and-row-counts.html"><span class="num">078</span><span>Cardinality and row counts</span></a><a href="pages/079-practical-query-tuning.html"><span class="num">079</span><span>Practical query tuning</span></a>
-<a class="summary" href="pages/080-chapter-8-summary.html"><span class="num">080</span><span>Chapter 8 Summary</span></a></div></div></section><section class="part"><h2>Part III. Storage and Execution</h2><div class="chapter"><h3>9. Pages, Records, and Files</h3><div class="links"><a href="pages/081-why-databases-use-pages.html"><span class="num">081</span><span>Why databases use pages</span></a><a href="pages/082-heap-files-and-page-layouts.html"><span class="num">082</span><span>Heap files and page layouts</span></a><a href="pages/083-row-stores-and-column-stores.html"><span class="num">083</span><span>Row stores and column stores</span></a><a href="pages/084-fixed-length-and-variable-length-records.html"><span class="num">084</span><span>Fixed-length and variable-length records</span></a><a href="pages/085-slotted-pages.html"><span class="num">085</span><span>Slotted pages</span></a><a href="pages/086-free-space-management.html"><span class="num">086</span><span>Free space management</span></a><a href="pages/087-record-identifiers.html"><span class="num">087</span><span>Record identifiers</span></a><a href="pages/088-updates-and-fragmentation.html"><span class="num">088</span><span>Updates and fragmentation</span></a><a href="pages/089-how-rows-are-found-on-disk.html"><span class="num">089</span><span>How rows are found on disk</span></a>
-<a class="summary" href="pages/090-chapter-9-summary.html"><span class="num">090</span><span>Chapter 9 Summary</span></a></div></div><div class="chapter"><h3>10. Trees, Logs, and Internal Structures</h3><div class="links"><a href="pages/091-b-tree-structure-in-detail.html"><span class="num">091</span><span>B-tree structure in detail</span></a><a href="pages/092-splits-merges-and-rebalancing.html"><span class="num">092</span><span>Splits, merges, and rebalancing</span></a><a href="pages/093-write-ahead-logging-basics.html"><span class="num">093</span><span>Write-ahead logging basics</span></a><a href="pages/094-checkpoints.html"><span class="num">094</span><span>Checkpoints</span></a><a href="pages/095-buffer-pools.html"><span class="num">095</span><span>Buffer pools</span></a><a href="pages/096-dirty-pages-and-flushing.html"><span class="num">096</span><span>Dirty pages and flushing</span></a><a href="pages/097-crash-recovery-overview.html"><span class="num">097</span><span>Crash recovery overview</span></a><a href="pages/098-space-amplification.html"><span class="num">098</span><span>Space amplification</span></a><a href="pages/099-read-amplification-and-write-amplification.html"><span class="num">099</span><span>Read amplification and write amplification</span></a>
-<a class="summary" href="pages/100-chapter-10-summary.html"><span class="num">100</span><span>Chapter 10 Summary</span></a></div></div><div class="chapter"><h3>11. Transactions</h3><div class="links"><a href="pages/101-why-transactions-exist.html"><span class="num">101</span><span>Why transactions exist</span></a><a href="pages/102-the-meaning-of-atomicity.html"><span class="num">102</span><span>The meaning of atomicity</span></a><a href="pages/103-consistency-in-practice.html"><span class="num">103</span><span>Consistency in practice</span></a><a href="pages/104-isolation-and-interference.html"><span class="num">104</span><span>Isolation and interference</span></a><a href="pages/105-durability-and-persistence.html"><span class="num">105</span><span>Durability and persistence</span></a><a href="pages/106-transaction-boundaries.html"><span class="num">106</span><span>Transaction boundaries</span></a><a href="pages/107-commit-and-rollback.html"><span class="num">107</span><span>Commit and rollback</span></a><a href="pages/108-multi-step-updates.html"><span class="num">108</span><span>Multi-step updates</span></a><a href="pages/109-real-examples-of-broken-logic.html"><span class="num">109</span><span>Real examples of broken logic</span></a>
-<a class="summary" href="pages/110-chapter-11-summary.html"><span class="num">110</span><span>Chapter 11 Summary</span></a></div></div><div class="chapter"><h3>12. Concurrency Control</h3><div class="links"><a href="pages/111-the-lost-update-problem.html"><span class="num">111</span><span>The lost update problem</span></a><a href="pages/112-dirty-reads-and-non-repeatable-reads.html"><span class="num">112</span><span>Dirty reads and non-repeatable reads</span></a><a href="pages/113-phantom-reads.html"><span class="num">113</span><span>Phantom reads</span></a><a href="pages/114-locks-and-lock-modes.html"><span class="num">114</span><span>Locks and lock modes</span></a><a href="pages/115-two-phase-locking.html"><span class="num">115</span><span>Two-phase locking</span></a><a href="pages/116-deadlocks-and-detection.html"><span class="num">116</span><span>Deadlocks and detection</span></a><a href="pages/117-multiversion-concurrency-control.html"><span class="num">117</span><span>Multiversion concurrency control</span></a><a href="pages/118-snapshot-isolation.html"><span class="num">118</span><span>Snapshot isolation</span></a><a href="pages/119-choosing-isolation-levels.html"><span class="num">119</span><span>Choosing isolation levels</span></a>
-<a class="summary" href="pages/120-chapter-12-summary.html"><span class="num">120</span><span>Chapter 12 Summary</span></a></div></div><div class="chapter"><h3>13. Recovery</h3><div class="links"><a href="pages/121-what-can-go-wrong.html"><span class="num">121</span><span>What can go wrong</span></a><a href="pages/122-the-write-ahead-log.html"><span class="num">122</span><span>The write-ahead log</span></a><a href="pages/123-redo-and-undo.html"><span class="num">123</span><span>Redo and undo</span></a><a href="pages/124-checkpoints-and-restart.html"><span class="num">124</span><span>Checkpoints and restart</span></a><a href="pages/125-steal-and-no-steal.html"><span class="num">125</span><span>Steal and no-steal</span></a><a href="pages/126-force-and-no-force.html"><span class="num">126</span><span>Force and no-force</span></a><a href="pages/127-crash-safe-commits.html"><span class="num">127</span><span>Crash-safe commits</span></a><a href="pages/128-recovering-unfinished-work.html"><span class="num">128</span><span>Recovering unfinished work</span></a><a href="pages/129-why-recovery-shapes-design.html"><span class="num">129</span><span>Why recovery shapes design</span></a>
-<a class="summary" href="pages/130-chapter-13-summary.html"><span class="num">130</span><span>Chapter 13 Summary</span></a></div></div></section><section class="part"><h2>Part IV. Distributed Systems</h2><div class="chapter"><h3>14. From One Machine to Many</h3><div class="links"><a href="pages/131-why-distribute-a-database.html"><span class="num">131</span><span>Why distribute a database</span></a><a href="pages/132-replication-and-sharding.html"><span class="num">132</span><span>Replication and sharding</span></a><a href="pages/133-shared-nothing-systems.html"><span class="num">133</span><span>Shared-nothing systems</span></a><a href="pages/134-partition-keys.html"><span class="num">134</span><span>Partition keys</span></a><a href="pages/135-cross-node-queries.html"><span class="num">135</span><span>Cross-node queries</span></a><a href="pages/136-rebalancing-data.html"><span class="num">136</span><span>Rebalancing data</span></a><a href="pages/137-hot-partitions.html"><span class="num">137</span><span>Hot partitions</span></a><a href="pages/138-failure-becomes-normal.html"><span class="num">138</span><span>Failure becomes normal</span></a><a href="pages/139-new-tradeoffs-at-scale.html"><span class="num">139</span><span>New tradeoffs at scale</span></a>
-<a class="summary" href="pages/140-chapter-14-summary.html"><span class="num">140</span><span>Chapter 14 Summary</span></a></div></div><div class="chapter"><h3>15. Replication</h3><div class="links"><a href="pages/141-leader-follower-replication.html"><span class="num">141</span><span>Leader-follower replication</span></a><a href="pages/142-synchronous-vs-asynchronous-replication.html"><span class="num">142</span><span>Synchronous vs asynchronous replication</span></a><a href="pages/143-read-replicas.html"><span class="num">143</span><span>Read replicas</span></a><a href="pages/144-replication-lag.html"><span class="num">144</span><span>Replication lag</span></a><a href="pages/145-failover-and-promotion.html"><span class="num">145</span><span>Failover and promotion</span></a><a href="pages/146-conflict-handling.html"><span class="num">146</span><span>Conflict handling</span></a><a href="pages/147-multi-leader-systems.html"><span class="num">147</span><span>Multi-leader systems</span></a><a href="pages/148-replication-logs.html"><span class="num">148</span><span>Replication logs</span></a><a href="pages/149-operational-pitfalls.html"><span class="num">149</span><span>Operational pitfalls</span></a>
-<a class="summary" href="pages/150-chapter-15-summary.html"><span class="num">150</span><span>Chapter 15 Summary</span></a></div></div><div class="chapter"><h3>16. Distributed Transactions and Consensus</h3><div class="links"><a href="pages/151-why-local-transactions-are-easier.html"><span class="num">151</span><span>Why local transactions are easier</span></a><a href="pages/152-two-phase-commit.html"><span class="num">152</span><span>Two-phase commit</span></a><a href="pages/153-coordinator-failure.html"><span class="num">153</span><span>Coordinator failure</span></a><a href="pages/154-consensus-in-simple-terms.html"><span class="num">154</span><span>Consensus in simple terms</span></a><a href="pages/155-quorums.html"><span class="num">155</span><span>Quorums</span></a><a href="pages/156-raft-and-leader-election.html"><span class="num">156</span><span>Raft and leader election</span></a><a href="pages/157-what-consensus-solves.html"><span class="num">157</span><span>What consensus solves</span></a><a href="pages/158-what-consensus-does-not-solve.html"><span class="num">158</span><span>What consensus does not solve</span></a><a href="pages/159-cost-of-coordination.html"><span class="num">159</span><span>Cost of coordination</span></a>
-<a class="summary" href="pages/160-chapter-16-summary.html"><span class="num">160</span><span>Chapter 16 Summary</span></a></div></div><div class="chapter"><h3>17. Consistency in Distributed Databases</h3><div class="links"><a href="pages/161-strong-consistency.html"><span class="num">161</span><span>Strong consistency</span></a><a href="pages/162-eventual-consistency.html"><span class="num">162</span><span>Eventual consistency</span></a><a href="pages/163-read-your-writes.html"><span class="num">163</span><span>Read-your-writes</span></a><a href="pages/164-monotonic-reads.html"><span class="num">164</span><span>Monotonic reads</span></a><a href="pages/165-causal-consistency.html"><span class="num">165</span><span>Causal consistency</span></a><a href="pages/166-cap-as-a-tradeoff-lens.html"><span class="num">166</span><span>CAP as a tradeoff lens</span></a><a href="pages/167-latency-vs-correctness.html"><span class="num">167</span><span>Latency vs correctness</span></a><a href="pages/168-conflict-free-approaches.html"><span class="num">168</span><span>Conflict-free approaches</span></a><a href="pages/169-picking-the-right-guarantee.html"><span class="num">169</span><span>Picking the right guarantee</span></a>
-<a class="summary" href="pages/170-chapter-17-summary.html"><span class="num">170</span><span>Chapter 17 Summary</span></a></div></div></section><section class="part"><h2>Part V. Database Families</h2><div class="chapter"><h3>18. Key-Value Databases</h3><div class="links"><a href="pages/171-the-key-value-model.html"><span class="num">171</span><span>The key-value model</span></a><a href="pages/172-fast-lookups-and-simple-apis.html"><span class="num">172</span><span>Fast lookups and simple APIs</span></a><a href="pages/173-range-scans-and-ordered-keys.html"><span class="num">173</span><span>Range scans and ordered keys</span></a><a href="pages/174-common-storage-engines.html"><span class="num">174</span><span>Common storage engines</span></a><a href="pages/175-caching-vs-persistence.html"><span class="num">175</span><span>Caching vs persistence</span></a><a href="pages/176-when-key-value-is-enough.html"><span class="num">176</span><span>When key-value is enough</span></a><a href="pages/177-limits-of-the-model.html"><span class="num">177</span><span>Limits of the model</span></a><a href="pages/178-real-world-examples.html"><span class="num">178</span><span>Real-world examples</span></a><a href="pages/179-design-patterns.html"><span class="num">179</span><span>Design patterns</span></a>
-<a class="summary" href="pages/180-chapter-18-summary.html"><span class="num">180</span><span>Chapter 18 Summary</span></a></div></div><div class="chapter"><h3>19. Document Databases</h3><div class="links"><a href="pages/181-json-as-a-data-model.html"><span class="num">181</span><span>JSON as a data model</span></a><a href="pages/182-flexible-schema.html"><span class="num">182</span><span>Flexible schema</span></a><a href="pages/183-nested-data-and-arrays.html"><span class="num">183</span><span>Nested data and arrays</span></a><a href="pages/184-secondary-indexes-on-documents.html"><span class="num">184</span><span>Secondary indexes on documents</span></a><a href="pages/185-querying-document-fields.html"><span class="num">185</span><span>Querying document fields</span></a><a href="pages/186-document-updates-and-rewrites.html"><span class="num">186</span><span>Document updates and rewrites</span></a><a href="pages/187-embedding-vs-referencing.html"><span class="num">187</span><span>Embedding vs referencing</span></a><a href="pages/188-strengths-and-weaknesses.html"><span class="num">188</span><span>Strengths and weaknesses</span></a><a href="pages/189-good-use-cases.html"><span class="num">189</span><span>Good use cases</span></a>
-<a class="summary" href="pages/190-chapter-19-summary.html"><span class="num">190</span><span>Chapter 19 Summary</span></a></div></div><div class="chapter"><h3>20. Column-Family Databases</h3><div class="links"><a href="pages/191-wide-rows-and-sparse-data.html"><span class="num">191</span><span>Wide rows and sparse data</span></a><a href="pages/192-partitioning-and-clustering-keys.html"><span class="num">192</span><span>Partitioning and clustering keys</span></a><a href="pages/193-write-optimized-design.html"><span class="num">193</span><span>Write-optimized design</span></a><a href="pages/194-lsm-trees.html"><span class="num">194</span><span>LSM trees</span></a><a href="pages/195-compaction.html"><span class="num">195</span><span>Compaction</span></a><a href="pages/196-time-series-and-event-workloads.html"><span class="num">196</span><span>Time-series and event workloads</span></a><a href="pages/197-modeling-for-query-patterns.html"><span class="num">197</span><span>Modeling for query patterns</span></a><a href="pages/198-what-is-hard-in-these-systems.html"><span class="num">198</span><span>What is hard in these systems</span></a><a href="pages/199-good-use-cases.html"><span class="num">199</span><span>Good use cases</span></a>
-<a class="summary" href="pages/200-chapter-20-summary.html"><span class="num">200</span><span>Chapter 20 Summary</span></a></div></div><div class="chapter"><h3>21. Graph Databases</h3><div class="links"><a href="pages/201-nodes-edges-and-properties.html"><span class="num">201</span><span>Nodes, edges, and properties</span></a><a href="pages/202-traversals-and-path-queries.html"><span class="num">202</span><span>Traversals and path queries</span></a><a href="pages/203-modeling-relationships-directly.html"><span class="num">203</span><span>Modeling relationships directly</span></a><a href="pages/204-graph-query-languages.html"><span class="num">204</span><span>Graph query languages</span></a><a href="pages/205-when-joins-become-graph-walks.html"><span class="num">205</span><span>When joins become graph walks</span></a><a href="pages/206-performance-characteristics.html"><span class="num">206</span><span>Performance characteristics</span></a><a href="pages/207-strengths-of-graph-storage.html"><span class="num">207</span><span>Strengths of graph storage</span></a><a href="pages/208-limits-and-tradeoffs.html"><span class="num">208</span><span>Limits and tradeoffs</span></a><a href="pages/209-good-use-cases.html"><span class="num">209</span><span>Good use cases</span></a>
-<a class="summary" href="pages/210-chapter-21-summary.html"><span class="num">210</span><span>Chapter 21 Summary</span></a></div></div><div class="chapter"><h3>22. Analytical Databases and Warehouses</h3><div class="links"><a href="pages/211-oltp-vs-olap.html"><span class="num">211</span><span>OLTP vs OLAP</span></a><a href="pages/212-columnar-storage.html"><span class="num">212</span><span>Columnar storage</span></a><a href="pages/213-compression-and-vectorized-execution.html"><span class="num">213</span><span>Compression and vectorized execution</span></a><a href="pages/214-star-schemas-and-fact-tables.html"><span class="num">214</span><span>Star schemas and fact tables</span></a><a href="pages/215-batch-loading.html"><span class="num">215</span><span>Batch loading</span></a><a href="pages/216-materialized-views.html"><span class="num">216</span><span>Materialized views</span></a><a href="pages/217-data-lakes-and-lakehouses.html"><span class="num">217</span><span>Data lakes and lakehouses</span></a><a href="pages/218-why-analytics-engines-feel-different.html"><span class="num">218</span><span>Why analytics engines feel different</span></a><a href="pages/219-good-use-cases.html"><span class="num">219</span><span>Good use cases</span></a>
-<a class="summary" href="pages/220-chapter-22-summary.html"><span class="num">220</span><span>Chapter 22 Summary</span></a></div></div></section><section class="part"><h2>Part VI. Engineering Practice</h2><div class="chapter"><h3>23. Designing for Performance</h3><div class="links"><a href="pages/221-latency-throughput-and-concurrency.html"><span class="num">221</span><span>Latency, throughput, and concurrency</span></a><a href="pages/222-read-heavy-vs-write-heavy-workloads.html"><span class="num">222</span><span>Read-heavy vs write-heavy workloads</span></a><a href="pages/223-access-patterns-first.html"><span class="num">223</span><span>Access patterns first</span></a><a href="pages/224-picking-the-right-indexes.html"><span class="num">224</span><span>Picking the right indexes</span></a><a href="pages/225-avoiding-unnecessary-joins.html"><span class="num">225</span><span>Avoiding unnecessary joins</span></a><a href="pages/226-caching-and-invalidation.html"><span class="num">226</span><span>Caching and invalidation</span></a><a href="pages/227-batch-work-vs-online-work.html"><span class="num">227</span><span>Batch work vs online work</span></a><a href="pages/228-measuring-before-tuning.html"><span class="num">228</span><span>Measuring before tuning</span></a><a href="pages/229-performance-tradeoffs.html"><span class="num">229</span><span>Performance tradeoffs</span></a>
-<a class="summary" href="pages/230-chapter-23-summary.html"><span class="num">230</span><span>Chapter 23 Summary</span></a></div></div><div class="chapter"><h3>24. Designing for Reliability</h3><div class="links"><a href="pages/231-backups-and-restores.html"><span class="num">231</span><span>Backups and restores</span></a><a href="pages/232-point-in-time-recovery.html"><span class="num">232</span><span>Point-in-time recovery</span></a><a href="pages/233-high-availability-basics.html"><span class="num">233</span><span>High availability basics</span></a><a href="pages/234-failure-testing.html"><span class="num">234</span><span>Failure testing</span></a><a href="pages/235-schema-migrations-in-production.html"><span class="num">235</span><span>Schema migrations in production</span></a><a href="pages/236-monitoring-and-alerts.html"><span class="num">236</span><span>Monitoring and alerts</span></a><a href="pages/237-capacity-planning.html"><span class="num">237</span><span>Capacity planning</span></a><a href="pages/238-operational-runbooks.html"><span class="num">238</span><span>Operational runbooks</span></a><a href="pages/239-common-failure-stories.html"><span class="num">239</span><span>Common failure stories</span></a>
-<a class="summary" href="pages/240-chapter-24-summary.html"><span class="num">240</span><span>Chapter 24 Summary</span></a></div></div><div class="chapter"><h3>25. Security and Access Control</h3><div class="links"><a href="pages/241-authentication-and-authorization.html"><span class="num">241</span><span>Authentication and authorization</span></a><a href="pages/242-roles-and-permissions.html"><span class="num">242</span><span>Roles and permissions</span></a><a href="pages/243-encryption-in-transit-and-at-rest.html"><span class="num">243</span><span>Encryption in transit and at rest</span></a><a href="pages/244-auditing-and-logging.html"><span class="num">244</span><span>Auditing and logging</span></a><a href="pages/245-secrets-management.html"><span class="num">245</span><span>Secrets management</span></a><a href="pages/246-multi-tenant-isolation.html"><span class="num">246</span><span>Multi-tenant isolation</span></a><a href="pages/247-sql-injection-and-safe-queries.html"><span class="num">247</span><span>SQL injection and safe queries</span></a><a href="pages/248-privacy-and-data-retention.html"><span class="num">248</span><span>Privacy and data retention</span></a><a href="pages/249-secure-database-habits.html"><span class="num">249</span><span>Secure database habits</span></a>
-<a class="summary" href="pages/250-chapter-25-summary.html"><span class="num">250</span><span>Chapter 25 Summary</span></a></div></div><div class="chapter"><h3>26. Choosing a Database</h3><div class="links"><a href="pages/251-start-from-workload-not-fashion.html"><span class="num">251</span><span>Start from workload, not fashion</span></a><a href="pages/252-questions-to-ask-before-choosing.html"><span class="num">252</span><span>Questions to ask before choosing</span></a><a href="pages/253-one-database-or-many.html"><span class="num">253</span><span>One database or many</span></a><a href="pages/254-build-vs-buy.html"><span class="num">254</span><span>Build vs buy</span></a><a href="pages/255-managed-vs-self-hosted.html"><span class="num">255</span><span>Managed vs self-hosted</span></a><a href="pages/256-cost-team-and-operations.html"><span class="num">256</span><span>Cost, team, and operations</span></a><a href="pages/257-portability-and-lock-in.html"><span class="num">257</span><span>Portability and lock-in</span></a><a href="pages/258-when-to-switch-systems.html"><span class="num">258</span><span>When to switch systems</span></a><a href="pages/259-a-practical-decision-framework.html"><span class="num">259</span><span>A practical decision framework</span></a>
-<a class="summary" href="pages/260-chapter-26-summary.html"><span class="num">260</span><span>Chapter 26 Summary</span></a></div></div></section><section class="part"><h2>Part VII. Building Understanding</h2><div class="chapter"><h3>27. A Tiny Database from Scratch</h3><div class="links"><a href="pages/261-a-toy-table-format.html"><span class="num">261</span><span>A toy table format</span></a><a href="pages/262-insert-and-scan.html"><span class="num">262</span><span>Insert and scan</span></a><a href="pages/263-add-a-simple-index.html"><span class="num">263</span><span>Add a simple index</span></a><a href="pages/264-add-a-parser.html"><span class="num">264</span><span>Add a parser</span></a><a href="pages/265-add-a-planner.html"><span class="num">265</span><span>Add a planner</span></a><a href="pages/266-add-transactions.html"><span class="num">266</span><span>Add transactions</span></a><a href="pages/267-add-recovery.html"><span class="num">267</span><span>Add recovery</span></a><a href="pages/268-add-concurrency-control.html"><span class="num">268</span><span>Add concurrency control</span></a><a href="pages/269-what-this-teaches-you.html"><span class="num">269</span><span>What this teaches you</span></a>
-<a class="summary" href="pages/270-chapter-27-summary.html"><span class="num">270</span><span>Chapter 27 Summary</span></a></div></div><div class="chapter"><h3>28. Case Studies</h3><div class="links"><a href="pages/271-a-to-do-app-database.html"><span class="num">271</span><span>A to-do app database</span></a><a href="pages/272-an-e-commerce-database.html"><span class="num">272</span><span>An e-commerce database</span></a><a href="pages/273-a-chat-system-database.html"><span class="num">273</span><span>A chat system database</span></a><a href="pages/274-an-analytics-pipeline-database.html"><span class="num">274</span><span>An analytics pipeline database</span></a><a href="pages/275-a-time-series-metrics-database.html"><span class="num">275</span><span>A time-series metrics database</span></a><a href="pages/276-a-search-index-as-a-database-system.html"><span class="num">276</span><span>A search index as a database system</span></a><a href="pages/277-a-multi-tenant-saas-schema.html"><span class="num">277</span><span>A multi-tenant SaaS schema</span></a><a href="pages/278-mistakes-and-redesigns.html"><span class="num">278</span><span>Mistakes and redesigns</span></a><a href="pages/279-lessons-from-each-system.html"><span class="num">279</span><span>Lessons from each system</span></a>
-<a class="summary" href="pages/280-chapter-28-summary.html"><span class="num">280</span><span>Chapter 28 Summary</span></a></div></div><div class="chapter"><h3>29. Common Myths About Databases</h3><div class="links"><a href="pages/281-sql-is-slow.html"><span class="num">281</span><span>SQL is slow</span></a><a href="pages/282-nosql-means-no-schema.html"><span class="num">282</span><span>NoSQL means no schema</span></a><a href="pages/283-indexes-always-help.html"><span class="num">283</span><span>Indexes always help</span></a><a href="pages/284-acid-means-no-scale.html"><span class="num">284</span><span>ACID means no scale</span></a><a href="pages/285-distributed-means-faster.html"><span class="num">285</span><span>Distributed means faster</span></a><a href="pages/286-flexible-schema-means-easy-design.html"><span class="num">286</span><span>Flexible schema means easy design</span></a><a href="pages/287-denormalization-always-improves-performance.html"><span class="num">287</span><span>Denormalization always improves performance</span></a><a href="pages/288-one-database-can-do-everything.html"><span class="num">288</span><span>One database can do everything</span></a><a href="pages/289-what-to-believe-instead.html"><span class="num">289</span><span>What to believe instead</span></a>
-<a class="summary" href="pages/290-chapter-29-summary.html"><span class="num">290</span><span>Chapter 29 Summary</span></a></div></div><div class="chapter"><h3>30. Where to Go Next</h3><div class="links"><a href="pages/291-how-to-read-database-papers.html"><span class="num">291</span><span>How to read database papers</span></a><a href="pages/292-how-to-study-a-real-engine.html"><span class="num">292</span><span>How to study a real engine</span></a><a href="pages/293-how-to-benchmark-correctly.html"><span class="num">293</span><span>How to benchmark correctly</span></a><a href="pages/294-open-source-databases-to-explore.html"><span class="num">294</span><span>Open source databases to explore</span></a><a href="pages/295-what-to-build-for-practice.html"><span class="num">295</span><span>What to build for practice</span></a><a href="pages/296-topics-beyond-this-book.html"><span class="num">296</span><span>Topics beyond this book</span></a><a href="pages/297-a-database-engineers-mindset.html"><span class="num">297</span><span>A database engineer’s mindset</span></a><a href="pages/298-suggested-learning-path.html"><span class="num">298</span><span>Suggested learning path</span></a><a href="pages/299-final-review.html"><span class="num">299</span><span>Final review</span></a></div></div></section>
-</main>
-
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <span class="footer-note">Content is AI-generated</span>
-      <a href="https://github.com/sonht1109/db-overview" class="github-link" target="_blank" rel="noopener" title="View on GitHub">
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-        </svg>
-        GitHub
-      </a>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Database Overview — An Interactive Guide</title>
+    <link rel="stylesheet" href="pages/assets/style.css" />
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="topbar-inner">
+        <a class="home-link" href=".">← All topics</a>
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search topics…"
+            autocomplete="off"
+            spellcheck="false"
+          /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd>
+        </div>
+      </div>
     </div>
-  </footer>
 
-  <script src="pages/assets/search.js"></script>
-</body>
+    <main class="wrap">
+      <header class="hero">
+        <h1>Database Overview</h1>
+        <p>
+          A hands-on tour of how database systems work — from records and SQL to
+          storage engines, transactions, distribution, and the major database
+          families.
+        </p>
+      </header>
+      <section class="part">
+        <h2>Part I. Foundations</h2>
+        <div class="chapter">
+          <h3>1. What a Database System Is</h3>
+          <div class="links">
+            <a href="pages/001-data-information-and-records.html"
+              ><span class="num">001</span
+              ><span>Data, information, and records</span></a
+            ><a href="pages/002-database-vs-file-storage.html"
+              ><span class="num">002</span
+              ><span>Database vs file storage</span></a
+            ><a href="pages/003-database-table-row-column.html"
+              ><span class="num">003</span
+              ><span>Database, table, row, column</span></a
+            ><a href="pages/004-queries-transactions-and-schemas.html"
+              ><span class="num">004</span
+              ><span>Queries, transactions, and schemas</span></a
+            ><a href="pages/005-the-role-of-the-database-engine.html"
+              ><span class="num">005</span
+              ><span>The role of the database engine</span></a
+            ><a href="pages/006-clients-servers-and-drivers.html"
+              ><span class="num">006</span
+              ><span>Clients, servers, and drivers</span></a
+            ><a href="pages/007-why-database-systems-matter.html"
+              ><span class="num">007</span
+              ><span>Why database systems matter</span></a
+            ><a href="pages/008-common-kinds-of-database-workloads.html"
+              ><span class="num">008</span
+              ><span>Common kinds of database workloads</span></a
+            ><a href="pages/009-a-first-mental-model.html"
+              ><span class="num">009</span><span>A first mental model</span></a
+            >
+            <a class="summary" href="pages/010-chapter-1-summary.html"
+              ><span class="num">010</span><span>Chapter 1 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>2. How Data Is Organized</h3>
+          <div class="links">
+            <a href="pages/011-logical-structure-vs-physical-structure.html"
+              ><span class="num">011</span
+              ><span>Logical structure vs physical structure</span></a
+            ><a href="pages/012-tables-and-relations.html"
+              ><span class="num">012</span><span>Tables and relations</span></a
+            ><a href="pages/013-keys-and-identifiers.html"
+              ><span class="num">013</span><span>Keys and identifiers</span></a
+            ><a href="pages/014-constraints-and-rules.html"
+              ><span class="num">014</span><span>Constraints and rules</span></a
+            ><a href="pages/015-null-and-missing-values.html"
+              ><span class="num">015</span
+              ><span>NULL and missing values</span></a
+            ><a href="pages/016-data-types-and-domains.html"
+              ><span class="num">016</span
+              ><span>Data types and domains</span></a
+            ><a href="pages/017-normalized-and-denormalized-data.html"
+              ><span class="num">017</span
+              ><span>Normalized and denormalized data</span></a
+            ><a href="pages/018-documents-graphs-and-key-value-shapes.html"
+              ><span class="num">018</span
+              ><span>Documents, graphs, and key-value shapes</span></a
+            ><a href="pages/019-choosing-the-right-model.html"
+              ><span class="num">019</span
+              ><span>Choosing the right model</span></a
+            >
+            <a class="summary" href="pages/020-chapter-2-summary.html"
+              ><span class="num">020</span><span>Chapter 2 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>3. The Relational Model</h3>
+          <div class="links">
+            <a href="pages/021-relations-tuples-and-attributes.html"
+              ><span class="num">021</span
+              ><span>Relations, tuples, and attributes</span></a
+            ><a href="pages/022-primary-keys-and-foreign-keys.html"
+              ><span class="num">022</span
+              ><span>Primary keys and foreign keys</span></a
+            ><a href="pages/023-set-based-thinking.html"
+              ><span class="num">023</span><span>Set-based thinking</span></a
+            ><a href="pages/024-projection-selection-and-join.html"
+              ><span class="num">024</span
+              ><span>Projection, selection, and join</span></a
+            ><a href="pages/025-why-relations-are-powerful.html"
+              ><span class="num">025</span
+              ><span>Why relations are powerful</span></a
+            ><a href="pages/026-data-independence.html"
+              ><span class="num">026</span><span>Data independence</span></a
+            ><a href="pages/027-integrity-by-design.html"
+              ><span class="num">027</span><span>Integrity by design</span></a
+            ><a href="pages/028-common-misunderstandings.html"
+              ><span class="num">028</span
+              ><span>Common misunderstandings</span></a
+            ><a href="pages/029-where-the-relational-model-shines.html"
+              ><span class="num">029</span
+              ><span>Where the relational model shines</span></a
+            >
+            <a class="summary" href="pages/030-chapter-3-summary.html"
+              ><span class="num">030</span><span>Chapter 3 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>4. Schemas and Data Modeling</h3>
+          <div class="links">
+            <a href="pages/031-from-real-world-to-schema.html"
+              ><span class="num">031</span
+              ><span>From real world to schema</span></a
+            ><a href="pages/032-entities-and-relationships.html"
+              ><span class="num">032</span
+              ><span>Entities and relationships</span></a
+            ><a href="pages/033-one-to-one-one-to-many-many-to-many.html"
+              ><span class="num">033</span
+              ><span>One-to-one, one-to-many, many-to-many</span></a
+            ><a href="pages/034-lookup-tables-and-enums.html"
+              ><span class="num">034</span
+              ><span>Lookup tables and enums</span></a
+            ><a href="pages/035-derived-data-and-computed-columns.html"
+              ><span class="num">035</span
+              ><span>Derived data and computed columns</span></a
+            ><a href="pages/036-naming-tables-and-columns.html"
+              ><span class="num">036</span
+              ><span>Naming tables and columns</span></a
+            ><a href="pages/037-avoiding-duplication.html"
+              ><span class="num">037</span><span>Avoiding duplication</span></a
+            ><a href="pages/038-evolving-a-schema-safely.html"
+              ><span class="num">038</span
+              ><span>Evolving a schema safely</span></a
+            ><a href="pages/039-tradeoffs-in-modeling.html"
+              ><span class="num">039</span><span>Tradeoffs in modeling</span></a
+            >
+            <a class="summary" href="pages/040-chapter-4-summary.html"
+              ><span class="num">040</span><span>Chapter 4 Summary</span></a
+            >
+          </div>
+        </div>
+      </section>
+      <section class="part">
+        <h2>Part II. Querying and Language</h2>
+        <div class="chapter">
+          <h3>5. A Gentle Introduction to SQL</h3>
+          <div class="links">
+            <a href="pages/041-what-sql-is-for.html"
+              ><span class="num">041</span><span>What SQL is for</span></a
+            ><a href="pages/042-select-insert-update-delete.html"
+              ><span class="num">042</span
+              ><span>SELECT, INSERT, UPDATE, DELETE</span></a
+            ><a href="pages/043-filtering-rows-with-where.html"
+              ><span class="num">043</span
+              ><span>Filtering rows with WHERE</span></a
+            ><a href="pages/044-sorting-with-order-by.html"
+              ><span class="num">044</span><span>Sorting with ORDER BY</span></a
+            ><a href="pages/045-limiting-results.html"
+              ><span class="num">045</span><span>Limiting results</span></a
+            ><a href="pages/046-aggregates-and-group-by.html"
+              ><span class="num">046</span
+              ><span>Aggregates and GROUP BY</span></a
+            ><a href="pages/047-joining-tables.html"
+              ><span class="num">047</span><span>Joining tables</span></a
+            ><a href="pages/048-subqueries-and-common-table-expressions.html"
+              ><span class="num">048</span
+              ><span>Subqueries and common table expressions</span></a
+            ><a href="pages/049-reading-sql-as-a-data-flow.html"
+              ><span class="num">049</span
+              ><span>Reading SQL as a data flow</span></a
+            >
+            <a class="summary" href="pages/050-chapter-5-summary.html"
+              ><span class="num">050</span><span>Chapter 5 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>6. How Query Processing Works</h3>
+          <div class="links">
+            <a href="pages/051-parsing-and-validation.html"
+              ><span class="num">051</span
+              ><span>Parsing and validation</span></a
+            ><a href="pages/052-logical-plans.html"
+              ><span class="num">052</span><span>Logical plans</span></a
+            ><a href="pages/053-physical-plans.html"
+              ><span class="num">053</span><span>Physical plans</span></a
+            ><a href="pages/054-operators-such-as-scan-filter-join.html"
+              ><span class="num">054</span
+              ><span>Operators such as scan, filter, join</span></a
+            ><a href="pages/055-cost-estimation.html"
+              ><span class="num">055</span><span>Cost estimation</span></a
+            ><a href="pages/056-rule-based-and-cost-based-planning.html"
+              ><span class="num">056</span
+              ><span>Rule-based and cost-based planning</span></a
+            ><a href="pages/057-why-the-same-query-can-run-differently.html"
+              ><span class="num">057</span
+              ><span>Why the same query can run differently</span></a
+            ><a href="pages/058-reading-an-explain-plan.html"
+              ><span class="num">058</span
+              ><span>Reading an explain plan</span></a
+            ><a href="pages/059-query-planning-mistakes.html"
+              ><span class="num">059</span
+              ><span>Query planning mistakes</span></a
+            >
+            <a class="summary" href="pages/060-chapter-6-summary.html"
+              ><span class="num">060</span><span>Chapter 6 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>7. Indexes</h3>
+          <div class="links">
+            <a href="pages/061-why-scanning-everything-is-slow.html"
+              ><span class="num">061</span
+              ><span>Why scanning everything is slow</span></a
+            ><a href="pages/062-what-an-index-really-is.html"
+              ><span class="num">062</span
+              ><span>What an index really is</span></a
+            ><a href="pages/063-b-tree-indexes.html"
+              ><span class="num">063</span><span>B-tree indexes</span></a
+            ><a href="pages/064-hash-indexes.html"
+              ><span class="num">064</span><span>Hash indexes</span></a
+            ><a href="pages/065-composite-indexes.html"
+              ><span class="num">065</span><span>Composite indexes</span></a
+            ><a href="pages/066-covering-indexes.html"
+              ><span class="num">066</span><span>Covering indexes</span></a
+            ><a href="pages/067-unique-indexes.html"
+              ><span class="num">067</span><span>Unique indexes</span></a
+            ><a href="pages/068-secondary-indexes.html"
+              ><span class="num">068</span><span>Secondary indexes</span></a
+            ><a href="pages/069-when-indexes-hurt.html"
+              ><span class="num">069</span><span>When indexes hurt</span></a
+            >
+            <a class="summary" href="pages/070-chapter-7-summary.html"
+              ><span class="num">070</span><span>Chapter 7 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>8. Joins, Aggregation, and Sorting</h3>
+          <div class="links">
+            <a href="pages/071-nested-loop-joins.html"
+              ><span class="num">071</span><span>Nested loop joins</span></a
+            ><a href="pages/072-hash-joins.html"
+              ><span class="num">072</span><span>Hash joins</span></a
+            ><a href="pages/073-merge-joins.html"
+              ><span class="num">073</span><span>Merge joins</span></a
+            ><a href="pages/074-grouping-and-aggregation.html"
+              ><span class="num">074</span
+              ><span>Grouping and aggregation</span></a
+            ><a href="pages/075-external-sort.html"
+              ><span class="num">075</span><span>External sort</span></a
+            ><a href="pages/076-memory-limits-and-spill-to-disk.html"
+              ><span class="num">076</span
+              ><span>Memory limits and spill to disk</span></a
+            ><a href="pages/077-join-order-matters.html"
+              ><span class="num">077</span><span>Join order matters</span></a
+            ><a href="pages/078-cardinality-and-row-counts.html"
+              ><span class="num">078</span
+              ><span>Cardinality and row counts</span></a
+            ><a href="pages/079-practical-query-tuning.html"
+              ><span class="num">079</span
+              ><span>Practical query tuning</span></a
+            >
+            <a class="summary" href="pages/080-chapter-8-summary.html"
+              ><span class="num">080</span><span>Chapter 8 Summary</span></a
+            >
+          </div>
+        </div>
+      </section>
+      <section class="part">
+        <h2>Part III. Storage and Execution</h2>
+        <div class="chapter">
+          <h3>9. Pages, Records, and Files</h3>
+          <div class="links">
+            <a href="pages/081-why-databases-use-pages.html"
+              ><span class="num">081</span
+              ><span>Why databases use pages</span></a
+            ><a href="pages/082-heap-files-and-page-layouts.html"
+              ><span class="num">082</span
+              ><span>Heap files and page layouts</span></a
+            ><a href="pages/083-row-stores-and-column-stores.html"
+              ><span class="num">083</span
+              ><span>Row stores and column stores</span></a
+            ><a href="pages/084-fixed-length-and-variable-length-records.html"
+              ><span class="num">084</span
+              ><span>Fixed-length and variable-length records</span></a
+            ><a href="pages/085-slotted-pages.html"
+              ><span class="num">085</span><span>Slotted pages</span></a
+            ><a href="pages/086-free-space-management.html"
+              ><span class="num">086</span><span>Free space management</span></a
+            ><a href="pages/087-record-identifiers.html"
+              ><span class="num">087</span><span>Record identifiers</span></a
+            ><a href="pages/088-updates-and-fragmentation.html"
+              ><span class="num">088</span
+              ><span>Updates and fragmentation</span></a
+            ><a href="pages/089-how-rows-are-found-on-disk.html"
+              ><span class="num">089</span
+              ><span>How rows are found on disk</span></a
+            >
+            <a class="summary" href="pages/090-chapter-9-summary.html"
+              ><span class="num">090</span><span>Chapter 9 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>10. Trees, Logs, and Internal Structures</h3>
+          <div class="links">
+            <a href="pages/091-b-tree-structure-in-detail.html"
+              ><span class="num">091</span
+              ><span>B-tree structure in detail</span></a
+            ><a href="pages/092-splits-merges-and-rebalancing.html"
+              ><span class="num">092</span
+              ><span>Splits, merges, and rebalancing</span></a
+            ><a href="pages/093-write-ahead-logging-basics.html"
+              ><span class="num">093</span
+              ><span>Write-ahead logging basics</span></a
+            ><a href="pages/094-checkpoints.html"
+              ><span class="num">094</span><span>Checkpoints</span></a
+            ><a href="pages/095-buffer-pools.html"
+              ><span class="num">095</span><span>Buffer pools</span></a
+            ><a href="pages/096-dirty-pages-and-flushing.html"
+              ><span class="num">096</span
+              ><span>Dirty pages and flushing</span></a
+            ><a href="pages/097-crash-recovery-overview.html"
+              ><span class="num">097</span
+              ><span>Crash recovery overview</span></a
+            ><a href="pages/098-space-amplification.html"
+              ><span class="num">098</span><span>Space amplification</span></a
+            ><a href="pages/099-read-amplification-and-write-amplification.html"
+              ><span class="num">099</span
+              ><span>Read amplification and write amplification</span></a
+            >
+            <a class="summary" href="pages/100-chapter-10-summary.html"
+              ><span class="num">100</span><span>Chapter 10 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>11. Transactions</h3>
+          <div class="links">
+            <a href="pages/101-why-transactions-exist.html"
+              ><span class="num">101</span
+              ><span>Why transactions exist</span></a
+            ><a href="pages/102-the-meaning-of-atomicity.html"
+              ><span class="num">102</span
+              ><span>The meaning of atomicity</span></a
+            ><a href="pages/103-consistency-in-practice.html"
+              ><span class="num">103</span
+              ><span>Consistency in practice</span></a
+            ><a href="pages/104-isolation-and-interference.html"
+              ><span class="num">104</span
+              ><span>Isolation and interference</span></a
+            ><a href="pages/105-durability-and-persistence.html"
+              ><span class="num">105</span
+              ><span>Durability and persistence</span></a
+            ><a href="pages/106-transaction-boundaries.html"
+              ><span class="num">106</span
+              ><span>Transaction boundaries</span></a
+            ><a href="pages/107-commit-and-rollback.html"
+              ><span class="num">107</span><span>Commit and rollback</span></a
+            ><a href="pages/108-multi-step-updates.html"
+              ><span class="num">108</span><span>Multi-step updates</span></a
+            ><a href="pages/109-real-examples-of-broken-logic.html"
+              ><span class="num">109</span
+              ><span>Real examples of broken logic</span></a
+            >
+            <a class="summary" href="pages/110-chapter-11-summary.html"
+              ><span class="num">110</span><span>Chapter 11 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>12. Concurrency Control</h3>
+          <div class="links">
+            <a href="pages/111-the-lost-update-problem.html"
+              ><span class="num">111</span
+              ><span>The lost update problem</span></a
+            ><a href="pages/112-dirty-reads-and-non-repeatable-reads.html"
+              ><span class="num">112</span
+              ><span>Dirty reads and non-repeatable reads</span></a
+            ><a href="pages/113-phantom-reads.html"
+              ><span class="num">113</span><span>Phantom reads</span></a
+            ><a href="pages/114-locks-and-lock-modes.html"
+              ><span class="num">114</span><span>Locks and lock modes</span></a
+            ><a href="pages/115-two-phase-locking.html"
+              ><span class="num">115</span><span>Two-phase locking</span></a
+            ><a href="pages/116-deadlocks-and-detection.html"
+              ><span class="num">116</span
+              ><span>Deadlocks and detection</span></a
+            ><a href="pages/117-multiversion-concurrency-control.html"
+              ><span class="num">117</span
+              ><span>Multiversion concurrency control</span></a
+            ><a href="pages/118-snapshot-isolation.html"
+              ><span class="num">118</span><span>Snapshot isolation</span></a
+            ><a href="pages/119-choosing-isolation-levels.html"
+              ><span class="num">119</span
+              ><span>Choosing isolation levels</span></a
+            >
+            <a class="summary" href="pages/120-chapter-12-summary.html"
+              ><span class="num">120</span><span>Chapter 12 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>13. Recovery</h3>
+          <div class="links">
+            <a href="pages/121-what-can-go-wrong.html"
+              ><span class="num">121</span><span>What can go wrong</span></a
+            ><a href="pages/122-the-write-ahead-log.html"
+              ><span class="num">122</span><span>The write-ahead log</span></a
+            ><a href="pages/123-redo-and-undo.html"
+              ><span class="num">123</span><span>Redo and undo</span></a
+            ><a href="pages/124-checkpoints-and-restart.html"
+              ><span class="num">124</span
+              ><span>Checkpoints and restart</span></a
+            ><a href="pages/125-steal-and-no-steal.html"
+              ><span class="num">125</span><span>Steal and no-steal</span></a
+            ><a href="pages/126-force-and-no-force.html"
+              ><span class="num">126</span><span>Force and no-force</span></a
+            ><a href="pages/127-crash-safe-commits.html"
+              ><span class="num">127</span><span>Crash-safe commits</span></a
+            ><a href="pages/128-recovering-unfinished-work.html"
+              ><span class="num">128</span
+              ><span>Recovering unfinished work</span></a
+            ><a href="pages/129-why-recovery-shapes-design.html"
+              ><span class="num">129</span
+              ><span>Why recovery shapes design</span></a
+            >
+            <a class="summary" href="pages/130-chapter-13-summary.html"
+              ><span class="num">130</span><span>Chapter 13 Summary</span></a
+            >
+          </div>
+        </div>
+      </section>
+      <section class="part">
+        <h2>Part IV. Distributed Systems</h2>
+        <div class="chapter">
+          <h3>14. From One Machine to Many</h3>
+          <div class="links">
+            <a href="pages/131-why-distribute-a-database.html"
+              ><span class="num">131</span
+              ><span>Why distribute a database</span></a
+            ><a href="pages/132-replication-and-sharding.html"
+              ><span class="num">132</span
+              ><span>Replication and sharding</span></a
+            ><a href="pages/133-shared-nothing-systems.html"
+              ><span class="num">133</span
+              ><span>Shared-nothing systems</span></a
+            ><a href="pages/134-partition-keys.html"
+              ><span class="num">134</span><span>Partition keys</span></a
+            ><a href="pages/135-cross-node-queries.html"
+              ><span class="num">135</span><span>Cross-node queries</span></a
+            ><a href="pages/136-rebalancing-data.html"
+              ><span class="num">136</span><span>Rebalancing data</span></a
+            ><a href="pages/137-hot-partitions.html"
+              ><span class="num">137</span><span>Hot partitions</span></a
+            ><a href="pages/138-failure-becomes-normal.html"
+              ><span class="num">138</span
+              ><span>Failure becomes normal</span></a
+            ><a href="pages/139-new-tradeoffs-at-scale.html"
+              ><span class="num">139</span
+              ><span>New tradeoffs at scale</span></a
+            >
+            <a class="summary" href="pages/140-chapter-14-summary.html"
+              ><span class="num">140</span><span>Chapter 14 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>15. Replication</h3>
+          <div class="links">
+            <a href="pages/141-leader-follower-replication.html"
+              ><span class="num">141</span
+              ><span>Leader-follower replication</span></a
+            ><a href="pages/142-synchronous-vs-asynchronous-replication.html"
+              ><span class="num">142</span
+              ><span>Synchronous vs asynchronous replication</span></a
+            ><a href="pages/143-read-replicas.html"
+              ><span class="num">143</span><span>Read replicas</span></a
+            ><a href="pages/144-replication-lag.html"
+              ><span class="num">144</span><span>Replication lag</span></a
+            ><a href="pages/145-failover-and-promotion.html"
+              ><span class="num">145</span
+              ><span>Failover and promotion</span></a
+            ><a href="pages/146-conflict-handling.html"
+              ><span class="num">146</span><span>Conflict handling</span></a
+            ><a href="pages/147-multi-leader-systems.html"
+              ><span class="num">147</span><span>Multi-leader systems</span></a
+            ><a href="pages/148-replication-logs.html"
+              ><span class="num">148</span><span>Replication logs</span></a
+            ><a href="pages/149-operational-pitfalls.html"
+              ><span class="num">149</span><span>Operational pitfalls</span></a
+            >
+            <a class="summary" href="pages/150-chapter-15-summary.html"
+              ><span class="num">150</span><span>Chapter 15 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>16. Distributed Transactions and Consensus</h3>
+          <div class="links">
+            <a href="pages/151-why-local-transactions-are-easier.html"
+              ><span class="num">151</span
+              ><span>Why local transactions are easier</span></a
+            ><a href="pages/152-two-phase-commit.html"
+              ><span class="num">152</span><span>Two-phase commit</span></a
+            ><a href="pages/153-coordinator-failure.html"
+              ><span class="num">153</span><span>Coordinator failure</span></a
+            ><a href="pages/154-consensus-in-simple-terms.html"
+              ><span class="num">154</span
+              ><span>Consensus in simple terms</span></a
+            ><a href="pages/155-quorums.html"
+              ><span class="num">155</span><span>Quorums</span></a
+            ><a href="pages/156-raft-and-leader-election.html"
+              ><span class="num">156</span
+              ><span>Raft and leader election</span></a
+            ><a href="pages/157-what-consensus-solves.html"
+              ><span class="num">157</span><span>What consensus solves</span></a
+            ><a href="pages/158-what-consensus-does-not-solve.html"
+              ><span class="num">158</span
+              ><span>What consensus does not solve</span></a
+            ><a href="pages/159-cost-of-coordination.html"
+              ><span class="num">159</span><span>Cost of coordination</span></a
+            >
+            <a class="summary" href="pages/160-chapter-16-summary.html"
+              ><span class="num">160</span><span>Chapter 16 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>17. Consistency in Distributed Databases</h3>
+          <div class="links">
+            <a href="pages/161-strong-consistency.html"
+              ><span class="num">161</span><span>Strong consistency</span></a
+            ><a href="pages/162-eventual-consistency.html"
+              ><span class="num">162</span><span>Eventual consistency</span></a
+            ><a href="pages/163-read-your-writes.html"
+              ><span class="num">163</span><span>Read-your-writes</span></a
+            ><a href="pages/164-monotonic-reads.html"
+              ><span class="num">164</span><span>Monotonic reads</span></a
+            ><a href="pages/165-causal-consistency.html"
+              ><span class="num">165</span><span>Causal consistency</span></a
+            ><a href="pages/166-cap-as-a-tradeoff-lens.html"
+              ><span class="num">166</span
+              ><span>CAP as a tradeoff lens</span></a
+            ><a href="pages/167-latency-vs-correctness.html"
+              ><span class="num">167</span
+              ><span>Latency vs correctness</span></a
+            ><a href="pages/168-conflict-free-approaches.html"
+              ><span class="num">168</span
+              ><span>Conflict-free approaches</span></a
+            ><a href="pages/169-picking-the-right-guarantee.html"
+              ><span class="num">169</span
+              ><span>Picking the right guarantee</span></a
+            >
+            <a class="summary" href="pages/170-chapter-17-summary.html"
+              ><span class="num">170</span><span>Chapter 17 Summary</span></a
+            >
+          </div>
+        </div>
+      </section>
+      <section class="part">
+        <h2>Part V. Database Families</h2>
+        <div class="chapter">
+          <h3>18. Key-Value Databases</h3>
+          <div class="links">
+            <a href="pages/171-the-key-value-model.html"
+              ><span class="num">171</span><span>The key-value model</span></a
+            ><a href="pages/172-fast-lookups-and-simple-apis.html"
+              ><span class="num">172</span
+              ><span>Fast lookups and simple APIs</span></a
+            ><a href="pages/173-range-scans-and-ordered-keys.html"
+              ><span class="num">173</span
+              ><span>Range scans and ordered keys</span></a
+            ><a href="pages/174-common-storage-engines.html"
+              ><span class="num">174</span
+              ><span>Common storage engines</span></a
+            ><a href="pages/175-caching-vs-persistence.html"
+              ><span class="num">175</span
+              ><span>Caching vs persistence</span></a
+            ><a href="pages/176-when-key-value-is-enough.html"
+              ><span class="num">176</span
+              ><span>When key-value is enough</span></a
+            ><a href="pages/177-limits-of-the-model.html"
+              ><span class="num">177</span><span>Limits of the model</span></a
+            ><a href="pages/178-real-world-examples.html"
+              ><span class="num">178</span><span>Real-world examples</span></a
+            ><a href="pages/179-design-patterns.html"
+              ><span class="num">179</span><span>Design patterns</span></a
+            >
+            <a class="summary" href="pages/180-chapter-18-summary.html"
+              ><span class="num">180</span><span>Chapter 18 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>19. Document Databases</h3>
+          <div class="links">
+            <a href="pages/181-json-as-a-data-model.html"
+              ><span class="num">181</span><span>JSON as a data model</span></a
+            ><a href="pages/182-flexible-schema.html"
+              ><span class="num">182</span><span>Flexible schema</span></a
+            ><a href="pages/183-nested-data-and-arrays.html"
+              ><span class="num">183</span
+              ><span>Nested data and arrays</span></a
+            ><a href="pages/184-secondary-indexes-on-documents.html"
+              ><span class="num">184</span
+              ><span>Secondary indexes on documents</span></a
+            ><a href="pages/185-querying-document-fields.html"
+              ><span class="num">185</span
+              ><span>Querying document fields</span></a
+            ><a href="pages/186-document-updates-and-rewrites.html"
+              ><span class="num">186</span
+              ><span>Document updates and rewrites</span></a
+            ><a href="pages/187-embedding-vs-referencing.html"
+              ><span class="num">187</span
+              ><span>Embedding vs referencing</span></a
+            ><a href="pages/188-strengths-and-weaknesses.html"
+              ><span class="num">188</span
+              ><span>Strengths and weaknesses</span></a
+            ><a href="pages/189-good-use-cases.html"
+              ><span class="num">189</span><span>Good use cases</span></a
+            >
+            <a class="summary" href="pages/190-chapter-19-summary.html"
+              ><span class="num">190</span><span>Chapter 19 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>20. Column-Family Databases</h3>
+          <div class="links">
+            <a href="pages/191-wide-rows-and-sparse-data.html"
+              ><span class="num">191</span
+              ><span>Wide rows and sparse data</span></a
+            ><a href="pages/192-partitioning-and-clustering-keys.html"
+              ><span class="num">192</span
+              ><span>Partitioning and clustering keys</span></a
+            ><a href="pages/193-write-optimized-design.html"
+              ><span class="num">193</span
+              ><span>Write-optimized design</span></a
+            ><a href="pages/194-lsm-trees.html"
+              ><span class="num">194</span><span>LSM trees</span></a
+            ><a href="pages/195-compaction.html"
+              ><span class="num">195</span><span>Compaction</span></a
+            ><a href="pages/196-time-series-and-event-workloads.html"
+              ><span class="num">196</span
+              ><span>Time-series and event workloads</span></a
+            ><a href="pages/197-modeling-for-query-patterns.html"
+              ><span class="num">197</span
+              ><span>Modeling for query patterns</span></a
+            ><a href="pages/198-what-is-hard-in-these-systems.html"
+              ><span class="num">198</span
+              ><span>What is hard in these systems</span></a
+            ><a href="pages/199-good-use-cases.html"
+              ><span class="num">199</span><span>Good use cases</span></a
+            >
+            <a class="summary" href="pages/200-chapter-20-summary.html"
+              ><span class="num">200</span><span>Chapter 20 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>21. Graph Databases</h3>
+          <div class="links">
+            <a href="pages/201-nodes-edges-and-properties.html"
+              ><span class="num">201</span
+              ><span>Nodes, edges, and properties</span></a
+            ><a href="pages/202-traversals-and-path-queries.html"
+              ><span class="num">202</span
+              ><span>Traversals and path queries</span></a
+            ><a href="pages/203-modeling-relationships-directly.html"
+              ><span class="num">203</span
+              ><span>Modeling relationships directly</span></a
+            ><a href="pages/204-graph-query-languages.html"
+              ><span class="num">204</span><span>Graph query languages</span></a
+            ><a href="pages/205-when-joins-become-graph-walks.html"
+              ><span class="num">205</span
+              ><span>When joins become graph walks</span></a
+            ><a href="pages/206-performance-characteristics.html"
+              ><span class="num">206</span
+              ><span>Performance characteristics</span></a
+            ><a href="pages/207-strengths-of-graph-storage.html"
+              ><span class="num">207</span
+              ><span>Strengths of graph storage</span></a
+            ><a href="pages/208-limits-and-tradeoffs.html"
+              ><span class="num">208</span><span>Limits and tradeoffs</span></a
+            ><a href="pages/209-good-use-cases.html"
+              ><span class="num">209</span><span>Good use cases</span></a
+            >
+            <a class="summary" href="pages/210-chapter-21-summary.html"
+              ><span class="num">210</span><span>Chapter 21 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>22. Analytical Databases and Warehouses</h3>
+          <div class="links">
+            <a href="pages/211-oltp-vs-olap.html"
+              ><span class="num">211</span><span>OLTP vs OLAP</span></a
+            ><a href="pages/212-columnar-storage.html"
+              ><span class="num">212</span><span>Columnar storage</span></a
+            ><a href="pages/213-compression-and-vectorized-execution.html"
+              ><span class="num">213</span
+              ><span>Compression and vectorized execution</span></a
+            ><a href="pages/214-star-schemas-and-fact-tables.html"
+              ><span class="num">214</span
+              ><span>Star schemas and fact tables</span></a
+            ><a href="pages/215-batch-loading.html"
+              ><span class="num">215</span><span>Batch loading</span></a
+            ><a href="pages/216-materialized-views.html"
+              ><span class="num">216</span><span>Materialized views</span></a
+            ><a href="pages/217-data-lakes-and-lakehouses.html"
+              ><span class="num">217</span
+              ><span>Data lakes and lakehouses</span></a
+            ><a href="pages/218-why-analytics-engines-feel-different.html"
+              ><span class="num">218</span
+              ><span>Why analytics engines feel different</span></a
+            ><a href="pages/219-good-use-cases.html"
+              ><span class="num">219</span><span>Good use cases</span></a
+            >
+            <a class="summary" href="pages/220-chapter-22-summary.html"
+              ><span class="num">220</span><span>Chapter 22 Summary</span></a
+            >
+          </div>
+        </div>
+      </section>
+      <section class="part">
+        <h2>Part VI. Engineering Practice</h2>
+        <div class="chapter">
+          <h3>23. Designing for Performance</h3>
+          <div class="links">
+            <a href="pages/221-latency-throughput-and-concurrency.html"
+              ><span class="num">221</span
+              ><span>Latency, throughput, and concurrency</span></a
+            ><a href="pages/222-read-heavy-vs-write-heavy-workloads.html"
+              ><span class="num">222</span
+              ><span>Read-heavy vs write-heavy workloads</span></a
+            ><a href="pages/223-access-patterns-first.html"
+              ><span class="num">223</span><span>Access patterns first</span></a
+            ><a href="pages/224-picking-the-right-indexes.html"
+              ><span class="num">224</span
+              ><span>Picking the right indexes</span></a
+            ><a href="pages/225-avoiding-unnecessary-joins.html"
+              ><span class="num">225</span
+              ><span>Avoiding unnecessary joins</span></a
+            ><a href="pages/226-caching-and-invalidation.html"
+              ><span class="num">226</span
+              ><span>Caching and invalidation</span></a
+            ><a href="pages/227-batch-work-vs-online-work.html"
+              ><span class="num">227</span
+              ><span>Batch work vs online work</span></a
+            ><a href="pages/228-measuring-before-tuning.html"
+              ><span class="num">228</span
+              ><span>Measuring before tuning</span></a
+            ><a href="pages/229-performance-tradeoffs.html"
+              ><span class="num">229</span><span>Performance tradeoffs</span></a
+            >
+            <a class="summary" href="pages/230-chapter-23-summary.html"
+              ><span class="num">230</span><span>Chapter 23 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>24. Designing for Reliability</h3>
+          <div class="links">
+            <a href="pages/231-backups-and-restores.html"
+              ><span class="num">231</span><span>Backups and restores</span></a
+            ><a href="pages/232-point-in-time-recovery.html"
+              ><span class="num">232</span
+              ><span>Point-in-time recovery</span></a
+            ><a href="pages/233-high-availability-basics.html"
+              ><span class="num">233</span
+              ><span>High availability basics</span></a
+            ><a href="pages/234-failure-testing.html"
+              ><span class="num">234</span><span>Failure testing</span></a
+            ><a href="pages/235-schema-migrations-in-production.html"
+              ><span class="num">235</span
+              ><span>Schema migrations in production</span></a
+            ><a href="pages/236-monitoring-and-alerts.html"
+              ><span class="num">236</span><span>Monitoring and alerts</span></a
+            ><a href="pages/237-capacity-planning.html"
+              ><span class="num">237</span><span>Capacity planning</span></a
+            ><a href="pages/238-operational-runbooks.html"
+              ><span class="num">238</span><span>Operational runbooks</span></a
+            ><a href="pages/239-common-failure-stories.html"
+              ><span class="num">239</span
+              ><span>Common failure stories</span></a
+            >
+            <a class="summary" href="pages/240-chapter-24-summary.html"
+              ><span class="num">240</span><span>Chapter 24 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>25. Security and Access Control</h3>
+          <div class="links">
+            <a href="pages/241-authentication-and-authorization.html"
+              ><span class="num">241</span
+              ><span>Authentication and authorization</span></a
+            ><a href="pages/242-roles-and-permissions.html"
+              ><span class="num">242</span><span>Roles and permissions</span></a
+            ><a href="pages/243-encryption-in-transit-and-at-rest.html"
+              ><span class="num">243</span
+              ><span>Encryption in transit and at rest</span></a
+            ><a href="pages/244-auditing-and-logging.html"
+              ><span class="num">244</span><span>Auditing and logging</span></a
+            ><a href="pages/245-secrets-management.html"
+              ><span class="num">245</span><span>Secrets management</span></a
+            ><a href="pages/246-multi-tenant-isolation.html"
+              ><span class="num">246</span
+              ><span>Multi-tenant isolation</span></a
+            ><a href="pages/247-sql-injection-and-safe-queries.html"
+              ><span class="num">247</span
+              ><span>SQL injection and safe queries</span></a
+            ><a href="pages/248-privacy-and-data-retention.html"
+              ><span class="num">248</span
+              ><span>Privacy and data retention</span></a
+            ><a href="pages/249-secure-database-habits.html"
+              ><span class="num">249</span
+              ><span>Secure database habits</span></a
+            >
+            <a class="summary" href="pages/250-chapter-25-summary.html"
+              ><span class="num">250</span><span>Chapter 25 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>26. Choosing a Database</h3>
+          <div class="links">
+            <a href="pages/251-start-from-workload-not-fashion.html"
+              ><span class="num">251</span
+              ><span>Start from workload, not fashion</span></a
+            ><a href="pages/252-questions-to-ask-before-choosing.html"
+              ><span class="num">252</span
+              ><span>Questions to ask before choosing</span></a
+            ><a href="pages/253-one-database-or-many.html"
+              ><span class="num">253</span><span>One database or many</span></a
+            ><a href="pages/254-build-vs-buy.html"
+              ><span class="num">254</span><span>Build vs buy</span></a
+            ><a href="pages/255-managed-vs-self-hosted.html"
+              ><span class="num">255</span
+              ><span>Managed vs self-hosted</span></a
+            ><a href="pages/256-cost-team-and-operations.html"
+              ><span class="num">256</span
+              ><span>Cost, team, and operations</span></a
+            ><a href="pages/257-portability-and-lock-in.html"
+              ><span class="num">257</span
+              ><span>Portability and lock-in</span></a
+            ><a href="pages/258-when-to-switch-systems.html"
+              ><span class="num">258</span
+              ><span>When to switch systems</span></a
+            ><a href="pages/259-a-practical-decision-framework.html"
+              ><span class="num">259</span
+              ><span>A practical decision framework</span></a
+            >
+            <a class="summary" href="pages/260-chapter-26-summary.html"
+              ><span class="num">260</span><span>Chapter 26 Summary</span></a
+            >
+          </div>
+        </div>
+      </section>
+      <section class="part">
+        <h2>Part VII. Building Understanding</h2>
+        <div class="chapter">
+          <h3>27. A Tiny Database from Scratch</h3>
+          <div class="links">
+            <a href="pages/261-a-toy-table-format.html"
+              ><span class="num">261</span><span>A toy table format</span></a
+            ><a href="pages/262-insert-and-scan.html"
+              ><span class="num">262</span><span>Insert and scan</span></a
+            ><a href="pages/263-add-a-simple-index.html"
+              ><span class="num">263</span><span>Add a simple index</span></a
+            ><a href="pages/264-add-a-parser.html"
+              ><span class="num">264</span><span>Add a parser</span></a
+            ><a href="pages/265-add-a-planner.html"
+              ><span class="num">265</span><span>Add a planner</span></a
+            ><a href="pages/266-add-transactions.html"
+              ><span class="num">266</span><span>Add transactions</span></a
+            ><a href="pages/267-add-recovery.html"
+              ><span class="num">267</span><span>Add recovery</span></a
+            ><a href="pages/268-add-concurrency-control.html"
+              ><span class="num">268</span
+              ><span>Add concurrency control</span></a
+            ><a href="pages/269-what-this-teaches-you.html"
+              ><span class="num">269</span><span>What this teaches you</span></a
+            >
+            <a class="summary" href="pages/270-chapter-27-summary.html"
+              ><span class="num">270</span><span>Chapter 27 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>28. Case Studies</h3>
+          <div class="links">
+            <a href="pages/271-a-to-do-app-database.html"
+              ><span class="num">271</span><span>A to-do app database</span></a
+            ><a href="pages/272-an-e-commerce-database.html"
+              ><span class="num">272</span
+              ><span>An e-commerce database</span></a
+            ><a href="pages/273-a-chat-system-database.html"
+              ><span class="num">273</span
+              ><span>A chat system database</span></a
+            ><a href="pages/274-an-analytics-pipeline-database.html"
+              ><span class="num">274</span
+              ><span>An analytics pipeline database</span></a
+            ><a href="pages/275-a-time-series-metrics-database.html"
+              ><span class="num">275</span
+              ><span>A time-series metrics database</span></a
+            ><a href="pages/276-a-search-index-as-a-database-system.html"
+              ><span class="num">276</span
+              ><span>A search index as a database system</span></a
+            ><a href="pages/277-a-multi-tenant-saas-schema.html"
+              ><span class="num">277</span
+              ><span>A multi-tenant SaaS schema</span></a
+            ><a href="pages/278-mistakes-and-redesigns.html"
+              ><span class="num">278</span
+              ><span>Mistakes and redesigns</span></a
+            ><a href="pages/279-lessons-from-each-system.html"
+              ><span class="num">279</span
+              ><span>Lessons from each system</span></a
+            >
+            <a class="summary" href="pages/280-chapter-28-summary.html"
+              ><span class="num">280</span><span>Chapter 28 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>29. Common Myths About Databases</h3>
+          <div class="links">
+            <a href="pages/281-sql-is-slow.html"
+              ><span class="num">281</span><span>SQL is slow</span></a
+            ><a href="pages/282-nosql-means-no-schema.html"
+              ><span class="num">282</span><span>NoSQL means no schema</span></a
+            ><a href="pages/283-indexes-always-help.html"
+              ><span class="num">283</span><span>Indexes always help</span></a
+            ><a href="pages/284-acid-means-no-scale.html"
+              ><span class="num">284</span><span>ACID means no scale</span></a
+            ><a href="pages/285-distributed-means-faster.html"
+              ><span class="num">285</span
+              ><span>Distributed means faster</span></a
+            ><a href="pages/286-flexible-schema-means-easy-design.html"
+              ><span class="num">286</span
+              ><span>Flexible schema means easy design</span></a
+            ><a
+              href="pages/287-denormalization-always-improves-performance.html"
+              ><span class="num">287</span
+              ><span>Denormalization always improves performance</span></a
+            ><a href="pages/288-one-database-can-do-everything.html"
+              ><span class="num">288</span
+              ><span>One database can do everything</span></a
+            ><a href="pages/289-what-to-believe-instead.html"
+              ><span class="num">289</span
+              ><span>What to believe instead</span></a
+            >
+            <a class="summary" href="pages/290-chapter-29-summary.html"
+              ><span class="num">290</span><span>Chapter 29 Summary</span></a
+            >
+          </div>
+        </div>
+        <div class="chapter">
+          <h3>30. Where to Go Next</h3>
+          <div class="links">
+            <a href="pages/291-how-to-read-database-papers.html"
+              ><span class="num">291</span
+              ><span>How to read database papers</span></a
+            ><a href="pages/292-how-to-study-a-real-engine.html"
+              ><span class="num">292</span
+              ><span>How to study a real engine</span></a
+            ><a href="pages/293-how-to-benchmark-correctly.html"
+              ><span class="num">293</span
+              ><span>How to benchmark correctly</span></a
+            ><a href="pages/294-open-source-databases-to-explore.html"
+              ><span class="num">294</span
+              ><span>Open source databases to explore</span></a
+            ><a href="pages/295-what-to-build-for-practice.html"
+              ><span class="num">295</span
+              ><span>What to build for practice</span></a
+            ><a href="pages/296-topics-beyond-this-book.html"
+              ><span class="num">296</span
+              ><span>Topics beyond this book</span></a
+            ><a href="pages/297-a-database-engineers-mindset.html"
+              ><span class="num">297</span
+              ><span>A database engineer’s mindset</span></a
+            ><a href="pages/298-suggested-learning-path.html"
+              ><span class="num">298</span
+              ><span>Suggested learning path</span></a
+            ><a href="pages/299-final-review.html"
+              ><span class="num">299</span><span>Final review</span></a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span class="footer-note">Content is AI-generated</span>
+        <a
+          href="https://github.com/sonht1109/db-overview"
+          class="github-link"
+          target="_blank"
+          rel="noopener"
+          title="View on GitHub"
+        >
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+            <path
+              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+            />
+          </svg>
+          GitHub
+        </a>
+      </div>
+    </footer>
+
+    <script src="pages/assets/search.js"></script>
+  </body>
 </html>
