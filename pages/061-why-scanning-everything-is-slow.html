@@ -126,7 +126,7 @@ WHERE customer_id = 42;</textarea>
 <p>The rest of this chapter explains how indexes are built, how the query planner decides when to use them, and how to choose the right indexes for your queries.</p>
 <details class="reveal"><summary>Reveal: If a full scan is so slow, why does the engine ever choose one?</summary><div class="reveal-body">A full scan is sometimes the <em>best</em> option. If a query needs the majority of rows in a table — say, a monthly report that aggregates every order — reading the table sequentially in large, contiguous page chunks is faster than jumping around the file to follow index pointers. The query optimizer estimates how many rows will match the <code>WHERE</code> predicate; if the fraction is high enough (a rough rule of thumb: above ~5–10% of the table), it skips the index and scans instead. Indexes pay off most when you are finding a small needle in a large haystack.</div></details>
 </div>
-  <nav class="pagenav"><a class="prev" href="059-query-planning-mistakes.html"><span class="dir">← Previous</span><span class="ttl">Query planning mistakes</span></a><a class="next" href="062-what-an-index-really-is.html"><span class="dir">Next →</span><span class="ttl">What an index really is</span></a></nav>
+  <nav class="pagenav"><a class="prev" href="060-chapter-6-summary.html"><span class="dir">← Previous</span><span class="ttl">Query planning mistakes</span></a><a class="next" href="062-what-an-index-really-is.html"><span class="dir">Next →</span><span class="ttl">What an index really is</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
   <script src="assets/search.js"></script>

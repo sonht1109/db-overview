@@ -106,7 +106,7 @@ SELECT id, balance, SUM(balance) OVER () AS total FROM accounts;</textarea>
 </div><p>The key insight: after <code>COMMIT</code>, the database guarantees both rows changed together. On a distributed system with Alice on Node A and Bob on Node B, achieving the same guarantee requires a coordination protocol — and that protocol adds failure modes, latency, and complexity that simply do not exist when everything is local.</p>
 
 </div>
-  <nav class="pagenav"><a class="prev" href="149-operational-pitfalls.html"><span class="dir">← Previous</span><span class="ttl">Operational pitfalls</span></a><a class="next" href="152-two-phase-commit.html"><span class="dir">Next →</span><span class="ttl">Two-phase commit</span></a></nav>
+  <nav class="pagenav"><a class="prev" href="150-chapter-15-summary.html"><span class="dir">← Previous</span><span class="ttl">Operational pitfalls</span></a><a class="next" href="152-two-phase-commit.html"><span class="dir">Next →</span><span class="ttl">Two-phase commit</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
   <script src="assets/search.js"></script>

@@ -116,7 +116,7 @@ ORDER BY v DESC;</textarea>
 </blockquote>
 <details class="reveal"><summary>Reveal: Why not just store everything in one big key?</summary><div class="reveal-body">A single monolithic key becomes a bottleneck: every reader contends for the same lock, the value grows unbounded, and a single write can invalidate everything. Splitting data across many fine-grained keys distributes load across the cluster and lets TTLs be set independently per logical unit. The art is finding the right granularity — too coarse and you lose parallelism; too fine and you need too many round-trips to assemble a response.</div></details>
 </div>
-  <nav class="pagenav"><a class="prev" href="178-real-world-examples.html"><span class="dir">← Previous</span><span class="ttl">Real-world examples</span></a><a class="next" href="181-json-as-a-data-model.html"><span class="dir">Next →</span><span class="ttl">JSON as a data model</span></a></nav>
+  <nav class="pagenav"><a class="prev" href="178-real-world-examples.html"><span class="dir">← Previous</span><span class="ttl">Real-world examples</span></a><a class="next" href="180-chapter-18-summary.html"><span class="dir">Next →</span><span class="ttl">Chapter 18 Summary: What We Learned</span></a></nav>
 </main>
 <script src="assets/app.js"></script>
   <script src="assets/search.js"></script>

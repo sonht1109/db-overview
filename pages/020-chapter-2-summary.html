@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 2 Summary: What We Learned — Database Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+</div></div>
+<main class="wrap">
+  <p class="eyebrow">Part I. Foundations</p>
+  <p class="chapter-label">Chapter 2. How Data Is Organized</p>
+  <h1 class="content-title">Chapter 2 Summary: What We Learned</h1>
+  <div id="rendered" class="content">
+<figure class="diagram">
+<svg viewBox="0 0 720 160" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+  <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
+  <g transform="translate(20,20)">
+    <rect x="0" y="0" width="680" height="50" rx="10" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
+    <text x="340" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="#2f6df6">Chapter 2: How Data Is Organized — Key Takeaways</text>
+    <!-- Topic blocks -->
+    <rect x="10" y="70" width="210" height="50" rx="8" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <text x="115" y="96" text-anchor="middle" font-size="11" font-weight="600" fill="#16a34a">9 Pages Covered</text>
+    <text x="115" y="112" text-anchor="middle" font-size="9" fill="#5a6678">Core concepts + examples</text>
+    <rect x="235" y="70" width="210" height="50" rx="8" fill="#fef3c7" stroke="#fbbf24" filter="url(#sh)"/>
+    <text x="340" y="96" text-anchor="middle" font-size="11" font-weight="600" fill="#d97706">Summary Page</text>
+    <text x="340" y="112" text-anchor="middle" font-size="9" fill="#5a6678">Review what you've learned</text>
+    <rect x="460" y="70" width="210" height="50" rx="8" fill="#ede9fe" stroke="#a78bfa" filter="url(#sh)"/>
+    <text x="565" y="96" text-anchor="middle" font-size="11" font-weight="600" fill="#7c3aed">Ready for Next?</text>
+    <text x="565" y="112" text-anchor="middle" font-size="9" fill="#5a6678">Test yourself before moving on</text>
+  </g>
+</svg>
+<figcaption>This page collects everything covered in Chapter 2 with short, memorable takeaways — use it to review or check your understanding before continuing.</figcaption>
+</figure>
+<p>You have completed all 9 pages of Chapter 2: <strong>How Data Is Organized</strong>. This summary page pulls together the main ideas from each topic so you can quickly review what you learned, identify anything that still feels fuzzy, and confirm you are ready to move on.</p>
+<h2>Chapter Contents</h2>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Topic</th>
+<th>Takeaway in One Sentence</th>
+</tr>
+</thead>
+<tbody>
+    <tr>
+      <td>011</td>
+      <td><strong>Logical structure vs physical structure</strong></td>
+      <td>Logical structure is what you see (tables); physical structure is how data is stored (pages, indexes) — they are decoupled.</td>
+    </tr>
+    <tr>
+      <td>012</td>
+      <td><strong>Tables and relations</strong></td>
+      <td>A table is a relation — a set of tuples with named attributes. Thinking in sets, not loops, is the key shift.</td>
+    </tr>
+    <tr>
+      <td>013</td>
+      <td><strong>Keys and identifiers</strong></td>
+      <td>Keys (primary, unique, foreign) identify rows and link tables together — they are the backbone of relational integrity.</td>
+    </tr>
+    <tr>
+      <td>014</td>
+      <td><strong>Constraints and rules</strong></td>
+      <td>Constraints (NOT NULL, CHECK, UNIQUE, FOREIGN KEY) move data validation into the database where it cannot be bypassed.</td>
+    </tr>
+    <tr>
+      <td>015</td>
+      <td><strong>NULL and missing values</strong></td>
+      <td>NULL is not zero or empty string — it means 'unknown' and requires special handling with three-valued logic (IS NULL, COALESCE).</td>
+    </tr>
+    <tr>
+      <td>016</td>
+      <td><strong>Data types and domains</strong></td>
+      <td>Choosing the right type (INT, TEXT, TIMESTAMP, etc.) affects storage size, query performance, and data correctness.</td>
+    </tr>
+    <tr>
+      <td>017</td>
+      <td><strong>Normalized and denormalized data</strong></td>
+      <td>Normalization minimizes redundancy; denormalization trades some redundancy for faster reads. Both have their place.</td>
+    </tr>
+    <tr>
+      <td>018</td>
+      <td><strong>Documents, graphs, and key-value shapes</strong></td>
+      <td>Not all data fits tables: document (JSON), graph (nodes/edges), and key-value models each solve different problems.</td>
+    </tr>
+    <tr>
+      <td>019</td>
+      <td><strong>Choosing the right model</strong></td>
+      <td>Start with relational as the default; reach for document/graph/key-value only when a specific access pattern demands it.</td>
+    </tr>
+</tbody></table>
+<h2>Key Threads Running Through This Chapter</h2>
+<p>These 9 pages form a coherent narrative. Here are the through-lines that connect them:</p>
+<ul>
+  <li><strong>What you should now be able to do:</strong> Explain the core ideas behind each topic above in your own words and recognize how they connect to practical database work.</li>
+  <li><strong>What patterns to watch for:</strong> The concepts from this chapter will reappear in later chapters in more depth — when they do, you will already have the mental hooks in place.</li>
+  <li><strong>One question to test yourself:</strong> Can you explain the most important idea from each page to a colleague who has not read this chapter? If yes, you are ready for the next chapter.</li>
+</ul>
+<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 2 built the foundation for what comes next. If you understand everything above, you are well-prepared for Chapter 3. The concepts from this chapter form the mental scaffolding that makes new material easier to absorb — when a future page references a concept from this chapter, you will recognize it immediately. If any takeaway above feels unfamiliar, revisit that specific page before continuing.</div></details>
+</div>
+  <nav class="pagenav"><a class="prev" href="019-choosing-the-right-model.html"><span class="dir">← Previous</span><span class="ttl">Choosing the right model</span></a><a class="next" href="021-relations-tuples-and-attributes.html"><span class="dir">Next →</span><span class="ttl">Relations, tuples, and attributes</span></a></nav>
+</main>
+<script src="assets/app.js"></script>
+  <script src="assets/search.js"></script>
+</body>
+</html>

@@ -188,6 +188,39 @@ figure.diagram figcaption {
 .links a .num { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; min-width: 26px; }
 .links a.done .num::after { content: " ✓"; color: var(--ok); }
 
+/* ---------- Site footer ---------- */
+.site-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 48px;
+  padding: 24px 0;
+}
+.footer-inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.footer-note {
+  font-style: italic;
+}
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color .15s ease;
+}
+.github-link:hover {
+  color: var(--accent);
+}
+
 /* ---------- Search ---------- */
 .search-container {
   position: relative;
