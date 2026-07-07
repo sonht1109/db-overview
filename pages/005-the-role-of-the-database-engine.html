@@ -16,7 +16,7 @@
   <h1 class="content-title">The role of the database engine</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+<svg viewBox="0 0 720 290" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
   <defs>
     <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
     <marker id="ar" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#5a6678"/></marker>
@@ -45,11 +45,11 @@
     <text x="340" y="177" text-anchor="middle" font-size="11" font-weight="700" fill="#db2777">🛠️ Recovery Manager</text>
     <text x="340" y="195" text-anchor="middle" font-size="9" fill="#5a6678">WAL · Checkpoints · Crash recovery</text>
     <!-- Down arrow -->
-    <line x1="340" y1="222" x2="340" y2="232" stroke="#1c2330" stroke-width="2" marker-end="url(#ar)"/>
+    <line x1="340" y1="222" x2="340" y2="240" stroke="#1c2330" stroke-width="2" marker-end="url(#ar)"></line>
   </g>
   <!-- Disk -->
-  <rect x="230" y="234" width="220" height="28" rx="6" fill="#f0f2f5" stroke="#e2e6ec" filter="url(#sh)"/>
-  <text x="340" y="253" text-anchor="middle" font-size="11" fill="#5a6678">💿 Disk (pages, WAL files)</text>
+  <rect x="230" y="250" width="220" height="28" rx="6" fill="#f0f2f5" stroke="#e2e6ec" filter="url(#sh)"/>
+  <text x="340" y="270" text-anchor="middle" font-size="11" fill="#5a6678">💿 Disk (pages, WAL files)</text>
 </svg>
 <figcaption>The database engine is the software that sits between your app and disk, handling query processing, transactions, storage, and recovery.</figcaption>
 </figure>
