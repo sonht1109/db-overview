@@ -2,6 +2,7 @@
  * Responsibilities:
  *   1. Mount interactive SQL widgets after page load (sql.js)
  *   2. Mount other interactive widgets as needed
+ *   3. Track reading progress — mark page as done when scrolled to bottom
  */
 (function () {
   "use strict";
@@ -96,5 +97,79 @@
     document.addEventListener("DOMContentLoaded", mountWidgets);
   } else {
     mountWidgets();
+  }
+
+  /* ---------------- Reading progress tracker ---------------- */
+  var DONE_KEY = "db-done";
+  var SCROLL_THRESHOLD = 80; // px from bottom to consider "done"
+
+  function pageSlug() {
+    var path = window.location.pathname;
+    // Extract filename without extension, e.g. "/pages/007-why-database-systems-matter.html" -> "007-why-database-systems-matter"
+    var m = path.match(/\/([^/]+)\.html$/);
+    return m ? m[1] : null;
+  }
+
+  function getDoneSlugs() {
+    try {
+      var raw = localStorage.getItem(DONE_KEY);
+      return raw ? raw.split(",") : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function isDone(slug) {
+    return getDoneSlugs().indexOf(slug) >= 0;
+  }
+
+  function markDone(slug) {
+    try {
+      var slugs = getDoneSlugs();
+      if (slugs.indexOf(slug) < 0) {
+        slugs.push(slug);
+        localStorage.setItem(DONE_KEY, slugs.join(","));
+      }
+    } catch (_) {}
+  }
+
+  function showDoneIndicator() {
+    var topbar = document.querySelector(".topbar-inner");
+    if (!topbar || topbar.querySelector(".done-indicator")) return;
+    var badge = document.createElement("span");
+    badge.className = "done-indicator";
+    badge.textContent = "✓ Read";
+    topbar.appendChild(badge);
+  }
+
+  function onScrollCheck() {
+    var slug = pageSlug();
+    if (!slug || isDone(slug)) return;
+
+    var scrollBottom = window.innerHeight + window.scrollY;
+    var docHeight = document.documentElement.scrollHeight;
+
+    if (scrollBottom >= docHeight - SCROLL_THRESHOLD) {
+      markDone(slug);
+      showDoneIndicator();
+      window.removeEventListener("scroll", onScrollCheck);
+    }
+  }
+
+  function initProgress() {
+    var slug = pageSlug();
+    if (!slug) return;
+
+    if (isDone(slug)) {
+      showDoneIndicator();
+    } else {
+      window.addEventListener("scroll", onScrollCheck, { passive: true });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initProgress);
+  } else {
+    initProgress();
   }
 })();

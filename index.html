@@ -1043,5 +1043,37 @@
     </footer>
 
     <script src="pages/assets/search.js"></script>
+    <script>
+      /* Mark completed pages in the index */
+      (function () {
+        function getDoneSlugs() {
+          try {
+            var raw = localStorage.getItem("db-done");
+            return raw ? raw.split(",") : [];
+          } catch (_) {
+            return [];
+          }
+        }
+
+        function slugFromHref(href) {
+          var m = href.match(/\/([^/]+)\.html$/);
+          return m ? m[1] : null;
+        }
+
+        var done = getDoneSlugs();
+        if (done.length > 0) {
+          var doneSet = {};
+          done.forEach(function (s) { doneSet[s] = true; });
+
+          var links = document.querySelectorAll(".links a");
+          links.forEach(function (a) {
+            var slug = slugFromHref(a.getAttribute("href"));
+            if (slug && doneSet[slug]) {
+              a.classList.add("done");
+            }
+          });
+        }
+      })();
+    </script>
   </body>
 </html>

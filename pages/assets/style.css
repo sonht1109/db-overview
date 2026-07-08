@@ -60,6 +60,12 @@ body {
   display: inline-flex; align-items: center; gap: 6px;
 }
 .home-link:hover { color: var(--accent); }
+.done-indicator {
+  font-size: 12px; font-weight: 700; color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  padding: 3px 10px; border-radius: 999px;
+  white-space: nowrap;
+}
 
 .eyebrow { color: var(--accent); font-weight: 700; font-size: 13px;
   letter-spacing: .04em; text-transform: uppercase; margin: 28px 0 8px; }
