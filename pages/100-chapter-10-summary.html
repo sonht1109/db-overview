@@ -15,7 +15,7 @@
   <p class="chapter-label">Chapter 10. Trees, Logs, and Internal Structures</p>
   <h1 class="content-title">Chapter 10 Summary: What We Learned</h1>
   <div id="rendered" class="content">
-<h2>Chapter Contents</h2>
+
 <table>
 <thead>
 <tr>
@@ -71,14 +71,7 @@
       <td>Read amp = bytes read / bytes requested; write amp = bytes written / bytes of user data. Both degrade performance.</td>
     </tr>
 </tbody></table>
-<h2>Key Threads Running Through This Chapter</h2>
-<p>These 9 pages form a coherent narrative. Here are the through-lines that connect them:</p>
-<ul>
-  <li><strong>What you should now be able to do:</strong> Explain the core ideas behind each topic above in your own words and recognize how they connect to practical database work.</li>
-  <li><strong>What patterns to watch for:</strong> The concepts from this chapter will reappear in later chapters in more depth — when they do, you will already have the mental hooks in place.</li>
-  <li><strong>One question to test yourself:</strong> Can you explain the most important idea from each page to a colleague who has not read this chapter? If yes, you are ready for the next chapter.</li>
-</ul>
-<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 10 built the foundation for what comes next. If you understand everything above, you are well-prepared for Chapter 11. The concepts from this chapter form the mental scaffolding that makes new material easier to absorb — when a future page references a concept from this chapter, you will recognize it immediately. If any takeaway above feels unfamiliar, revisit that specific page before continuing.</div></details>
+<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 10 equipped you with the internal mechanics: B-trees organize data, the WAL guarantees durability, and the buffer pool keeps hot pages in memory. But these structures exist to serve a higher purpose: correctness. Chapter 11 introduces transactions — the mechanism that ensures your writes are atomic, consistent, isolated, and durable (ACID). You will learn why grouping operations into transactions is essential, what happens when you COMMIT or ROLLBACK, and how the WAL you just studied makes the D in ACID possible.</div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="099-read-amplification-and-write-amplification.html"><span class="dir">← Previous</span><span class="ttl">Read amplification and write amplification</span></a><a class="next" href="101-why-transactions-exist.html"><span class="dir">Next →</span><span class="ttl">Why transactions exist</span></a></nav>
 </main>

@@ -15,7 +15,7 @@
   <p class="chapter-label">Chapter 6. How Query Processing Works</p>
   <h1 class="content-title">Chapter 6 Summary: What We Learned</h1>
   <div id="rendered" class="content">
-<h2>Chapter Contents</h2>
+
 <table>
 <thead>
 <tr>
@@ -71,14 +71,7 @@
       <td>The optimizer is not omniscient — stale statistics, correlated columns, and UDFs can lead to bad plans.</td>
     </tr>
 </tbody></table>
-<h2>Key Threads Running Through This Chapter</h2>
-<p>These 9 pages form a coherent narrative. Here are the through-lines that connect them:</p>
-<ul>
-  <li><strong>What you should now be able to do:</strong> Explain the core ideas behind each topic above in your own words and recognize how they connect to practical database work.</li>
-  <li><strong>What patterns to watch for:</strong> The concepts from this chapter will reappear in later chapters in more depth — when they do, you will already have the mental hooks in place.</li>
-  <li><strong>One question to test yourself:</strong> Can you explain the most important idea from each page to a colleague who has not read this chapter? If yes, you are ready for the next chapter.</li>
-</ul>
-<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 6 built the foundation for what comes next. If you understand everything above, you are well-prepared for Chapter 7. The concepts from this chapter form the mental scaffolding that makes new material easier to absorb — when a future page references a concept from this chapter, you will recognize it immediately. If any takeaway above feels unfamiliar, revisit that specific page before continuing.</div></details>
+<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 6 showed you the query execution pipeline — parsing, planning, optimization, and execution. You learned that the optimizer chooses between scanning and seeking based on what is available. Chapter 7 dives into the single most important thing you can provide to the optimizer: indexes. You will learn B-trees, hash indexes, composite indexes, covering indexes, and the critical truth that indexes speed up reads but slow down writes. This is where performance tuning begins.</div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="059-query-planning-mistakes.html"><span class="dir">← Previous</span><span class="ttl">Query planning mistakes</span></a><a class="next" href="061-why-scanning-everything-is-slow.html"><span class="dir">Next →</span><span class="ttl">Why scanning everything is slow</span></a></nav>
 </main>

@@ -15,7 +15,7 @@
   <p class="chapter-label">Chapter 9. Pages, Records, and Files</p>
   <h1 class="content-title">Chapter 9 Summary: What We Learned</h1>
   <div id="rendered" class="content">
-<h2>Chapter Contents</h2>
+
 <table>
 <thead>
 <tr>
@@ -71,14 +71,7 @@
       <td>Without an index: sequential scan. With a B-tree index: traverse root to leaf, read record ID, fetch the page and slot.</td>
     </tr>
 </tbody></table>
-<h2>Key Threads Running Through This Chapter</h2>
-<p>These 9 pages form a coherent narrative. Here are the through-lines that connect them:</p>
-<ul>
-  <li><strong>What you should now be able to do:</strong> Explain the core ideas behind each topic above in your own words and recognize how they connect to practical database work.</li>
-  <li><strong>What patterns to watch for:</strong> The concepts from this chapter will reappear in later chapters in more depth — when they do, you will already have the mental hooks in place.</li>
-  <li><strong>One question to test yourself:</strong> Can you explain the most important idea from each page to a colleague who has not read this chapter? If yes, you are ready for the next chapter.</li>
-</ul>
-<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 9 built the foundation for what comes next. If you understand everything above, you are well-prepared for Chapter 10. The concepts from this chapter form the mental scaffolding that makes new material easier to absorb — when a future page references a concept from this chapter, you will recognize it immediately. If any takeaway above feels unfamiliar, revisit that specific page before continuing.</div></details>
+<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 9 explained the physical layout of data — pages, slotted records, heap files. But how does the engine efficiently find a specific row among millions of pages? Chapter 10 answers that by exploring the internal data structures that power every database: B-trees for fast lookups, the Write-Ahead Log for durability, and the buffer pool for caching. You will understand write amplification, read amplification, and the background processes that keep a database healthy without you ever noticing.</div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="089-how-rows-are-found-on-disk.html"><span class="dir">← Previous</span><span class="ttl">How rows are found on disk</span></a><a class="next" href="091-b-tree-structure-in-detail.html"><span class="dir">Next →</span><span class="ttl">B-tree structure in detail</span></a></nav>
 </main>

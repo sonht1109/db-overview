@@ -15,7 +15,6 @@
   <p class="chapter-label">Chapter 16. Distributed Transactions and Consensus</p>
   <h1 class="content-title">Chapter 16 Summary: What We Learned</h1>
   <div id="rendered" class="content">
-<h2>Chapter Contents</h2>
 <table>
 <thead>
 <tr>
@@ -71,14 +70,7 @@
       <td>Every consensus round requires multiple network round-trips — this is why distributed transactions are orders of magnitude slower than local ones.</td>
     </tr>
 </tbody></table>
-<h2>Key Threads Running Through This Chapter</h2>
-<p>These 9 pages form a coherent narrative. Here are the through-lines that connect them:</p>
-<ul>
-  <li><strong>What you should now be able to do:</strong> Explain the core ideas behind each topic above in your own words and recognize how they connect to practical database work.</li>
-  <li><strong>What patterns to watch for:</strong> The concepts from this chapter will reappear in later chapters in more depth — when they do, you will already have the mental hooks in place.</li>
-  <li><strong>One question to test yourself:</strong> Can you explain the most important idea from each page to a colleague who has not read this chapter? If yes, you are ready for the next chapter.</li>
-</ul>
-<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 16 built the foundation for what comes next. If you understand everything above, you are well-prepared for Chapter 17. The concepts from this chapter form the mental scaffolding that makes new material easier to absorb — when a future page references a concept from this chapter, you will recognize it immediately. If any takeaway above feels unfamiliar, revisit that specific page before continuing.</div></details>
+<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 16 gave you the tools for distributed coordination: two-phase commit, consensus algorithms, and quorums. But using these tools forces difficult tradeoffs. Chapter 17 explores consistency models — from linearizability (strongest, slowest) to eventual consistency (weakest, fastest). You will learn the CAP theorem, the cost of coordination, and how to choose the right consistency guarantee for each part of your application. Consensus is a hammer; Chapter 17 teaches you when to use a gentler tool.</div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="159-cost-of-coordination.html"><span class="dir">← Previous</span><span class="ttl">Cost of coordination</span></a><a class="next" href="161-strong-consistency.html"><span class="dir">Next →</span><span class="ttl">Strong consistency</span></a></nav>
 </main>

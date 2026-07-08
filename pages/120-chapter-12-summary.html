@@ -15,7 +15,6 @@
   <p class="chapter-label">Chapter 12. Concurrency Control</p>
   <h1 class="content-title">Chapter 12 Summary: What We Learned</h1>
   <div id="rendered" class="content">
-<h2>Chapter Contents</h2>
 <table>
 <thead>
 <tr>
@@ -71,14 +70,7 @@
       <td>SERIALIZABLE is safest but slowest; READ COMMITTED is a practical default; SNAPSHOT ISOLATION balances both.</td>
     </tr>
 </tbody></table>
-<h2>Key Threads Running Through This Chapter</h2>
-<p>These 9 pages form a coherent narrative. Here are the through-lines that connect them:</p>
-<ul>
-  <li><strong>What you should now be able to do:</strong> Explain the core ideas behind each topic above in your own words and recognize how they connect to practical database work.</li>
-  <li><strong>What patterns to watch for:</strong> The concepts from this chapter will reappear in later chapters in more depth — when they do, you will already have the mental hooks in place.</li>
-  <li><strong>One question to test yourself:</strong> Can you explain the most important idea from each page to a colleague who has not read this chapter? If yes, you are ready for the next chapter.</li>
-</ul>
-<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 12 built the foundation for what comes next. If you understand everything above, you are well-prepared for Chapter 13. The concepts from this chapter form the mental scaffolding that makes new material easier to absorb — when a future page references a concept from this chapter, you will recognize it immediately. If any takeaway above feels unfamiliar, revisit that specific page before continuing.</div></details>
+<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 12 showed you how databases keep concurrent transactions from corrupting each other through locks, MVCC, and isolation levels. But what happens when the database itself crashes — power failure, OS panic, disk corruption? Chapter 13 covers recovery: the Write-Ahead Log you learned about in Chapter 10 now becomes the hero. You will learn checkpointing, ARIES-style recovery, and the steal/no-force policies that determine how fast you can recover versus how fast you can commit.</div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="119-choosing-isolation-levels.html"><span class="dir">← Previous</span><span class="ttl">Choosing isolation levels</span></a><a class="next" href="121-what-can-go-wrong.html"><span class="dir">Next →</span><span class="ttl">What can go wrong</span></a></nav>
 </main>

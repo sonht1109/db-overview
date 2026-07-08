@@ -15,7 +15,7 @@
   <p class="chapter-label">Chapter 8. Joins, Aggregation, and Sorting</p>
   <h1 class="content-title">Chapter 8 Summary: What We Learned</h1>
   <div id="rendered" class="content">
-<h2>Chapter Contents</h2>
+
 <table>
 <thead>
 <tr>
@@ -71,14 +71,7 @@
       <td>Start with EXPLAIN, look for scans where you expected index seeks, check actual vs estimated rows, and add indexes selectively.</td>
     </tr>
 </tbody></table>
-<h2>Key Threads Running Through This Chapter</h2>
-<p>These 9 pages form a coherent narrative. Here are the through-lines that connect them:</p>
-<ul>
-  <li><strong>What you should now be able to do:</strong> Explain the core ideas behind each topic above in your own words and recognize how they connect to practical database work.</li>
-  <li><strong>What patterns to watch for:</strong> The concepts from this chapter will reappear in later chapters in more depth — when they do, you will already have the mental hooks in place.</li>
-  <li><strong>One question to test yourself:</strong> Can you explain the most important idea from each page to a colleague who has not read this chapter? If yes, you are ready for the next chapter.</li>
-</ul>
-<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 8 built the foundation for what comes next. If you understand everything above, you are well-prepared for Chapter 9. The concepts from this chapter form the mental scaffolding that makes new material easier to absorb — when a future page references a concept from this chapter, you will recognize it immediately. If any takeaway above feels unfamiliar, revisit that specific page before continuing.</div></details>
+<details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 8 showed you how the query engine combines data from multiple sources — joining, grouping, and sorting at the operator level. But where does the data actually live? Chapter 9 drops down a level to the physical storage layer. You will learn about pages, records, and files — the actual bytes on disk. You will see the difference between row stores and column stores, how slotted pages allow variable-length records, and how a record ID (page + slot) gives O(1) access to any row. The operators from this chapter ultimately read from the structures in the next.</div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="079-practical-query-tuning.html"><span class="dir">← Previous</span><span class="ttl">Practical query tuning</span></a><a class="next" href="081-why-databases-use-pages.html"><span class="dir">Next →</span><span class="ttl">Why databases use pages</span></a></nav>
 </main>
