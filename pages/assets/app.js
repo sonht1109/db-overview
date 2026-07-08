@@ -156,9 +156,20 @@
     }
   }
 
+  /* ---------------- Last visit tracker ---------------- */
+  function trackLastVisit() {
+    var slug = pageSlug();
+    if (!slug) return;
+    try {
+      localStorage.setItem("db-last-visit", slug);
+    } catch (_) {}
+  }
+
   function initProgress() {
     var slug = pageSlug();
     if (!slug) return;
+
+    trackLastVisit();
 
     if (isDone(slug)) {
       showDoneIndicator();

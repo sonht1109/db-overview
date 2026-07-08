@@ -19,6 +19,7 @@
             spellcheck="false"
           /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd>
         </div>
+        <a class="last-visit-btn" title="Jump to last visited page" style="display:none">Continue reading →</a>
       </div>
     </div>
 
@@ -1044,6 +1045,19 @@
 
     <script src="pages/assets/search.js"></script>
     <script>
+      /* Last-visit button */
+      (function () {
+        var lastSlug = null;
+        try { lastSlug = localStorage.getItem("db-last-visit"); } catch (_) {}
+        if (lastSlug) {
+          var btn = document.querySelector(".last-visit-btn");
+          if (btn) {
+            btn.href = "pages/" + lastSlug + ".html";
+            btn.style.display = "";
+          }
+        }
+      })();
+
       /* Mark completed pages in the index */
       (function () {
         function getDoneSlugs() {

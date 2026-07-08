@@ -60,6 +60,12 @@ body {
   display: inline-flex; align-items: center; gap: 6px;
 }
 .home-link:hover { color: var(--accent); }
+.last-visit-btn {
+  color: var(--accent); text-decoration: none; font-size: 14px; font-weight: 600;
+  padding: 4px 12px; border: 1px solid var(--accent); border-radius: 6px;
+  transition: background .15s, color .15s;
+}
+.last-visit-btn:hover { background: var(--accent); color: #fff; }
 .done-indicator {
   font-size: 12px; font-weight: 700; color: var(--ok);
   background: color-mix(in srgb, var(--ok) 12%, transparent);
