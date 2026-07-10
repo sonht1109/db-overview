@@ -18,36 +18,36 @@
 <figure class="diagram">
 <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
   <defs><filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter></defs>
-  <g transform="translate(10,10)">
+  <g transform="translate(25,7)">
     <!-- Single page/node annotated -->
     <!-- Internal node -->
-    <rect x="180" y="0" width="350" height="55" rx="8" fill="#2f6df6" filter="url(#sh)"/>
-    <text x="355" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Internal Page (4 KB)</text>
-    <text x="355" y="36" font-size="9" fill="#bfdbfe">P₁ < 30 | 30 | P₂ < 60 | 60 | P₃ < 90 | 90 | P₄</text>
-    <text x="355" y="50" font-size="8" fill="#93c5fd">Key + Child pointer alternating. Fan-out = hundreds per page.</text>
+    <rect x="160" y="0" width="350" height="55" rx="8" fill="#2f6df6" filter="url(#sh)"/>
+    <text x="335" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Internal Page (4 KB)</text>
+    <text x="245" y="36" font-size="9" fill="#bfdbfe">P₁ < 30 | 30 | P₂ < 60 | 60 | P₃ < 90 | 90 | P₄</text>
+    <text x="215" y="50" font-size="8" fill="#93c5fd">Key + Child pointer alternating. Fan-out = hundreds per page.</text>
 
     <!-- Pointers down -->
-    <line x1="240" y1="55" x2="80" y2="82" stroke="#2f6df6" stroke-width="1.5"/>
-    <line x1="315" y1="55" x2="240" y2="82" stroke="#2f6df6" stroke-width="1.5"/>
-    <line x1="400" y1="55" x2="400" y2="82" stroke="#2f6df6" stroke-width="1.5"/>
-    <line x1="470" y1="55" x2="560" y2="82" stroke="#2f6df6" stroke-width="1.5"/>
+    <line x1="204" y1="55" x2="88" y2="82" stroke="#2f6df6" stroke-width="1.5"/>
+    <line x1="291" y1="55" x2="253" y2="82" stroke="#2f6df6" stroke-width="1.5"/>
+    <line x1="379" y1="55" x2="418" y2="82" stroke="#2f6df6" stroke-width="1.5"/>
+    <line x1="466" y1="55" x2="583" y2="82" stroke="#2f6df6" stroke-width="1.5"/>
 
     <!-- Leaf nodes -->
     <rect x="10" y="85" width="155" height="50" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
-    <text x="87" y="105" font-size="10" fill="#16a34a">Leaf page [10..29]</text>
-    <text x="87" y="122" font-size="8" fill="#5a6678">10→ptr | 20→ptr | 25→ptr</text>
+    <text x="50" y="105" font-size="10" fill="#16a34a">Leaf page [10..29]</text>
+    <text x="50" y="122" font-size="8" fill="#5a6678">10→ptr | 20→ptr | 25→ptr</text>
 
     <rect x="175" y="85" width="155" height="50" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
-    <text x="252" y="105" font-size="10" fill="#16a34a">Leaf page [30..59]</text>
-    <text x="252" y="122" font-size="8" fill="#5a6678">30→ptr | 45→ptr | 55→ptr</text>
+    <text x="210" y="105" font-size="10" fill="#16a34a">Leaf page [30..59]</text>
+    <text x="210" y="122" font-size="8" fill="#5a6678">30→ptr | 45→ptr | 55→ptr</text>
 
     <rect x="340" y="85" width="155" height="50" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
-    <text x="417" y="105" font-size="10" fill="#16a34a">Leaf page [60..89]</text>
-    <text x="417" y="122" font-size="8" fill="#5a6678">60→ptr | 75→ptr | 80→ptr</text>
+    <text x="370" y="105" font-size="10" fill="#16a34a">Leaf page [60..89]</text>
+    <text x="370" y="122" font-size="8" fill="#5a6678">60→ptr | 75→ptr | 80→ptr</text>
 
     <rect x="505" y="85" width="155" height="50" rx="6" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
-    <text x="582" y="105" font-size="10" fill="#16a34a">Leaf page [90..]</text>
-    <text x="582" y="122" font-size="8" fill="#5a6678">90→ptr | 95→ptr | 99→ptr</text>
+    <text x="540" y="105" font-size="10" fill="#16a34a">Leaf page [90..]</text>
+    <text x="540" y="122" font-size="8" fill="#5a6678">90→ptr | 95→ptr | 99→ptr</text>
 
     <!-- Linked list through leaves -->
     <line x1="165" y1="110" x2="175" y2="110" stroke="#86efac" stroke-width="1.5"/>
@@ -55,9 +55,9 @@
     <line x1="495" y1="110" x2="505" y2="110" stroke="#86efac" stroke-width="1.5"/>
 
     <!-- Annotations -->
-    <rect x="40" y="148" width="640" height="38" rx="6" fill="#f0f2f5" stroke="#e2e6ec"/>
-    <text x="360" y="164" text-anchor="middle" font-size="9" fill="#5a6678">Self-balancing: splits full pages in half · Always same depth for all leaves · Lookup: 2-4 page reads for billions of rows</text>
-    <text x="360" y="180" text-anchor="middle" font-size="9" fill="#5a6678">High fan-out (hundreds) → tree is wide &amp; shallow → 3-4 levels even for massive tables</text>
+    <rect x="15" y="148" width="640" height="38" rx="6" fill="#f0f2f5" stroke="#e2e6ec"/>
+    <text x="335" y="164" text-anchor="middle" font-size="9" fill="#5a6678">Self-balancing: splits full pages in half · Always same depth for all leaves · Lookup: 2-4 page reads for billions of rows</text>
+    <text x="335" y="180" text-anchor="middle" font-size="9" fill="#5a6678">High fan-out (hundreds) → tree is wide &amp; shallow → 3-4 levels even for massive tables</text>
   </g>
 </svg>
 <figcaption>Internal pages store keys and child pointers guiding search downward. Leaf pages store sorted key-rowID pairs, linked for efficient range scans. The tree stays balanced through splits.</figcaption>
