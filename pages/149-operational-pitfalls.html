@@ -130,7 +130,7 @@ ORDER BY retained_wal DESC;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Schema mismatch simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders_primary (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders_primary VALUES (1, 7, 99.99, 'shipped'), (2, 7, 14.50, 'pending'), (3, 12, 200.00, 'shipped'); CREATE TABLE orders_replica (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders_replica VALUES (1, 7, 99.99), (2, 7, 14.50), (3, 12, 200.00);" rows="10">-- The primary has a new 'status' column; the replica does not yet.
+    <textarea data-setup="CREATE TABLE orders_primary (id SERIAL PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders_primary VALUES (1, 7, 99.99, 'shipped'), (2, 7, 14.50, 'pending'), (3, 12, 200.00, 'shipped'); CREATE TABLE orders_replica (id SERIAL PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders_replica VALUES (1, 7, 99.99), (2, 7, 14.50), (3, 12, 200.00);" rows="10">-- The primary has a new 'status' column; the replica does not yet.
 -- This query works on the primary:
 SELECT id, amount, status FROM orders_primary WHERE customer_id = 7;
 -- Try changing the table name to orders_replica and re-run.

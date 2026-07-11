@@ -112,7 +112,7 @@ REFRESH MATERIALIZED VIEW order_summary;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Precomputed Counter vs. Live COUNT</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE posts (id INTEGER PRIMARY KEY, title TEXT, comment_count INTEGER DEFAULT 0); CREATE TABLE comments (id INTEGER PRIMARY KEY, post_id INTEGER REFERENCES posts(id), body TEXT); INSERT INTO posts VALUES (1,'First Post',0),(2,'Second Post',0),(3,'Third Post',0); INSERT INTO comments VALUES (1,1,'Great!'),(2,1,'Agreed'),(3,1,'Thanks'),(4,2,'Interesting'),(5,3,'Love it'),(6,3,'Bookmarked'); -- Sync the counter (would be done via trigger in production): UPDATE posts SET comment_count = (SELECT COUNT(*) FROM comments WHERE post_id = posts.id);" rows="10">-- Fast path: read the denormalized counter directly
+    <textarea data-setup="CREATE TABLE posts (id SERIAL PRIMARY KEY, title TEXT, comment_count INTEGER DEFAULT 0); CREATE TABLE comments (id SERIAL PRIMARY KEY, post_id INTEGER REFERENCES posts(id), body TEXT); INSERT INTO posts VALUES (1,'First Post',0),(2,'Second Post',0),(3,'Third Post',0); INSERT INTO comments VALUES (1,1,'Great!'),(2,1,'Agreed'),(3,1,'Thanks'),(4,2,'Interesting'),(5,3,'Love it'),(6,3,'Bookmarked'); -- Sync the counter (would be done via trigger in production): UPDATE posts SET comment_count = (SELECT COUNT(*) FROM comments WHERE post_id = posts.id);" rows="10">-- Fast path: read the denormalized counter directly
 SELECT title, comment_count FROM posts ORDER BY comment_count DESC;
 -- "Live" path: COUNT(*) join — slower on large tables, always accurate
 SELECT p.title, COUNT(c.id) AS live_count

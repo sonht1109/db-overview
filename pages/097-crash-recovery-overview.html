@@ -173,7 +173,7 @@ COMMIT;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Transaction log analysis</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE wal_log (lsn INTEGER PRIMARY KEY, txn_id TEXT NOT NULL, op TEXT NOT NULL, detail TEXT); INSERT INTO wal_log VALUES (101,'T42','UPDATE','accounts: balance 500- rows="10">400'); INSERT INTO wal_log VALUES (102,'T42','UPDATE','accounts: balance 300->400'); INSERT INTO wal_log VALUES (103,'T42','COMMIT',''); INSERT INTO wal_log VALUES (104,'T55','INSERT','orders: row 9'); INSERT INTO wal_log VALUES (105,'T55','UPDATE','inventory: qty 10->9');">-- Which transactions committed, and which are incomplete?
+    <textarea data-setup="CREATE TABLE wal_log (lsn SERIAL PRIMARY KEY, txn_id TEXT NOT NULL, op TEXT NOT NULL, detail TEXT); INSERT INTO wal_log VALUES (101,'T42','UPDATE','accounts: balance 500- rows="10">400'); INSERT INTO wal_log VALUES (102,'T42','UPDATE','accounts: balance 300->400'); INSERT INTO wal_log VALUES (103,'T42','COMMIT',''); INSERT INTO wal_log VALUES (104,'T55','INSERT','orders: row 9'); INSERT INTO wal_log VALUES (105,'T55','UPDATE','inventory: qty 10->9');">-- Which transactions committed, and which are incomplete?
 SELECT
   txn_id,
   CASE WHEN MAX(op) = 'COMMIT' THEN 'committed'

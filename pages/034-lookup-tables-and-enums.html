@@ -55,7 +55,7 @@ INSERT INTO order_status VALUES
   (&#39;cancelled&#39;, &#39;Cancelled&#39;, 4);
 
 CREATE TABLE orders (
-  id          INTEGER PRIMARY KEY,
+  id          SERIAL PRIMARY KEY,
   customer    TEXT NOT NULL,
   status_code TEXT NOT NULL REFERENCES order_status(code)
 );
@@ -68,7 +68,7 @@ CREATE TABLE orders (
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Lookup tables</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE order_status (code TEXT PRIMARY KEY, label TEXT NOT NULL, sort_order INTEGER NOT NULL); INSERT INTO order_status VALUES ('pending','Pending',1),('shipped','Shipped',2),('delivered','Delivered',3),('cancelled','Cancelled',4); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT NOT NULL, status_code TEXT NOT NULL REFERENCES order_status(code)); INSERT INTO orders VALUES (1,'Alice','shipped'),(2,'Bob','pending'),(3,'Carol','delivered');" rows="10">-- Try changing 'pending' to 'Shippped' to see the FK reject it.
+    <textarea data-setup="CREATE TABLE order_status (code TEXT PRIMARY KEY, label TEXT NOT NULL, sort_order INTEGER NOT NULL); INSERT INTO order_status VALUES ('pending','Pending',1),('shipped','Shipped',2),('delivered','Delivered',3),('cancelled','Cancelled',4); CREATE TABLE orders (id SERIAL PRIMARY KEY, customer TEXT NOT NULL, status_code TEXT NOT NULL REFERENCES order_status(code)); INSERT INTO orders VALUES (1,'Alice','shipped'),(2,'Bob','pending'),(3,'Carol','delivered');" rows="10">-- Try changing 'pending' to 'Shippped' to see the FK reject it.
 -- Then restore a valid status and run the join below.
 SELECT o.id, o.customer, s.label AS status
 FROM orders o
@@ -88,7 +88,7 @@ CREATE TABLE orders (
 </code></pre>
 <p>SQLite has no native enum, but you can approximate it with a <code>CHECK</code> constraint:</p>
 <pre><code class="language-sql">CREATE TABLE orders (
-  id       INTEGER PRIMARY KEY,
+  id       SERIAL PRIMARY KEY,
   customer TEXT NOT NULL,
   status   TEXT NOT NULL CHECK (status IN (&#39;pending&#39;,&#39;shipped&#39;,&#39;delivered&#39;,&#39;cancelled&#39;))
 );

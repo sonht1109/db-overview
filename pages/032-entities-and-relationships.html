@@ -76,8 +76,8 @@
 <h3>Junction tables for many-to-many</h3>
 <p>When the relationship itself carries data (for example, <em>which role</em> an author played on a book — writer, editor, translator), a junction table is the right tool. It holds foreign keys to both sides plus any attributes of the relationship itself.</p>
 <pre><code class="language-sql">-- Entities
-CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
-CREATE TABLE books   (id INTEGER PRIMARY KEY, title TEXT NOT NULL);
+CREATE TABLE authors (id SERIAL PRIMARY KEY, name TEXT NOT NULL);
+CREATE TABLE books   (id SERIAL PRIMARY KEY, title TEXT NOT NULL);
 
 -- Junction table: one row per author-book pairing
 CREATE TABLE book_authors (
@@ -100,8 +100,8 @@ CREATE TABLE book_authors (
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Entities &amp; Relationships</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
-CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT NOT NULL, year INTEGER);
+    <textarea data-setup="CREATE TABLE authors (id SERIAL PRIMARY KEY, name TEXT NOT NULL);
+CREATE TABLE books (id SERIAL PRIMARY KEY, title TEXT NOT NULL, year INTEGER);
 CREATE TABLE book_authors (author_id INTEGER, book_id INTEGER, role TEXT DEFAULT 'writer', PRIMARY KEY (author_id, book_id));
 INSERT INTO authors VALUES (1, 'Gabriel García Márquez'), (2, 'Isabel Allende'), (3, 'Mario Vargas Llosa');
 INSERT INTO books VALUES (1, 'One Hundred Years of Solitude', 1967), (2, 'Love in the Time of Cholera', 1985), (3, 'The House of the Spirits', 1982), (4, 'The City and the Dogs', 1963);

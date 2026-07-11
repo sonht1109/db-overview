@@ -134,21 +134,21 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Join order demo</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE categories (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO categories VALUES (1,'Electronics'),(2,'Books'),(3,'Clothing'),(4,'Sports'),(5,'Toys'); CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category_id INTEGER, price REAL); INSERT INTO products VALUES (1,'Laptop',1,999),(2,'Phone',1,699),(3,'Novel',2,14),(4,'Textbook',2,89),(5,'T-Shirt',3,25),(6,'Jeans',3,60),(7,'Tennis Racket',4,120),(8,'Football',4,30),(9,'Doll',5,18),(10,'Board Game',5,45),(11,'Tablet',1,399),(12,'Jacket',3,110);" rows="10">-- Join products → categories (big table first in the clause)
+    <textarea data-setup="CREATE TABLE categories (id SERIAL PRIMARY KEY, name TEXT); INSERT INTO categories VALUES (1,'Electronics'),(2,'Books'),(3,'Clothing'),(4,'Sports'),(5,'Toys'); CREATE TABLE products (id SERIAL PRIMARY KEY, name TEXT, category_id INTEGER, price REAL); INSERT INTO products VALUES (1,'Laptop',1,999),(2,'Phone',1,699),(3,'Novel',2,14),(4,'Textbook',2,89),(5,'T-Shirt',3,25),(6,'Jeans',3,60),(7,'Tennis Racket',4,120),(8,'Football',4,30),(9,'Doll',5,18),(10,'Board Game',5,45),(11,'Tablet',1,399),(12,'Jacket',3,110);" rows="10">-- Join products → categories (big table first in the clause)
 SELECT p.name, p.price, c.name AS category
 FROM products p
 JOIN categories c ON c.id = p.category_id
 WHERE c.name = 'Electronics'
 ORDER BY p.price DESC;</textarea>
   </div>
-</div><p>Now try the <code>EXPLAIN QUERY PLAN</code> command to see how SQLite actually plans the join — it may surprise you:</p>
+</div><p>Now try the <code>EXPLAIN</code> command to see how SQLite actually plans the join — it may surprise you:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Inspect the query plan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE categories (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO categories VALUES (1,'Electronics'),(2,'Books'),(3,'Clothing'),(4,'Sports'),(5,'Toys'); CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category_id INTEGER, price REAL); INSERT INTO products VALUES (1,'Laptop',1,999),(2,'Phone',1,699),(3,'Novel',2,14),(4,'Textbook',2,89),(5,'T-Shirt',3,25),(6,'Jeans',3,60),(7,'Tennis Racket',4,120),(8,'Football',4,30),(9,'Doll',5,18),(10,'Board Game',5,45),(11,'Tablet',1,399),(12,'Jacket',3,110);" rows="10">-- See the physical plan SQLite chose.
+    <textarea data-setup="CREATE TABLE categories (id SERIAL PRIMARY KEY, name TEXT); INSERT INTO categories VALUES (1,'Electronics'),(2,'Books'),(3,'Clothing'),(4,'Sports'),(5,'Toys'); CREATE TABLE products (id SERIAL PRIMARY KEY, name TEXT, category_id INTEGER, price REAL); INSERT INTO products VALUES (1,'Laptop',1,999),(2,'Phone',1,699),(3,'Novel',2,14),(4,'Textbook',2,89),(5,'T-Shirt',3,25),(6,'Jeans',3,60),(7,'Tennis Racket',4,120),(8,'Football',4,30),(9,'Doll',5,18),(10,'Board Game',5,45),(11,'Tablet',1,399),(12,'Jacket',3,110);" rows="10">-- See the physical plan SQLite chose.
 -- Try adding an index, then re-run this plan:
 -- CREATE INDEX idx_products_cat ON products(category_id);
-EXPLAIN QUERY PLAN
+EXPLAIN
 SELECT p.name, p.price, c.name AS category
 FROM products p
 JOIN categories c ON c.id = p.category_id
@@ -160,7 +160,7 @@ ORDER BY p.price DESC;</textarea>
 <ul>
 <li>Join order determines how large intermediate result sets grow; smaller intermediate sets mean less work.</li>
 <li>The query optimizer rewrites join order automatically using table statistics.</li>
-<li><code>EXPLAIN</code> / <code>EXPLAIN QUERY PLAN</code> shows you the plan the engine actually chose — always check it when a query is slow.</li>
+<li><code>EXPLAIN</code> / <code>EXPLAIN</code> shows you the plan the engine actually chose — always check it when a query is slow.</li>
 <li>Keep statistics current (<code>ANALYZE</code>, <code>UPDATE STATISTICS</code>, etc.) so the optimizer can make good decisions.</li>
 <li>When the optimizer gets it wrong, you can guide it with index hints or by restructuring subqueries, but that should be a last resort after understanding <em>why</em> it chose a bad plan.</li>
 </ul>

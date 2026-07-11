@@ -140,7 +140,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Slot directory simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE slot_directory (slot_num INTEGER PRIMARY KEY, record_offset INTEGER, record_length INTEGER, is_live INTEGER DEFAULT 1);
+    <textarea data-setup="CREATE TABLE slot_directory (slot_num SERIAL PRIMARY KEY, record_offset INTEGER, record_length INTEGER, is_live INTEGER DEFAULT 1);
 INSERT INTO slot_directory VALUES (0, 8100, 80, 1);
 INSERT INTO slot_directory VALUES (1, 7950, 150, 1);
 INSERT INTO slot_directory VALUES (2, 7890, 60, 0);

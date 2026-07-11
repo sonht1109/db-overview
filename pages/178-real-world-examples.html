@@ -138,7 +138,7 @@ Stream  → XADD events * action purchase       # append-only log with consumer 
 SELECT key, value
 FROM sessions
 WHERE key = 'session:tok_abc123'
-  AND expires_unix > 1700000000;   -- simulating: strftime('%s','now')
+  AND expires_unix > 1700000000;   -- simulating: EXTRACT(EPOCH FROM NOW())::integer
 -- 2. Check rate limit before serving a request:
 -- SELECT count FROM rate_counters WHERE key = 'ratelimit:user:4291:hour';
 -- 3. Find expired sessions (full scan -- costly in a real KV store):

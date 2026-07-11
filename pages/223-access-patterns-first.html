@@ -135,7 +135,7 @@ Pattern-first (correct approach):
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Access Pattern Audit</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, status TEXT NOT NULL, total REAL NOT NULL, created_at TEXT NOT NULL); CREATE INDEX idx_orders_customer ON orders(customer_id); CREATE INDEX idx_orders_status_date ON orders(status, created_at); INSERT INTO orders VALUES (1,101,'shipped',49.99,'2024-01-05'),(2,102,'pending',120.00,'2024-01-06'),(3,101,'pending',30.00,'2024-01-07'),(4,103,'cancelled',15.00,'2024-01-08'),(5,101,'shipped',200.00,'2024-01-09'),(6,102,'shipped',85.00,'2024-01-10');" rows="10">-- A1: Customer order history (high frequency)
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER NOT NULL, status TEXT NOT NULL, total REAL NOT NULL, created_at TEXT NOT NULL); CREATE INDEX idx_orders_customer ON orders(customer_id); CREATE INDEX idx_orders_status_date ON orders(status, created_at); INSERT INTO orders VALUES (1,101,'shipped',49.99,'2024-01-05'),(2,102,'pending',120.00,'2024-01-06'),(3,101,'pending',30.00,'2024-01-07'),(4,103,'cancelled',15.00,'2024-01-08'),(5,101,'shipped',200.00,'2024-01-09'),(6,102,'shipped',85.00,'2024-01-10');" rows="10">-- A1: Customer order history (high frequency)
 SELECT id, total, status, created_at
 FROM orders
 WHERE customer_id = 101
@@ -147,7 +147,7 @@ ORDER BY created_at DESC;
 </div><h2>When Patterns Change</h2>
 <p>Access patterns change as products grow. A reporting query that ran weekly at launch might become a real-time dashboard queried every second at scale. Build a lightweight process:</p>
 <ol>
-<li>Log slow queries (pg_stat_statements, MySQL slow query log, SQLite EXPLAIN QUERY PLAN).</li>
+<li>Log slow queries (pg_stat_statements, MySQL slow query log, SQLite EXPLAIN).</li>
 <li>Compare actual patterns against the original catalogue monthly.</li>
 <li>Add, remove, or reshape indexes based on the delta.</li>
 </ol>

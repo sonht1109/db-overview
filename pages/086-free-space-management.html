@@ -133,7 +133,7 @@ After deleting row 2:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Free space and VACUUM</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, payload TEXT); WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 200) INSERT INTO events SELECT n, 'event-data-for-row-number-' || n FROM r;" rows="10">-- Check page usage before and after deletes.
+    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, payload TEXT); WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 200) INSERT INTO events SELECT n, 'event-data-for-row-number-' || n FROM r;" rows="10">-- Check page usage before and after deletes.
 -- page_count * page_size = total file bytes;
 -- freelist_count = pages fully released to the freelist.
 SELECT page_count, page_size, freelist_count,

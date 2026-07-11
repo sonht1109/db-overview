@@ -166,7 +166,7 @@ SELECT value
 FROM kv_store
 WHERE key = 'session:user:4291';
 -- Try changing the key above to 'feature:dark_mode' or 'rate:user:4291:day'
--- Try a SET: INSERT OR REPLACE INTO kv_store VALUES ('new:key', 'hello', NULL);
+-- Try a SET: INSERT INTO kv_store VALUES ('new:key', 'hello', NULL) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 -- Try filtering by prefix (simulating a namespace scan):
 -- SELECT key, value FROM kv_store WHERE key LIKE 'rate:%';</textarea>
   </div>

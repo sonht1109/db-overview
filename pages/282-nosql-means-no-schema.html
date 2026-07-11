@@ -89,17 +89,17 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Schema Drift Simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products_flexible (id INTEGER PRIMARY KEY, data TEXT); INSERT INTO products_flexible VALUES (1, '{&quot;name&quot;:&quot;Widget&quot;,&quot;price&quot;:9.99,&quot;category&quot;:&quot;tools&quot;}'); INSERT INTO products_flexible VALUES (2, '{&quot;name&quot;:&quot;Gadget&quot;,&quot;price&quot;:49.99}'); INSERT INTO products_flexible VALUES (3, '{&quot;title&quot;:&quot;Doohickey&quot;,&quot;cost&quot;:4.5,&quot;tag&quot;:&quot;promo&quot;}'); CREATE TABLE products_strict (id INTEGER PRIMARY KEY, name TEXT NOT NULL, price REAL NOT NULL CHECK(price &gt; 0), category TEXT NOT NULL DEFAULT 'uncategorized'); INSERT INTO products_strict VALUES (1, 'Widget', 9.99, 'tools'); INSERT INTO products_strict VALUES (2, 'Gadget', 49.99, 'electronics');" rows="10"> -- Flexible: every row can have different fields. What is the average price?
+    <textarea data-setup="CREATE TABLE products_flexible (id SERIAL PRIMARY KEY, data TEXT); INSERT INTO products_flexible VALUES (1, '{&quot;name&quot;:&quot;Widget&quot;,&quot;price&quot;:9.99,&quot;category&quot;:&quot;tools&quot;}'); INSERT INTO products_flexible VALUES (2, '{&quot;name&quot;:&quot;Gadget&quot;,&quot;price&quot;:49.99}'); INSERT INTO products_flexible VALUES (3, '{&quot;title&quot;:&quot;Doohickey&quot;,&quot;cost&quot;:4.5,&quot;tag&quot;:&quot;promo&quot;}'); CREATE TABLE products_strict (id SERIAL PRIMARY KEY, name TEXT NOT NULL, price REAL NOT NULL CHECK(price &gt; 0), category TEXT NOT NULL DEFAULT 'uncategorized'); INSERT INTO products_strict VALUES (1, 'Widget', 9.99, 'tools'); INSERT INTO products_strict VALUES (2, 'Gadget', 49.99, 'electronics');" rows="10"> -- Flexible: every row can have different fields. What is the average price?
 -- We must know which JSON field name was used (inconsistent: "price" vs "cost"):
 SELECT id,
-       json_extract(data, '$.price') AS price_field,
-       json_extract(data, '$.cost')  AS cost_field
+       data->>'$.price' AS price_field,
+       data->>'$.cost'  AS cost_field
 FROM products_flexible;
 -- Strict: straightforward, no guessing:
 -- SELECT AVG(price) FROM products_strict;</textarea>
   </div>
 </div><blockquote>
-<p><strong>Note:</strong> This widget uses SQLite&#39;s <code>json_extract()</code> to simulate how you&#39;d query JSONB in PostgreSQL or documents in a document store. Notice how the inconsistent field names (<code>price</code> vs <code>cost</code>) make even a simple average query fragile.</p>
+<p><strong>Note:</strong> This widget uses PostgreSQL's <code>-&gt;</code> / <code>-&gt;&gt;</code> operators to simulate how you'd query JSONB in PostgreSQL or documents in a document store. Notice how the inconsistent field names (<code>price</code> vs <code>cost</code>) make even a simple average query fragile.</p>
 </blockquote>
 <h2>Key Takeaways</h2>
 <ul>

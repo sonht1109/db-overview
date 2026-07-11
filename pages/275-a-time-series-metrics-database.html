@@ -54,13 +54,13 @@
 <p>These differences mean that <strong>time-ordering of data on disk</strong> is critical. In a B-tree, appending timestamps in order places new rows on the last page — which is cache-hot. Reading a time range is a short sequential scan. This is the opposite of a random-access OLTP workload.</p>
 <h2>Core Schema: Metrics Store</h2>
 <pre><code class="language-sql">CREATE TABLE metric_sources (
-  id   INTEGER PRIMARY KEY,
+  id   SERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,    -- &#39;web-server-1&#39;, &#39;db-primary&#39;
   kind TEXT NOT NULL            -- &#39;host&#39;, &#39;service&#39;, &#39;sensor&#39;
 );
 
 CREATE TABLE metric_names (
-  id   INTEGER PRIMARY KEY,
+  id   SERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE     -- &#39;cpu_pct&#39;, &#39;mem_bytes&#39;, &#39;req_latency_ms&#39;
 );
 
@@ -137,7 +137,7 @@ CREATE TABLE metrics_1m (
 );
 
 -- Compute a rollup for a given minute
-INSERT OR REPLACE INTO metrics_1m
+INSERT INTO metrics_1m
 SELECT
   (ts / 60) * 60 AS ts,
   source_id,
@@ -156,13 +156,13 @@ GROUP BY (ts / 60) * 60, source_id, metric_id;
 <h2>Retention: Auto-Purge</h2>
 <pre><code class="language-sql">-- Delete raw metrics older than 24 hours
 DELETE FROM metrics
-WHERE ts &lt; strftime(&#39;%s&#39;,&#39;now&#39;) - 86400;
+WHERE ts &lt; EXTRACT(EPOCH FROM NOW())::integer - 86400;
 </code></pre>
 <p>Run this as a scheduled job. In SQLite, deleting many rows at once can cause a large write-ahead-log entry; deleting in batches of 10 000 rows reduces pressure.</p>
 <h2>Gap Filling</h2>
 <p>A common analytics need is &quot;show me a chart with one data point per minute, even if no data arrived.&quot; Databases with <code>GENERATE_SERIES</code> or window functions make this easy; SQLite doesn&#39;t have <code>GENERATE_SERIES</code>, but you can simulate it with a CTE or a pre-seeded time spine table.</p>
 <pre><code class="language-sql">-- Time spine: pre-seeded minute buckets (illustrative)
-CREATE TABLE time_spine_1m (ts INTEGER PRIMARY KEY);
+CREATE TABLE time_spine_1m (ts SERIAL PRIMARY KEY);
 -- ...populated by INSERT with known time range...
 
 SELECT sp.ts,
@@ -179,8 +179,8 @@ ORDER BY sp.ts;
   <div class="widget-head"><span>Interactive SQL · Time-Series Queries</span></div>
   <div class="widget-body">
     <textarea data-setup="
-CREATE TABLE metric_sources (id INTEGER PRIMARY KEY, name TEXT UNIQUE, kind TEXT);
-CREATE TABLE metric_names (id INTEGER PRIMARY KEY, name TEXT UNIQUE);
+CREATE TABLE metric_sources (id SERIAL PRIMARY KEY, name TEXT UNIQUE, kind TEXT);
+CREATE TABLE metric_names (id SERIAL PRIMARY KEY, name TEXT UNIQUE);
 CREATE TABLE metrics (ts INTEGER, source_id INTEGER, metric_id INTEGER, value REAL, PRIMARY KEY(ts, source_id, metric_id));
 CREATE TABLE metrics_1m (ts INTEGER, source_id INTEGER, metric_id INTEGER, avg_val REAL, min_val REAL, max_val REAL, sample_count INTEGER, PRIMARY KEY(ts, source_id, metric_id));
 INSERT INTO metric_sources VALUES (1,'web-1','host'),(2,'web-2','host'),(3,'db-1','host');
@@ -188,7 +188,7 @@ INSERT INTO metric_names VALUES (1,'cpu_pct'),(2,'mem_bytes'),(3,'req_latency_ms
 INSERT INTO metrics VALUES (1700000000,1,1,42.1),(1700000001,1,1,43.5),(1700000002,1,1,41.8),(1700000060,1,1,55.0),(1700000061,1,1,57.2),(1700000000,2,1,30.1),(1700000060,2,1,31.5),(1700000000,1,2,1073741824),(1700000060,1,2,1174405120),(1700000000,3,3,5.2),(1700000001,3,3,6.1),(1700000002,3,3,4.9);
 INSERT INTO metrics_1m VALUES (1700000000,1,1,42.47,41.8,43.5,3),(1700000060,1,1,56.1,55.0,57.2,2),(1700000000,2,1,30.1,30.1,30.1,1),(1700000060,2,1,31.5,31.5,31.5,1);
 " rows="10">-- 1-minute CPU averages for web-1 (from rollup table)
-SELECT datetime(ts, 'unixepoch') AS minute,
+SELECT TO_TIMESTAMP(ts) AS minute,
        ROUND(avg_val, 2) AS avg_cpu,
        ROUND(min_val, 2) AS min_cpu,
        ROUND(max_val, 2) AS max_cpu

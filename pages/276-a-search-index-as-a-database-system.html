@@ -27,7 +27,7 @@
 <p>SQLite includes <strong>FTS5</strong> (full-text search), which builds an inverted index internally. This schema shows how to use it alongside a main documents table:</p>
 <pre><code class="language-sql">-- The canonical document store
 CREATE TABLE documents (
-  id          INTEGER PRIMARY KEY,
+  id          SERIAL PRIMARY KEY,
   title       TEXT NOT NULL,
   body        TEXT NOT NULL,
   url         TEXT NOT NULL UNIQUE,
@@ -123,7 +123,7 @@ FROM doc_search
 JOIN documents d ON d.id = doc_search.rowid
 WHERE doc_search MATCH &#39;headphone&#39;
   AND d.category = &#39;electronics&#39;
-  AND d.published_at &gt;= strftime(&#39;%s&#39;,&#39;now&#39;,&#39;-30 days&#39;)
+  AND d.published_at &gt;= EXTRACT(EPOCH FROM NOW() - INTERVAL '30 days')::integer
 ORDER BY score
 LIMIT 20;
 </code></pre>
@@ -182,7 +182,7 @@ LIMIT 20;
   <div class="widget-head"><span>Interactive SQL · Full-Text Search</span></div>
   <div class="widget-body">
     <textarea data-setup="
-CREATE TABLE documents (id INTEGER PRIMARY KEY, title TEXT, body TEXT, url TEXT UNIQUE, category TEXT, published_at INTEGER);
+CREATE TABLE documents (id SERIAL PRIMARY KEY, title TEXT, body TEXT, url TEXT UNIQUE, category TEXT, published_at INTEGER);
 CREATE VIRTUAL TABLE doc_search USING fts5(title, body, content='documents', content_rowid='id');
 INSERT INTO documents VALUES (1,'Bluetooth Headphones Review','These wireless bluetooth headphones offer great sound quality and noise cancellation.','/reviews/bt-headphones','electronics',1700000000);
 INSERT INTO documents VALUES (2,'Budget Audio Guide','Finding cheap affordable headphones under 50 dollars for casual listening.','/guides/budget-audio','electronics',1700100000);

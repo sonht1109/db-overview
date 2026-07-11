@@ -87,7 +87,7 @@ COMMIT;  -- behaves like ROLLBACK — neither row is saved
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Commit vs. rollback</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1, 'Alice', 500); INSERT INTO accounts VALUES (2, 'Bob', 300);" rows="10">-- Transfer $100 from Alice to Bob.
+    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1, 'Alice', 500); INSERT INTO accounts VALUES (2, 'Bob', 300);" rows="10">-- Transfer $100 from Alice to Bob.
 -- Change COMMIT to ROLLBACK to undo everything.
 BEGIN;
 UPDATE accounts SET balance = balance - 100 WHERE id = 1;

@@ -149,13 +149,13 @@ results = run(&quot;SELECT name FROM employees WHERE salary &gt; 80000&quot;,
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Query Plans</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice',30,70000),(2,'Bob',25,55000),(3,'Carol',34,92000),(4,'Dave',28,61000),(5,'Eve',40,110000); CREATE INDEX idx_salary ON employees(salary);" rows="10">-- See which plan SQLite chooses:
-EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE employees (id SERIAL PRIMARY KEY, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice',30,70000),(2,'Bob',25,55000),(3,'Carol',34,92000),(4,'Dave',28,61000),(5,'Eve',40,110000); CREATE INDEX idx_salary ON employees(salary);" rows="10">-- See which plan SQLite chooses:
+EXPLAIN
 SELECT name FROM employees WHERE salary &gt; 80000;
 -- Force a full scan by removing usability of the index:
--- EXPLAIN QUERY PLAN SELECT name FROM employees WHERE salary + 0 &gt; 80000;
+-- EXPLAIN SELECT name FROM employees WHERE salary + 0 &gt; 80000;
 -- Index used for equality:
--- EXPLAIN QUERY PLAN SELECT * FROM employees WHERE salary = 70000;</textarea>
+-- EXPLAIN SELECT * FROM employees WHERE salary = 70000;</textarea>
   </div>
 </div><h2>Key Takeaways</h2>
 <ul>

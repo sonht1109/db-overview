@@ -128,8 +128,8 @@ db.orders.find({
 </code></pre>
 <p>SQLite exposes the same concept through <code>json_each()</code> — a table-valued function that unnests an array into rows you can filter with <code>WHERE</code>:</p>
 <pre><code class="language-sql">SELECT o.order_id, e.value-&gt;&gt;&#39;$.sku&#39; AS sku
-FROM orders o, json_each(json_extract(o.doc, &#39;$.items&#39;)) e
-WHERE json_extract(e.value, &#39;$.qty&#39;) &gt;= 2;
+FROM orders o, jsonb_each(o.doc::jsonb->'items') e
+WHERE e.value->>'qty' &gt;= 2;
 </code></pre>
 <h2>When Nesting Causes Problems</h2>
 <p>Nesting is efficient when the embedded data is <strong>bounded</strong> and <strong>owned</strong> by the parent. It creates problems in three scenarios:</p>
@@ -202,11 +202,11 @@ db.orders.updateOne(
     <textarea data-setup="CREATE TABLE orders (order_id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO orders VALUES ('ORD-9901', '{&quot;customer&quot;:&quot;aroha&quot;,&quot;items&quot;:[{&quot;sku&quot;:&quot;SHOE-9B&quot;,&quot;qty&quot;:1,&quot;price&quot;:120},{&quot;sku&quot;:&quot;SOCK-3P&quot;,&quot;qty&quot;:3,&quot;price&quot;:8.5}]}'); INSERT INTO orders VALUES ('ORD-9902', '{&quot;customer&quot;:&quot;leo&quot;,&quot;items&quot;:[{&quot;sku&quot;:&quot;SHOE-9B&quot;,&quot;qty&quot;:2,&quot;price&quot;:120}]}'); INSERT INTO orders VALUES ('ORD-9903', '{&quot;customer&quot;:&quot;priya&quot;,&quot;items&quot;:[{&quot;sku&quot;:&quot;HAT-1X&quot;,&quot;qty&quot;:1,&quot;price&quot;:45}]}');" rows="10">-- Unnest items and find all orders containing SHOE-9B
 SELECT
   o.order_id,
-  json_extract(o.doc, '$.customer') AS customer,
-  json_extract(e.value, '$.sku')    AS sku,
-  json_extract(e.value, '$.qty')    AS qty
-FROM orders o, json_each(json_extract(o.doc, '$.items')) e
-WHERE json_extract(e.value, '$.sku') = 'SHOE-9B'
+  o.doc->>'$.customer' AS customer,
+  e.value->>'sku'    AS sku,
+  e.value->>'qty'    AS qty
+FROM orders o, jsonb_each(o.doc::jsonb->'items') e
+WHERE e.value->>'sku' = 'SHOE-9B'
 ORDER BY o.order_id;</textarea>
   </div>
 </div><p>Try changing <code>&#39;SHOE-9B&#39;</code> to <code>&#39;SOCK-3P&#39;</code> or <code>&#39;HAT-1X&#39;</code> to query different items. Notice that <code>json_each</code> effectively &quot;joins&quot; the array elements back into rows — the same mental model used by document database array query operators.</p>

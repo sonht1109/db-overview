@@ -126,19 +126,19 @@
 </blockquote>
 <h2>Watching It Happen in SQLite</h2>
 <p>SQLite stores each table as a B-tree of rows keyed by the <code>rowid</code> (an implicit 64-bit integer). A lookup by <code>rowid</code> is a B-tree traversal directly into the table — no separate heap fetch needed. A lookup on any other column without an index is a full scan.</p>
-<p>The query below seeds a small <code>products</code> table and looks up a row. Try running <code>EXPLAIN QUERY PLAN</code> variants to see SQLite describe the access path it chose.</p>
+<p>The query below seeds a small <code>products</code> table and looks up a row. Try running <code>EXPLAIN</code> variants to see SQLite describe the access path it chose.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Heap scan vs. index lookup</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, sku TEXT NOT NULL, name TEXT, price REAL); INSERT INTO products VALUES (1, 'A100', 'Wireless Mouse', 29.99); INSERT INTO products VALUES (2, 'B200', 'USB Hub', 19.99); INSERT INTO products VALUES (3, 'C300', 'Mechanical Keyboard', 89.99); INSERT INTO products VALUES (4, 'D400', 'Monitor Stand', 49.99); INSERT INTO products VALUES (5, 'E500', 'Webcam', 74.99);" rows="10">-- Lookup by primary key: SQLite walks the rowid B-tree directly.
-EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE products (id SERIAL PRIMARY KEY, sku TEXT NOT NULL, name TEXT, price REAL); INSERT INTO products VALUES (1, 'A100', 'Wireless Mouse', 29.99); INSERT INTO products VALUES (2, 'B200', 'USB Hub', 19.99); INSERT INTO products VALUES (3, 'C300', 'Mechanical Keyboard', 89.99); INSERT INTO products VALUES (4, 'D400', 'Monitor Stand', 49.99); INSERT INTO products VALUES (5, 'E500', 'Webcam', 74.99);" rows="10">-- Lookup by primary key: SQLite walks the rowid B-tree directly.
+EXPLAIN
 SELECT name, price FROM products WHERE id = 3;
 -- Now try a lookup by sku (no index yet):
--- EXPLAIN QUERY PLAN
+-- EXPLAIN
 -- SELECT name, price FROM products WHERE sku = 'C300';
 -- Then create an index and repeat:
 -- CREATE INDEX idx_sku ON products (sku);
--- EXPLAIN QUERY PLAN
+-- EXPLAIN
 -- SELECT name, price FROM products WHERE sku = 'C300';</textarea>
   </div>
 </div><p>Uncomment and run the <code>sku</code> queries one at a time. Before the index exists, SQLite reports <code>SCAN products</code> — every page, every row. After <code>CREATE INDEX</code>, it reports <code>SEARCH products USING INDEX idx_sku</code> — it jumps straight to the matching leaf.</p>

@@ -140,7 +140,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Consistency tradeoffs</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1, 'Alice', 1000); INSERT INTO accounts VALUES (2, 'Bob', 500); CREATE TABLE audit_log (ts TEXT, action TEXT, amount INTEGER, balance_after INTEGER); INSERT INTO audit_log VALUES ('09:00', 'deposit', 200, 1200); INSERT INTO audit_log VALUES ('09:01', 'withdraw', 300, 900); INSERT INTO audit_log VALUES ('09:02', 'transfer_out', 100, 800);" rows="10">-- See both accounts and the full audit trail
+    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1, 'Alice', 1000); INSERT INTO accounts VALUES (2, 'Bob', 500); CREATE TABLE audit_log (ts TEXT, action TEXT, amount INTEGER, balance_after INTEGER); INSERT INTO audit_log VALUES ('09:00', 'deposit', 200, 1200); INSERT INTO audit_log VALUES ('09:01', 'withdraw', 300, 900); INSERT INTO audit_log VALUES ('09:02', 'transfer_out', 100, 800);" rows="10">-- See both accounts and the full audit trail
 SELECT a.owner, a.balance,
        COUNT(l.action)  AS log_entries,
        SUM(l.amount)    AS total_moved

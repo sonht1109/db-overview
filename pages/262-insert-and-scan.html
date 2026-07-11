@@ -124,7 +124,7 @@ count = sum(1 for _ in rows)  # → 5
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Insert and Scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice',30,70000),(2,'Bob',25,55000),(3,'Carol',34,92000),(4,'Dave',28,61000),(5,'Eve',40,110000);" rows="10">-- Full table scan (all rows)
+    <textarea data-setup="CREATE TABLE employees (id SERIAL PRIMARY KEY, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice',30,70000),(2,'Bob',25,55000),(3,'Carol',34,92000),(4,'Dave',28,61000),(5,'Eve',40,110000);" rows="10">-- Full table scan (all rows)
 SELECT * FROM employees;
 -- Filtered scan: salary > 80000
 -- SELECT * FROM employees WHERE salary &gt; 80000;

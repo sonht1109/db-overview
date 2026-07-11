@@ -79,7 +79,7 @@
 <h2>Entity Integrity: No Ambiguous Rows</h2>
 <p>A table without a primary key is a table where rows can be identical — there is no reliable way to address, update, or delete a specific row. The <code>PRIMARY KEY</code> constraint eliminates that ambiguity. It combines <code>NOT NULL</code> and <code>UNIQUE</code> into a single declaration: every row must have an identifier, and no two rows may share one.</p>
 <pre><code class="language-sql">CREATE TABLE products (
-  product_id   INTEGER PRIMARY KEY,  -- never null, always unique
+  product_id   SERIAL PRIMARY KEY,  -- never null, always unique
   name         TEXT    NOT NULL,
   price        REAL    NOT NULL CHECK (price &gt;= 0)
 );
@@ -88,7 +88,7 @@
 <h2>Referential Integrity: No Dangling References</h2>
 <p>A foreign key is a promise: the value in one column must match a primary key value in another table. Without enforcement, you can end up with <strong>orphan rows</strong> — order records referencing a customer that was deleted, log entries pointing to a user that never existed. Queries over such data produce silently wrong results.</p>
 <pre><code class="language-sql">CREATE TABLE orders (
-  order_id    INTEGER PRIMARY KEY,
+  order_id    SERIAL PRIMARY KEY,
   customer_id INTEGER NOT NULL REFERENCES customers(customer_id),
   total       REAL    NOT NULL CHECK (total &gt; 0)
 );
@@ -120,7 +120,7 @@
 </tbody></table>
 <p>The right choice depends on your domain. For orders, <code>RESTRICT</code> is usually correct — you rarely want to silently erase order history. For a table of session tokens, <code>CASCADE</code> makes sense: delete the user, delete their sessions.</p>
 <blockquote>
-<p><strong>Note:</strong> SQLite requires <code>PRAGMA foreign_keys = ON;</code> at the start of each connection to enforce foreign key constraints. Most other databases (PostgreSQL, MySQL, SQL Server) enforce them automatically.</p>
+<p><strong>Note:</strong> PostgreSQL enforces foreign key constraints automatically — no pragma required, unlike SQLite which requires <code>PRAGMA foreign_keys = ON;</code>.</p>
 </blockquote>
 <h2>Domain Integrity: Column Values That Make Sense</h2>
 <p>Domain integrity ensures that column values fall within the set of values that are <em>meaningful</em> for that column. The relational model handles this at three levels:</p>
@@ -130,7 +130,7 @@
 <li><strong><code>CHECK</code> constraint</strong> — any boolean expression the engine evaluates on every write.</li>
 </ol>
 <pre><code class="language-sql">CREATE TABLE employees (
-  employee_id INTEGER PRIMARY KEY,
+  employee_id SERIAL PRIMARY KEY,
   name        TEXT    NOT NULL,
   hire_date   TEXT    NOT NULL,
   salary      REAL    NOT NULL CHECK (salary &gt; 0),
@@ -143,13 +143,12 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Integrity in action</span></div>
   <div class="widget-body">
-    <textarea data-setup="PRAGMA foreign_keys = ON;
-CREATE TABLE customers (
-  customer_id INTEGER PRIMARY KEY,
+    <textarea data-setup="CREATE TABLE customers (
+  customer_id SERIAL PRIMARY KEY,
   email       TEXT NOT NULL UNIQUE
 );
 CREATE TABLE orders (
-  order_id    INTEGER PRIMARY KEY,
+  order_id    SERIAL PRIMARY KEY,
   customer_id INTEGER NOT NULL REFERENCES customers(customer_id) ON DELETE RESTRICT,
   status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'shipped', 'cancelled')),
   total       REAL NOT NULL CHECK (total  rows="10"> 0)

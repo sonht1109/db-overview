@@ -134,7 +134,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Constraints in action</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, price REAL NOT NULL CHECK(price  rows="10"> 0)); CREATE TABLE orders (id INTEGER PRIMARY KEY, product_id INTEGER NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL CHECK(quantity > 0), status TEXT NOT NULL DEFAULT 'pending'); INSERT INTO products VALUES (1, 'Widget', 9.99); INSERT INTO products VALUES (2, 'Gadget', 24.99);">-- Try each statement one at a time. Which ones succeed?
+    <textarea data-setup="CREATE TABLE products (id SERIAL PRIMARY KEY, name TEXT NOT NULL UNIQUE, price REAL NOT NULL CHECK(price  rows="10"> 0)); CREATE TABLE orders (id SERIAL PRIMARY KEY, product_id INTEGER NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL CHECK(quantity > 0), status TEXT NOT NULL DEFAULT 'pending'); INSERT INTO products VALUES (1, 'Widget', 9.99); INSERT INTO products VALUES (2, 'Gadget', 24.99);">-- Try each statement one at a time. Which ones succeed?
 -- 1. Valid order:
 INSERT INTO orders VALUES (1, 1, 3, 'pending');
 -- 2. Zero quantity (violates CHECK):
@@ -153,7 +153,7 @@ FROM orders o JOIN products p ON p.id = o.product_id;</textarea>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Maintaining a balance invariant</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, name TEXT NOT NULL, balance REAL NOT NULL CHECK(balance  rows="10">= 0)); INSERT INTO accounts VALUES (1, 'Alice', 500.00); INSERT INTO accounts VALUES (2, 'Bob', 300.00);">-- Transfer $150 from Alice to Bob atomically.
+    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, name TEXT NOT NULL, balance REAL NOT NULL CHECK(balance  rows="10">= 0)); INSERT INTO accounts VALUES (1, 'Alice', 500.00); INSERT INTO accounts VALUES (2, 'Bob', 300.00);">-- Transfer $150 from Alice to Bob atomically.
 -- Both updates succeed or neither does.
 BEGIN;
   UPDATE accounts SET balance = balance - 150 WHERE id = 1;

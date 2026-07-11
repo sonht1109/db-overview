@@ -144,7 +144,7 @@ def decode_row(raw: bytes) -&gt; dict:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Toy Table Format</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (row_num INTEGER PRIMARY KEY, id INTEGER NOT NULL, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (0,1,'Alice',30,70000),(1,2,'Bob',25,55000),(2,3,'Carol',34,92000),(3,4,'Dave',28,61000),(4,5,'Eve',40,110000);" rows="10">-- row_num * 41 = byte offset in the flat file
+    <textarea data-setup="CREATE TABLE employees (row_num SERIAL PRIMARY KEY, id INTEGER NOT NULL, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (0,1,'Alice',30,70000),(1,2,'Bob',25,55000),(2,3,'Carol',34,92000),(3,4,'Dave',28,61000),(4,5,'Eve',40,110000);" rows="10">-- row_num * 41 = byte offset in the flat file
 -- This is exactly what read_row(n) does
 SELECT row_num,
        row_num * 41 AS byte_offset,

@@ -124,13 +124,13 @@
 </tr>
 </tbody></table>
 <h2>Seeing Durability Boundaries in SQL</h2>
-<p>SQLite (which the widget below uses) writes WAL records and calls fsync on commit by default. You can observe the session-level durability boundary with <code>PRAGMA synchronous</code>. The <code>FULL</code> mode forces an fsync after every commit; <code>OFF</code> skips it entirely (fast, but unsafe on power loss).</p>
-<p>Try the widget to see how SQLite reports its own synchronous setting, and experiment with how <code>BEGIN</code>/<code>COMMIT</code> define the unit that gets durably written:</p>
+<p>PostgreSQL writes WAL records and calls fsync based on <code>synchronous_commit</code> setting. The default <code>on</code> mode forces WAL flush after every commit; <code>off</code> skips it entirely (fast, but unsafe on power loss).</p>
+<p>Try the widget to see the current synchronous_commit setting, and experiment with how <code>BEGIN</code>/<code>COMMIT</code> define the unit that gets durably written:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Durability and COMMIT boundaries</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE ledger (id INTEGER PRIMARY KEY, description TEXT, amount INTEGER); INSERT INTO ledger VALUES (1, 'Opening balance', 5000);" rows="10">-- Check SQLite's current durability mode
-PRAGMA synchronous;
+    <textarea data-setup="CREATE TABLE ledger (id SERIAL PRIMARY KEY, description TEXT, amount INTEGER); INSERT INTO ledger VALUES (1, 'Opening balance', 5000);" rows="10">-- Check SQLite's current durability mode
+SHOW synchronous_commit;
 -- 2 = FULL (fsync on every commit — maximum durability)
 -- 1 = NORMAL  0 = OFF (dangerous: skips fsync)
 -- Each COMMIT is the durability boundary.

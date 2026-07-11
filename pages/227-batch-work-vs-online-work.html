@@ -108,7 +108,7 @@ WHERE id IN (
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Chunked Batch Update</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, type TEXT NOT NULL, processed INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL); INSERT INTO events VALUES (1,'click',0,'2024-01-01'),(2,'view',0,'2024-01-01'),(3,'purchase',0,'2024-01-01'),(4,'click',0,'2024-01-01'),(5,'view',1,'2024-01-01'),(6,'click',0,'2024-01-01'),(7,'purchase',0,'2024-01-01'),(8,'view',0,'2024-01-01');" rows="10">-- How many unprocessed events remain?
+    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, type TEXT NOT NULL, processed INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL); INSERT INTO events VALUES (1,'click',0,'2024-01-01'),(2,'view',0,'2024-01-01'),(3,'purchase',0,'2024-01-01'),(4,'click',0,'2024-01-01'),(5,'view',1,'2024-01-01'),(6,'click',0,'2024-01-01'),(7,'purchase',0,'2024-01-01'),(8,'view',0,'2024-01-01');" rows="10">-- How many unprocessed events remain?
 SELECT COUNT(*) AS unprocessed FROM events WHERE processed = 0;
 -- Simulate one chunk: mark 3 rows at a time
 -- UPDATE events SET processed = 1

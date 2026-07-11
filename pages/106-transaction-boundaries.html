@@ -103,7 +103,7 @@ COMMIT;  -- only the order insert is committed
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Transaction boundaries</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, name TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 500), (2, 'Bob', 300);" rows="10">-- Run this block as-is to see a committed transfer.
+    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, name TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 500), (2, 'Bob', 300);" rows="10">-- Run this block as-is to see a committed transfer.
 -- Then change COMMIT to ROLLBACK and re-run to see the undo.
 BEGIN;
   UPDATE accounts SET balance = balance - 100 WHERE id = 1;

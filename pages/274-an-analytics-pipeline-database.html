@@ -31,7 +31,7 @@
 <h2>Schema: Web Analytics Pipeline</h2>
 <pre><code class="language-sql">-- Raw events: never touch these rows after insert
 CREATE TABLE raw_events (
-  id         INTEGER PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
   received_at INTEGER NOT NULL,
   source     TEXT NOT NULL,       -- &#39;web&#39; | &#39;mobile&#39; | &#39;server&#39;
   payload    TEXT NOT NULL        -- raw JSON
@@ -39,7 +39,7 @@ CREATE TABLE raw_events (
 
 -- Dimension: users
 CREATE TABLE dim_users (
-  user_key     INTEGER PRIMARY KEY,
+  user_key     SERIAL PRIMARY KEY,
   user_id      TEXT NOT NULL,     -- natural key from source system
   email        TEXT,
   country      TEXT,
@@ -50,7 +50,7 @@ CREATE TABLE dim_users (
 
 -- Dimension: pages
 CREATE TABLE dim_pages (
-  page_key INTEGER PRIMARY KEY,
+  page_key SERIAL PRIMARY KEY,
   url      TEXT NOT NULL,
   title    TEXT,
   section  TEXT
@@ -58,7 +58,7 @@ CREATE TABLE dim_pages (
 
 -- Fact: one row per page view
 CREATE TABLE fact_pageviews (
-  id          INTEGER PRIMARY KEY,
+  id          SERIAL PRIMARY KEY,
   event_time  INTEGER NOT NULL,
   user_key    INTEGER REFERENCES dim_users(user_key),
   page_key    INTEGER NOT NULL REFERENCES dim_pages(page_key),
@@ -133,18 +133,18 @@ CREATE TABLE agg_daily_traffic (
 </figure><h2>ETL: Populating the Aggregate</h2>
 <p>The nightly ETL job truncates and rebuilds <code>agg_daily_traffic</code>:</p>
 <pre><code class="language-sql">DELETE FROM agg_daily_traffic
-WHERE report_date = strftime(&#39;%Y-%m-%d&#39;, &#39;now&#39;, &#39;-1 day&#39;);
+WHERE report_date = CURRENT_DATE - INTERVAL '1 day';
 
 INSERT INTO agg_daily_traffic (report_date, page_key, views, unique_users, avg_duration_s)
 SELECT
-  strftime(&#39;%Y-%m-%d&#39;, datetime(f.event_time, &#39;unixepoch&#39;)) AS report_date,
+  TO_CHAR(TO_TIMESTAMP(f.event_time), 'YYYY-MM-DD') AS report_date,
   f.page_key,
   COUNT(*)                          AS views,
   COUNT(DISTINCT f.session_id)      AS unique_users,
   AVG(f.duration_s)                 AS avg_duration_s
 FROM fact_pageviews f
-WHERE f.event_time &gt;= strftime(&#39;%s&#39;, &#39;now&#39;, &#39;-1 day&#39;, &#39;start of day&#39;)
-  AND f.event_time &lt;  strftime(&#39;%s&#39;, &#39;now&#39;, &#39;start of day&#39;)
+WHERE f.event_time &gt;= EXTRACT(EPOCH FROM date_trunc('day', NOW()) - INTERVAL '1 day')::integer
+  AND f.event_time &lt;  EXTRACT(EPOCH FROM date_trunc('day', NOW()))::integer
 GROUP BY report_date, f.page_key;
 </code></pre>
 <blockquote>
@@ -160,9 +160,9 @@ GROUP BY report_date, f.page_key;
   <div class="widget-head"><span>Interactive SQL · Analytics Pipeline</span></div>
   <div class="widget-body">
     <textarea data-setup="
-CREATE TABLE dim_users (user_key INTEGER PRIMARY KEY, user_id TEXT, country TEXT, plan TEXT, valid_from INTEGER, valid_to INTEGER);
-CREATE TABLE dim_pages (page_key INTEGER PRIMARY KEY, url TEXT, title TEXT, section TEXT);
-CREATE TABLE fact_pageviews (id INTEGER PRIMARY KEY, event_time INTEGER, user_key INTEGER, page_key INTEGER, session_id TEXT, duration_s INTEGER, referrer TEXT);
+CREATE TABLE dim_users (user_key SERIAL PRIMARY KEY, user_id TEXT, country TEXT, plan TEXT, valid_from INTEGER, valid_to INTEGER);
+CREATE TABLE dim_pages (page_key SERIAL PRIMARY KEY, url TEXT, title TEXT, section TEXT);
+CREATE TABLE fact_pageviews (id SERIAL PRIMARY KEY, event_time INTEGER, user_key INTEGER, page_key INTEGER, session_id TEXT, duration_s INTEGER, referrer TEXT);
 CREATE TABLE agg_daily_traffic (report_date TEXT, page_key INTEGER, views INTEGER, unique_users INTEGER, avg_duration_s REAL, PRIMARY KEY(report_date, page_key));
 INSERT INTO dim_users VALUES (1,'u1','US','free',1700000000,NULL),(2,'u1','US','pro',1701000000,NULL),(3,'u2','GB','free',1700000000,NULL);
 INSERT INTO dim_pages VALUES (1,'/home','Home','landing'),(2,'/pricing','Pricing','marketing'),(3,'/docs','Docs','product'),(4,'/blog','Blog','content');

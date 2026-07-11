@@ -128,7 +128,7 @@ CREATE POLICY user_orders ON orders
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Role Privileges</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 101, 250.00, 'shipped'); INSERT INTO orders VALUES (2, 102, 89.50, 'pending'); INSERT INTO orders VALUES (3, 101, 410.00, 'delivered'); INSERT INTO orders VALUES (4, 103, 33.00, 'pending'); CREATE TABLE audit_log (event TEXT, happened_at TEXT); INSERT INTO audit_log VALUES ('login: user 101', '2024-06-01 09:00'); INSERT INTO audit_log VALUES ('login: user 102', '2024-06-01 09:05');" rows="10">-- Simulate row-level security: a customer sees only their own orders.
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 101, 250.00, 'shipped'); INSERT INTO orders VALUES (2, 102, 89.50, 'pending'); INSERT INTO orders VALUES (3, 101, 410.00, 'delivered'); INSERT INTO orders VALUES (4, 103, 33.00, 'pending'); CREATE TABLE audit_log (event TEXT, happened_at TEXT); INSERT INTO audit_log VALUES ('login: user 101', '2024-06-01 09:00'); INSERT INTO audit_log VALUES ('login: user 102', '2024-06-01 09:05');" rows="10">-- Simulate row-level security: a customer sees only their own orders.
 -- In a real DB, RLS enforces this automatically; here we use a WHERE clause
 -- to show what the filtered view looks like for customer_id = 101.
 SELECT id, amount, status

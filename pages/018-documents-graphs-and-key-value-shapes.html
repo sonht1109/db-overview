@@ -157,16 +157,16 @@
 </tr>
 </tbody></table>
 <p>Many production systems combine models — a relational database for transactional records, a key-value store for caching, and a graph database for recommendations — each doing what it does best.</p>
-<details class="reveal"><summary>Reveal: Why can't a relational database just use JSON columns to get document-store benefits?</summary><div class="reveal-body">Modern relational databases (PostgreSQL, SQLite, MySQL) do support JSON column types, and for many use cases that is enough — you get flexible nesting while keeping the rest of your data relational. The difference is indexing and query ergonomics. A dedicated document store indexes into nested fields natively and exposes a query language built around document shapes. A relational JSON column can be indexed and queried, but it often feels bolted-on. If JSON flexibility is a minority concern in your schema, a relational JSON column is a pragmatic choice. If most of your data is deeply nested and schema-free, a document store is worth considering.</div></details><p>Below, explore how SQLite handles a simple JSON-like scenario using its built-in <code>json_extract()</code> function — a small taste of how relational databases reach toward document-store territory.</p>
+<details class="reveal"><summary>Reveal: Why can't a relational database just use JSON columns to get document-store benefits?</summary><div class="reveal-body">Modern relational databases (PostgreSQL, SQLite, MySQL) do support JSON column types, and for many use cases that is enough — you get flexible nesting while keeping the rest of your data relational. The difference is indexing and query ergonomics. A dedicated document store indexes into nested fields natively and exposes a query language built around document shapes. A relational JSON column can be indexed and queried, but it often feels bolted-on. If JSON flexibility is a minority concern in your schema, a relational JSON column is a pragmatic choice. If most of your data is deeply nested and schema-free, a document store is worth considering.</div></details><p>Below, explore how PostgreSQL handles a simple JSON-like scenario using its built-in <code>-&gt;</code> / <code>-&gt;&gt;</code> operators — a small taste of how relational databases reach toward document-store territory.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · JSON in SQLite</span></div>
   <div class="widget-body">
     <textarea data-setup="CREATE TABLE products (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO products VALUES ('NB-001', '{&quot;name&quot;:&quot;Notebook&quot;,&quot;price&quot;:2.99,&quot;tags&quot;:[&quot;stationery&quot;]}'); INSERT INTO products VALUES ('LP-042', '{&quot;name&quot;:&quot;Laptop&quot;,&quot;price&quot;:999.00,&quot;tags&quot;:[&quot;electronics&quot;]}'); INSERT INTO products VALUES ('PN-007', '{&quot;name&quot;:&quot;Pen&quot;,&quot;price&quot;:0.99,&quot;tags&quot;:[&quot;stationery&quot;]}');" rows="10">SELECT
   id,
-  json_extract(doc, '$.name')  AS name,
-  json_extract(doc, '$.price') AS price
+  doc->>'$.name'  AS name,
+  doc->>'$.price' AS price
 FROM products
-WHERE CAST(json_extract(doc, '$.price') AS REAL) < 5.00
+WHERE (doc->>'$.price')::double precision < 5.00
 ORDER BY price;</textarea>
   </div>
 </div>

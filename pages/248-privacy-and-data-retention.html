@@ -178,7 +178,7 @@ WHERE created_at &lt; to_char(now() - interval &#39;90 days&#39;, &#39;YYYY-MM-D
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Anonymization and Retention</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT, full_name TEXT, phone TEXT, created_at TEXT, deleted_at TEXT); INSERT INTO users VALUES (1, 'alice@example.com', 'Alice Smith', '+1-555-0001', '2022-01-15', NULL); INSERT INTO users VALUES (2, 'bob@example.com', 'Bob Jones', '+1-555-0002', '2022-03-01', '2024-01-01'); INSERT INTO users VALUES (3, 'carol@example.com', 'Carol White', NULL, '2023-06-10', '2024-05-01'); INSERT INTO users VALUES (4, 'dave@example.com', 'Dave Brown', '+1-555-0004', '2023-11-01', NULL);" rows="10">-- Find accounts deleted more than 30 days ago that still have PII
+    <textarea data-setup="CREATE TABLE users (id SERIAL PRIMARY KEY, email TEXT, full_name TEXT, phone TEXT, created_at TEXT, deleted_at TEXT); INSERT INTO users VALUES (1, 'alice@example.com', 'Alice Smith', '+1-555-0001', '2022-01-15', NULL); INSERT INTO users VALUES (2, 'bob@example.com', 'Bob Jones', '+1-555-0002', '2022-03-01', '2024-01-01'); INSERT INTO users VALUES (3, 'carol@example.com', 'Carol White', NULL, '2023-06-10', '2024-05-01'); INSERT INTO users VALUES (4, 'dave@example.com', 'Dave Brown', '+1-555-0004', '2023-11-01', NULL);" rows="10">-- Find accounts deleted more than 30 days ago that still have PII
 SELECT id, email, full_name, deleted_at
 FROM users
 WHERE deleted_at IS NOT NULL

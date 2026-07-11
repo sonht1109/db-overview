@@ -108,7 +108,7 @@ COMMIT;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Atomic ticket sale</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, name TEXT NOT NULL, seats_remaining INTEGER NOT NULL CHECK(seats_remaining  rows="10">= 0)); CREATE TABLE bookings (id INTEGER PRIMARY KEY AUTOINCREMENT, event_id INTEGER NOT NULL REFERENCES events(id), user_id INTEGER NOT NULL, booked_at TEXT NOT NULL); INSERT INTO events VALUES (42, 'Opening Night', 1);">-- One seat left. Sell it atomically.
+    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, name TEXT NOT NULL, seats_remaining INTEGER NOT NULL CHECK(seats_remaining  rows="10">= 0)); CREATE TABLE bookings (id SERIAL PRIMARY KEY AUTOINCREMENT, event_id INTEGER NOT NULL REFERENCES events(id), user_id INTEGER NOT NULL, booked_at TEXT NOT NULL); INSERT INTO events VALUES (42, 'Opening Night', 1);">-- One seat left. Sell it atomically.
 BEGIN;
 UPDATE events
 SET    seats_remaining = seats_remaining - 1

@@ -162,18 +162,18 @@
     <textarea data-setup="CREATE TABLE products (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO products VALUES ('prod-001', '{&quot;type&quot;:&quot;clothing&quot;,&quot;name&quot;:&quot;Trail Shirt&quot;,&quot;price&quot;:45,&quot;attributes&quot;:{&quot;size&quot;:&quot;L&quot;,&quot;color&quot;:&quot;blue&quot;,&quot;material&quot;:&quot;polyester&quot;}}'); INSERT INTO products VALUES ('prod-002', '{&quot;type&quot;:&quot;electronics&quot;,&quot;name&quot;:&quot;Wireless Earbuds&quot;,&quot;price&quot;:120,&quot;attributes&quot;:{&quot;battery_hours&quot;:8,&quot;bluetooth&quot;:&quot;5.2&quot;,&quot;warranty_years&quot;:2}}'); INSERT INTO products VALUES ('prod-003', '{&quot;type&quot;:&quot;digital&quot;,&quot;name&quot;:&quot;Photo Editor Pro&quot;,&quot;price&quot;:60,&quot;attributes&quot;:{&quot;platform&quot;:&quot;macOS&quot;,&quot;download_size_mb&quot;:450}}'); INSERT INTO products VALUES ('prod-004', '{&quot;type&quot;:&quot;clothing&quot;,&quot;name&quot;:&quot;Running Shorts&quot;,&quot;price&quot;:35,&quot;attributes&quot;:{&quot;size&quot;:&quot;M&quot;,&quot;color&quot;:&quot;black&quot;,&quot;material&quot;:&quot;nylon&quot;}}');" rows="10">-- Browse all products with their type-specific attributes
 SELECT
   id,
-  json_extract(doc, '$.type')  AS type,
-  json_extract(doc, '$.name')  AS name,
-  json_extract(doc, '$.price') AS price,
+  doc->>'$.type'  AS type,
+  doc->>'$.name'  AS name,
+  doc->>'$.price' AS price,
   -- Extract clothing-specific attribute
-  json_extract(doc, '$.attributes.color') AS color,
+  doc->>'$.attributes.color' AS color,
   -- Extract electronics-specific attribute
-  json_extract(doc, '$.attributes.warranty_years') AS warranty_years
+  doc->>'$.attributes.warranty_years' AS warranty_years
 FROM products
-ORDER BY json_extract(doc, '$.price') DESC;
+ORDER BY doc->>'$.price' DESC;
 -- Filter to just clothing products:
--- SELECT id, json_extract(doc,'$.name'), json_extract(doc,'$.attributes.size')
--- FROM products WHERE json_extract(doc,'$.type') = 'clothing';</textarea>
+-- SELECT id, doc->>'$.name', doc->>'$.attributes.size'
+-- FROM products WHERE doc->>'$.type' = 'clothing';</textarea>
   </div>
 </div><p>Notice that <code>color</code> is NULL for electronics and <code>warranty_years</code> is NULL for clothing — but there are no wasted columns in the actual storage. Each document carries only its own attributes. A relational table storing all product types would have many NULL columns per row.</p>
 <h2>Key Takeaways</h2>

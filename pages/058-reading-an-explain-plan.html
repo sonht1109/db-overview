@@ -69,7 +69,7 @@
 </svg>
 <figcaption>An EXPLAIN plan shows the optimizer's chosen execution strategy as a tree of operators annotated with cost estimates, row counts, and scan types. Read from innermost indent outward, and watch for seq scans where indexes should be used.</figcaption>
 </figure>
-<p>When something runs slowly, the first thing a database engineer reaches for is the explain plan. You saw <code>EXPLAIN QUERY PLAN</code> in the previous section — this page goes one level deeper: how to read the numbers, what each term signals, and how to recognize the patterns that warn you a query is in trouble.</p>
+<p>When something runs slowly, the first thing a database engineer reaches for is the explain plan. You saw <code>EXPLAIN</code> in the previous section — this page goes one level deeper: how to read the numbers, what each term signals, and how to recognize the patterns that warn you a query is in trouble.</p>
 <h2>What an Explain Plan Actually Shows</h2>
 <p>An explain plan is the optimizer&#39;s annotated recipe for executing your query. It is a <strong>tree of operators</strong>, evaluated bottom-up: leaf nodes read raw data, inner nodes transform or combine it, and the root node produces the final result set.</p>
 <p>Every node in a PostgreSQL-style plan carries three key estimates:</p>
@@ -101,7 +101,7 @@
   -&gt;  Hash  (cost=8.20..8.20 rows=370 width=36)
         -&gt;  Seq Scan on customers  (cost=0.00..8.20 rows=370 width=36)
 </code></pre>
-<p>Read it from the <strong>innermost indentation outward</strong>: the engine scans <code>customers</code>, builds a hash table from those rows, then streams <code>orders</code> through the hash to find matches. The root <code>Hash Join</code> emits 120 rows at a total estimated cost of 38.80 units. (This is PostgreSQL-style EXPLAIN output; the same tree-reading principle applies to SQLite&#39;s <code>EXPLAIN QUERY PLAN</code> and other engines.)</p>
+<p>Read it from the <strong>innermost indentation outward</strong>: the engine scans <code>customers</code>, builds a hash table from those rows, then streams <code>orders</code> through the hash to find matches. The root <code>Hash Join</code> emits 120 rows at a total estimated cost of 38.80 units. (This is PostgreSQL-style EXPLAIN output; the same tree-reading principle applies to SQLite&#39;s <code>EXPLAIN</code> and other engines.)</p>
 <h2>The Signals That Matter</h2>
 <h3>Scan type</h3>
 <p>The scan type tells you how the engine is reading a table:</p>
@@ -143,12 +143,12 @@
 <h3>Nested loops with large inputs</h3>
 <p>A nested-loop join is fine when the outer side is small. If you see a nested loop where the outer scan emits tens of thousands of rows and there is no index on the inner join key, every outer row triggers a full scan of the inner table. That is O(n × m) work and will be painfully slow on any real dataset.</p>
 <h2>Putting It Together: A Worked Example</h2>
-<p>The widget below sets up a small <code>orders</code>/<code>customers</code> schema. Run the default <code>EXPLAIN QUERY PLAN</code> and note the scan types. Then add the index in the comment and re-run — watch the plan change from a full scan to an index search.</p>
+<p>The widget below sets up a small <code>orders</code>/<code>customers</code> schema. Run the default <code>EXPLAIN</code> and note the scan types. Then add the index in the comment and re-run — watch the plan change from a full scan to an index search.</p>
 <div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Reading EXPLAIN QUERY PLAN</span></div>
+  <div class="widget-head"><span>Interactive SQL · Reading EXPLAIN</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, country TEXT); INSERT INTO customers VALUES (1,'Alice','US'),(2,'Bob','UK'),(3,'Carol','US'),(4,'Dan','DE'),(5,'Eve','US'); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1,1,250.0,'shipped'),(2,1,80.0,'pending'),(3,2,430.0,'shipped'),(4,3,90.0,'shipped'),(5,3,310.0,'pending'),(6,4,75.0,'shipped'),(7,5,520.0,'shipped'),(8,5,60.0,'pending');" rows="10">-- Plan without an index on customer_id:
-EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE customers (id SERIAL PRIMARY KEY, name TEXT, country TEXT); INSERT INTO customers VALUES (1,'Alice','US'),(2,'Bob','UK'),(3,'Carol','US'),(4,'Dan','DE'),(5,'Eve','US'); CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1,1,250.0,'shipped'),(2,1,80.0,'pending'),(3,2,430.0,'shipped'),(4,3,90.0,'shipped'),(5,3,310.0,'pending'),(6,4,75.0,'shipped'),(7,5,520.0,'shipped'),(8,5,60.0,'pending');" rows="10">-- Plan without an index on customer_id:
+EXPLAIN
 SELECT c.name, SUM(o.amount) AS total
 FROM orders o
 JOIN customers c ON o.customer_id = c.id

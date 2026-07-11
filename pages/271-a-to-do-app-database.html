@@ -28,21 +28,21 @@
 <p>These requirements drive every decision below.</p>
 <h2>Core Schema</h2>
 <pre><code class="language-sql">CREATE TABLE users (
-  id        INTEGER PRIMARY KEY,
+  id        SERIAL PRIMARY KEY,
   email     TEXT    NOT NULL UNIQUE,
   name      TEXT    NOT NULL,
   created_at INTEGER NOT NULL  -- Unix epoch seconds
 );
 
 CREATE TABLE lists (
-  id         INTEGER PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
   user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title      TEXT    NOT NULL,
   created_at INTEGER NOT NULL
 );
 
 CREATE TABLE tasks (
-  id          INTEGER PRIMARY KEY,
+  id          SERIAL PRIMARY KEY,
   list_id     INTEGER NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
   title       TEXT    NOT NULL,
   notes       TEXT,
@@ -53,7 +53,7 @@ CREATE TABLE tasks (
 );
 
 CREATE TABLE tags (
-  id   INTEGER PRIMARY KEY,
+  id   SERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE
 );
 
@@ -165,10 +165,10 @@ ORDER BY t.due_at;
   <div class="widget-head"><span>Interactive SQL · To-Do App Queries</span></div>
   <div class="widget-body">
     <textarea data-setup="
-CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT UNIQUE, name TEXT, created_at INTEGER);
-CREATE TABLE lists (id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id), title TEXT, created_at INTEGER);
-CREATE TABLE tasks (id INTEGER PRIMARY KEY, list_id INTEGER REFERENCES lists(id), title TEXT, due_at INTEGER, completed INTEGER DEFAULT 0, position REAL DEFAULT 0, created_at INTEGER);
-CREATE TABLE tags (id INTEGER PRIMARY KEY, name TEXT UNIQUE);
+CREATE TABLE users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, name TEXT, created_at INTEGER);
+CREATE TABLE lists (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), title TEXT, created_at INTEGER);
+CREATE TABLE tasks (id SERIAL PRIMARY KEY, list_id INTEGER REFERENCES lists(id), title TEXT, due_at INTEGER, completed INTEGER DEFAULT 0, position REAL DEFAULT 0, created_at INTEGER);
+CREATE TABLE tags (id SERIAL PRIMARY KEY, name TEXT UNIQUE);
 CREATE TABLE task_tags (task_id INTEGER REFERENCES tasks(id), tag_id INTEGER REFERENCES tags(id), PRIMARY KEY(task_id, tag_id));
 INSERT INTO users VALUES (1,'alice@example.com','Alice',1700000000);
 INSERT INTO lists VALUES (1,1,'Work',1700000100),(2,1,'Personal',1700000200);

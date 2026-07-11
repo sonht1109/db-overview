@@ -65,7 +65,7 @@
 <h2>Spotting Duplication in Practice</h2>
 <p>Consider an <code>employees</code> table that also tries to record department information:</p>
 <pre><code class="language-sql">CREATE TABLE employees (
-  id         INTEGER PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
   name       TEXT,
   dept_name  TEXT,
   dept_floor INTEGER   -- which floor the department sits on
@@ -103,13 +103,13 @@
 <p><code>dept_floor</code> is a fact <em>about the department</em>, not about the employee. It repeats for every person in Engineering. If Engineering moves to floor 4, you must update every Engineering row — and the database will not stop you from setting them to different values.</p>
 <p>The fix is to <strong>extract the repeating group</strong> into its own table and link back by key:</p>
 <pre><code class="language-sql">CREATE TABLE departments (
-  id    INTEGER PRIMARY KEY,
+  id    SERIAL PRIMARY KEY,
   name  TEXT UNIQUE,
   floor INTEGER
 );
 
 CREATE TABLE employees (
-  id      INTEGER PRIMARY KEY,
+  id      SERIAL PRIMARY KEY,
   name    TEXT,
   dept_id INTEGER REFERENCES departments(id)
 );
@@ -119,7 +119,7 @@ CREATE TABLE employees (
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Spotting and fixing duplication</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT UNIQUE, floor INTEGER); INSERT INTO departments VALUES (1, 'Engineering', 3), (2, 'Marketing', 2); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER REFERENCES departments(id)); INSERT INTO employees VALUES (1, 'Ada', 1), (2, 'Bruno', 1), (3, 'Carmen', 2);" rows="10">-- One update propagates to all employees in Engineering
+    <textarea data-setup="CREATE TABLE departments (id SERIAL PRIMARY KEY, name TEXT UNIQUE, floor INTEGER); INSERT INTO departments VALUES (1, 'Engineering', 3), (2, 'Marketing', 2); CREATE TABLE employees (id SERIAL PRIMARY KEY, name TEXT, dept_id INTEGER REFERENCES departments(id)); INSERT INTO employees VALUES (1, 'Ada', 1), (2, 'Bruno', 1), (3, 'Carmen', 2);" rows="10">-- One update propagates to all employees in Engineering
 UPDATE departments SET floor = 4 WHERE name = 'Engineering';
 -- Verify: both Ada and Bruno now show floor 4
 SELECT e.name, d.name AS dept, d.floor

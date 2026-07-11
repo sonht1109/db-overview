@@ -197,7 +197,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Full Stack Query</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, dept TEXT NOT NULL, salary INTEGER NOT NULL); CREATE TABLE departments (id INTEGER PRIMARY KEY, dept TEXT NOT NULL, budget INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice','Eng',92000),(2,'Bob','Eng',78000),(3,'Carol','Sales',61000),(4,'Dave','Sales',55000),(5,'Eve','Eng',110000); INSERT INTO departments VALUES (1,'Eng',500000),(2,'Sales',200000); CREATE INDEX idx_dept ON employees(dept);" rows="10">-- A query that exercises every layer we built:
+    <textarea data-setup="CREATE TABLE employees (id SERIAL PRIMARY KEY, name TEXT NOT NULL, dept TEXT NOT NULL, salary INTEGER NOT NULL); CREATE TABLE departments (id SERIAL PRIMARY KEY, dept TEXT NOT NULL, budget INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice','Eng',92000),(2,'Bob','Eng',78000),(3,'Carol','Sales',61000),(4,'Dave','Sales',55000),(5,'Eve','Eng',110000); INSERT INTO departments VALUES (1,'Eng',500000),(2,'Sales',200000); CREATE INDEX idx_dept ON employees(dept);" rows="10">-- A query that exercises every layer we built:
 -- Parser: tokenise + parse SQL
 -- Planner: use idx_dept for employees filter, hash join with departments
 -- Executor: nested loop or hash join

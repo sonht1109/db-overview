@@ -65,7 +65,7 @@ ORDER BY line_total DESC;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Derived columns in SELECT</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE order_items (id INTEGER PRIMARY KEY, product TEXT NOT NULL, quantity INTEGER NOT NULL, unit_price REAL NOT NULL); INSERT INTO order_items VALUES (1, 'Headphones', 2, 39.99); INSERT INTO order_items VALUES (2, 'USB Cable', 5, 4.99); INSERT INTO order_items VALUES (3, 'Keyboard', 1, 89.00); INSERT INTO order_items VALUES (4, 'Mouse', 3, 24.50);" rows="10">SELECT
+    <textarea data-setup="CREATE TABLE order_items (id SERIAL PRIMARY KEY, product TEXT NOT NULL, quantity INTEGER NOT NULL, unit_price REAL NOT NULL); INSERT INTO order_items VALUES (1, 'Headphones', 2, 39.99); INSERT INTO order_items VALUES (2, 'USB Cable', 5, 4.99); INSERT INTO order_items VALUES (3, 'Keyboard', 1, 89.00); INSERT INTO order_items VALUES (4, 'Mouse', 3, 24.50);" rows="10">SELECT
   product,
   quantity,
   unit_price,
@@ -78,7 +78,7 @@ ORDER BY line_total DESC;</textarea>
 <p>Inline expressions work well, but they scatter the same formula across many queries. If the formula changes, you must hunt down every copy. <strong>Generated columns</strong> solve this by defining the expression once, in the table definition. The database then makes it available as a regular column.</p>
 <p>SQLite (version 3.31+), PostgreSQL, MySQL, and SQL Server all support generated columns, though the syntax differs slightly. In SQLite:</p>
 <pre><code class="language-sql">CREATE TABLE order_items (
-  id         INTEGER PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
   product    TEXT    NOT NULL,
   quantity   INTEGER NOT NULL,
   unit_price REAL    NOT NULL,
@@ -116,7 +116,7 @@ ORDER BY line_total DESC;</textarea>
 </blockquote>
 <pre><code class="language-sql">-- Stored generated column (persisted to disk)
 CREATE TABLE order_items (
-  id         INTEGER PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
   product    TEXT    NOT NULL,
   quantity   INTEGER NOT NULL,
   unit_price REAL    NOT NULL,
@@ -127,7 +127,7 @@ CREATE TABLE order_items (
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Generated column</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE order_items (id INTEGER PRIMARY KEY, product TEXT NOT NULL, quantity INTEGER NOT NULL, unit_price REAL NOT NULL, line_total REAL GENERATED ALWAYS AS (quantity * unit_price) VIRTUAL); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (1, 'Headphones', 2, 39.99); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (2, 'USB Cable', 5, 4.99); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (3, 'Keyboard', 1, 89.00);" rows="10">-- line_total is computed automatically
+    <textarea data-setup="CREATE TABLE order_items (id SERIAL PRIMARY KEY, product TEXT NOT NULL, quantity INTEGER NOT NULL, unit_price REAL NOT NULL, line_total REAL GENERATED ALWAYS AS (quantity * unit_price) VIRTUAL); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (1, 'Headphones', 2, 39.99); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (2, 'USB Cable', 5, 4.99); INSERT INTO order_items (id, product, quantity, unit_price) VALUES (3, 'Keyboard', 1, 89.00);" rows="10">-- line_total is computed automatically
 SELECT product, quantity, unit_price, line_total
 FROM order_items;
 -- Try inserting a new row and re-running:

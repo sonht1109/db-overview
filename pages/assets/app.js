@@ -7,41 +7,31 @@
 (function () {
   "use strict";
 
-  /* ---------------- Interactive SQL widget (sql.js) ---------------- */
-  var sqlReady = null;
-  function loadSqlJs() {
-    if (sqlReady) return sqlReady;
-    sqlReady = new Promise(function (resolve, reject) {
-      var s = document.createElement("script");
-      s.src = "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js";
-      s.onload = function () {
-        window
-          .initSqlJs({
-            locateFile: function (f) {
-              return "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/" + f;
-            },
-          })
-          .then(resolve)
-          .catch(reject);
-      };
-      s.onerror = function () { reject(new Error("Could not load sql.js (offline?)")); };
-      document.head.appendChild(s);
-    });
-    return sqlReady;
+  /* ---------------- Interactive SQL widget (PGlite) ---------------- */
+  var PGliteModule = null;
+  function loadPGlite() {
+    if (PGliteModule) return PGliteModule;
+    PGliteModule = import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js")
+      .then(function (m) { return m.PGlite; })
+      .catch(function () { throw new Error("Could not load PGlite (offline?)"); });
+    return PGliteModule;
   }
 
   function renderResult(box, res) {
-    if (!res || !res.length) {
+    if (!res || !res.rows || !res.rows.length) {
       box.innerHTML = '<span class="muted">Query ran successfully — no rows returned.</span>';
       return;
     }
-    var r = res[res.length - 1];
+    var cols = res.fields.map(function (f) { return f.name; });
     var html = "<table><thead><tr>";
-    r.columns.forEach(function (c) { html += "<th>" + esc(c) + "</th>"; });
+    cols.forEach(function (c) { html += "<th>" + esc(c) + "</th>"; });
     html += "</tr></thead><tbody>";
-    r.values.forEach(function (row) {
+    res.rows.forEach(function (row) {
       html += "<tr>";
-      row.forEach(function (v) { html += "<td>" + esc(v === null ? "NULL" : v) + "</td>"; });
+      cols.forEach(function (c) {
+        var v = row[c];
+        html += "<td>" + esc(v === null ? "NULL" : v) + "</td>";
+      });
       html += "</tr>";
     });
     html += "</tbody></table>";
@@ -70,18 +60,15 @@
 
     btn.addEventListener("click", function () {
       out.innerHTML = '<span class="muted">Loading SQL engine…</span>';
-      loadSqlJs()
-        .then(function (SQL) {
-          var db = new SQL.Database();
-          if (setup) db.run(setup);
-          try {
-            var query = ta.value.replace(/<[^>]*>/g, '');
-            var res = db.exec(query);
-            renderResult(out, res);
-          } catch (e) {
-            out.innerHTML = '<div class="err">' + esc(e.message) + "</div>";
-          }
-          db.close();
+      loadPGlite()
+        .then(function (PGlite) {
+          var db = new PGlite();
+          var query = ta.value.replace(/<[^>]*>/g, '');
+          return (setup ? db.exec(setup) : Promise.resolve())
+            .then(function () { return db.query(query); })
+            .then(function (res) { renderResult(out, res); })
+            .catch(function (e) { out.innerHTML = '<div class="err">' + esc(e.message) + "</div>"; })
+            .then(function () { return db.close(); });
         })
         .catch(function (e) {
           out.innerHTML = '<div class="err">' + esc(e.message) + "</div>";

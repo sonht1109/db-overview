@@ -256,14 +256,14 @@ INSERT INTO user_events VALUES
 WITH cohorts AS (
   SELECT
     user_id,
-    strftime(&apos;%Y-%m&apos;, event_date) AS cohort_month
+    TO_CHAR(event_date, 'YYYY-MM') AS cohort_month
   FROM user_events
   WHERE event_type = &apos;signup&apos;
 ),
 activity AS (
   SELECT
     user_id,
-    strftime(&apos;%Y-%m&apos;, event_date) AS activity_month
+    TO_CHAR(event_date, 'YYYY-MM') AS activity_month
   FROM user_events
   WHERE event_type = &apos;active&apos;
 ),

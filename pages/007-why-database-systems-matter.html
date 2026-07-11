@@ -118,7 +118,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · ride-sharing snapshot</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE rides (id INTEGER PRIMARY KEY, driver TEXT, city TEXT, status TEXT, fare REAL);
+    <textarea data-setup="CREATE TABLE rides (id SERIAL PRIMARY KEY, driver TEXT, city TEXT, status TEXT, fare REAL);
 INSERT INTO rides VALUES
   (1,'Amara','Lagos','completed',12.50),
   (2,'Bayo','Lagos','completed',8.00),

@@ -129,21 +129,21 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index lookup vs. full scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT);
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT);
 WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 500)
 INSERT INTO orders SELECT n, (n * 7) % 100, ROUND((n * 1.37) % 500, 2), CASE WHEN n % 3 = 0 THEN 'shipped' WHEN n % 3 = 1 THEN 'pending' ELSE 'cancelled' END FROM r;
 CREATE INDEX idx_orders_customer ON orders(customer_id);
 CREATE INDEX idx_orders_status_amount ON orders(status, amount);" rows="10">-- Point lookup: SQLite uses the B-tree index on customer_id.
--- Try EXPLAIN QUERY PLAN to see 'SEARCH orders USING INDEX'.
-EXPLAIN QUERY PLAN
+-- Try EXPLAIN to see 'SEARCH orders USING INDEX'.
+EXPLAIN
 SELECT id, amount FROM orders WHERE customer_id = 42;
 -- Change to: WHERE customer_id > 40 AND customer_id < 50
 -- to see a range scan over the same index.
 -- Or try a composite index range:
--- EXPLAIN QUERY PLAN
+-- EXPLAIN
 -- SELECT * FROM orders WHERE status = 'pending' AND amount > 200;</textarea>
   </div>
-</div><p>Run the <code>EXPLAIN QUERY PLAN</code> above. When you see <code>SEARCH orders USING INDEX idx_orders_customer</code>, the engine is walking a B-tree — reading the root, descending internal nodes, and landing on a leaf — instead of scanning all 500 rows. Change the filter to a range (<code>customer_id BETWEEN 40 AND 50</code>) and re-run; the same index handles it by scanning a contiguous leaf range.</p>
+</div><p>Run the <code>EXPLAIN</code> above. When you see <code>SEARCH orders USING INDEX idx_orders_customer</code>, the engine is walking a B-tree — reading the root, descending internal nodes, and landing on a leaf — instead of scanning all 500 rows. Change the filter to a range (<code>customer_id BETWEEN 40 AND 50</code>) and re-run; the same index handles it by scanning a contiguous leaf range.</p>
 <h2>Fill Factor and Real-World Tuning</h2>
 <p>Production engines expose a <strong>fill factor</strong> setting (PostgreSQL: <code>fillfactor</code>, SQL Server: <code>FILL FACTOR</code>). A fill factor of 80% tells the engine to leave 20% of each leaf page empty at build time. This reserves space for future inserts on already-existing pages, reducing splits on write-heavy tables at the cost of a slightly larger index. For read-mostly tables, 100% packs data tighter and reduces I/O per scan.</p>
 <p>The key intuitions to carry forward:</p>

@@ -59,7 +59,7 @@
 </tbody></table>
 <p>A column&#39;s <strong>data type</strong> is a hard contract. If a column is declared <code>INTEGER</code>, the database rejects text values. This strictness is a feature: it catches bad data at write time rather than at 3 a.m. when a report breaks.</p>
 <pre><code class="language-sql">CREATE TABLE products (
-  product_id  INTEGER PRIMARY KEY,
+  product_id  SERIAL PRIMARY KEY,
   name        TEXT    NOT NULL,
   price_cents INTEGER NOT NULL CHECK (price_cents &gt;= 0),
   in_stock    INTEGER NOT NULL DEFAULT 1   -- 1 = true, 0 = false
@@ -70,7 +70,7 @@
 <p>&quot;Relational&quot; does not mean rows are related to each other inside a table. It means tables are related to <em>each other</em> through shared values — specifically through <strong>foreign keys</strong>.</p>
 <p>A foreign key in one table points to the primary key of another table. The database engine enforces that the value you write actually exists in the referenced table (this is called <strong>referential integrity</strong>).</p>
 <pre><code class="language-sql">CREATE TABLE orders (
-  order_id   INTEGER PRIMARY KEY,
+  order_id   SERIAL PRIMARY KEY,
   customer   TEXT    NOT NULL,
   product_id INTEGER NOT NULL REFERENCES products(product_id),
   quantity   INTEGER NOT NULL CHECK (quantity &gt; 0)
@@ -89,7 +89,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Tables &amp; Relations</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (product_id INTEGER PRIMARY KEY, name TEXT NOT NULL, price_cents INTEGER NOT NULL); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT NOT NULL, product_id INTEGER NOT NULL REFERENCES products(product_id), quantity INTEGER NOT NULL); INSERT INTO products VALUES (1, 'Notebook', 299), (2, 'Pen', 99), (3, 'Ruler', 149); INSERT INTO orders VALUES (1, 'Alice', 1, 3), (2, 'Bob', 2, 10), (3, 'Alice', 3, 2), (4, 'Bob', 1, 1);" rows="10">SELECT
+    <textarea data-setup="CREATE TABLE products (product_id SERIAL PRIMARY KEY, name TEXT NOT NULL, price_cents INTEGER NOT NULL); CREATE TABLE orders (order_id SERIAL PRIMARY KEY, customer TEXT NOT NULL, product_id INTEGER NOT NULL REFERENCES products(product_id), quantity INTEGER NOT NULL); INSERT INTO products VALUES (1, 'Notebook', 299), (2, 'Pen', 99), (3, 'Ruler', 149); INSERT INTO orders VALUES (1, 'Alice', 1, 3), (2, 'Bob', 2, 10), (3, 'Alice', 3, 2), (4, 'Bob', 1, 1);" rows="10">SELECT
   o.order_id,
   o.customer,
   p.name        AS product,

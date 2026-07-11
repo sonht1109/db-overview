@@ -98,7 +98,7 @@
 <h2>Foreign Keys: References Between Tables</h2>
 <p>A <strong>foreign key</strong> is a column in one table whose values must match a primary key value in another table. It expresses a relationship — &quot;this order belongs to that customer.&quot;</p>
 <pre><code class="language-sql">CREATE TABLE orders (
-  order_id    INTEGER PRIMARY KEY,
+  order_id    SERIAL PRIMARY KEY,
   customer_id INTEGER NOT NULL,
   placed_at   TEXT    NOT NULL,
   FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
@@ -115,14 +115,13 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Primary &amp; Foreign Keys</span></div>
   <div class="widget-body">
-    <textarea data-setup="PRAGMA foreign_keys = ON;
-CREATE TABLE customers (
-  customer_id INTEGER PRIMARY KEY,
+    <textarea data-setup="CREATE TABLE customers (
+  customer_id SERIAL PRIMARY KEY,
   name        TEXT    NOT NULL,
   email       TEXT    NOT NULL UNIQUE
 );
 CREATE TABLE orders (
-  order_id    INTEGER PRIMARY KEY,
+  order_id    SERIAL PRIMARY KEY,
   customer_id INTEGER NOT NULL,
   item        TEXT    NOT NULL,
   amount      REAL    NOT NULL,

@@ -121,7 +121,7 @@ COMMIT;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating undo order</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE wal_log (lsn INTEGER PRIMARY KEY, txn_id INTEGER, op TEXT, page TEXT, before_val TEXT, after_val TEXT); INSERT INTO wal_log VALUES (301, 9, 'BEGIN', NULL, NULL, NULL); INSERT INTO wal_log VALUES (308, 9, 'UPDATE', 'accounts:42', '1000', '800'); INSERT INTO wal_log VALUES (315, 9, 'INSERT', 'orders:77', NULL, 'row 77'); INSERT INTO wal_log VALUES (322, 9, 'UPDATE', 'inventory:5', '20', '19'); INSERT INTO wal_log VALUES (400, 7, 'BEGIN', NULL, NULL, NULL); INSERT INTO wal_log VALUES (405, 7, 'UPDATE', 'accounts:10', '500', '450'); INSERT INTO wal_log VALUES (410, 7, 'COMMIT', NULL, NULL, NULL);" rows="10">-- Which transactions need undo, and in what order should changes be reversed?
+    <textarea data-setup="CREATE TABLE wal_log (lsn SERIAL PRIMARY KEY, txn_id INTEGER, op TEXT, page TEXT, before_val TEXT, after_val TEXT); INSERT INTO wal_log VALUES (301, 9, 'BEGIN', NULL, NULL, NULL); INSERT INTO wal_log VALUES (308, 9, 'UPDATE', 'accounts:42', '1000', '800'); INSERT INTO wal_log VALUES (315, 9, 'INSERT', 'orders:77', NULL, 'row 77'); INSERT INTO wal_log VALUES (322, 9, 'UPDATE', 'inventory:5', '20', '19'); INSERT INTO wal_log VALUES (400, 7, 'BEGIN', NULL, NULL, NULL); INSERT INTO wal_log VALUES (405, 7, 'UPDATE', 'accounts:10', '500', '450'); INSERT INTO wal_log VALUES (410, 7, 'COMMIT', NULL, NULL, NULL);" rows="10">-- Which transactions need undo, and in what order should changes be reversed?
 SELECT
   w.txn_id,
   w.lsn,

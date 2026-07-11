@@ -123,7 +123,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Relations &amp; Tuples</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employee (employee_id INTEGER PRIMARY KEY, name TEXT NOT NULL, department TEXT NOT NULL, salary INTEGER NOT NULL); INSERT INTO employee VALUES (1, 'Ada', 'Engineering', 95000); INSERT INTO employee VALUES (2, 'Brian', 'Marketing', 72000); INSERT INTO employee VALUES (3, 'Carmen', 'Engineering', 105000); INSERT INTO employee VALUES (4, 'David', 'Marketing', 68000);" rows="10">SELECT * FROM employee
+    <textarea data-setup="CREATE TABLE employee (employee_id SERIAL PRIMARY KEY, name TEXT NOT NULL, department TEXT NOT NULL, salary INTEGER NOT NULL); INSERT INTO employee VALUES (1, 'Ada', 'Engineering', 95000); INSERT INTO employee VALUES (2, 'Brian', 'Marketing', 72000); INSERT INTO employee VALUES (3, 'Carmen', 'Engineering', 105000); INSERT INTO employee VALUES (4, 'David', 'Marketing', 68000);" rows="10">SELECT * FROM employee
 WHERE department = 'Engineering';</textarea>
   </div>
 </div><p>Notice that the result is itself a relation — a new set of tuples derived from the original. This is a core idea: relational operations always take relations as input and produce relations as output, so you can chain them together.</p>

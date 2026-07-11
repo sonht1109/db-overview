@@ -162,7 +162,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · MVCC snapshot simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1, 'Alice', 1000); INSERT INTO accounts VALUES (2, 'Bob', 2500); CREATE TABLE snapshots (taken_at TEXT, owner TEXT, balance INTEGER); INSERT INTO snapshots SELECT 'snapshot_at_T0', owner, balance FROM accounts;" rows="10">-- Snapshot taken at T0 (simulates what a long-running read sees)
+    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1, 'Alice', 1000); INSERT INTO accounts VALUES (2, 'Bob', 2500); CREATE TABLE snapshots (taken_at TEXT, owner TEXT, balance INTEGER); INSERT INTO snapshots SELECT 'snapshot_at_T0', owner, balance FROM accounts;" rows="10">-- Snapshot taken at T0 (simulates what a long-running read sees)
 SELECT taken_at, owner, balance FROM snapshots;
 -- Meanwhile, a writer updates Alice (committed after the snapshot was taken)
 -- UPDATE accounts SET balance = 1500 WHERE owner = 'Alice';

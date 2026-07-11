@@ -126,16 +126,16 @@ Spilling hash join:    ~4 s     (writes and reads temp files on disk)
 <p>Most databases surface spill information in their execution plans. Look for these signals:</p>
 <ul>
 <li><strong>PostgreSQL <code>EXPLAIN (ANALYZE, BUFFERS)</code></strong> — shows <code>Batches: N</code> on a hash join (more than 1 means spill) and <code>Sort Method: external merge</code> on sorts.</li>
-<li><strong>SQLite <code>EXPLAIN QUERY PLAN</code></strong> — shows <code>USE TEMP B-TREE</code> when a sort or grouping operation needs temporary on-disk storage.</li>
+<li><strong>SQLite <code>EXPLAIN</code></strong> — shows <code>USE TEMP B-TREE</code> when a sort or grouping operation needs temporary on-disk storage.</li>
 <li><strong>MySQL <code>EXPLAIN</code></strong> — <code>Using filesort</code> and <code>Using temporary</code> in the <code>Extra</code> column signal on-disk temporary work.</li>
 </ul>
-<p>The widget below lets you inspect SQLite&#39;s plan for an aggregation with an unindexed sort. Run it as-is to see the plan, then try removing the <code>EXPLAIN QUERY PLAN</code> line to see the actual results.</p>
+<p>The widget below lets you inspect SQLite&#39;s plan for an aggregation with an unindexed sort. Run it as-is to see the plan, then try removing the <code>EXPLAIN</code> line to see the actual results.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Spill signals in query plans</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, session_id INTEGER, page TEXT, duration_ms INTEGER); INSERT INTO events VALUES (1,101,'home',320),(2,102,'checkout',840),(3,101,'product',510),(4,103,'home',200),(5,102,'product',670),(6,103,'checkout',1100),(7,101,'checkout',430),(8,104,'home',290),(9,104,'product',750),(10,102,'home',180),(11,105,'product',600),(12,105,'checkout',920),(13,106,'home',410),(14,106,'product',380),(15,107,'checkout',760);" rows="10">-- See how SQLite plans an unindexed GROUP BY + ORDER BY.
+    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, session_id INTEGER, page TEXT, duration_ms INTEGER); INSERT INTO events VALUES (1,101,'home',320),(2,102,'checkout',840),(3,101,'product',510),(4,103,'home',200),(5,102,'product',670),(6,103,'checkout',1100),(7,101,'checkout',430),(8,104,'home',290),(9,104,'product',750),(10,102,'home',180),(11,105,'product',600),(12,105,'checkout',920),(13,106,'home',410),(14,106,'product',380),(15,107,'checkout',760);" rows="10">-- See how SQLite plans an unindexed GROUP BY + ORDER BY.
 -- 'USE TEMP B-TREE' means it needed a temporary on-disk structure.
-EXPLAIN QUERY PLAN
+EXPLAIN
 SELECT page,
        COUNT(*)                   AS visits,
        ROUND(AVG(duration_ms), 0) AS avg_ms
@@ -163,7 +163,7 @@ RESET work_mem;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Wide vs. narrow working sets</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT, category TEXT, region TEXT, amount REAL, note TEXT); INSERT INTO orders VALUES (1,10,'Widget','Hardware','North',49.99,'first purchase'),(2,11,'Gadget','Electronics','South',129.00,'gift'),(3,10,'Doohickey','Hardware','East',19.50,'reorder'),(4,12,'Widget','Hardware','West',49.99,'bulk'),(5,11,'Widget','Hardware','North',49.99,'reorder'),(6,12,'Gadget','Electronics','South',129.00,'first purchase'),(7,13,'Doohickey','Hardware','East',19.50,'sale'),(8,13,'Gadget','Electronics','West',129.00,'promo'),(9,14,'Widget','Hardware','North',49.99,'standard'),(10,14,'Doohickey','Hardware','South',19.50,'standard');" rows="10">-- Option A: sort all columns (wider working set in memory)
+    <textarea data-setup="CREATE TABLE orders (order_id SERIAL PRIMARY KEY, customer_id INTEGER, product TEXT, category TEXT, region TEXT, amount REAL, note TEXT); INSERT INTO orders VALUES (1,10,'Widget','Hardware','North',49.99,'first purchase'),(2,11,'Gadget','Electronics','South',129.00,'gift'),(3,10,'Doohickey','Hardware','East',19.50,'reorder'),(4,12,'Widget','Hardware','West',49.99,'bulk'),(5,11,'Widget','Hardware','North',49.99,'reorder'),(6,12,'Gadget','Electronics','South',129.00,'first purchase'),(7,13,'Doohickey','Hardware','East',19.50,'sale'),(8,13,'Gadget','Electronics','West',129.00,'promo'),(9,14,'Widget','Hardware','North',49.99,'standard'),(10,14,'Doohickey','Hardware','South',19.50,'standard');" rows="10">-- Option A: sort all columns (wider working set in memory)
 SELECT * FROM orders ORDER BY amount DESC;
 -- Option B: sort only what you need (narrower working set)
 -- SELECT customer_id, amount FROM orders ORDER BY amount DESC;</textarea>

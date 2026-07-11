@@ -106,8 +106,8 @@ COMMIT;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · multi-step booking</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, name TEXT NOT NULL, seats_available INTEGER NOT NULL CHECK(seats_available  rows="10">= 0));
-CREATE TABLE bookings (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL, customer TEXT NOT NULL);
+    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, name TEXT NOT NULL, seats_available INTEGER NOT NULL CHECK(seats_available  rows="10">= 0));
+CREATE TABLE bookings (id SERIAL PRIMARY KEY, event_id INTEGER NOT NULL, customer TEXT NOT NULL);
 INSERT INTO events VALUES (1, 'Jazz Night', 10);
 INSERT INTO events VALUES (2, 'Art Show', 2);">BEGIN;
 -- Step 1: record the booking

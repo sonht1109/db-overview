@@ -25,14 +25,14 @@
 </ul>
 <h2>Core Schema</h2>
 <pre><code class="language-sql">CREATE TABLE categories (
-  id        INTEGER PRIMARY KEY,
+  id        SERIAL PRIMARY KEY,
   parent_id INTEGER REFERENCES categories(id),
   name      TEXT NOT NULL,
   slug      TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE products (
-  id          INTEGER PRIMARY KEY,
+  id          SERIAL PRIMARY KEY,
   category_id INTEGER REFERENCES categories(id),
   name        TEXT    NOT NULL,
   description TEXT,
@@ -41,7 +41,7 @@ CREATE TABLE products (
 );
 
 CREATE TABLE product_variants (
-  id         INTEGER PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
   product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   sku        TEXT    NOT NULL UNIQUE,
   attributes TEXT    NOT NULL,   -- JSON: {&quot;color&quot;:&quot;red&quot;,&quot;size&quot;:&quot;M&quot;}
@@ -49,13 +49,13 @@ CREATE TABLE product_variants (
 );
 
 CREATE TABLE inventory (
-  variant_id  INTEGER PRIMARY KEY REFERENCES product_variants(id),
+  variant_id  SERIAL PRIMARY KEY REFERENCES product_variants(id),
   quantity    INTEGER NOT NULL DEFAULT 0,
   reserved    INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE price_overrides (
-  id         INTEGER PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
   product_id INTEGER NOT NULL REFERENCES products(id),
   price      INTEGER NOT NULL,
   starts_at  INTEGER NOT NULL,
@@ -64,14 +64,14 @@ CREATE TABLE price_overrides (
 );
 
 CREATE TABLE customers (
-  id         INTEGER PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
   email      TEXT NOT NULL UNIQUE,
   name       TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
 
 CREATE TABLE orders (
-  id           INTEGER PRIMARY KEY,
+  id           SERIAL PRIMARY KEY,
   customer_id  INTEGER NOT NULL REFERENCES customers(id),
   status       TEXT NOT NULL DEFAULT &#39;pending&#39;,
   total_cents  INTEGER NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE orders (
 );
 
 CREATE TABLE order_items (
-  id          INTEGER PRIMARY KEY,
+  id          SERIAL PRIMARY KEY,
   order_id    INTEGER NOT NULL REFERENCES orders(id),
   variant_id  INTEGER NOT NULL REFERENCES product_variants(id),
   quantity    INTEGER NOT NULL,
@@ -160,8 +160,8 @@ WHERE variant_id = ? AND quantity &gt;= 1;
   COALESCE(
     (SELECT po.price FROM price_overrides po
      WHERE po.product_id = p.id
-       AND po.starts_at &lt;= strftime(&#39;%s&#39;,&#39;now&#39;)
-       AND po.ends_at   &gt;  strftime(&#39;%s&#39;,&#39;now&#39;)
+       AND po.starts_at &lt;= EXTRACT(EPOCH FROM NOW())::integer
+       AND po.ends_at   &gt;  EXTRACT(EPOCH FROM NOW())::integer
      ORDER BY po.starts_at DESC LIMIT 1),
     p.base_price
   ) AS effective_price_cents
@@ -175,13 +175,13 @@ WHERE p.id = ?;
   <div class="widget-head"><span>Interactive SQL · E-Commerce Queries</span></div>
   <div class="widget-body">
     <textarea data-setup="
-CREATE TABLE categories (id INTEGER PRIMARY KEY, parent_id INTEGER, name TEXT, slug TEXT UNIQUE);
-CREATE TABLE products (id INTEGER PRIMARY KEY, category_id INTEGER, name TEXT, description TEXT, base_price INTEGER, active INTEGER DEFAULT 1);
-CREATE TABLE product_variants (id INTEGER PRIMARY KEY, product_id INTEGER, sku TEXT UNIQUE, attributes TEXT, price_diff INTEGER DEFAULT 0);
-CREATE TABLE inventory (variant_id INTEGER PRIMARY KEY, quantity INTEGER DEFAULT 0, reserved INTEGER DEFAULT 0);
-CREATE TABLE customers (id INTEGER PRIMARY KEY, email TEXT UNIQUE, name TEXT, created_at INTEGER);
-CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT DEFAULT 'pending', total_cents INTEGER, placed_at INTEGER, address_json TEXT);
-CREATE TABLE order_items (id INTEGER PRIMARY KEY, order_id INTEGER, variant_id INTEGER, quantity INTEGER, unit_price INTEGER);
+CREATE TABLE categories (id SERIAL PRIMARY KEY, parent_id INTEGER, name TEXT, slug TEXT UNIQUE);
+CREATE TABLE products (id SERIAL PRIMARY KEY, category_id INTEGER, name TEXT, description TEXT, base_price INTEGER, active INTEGER DEFAULT 1);
+CREATE TABLE product_variants (id SERIAL PRIMARY KEY, product_id INTEGER, sku TEXT UNIQUE, attributes TEXT, price_diff INTEGER DEFAULT 0);
+CREATE TABLE inventory (variant_id SERIAL PRIMARY KEY, quantity INTEGER DEFAULT 0, reserved INTEGER DEFAULT 0);
+CREATE TABLE customers (id SERIAL PRIMARY KEY, email TEXT UNIQUE, name TEXT, created_at INTEGER);
+CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER, status TEXT DEFAULT 'pending', total_cents INTEGER, placed_at INTEGER, address_json TEXT);
+CREATE TABLE order_items (id SERIAL PRIMARY KEY, order_id INTEGER, variant_id INTEGER, quantity INTEGER, unit_price INTEGER);
 INSERT INTO categories VALUES (1,NULL,'Clothing','clothing'),(2,1,'T-Shirts','t-shirts');
 INSERT INTO products VALUES (1,2,'Classic Tee','Cotton t-shirt',2999,1),(2,2,'Hoodie','Warm hoodie',5999,1);
 INSERT INTO product_variants VALUES (1,1,'TEE-S-BLK','{}',0),(2,1,'TEE-M-BLK','{}',0),(3,1,'TEE-L-WHT','{}',200),(4,2,'HOOD-M-GRY','{}',0);

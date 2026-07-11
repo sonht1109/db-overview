@@ -116,7 +116,7 @@ HAVING SUM(amount) &gt; 500;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Aggregates and GROUP BY</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 'Widget', 120), (2, 'Bob', 'Gadget', 340), (3, 'Alice', 'Gadget', 95), (4, 'Carol', 'Widget', 210), (5, 'Bob', 'Widget', 180), (6, 'Alice', 'Widget', 300), (7, 'Carol', 'Gadget', 450), (8, 'Bob', 'Gadget', 60);" rows="10">SELECT customer,
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 'Widget', 120), (2, 'Bob', 'Gadget', 340), (3, 'Alice', 'Gadget', 95), (4, 'Carol', 'Widget', 210), (5, 'Bob', 'Widget', 180), (6, 'Alice', 'Widget', 300), (7, 'Carol', 'Gadget', 450), (8, 'Bob', 'Gadget', 60);" rows="10">SELECT customer,
        COUNT(*)        AS num_orders,
        SUM(amount)     AS total_spent,
        ROUND(AVG(amount), 2) AS avg_order
@@ -128,7 +128,7 @@ ORDER BY total_spent DESC;</textarea>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · HAVING in action</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 'Widget', 120), (2, 'Bob', 'Gadget', 340), (3, 'Alice', 'Gadget', 95), (4, 'Carol', 'Widget', 210), (5, 'Bob', 'Widget', 180), (6, 'Alice', 'Widget', 300), (7, 'Carol', 'Gadget', 450), (8, 'Bob', 'Gadget', 60);" rows="10">SELECT customer,
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, customer TEXT, product TEXT, amount REAL); INSERT INTO orders VALUES (1, 'Alice', 'Widget', 120), (2, 'Bob', 'Gadget', 340), (3, 'Alice', 'Gadget', 95), (4, 'Carol', 'Widget', 210), (5, 'Bob', 'Widget', 180), (6, 'Alice', 'Widget', 300), (7, 'Carol', 'Gadget', 450), (8, 'Bob', 'Gadget', 60);" rows="10">SELECT customer,
        SUM(amount) AS total_spent
 FROM orders
 GROUP BY customer

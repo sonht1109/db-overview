@@ -73,7 +73,7 @@ CREATE UNIQUE INDEX idx_users_email ON users (email);
 
 -- Or a UNIQUE constraint on the column, which creates the same index implicitly
 CREATE TABLE users (
-    id      INTEGER PRIMARY KEY,
+    id      SERIAL PRIMARY KEY,
     email   TEXT NOT NULL UNIQUE,
     name    TEXT
 );
@@ -126,7 +126,7 @@ CREATE TABLE users (
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Unique index in action</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT NOT NULL, name TEXT); CREATE UNIQUE INDEX idx_users_email ON users (email); INSERT INTO users VALUES (1, 'alice@example.com', 'Alice'); INSERT INTO users VALUES (2, 'bob@example.com', 'Bob');" rows="10">-- This will succeed
+    <textarea data-setup="CREATE TABLE users (id SERIAL PRIMARY KEY, email TEXT NOT NULL, name TEXT); CREATE UNIQUE INDEX idx_users_email ON users (email); INSERT INTO users VALUES (1, 'alice@example.com', 'Alice'); INSERT INTO users VALUES (2, 'bob@example.com', 'Bob');" rows="10">-- This will succeed
 INSERT INTO users VALUES (3, 'carol@example.com', 'Carol');
 -- Uncomment to see the unique constraint violation:
 -- INSERT INTO users VALUES (4, 'alice@example.com', 'Alice Again');

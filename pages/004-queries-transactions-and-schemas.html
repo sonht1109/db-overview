@@ -58,7 +58,7 @@
 <h2>Schemas: the blueprint</h2>
 <p>A <strong>schema</strong> is a formal description of how data is organized: which tables exist, what columns each table has, and what type of value each column holds. It is the contract between the application and the database.</p>
 <pre><code class="language-sql">CREATE TABLE orders (
-    id      INTEGER PRIMARY KEY,
+    id      SERIAL PRIMARY KEY,
     customer TEXT    NOT NULL,
     amount  REAL    NOT NULL,
     placed  TEXT    NOT NULL   -- stored as ISO date string in SQLite
@@ -105,7 +105,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · queries</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer TEXT NOT NULL, amount REAL NOT NULL, placed TEXT NOT NULL);
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, customer TEXT NOT NULL, amount REAL NOT NULL, placed TEXT NOT NULL);
 INSERT INTO orders VALUES (1,'Alice',120.00,'2026-01-03'),(2,'Bob',45.50,'2026-01-04'),(3,'Alice',300.00,'2026-01-05'),(4,'Chidi',88.00,'2026-01-06'),(5,'Bob',210.00,'2026-01-07');" rows="10">SELECT customer, amount, placed
 FROM orders
 WHERE amount > 100
@@ -148,7 +148,7 @@ ORDER BY amount DESC;</textarea>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · transactions</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance REAL NOT NULL);
+    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT NOT NULL, balance REAL NOT NULL);
 INSERT INTO accounts VALUES (1,'Alice',500.00),(2,'Bob',100.00);" rows="10">BEGIN;
 UPDATE accounts SET balance = balance - 200 WHERE owner = 'Alice';
 UPDATE accounts SET balance = balance + 200 WHERE owner = 'Bob';

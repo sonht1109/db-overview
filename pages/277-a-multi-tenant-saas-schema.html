@@ -30,7 +30,7 @@
 <p><strong>Most SaaS companies ship option 3</strong> for their first 10 000 tenants, then optionally offer option 1 for enterprise customers who pay for dedicated infrastructure.</p>
 <h2>Shared-Table Schema</h2>
 <pre><code class="language-sql">CREATE TABLE tenants (
-  id         INTEGER PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
   slug       TEXT NOT NULL UNIQUE,  -- &#39;acme-corp&#39; — used in URLs
   name       TEXT NOT NULL,
   plan       TEXT NOT NULL DEFAULT &#39;starter&#39;,  -- &#39;starter&#39;,&#39;pro&#39;,&#39;enterprise&#39;
@@ -39,7 +39,7 @@
 );
 
 CREATE TABLE users (
-  id          INTEGER PRIMARY KEY,
+  id          SERIAL PRIMARY KEY,
   tenant_id   INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   email       TEXT NOT NULL,
   name        TEXT NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE projects (
-  id          INTEGER PRIMARY KEY,
+  id          SERIAL PRIMARY KEY,
   tenant_id   INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   name        TEXT NOT NULL,
   created_by  INTEGER NOT NULL REFERENCES users(id),
@@ -57,7 +57,7 @@ CREATE TABLE projects (
 );
 
 CREATE TABLE audit_log (
-  id         INTEGER PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
   tenant_id  INTEGER NOT NULL REFERENCES tenants(id),
   user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
   action     TEXT NOT NULL,
@@ -153,10 +153,10 @@ WHERE t.id = ? AND pf.enabled = 1;
   <div class="widget-head"><span>Interactive SQL · Multi-Tenant Queries</span></div>
   <div class="widget-body">
     <textarea data-setup="
-CREATE TABLE tenants (id INTEGER PRIMARY KEY, slug TEXT UNIQUE, name TEXT, plan TEXT DEFAULT 'starter', created_at INTEGER, suspended INTEGER DEFAULT 0);
-CREATE TABLE users (id INTEGER PRIMARY KEY, tenant_id INTEGER REFERENCES tenants(id), email TEXT, name TEXT, role TEXT DEFAULT 'member', created_at INTEGER);
-CREATE TABLE projects (id INTEGER PRIMARY KEY, tenant_id INTEGER REFERENCES tenants(id), name TEXT, created_by INTEGER, created_at INTEGER);
-CREATE TABLE audit_log (id INTEGER PRIMARY KEY, tenant_id INTEGER, user_id INTEGER, action TEXT, resource TEXT, occurred_at INTEGER);
+CREATE TABLE tenants (id SERIAL PRIMARY KEY, slug TEXT UNIQUE, name TEXT, plan TEXT DEFAULT 'starter', created_at INTEGER, suspended INTEGER DEFAULT 0);
+CREATE TABLE users (id SERIAL PRIMARY KEY, tenant_id INTEGER REFERENCES tenants(id), email TEXT, name TEXT, role TEXT DEFAULT 'member', created_at INTEGER);
+CREATE TABLE projects (id SERIAL PRIMARY KEY, tenant_id INTEGER REFERENCES tenants(id), name TEXT, created_by INTEGER, created_at INTEGER);
+CREATE TABLE audit_log (id SERIAL PRIMARY KEY, tenant_id INTEGER, user_id INTEGER, action TEXT, resource TEXT, occurred_at INTEGER);
 CREATE INDEX idx_users_tenant ON users(tenant_id, email);
 CREATE INDEX idx_projects_tenant ON projects(tenant_id, created_at DESC);
 INSERT INTO tenants VALUES (1,'acme','Acme Corp','pro',1700000000,0),(2,'globex','Globex Inc','starter',1700000100,0),(3,'initech','Initech','pro',1700000200,1);

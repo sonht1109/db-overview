@@ -119,7 +119,7 @@ INNER JOIN department d ON e.dept_id = d.id;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Selection, Projection &amp; Join</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE dept (id INTEGER PRIMARY KEY, name TEXT NOT NULL, location TEXT NOT NULL); INSERT INTO dept VALUES (1, 'Engineering', 'Austin'); INSERT INTO dept VALUES (2, 'Marketing', 'Chicago'); INSERT INTO dept VALUES (3, 'Finance', 'New York'); CREATE TABLE employee (id INTEGER PRIMARY KEY, name TEXT NOT NULL, dept_id INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employee VALUES (1, 'Ada', 1, 95000); INSERT INTO employee VALUES (2, 'Brian', 2, 72000); INSERT INTO employee VALUES (3, 'Carmen', 1, 105000); INSERT INTO employee VALUES (4, 'David', 2, 68000); INSERT INTO employee VALUES (5, 'Elena', 3, 88000);" rows="10">-- Join + selection + projection in one query
+    <textarea data-setup="CREATE TABLE dept (id SERIAL PRIMARY KEY, name TEXT NOT NULL, location TEXT NOT NULL); INSERT INTO dept VALUES (1, 'Engineering', 'Austin'); INSERT INTO dept VALUES (2, 'Marketing', 'Chicago'); INSERT INTO dept VALUES (3, 'Finance', 'New York'); CREATE TABLE employee (id SERIAL PRIMARY KEY, name TEXT NOT NULL, dept_id INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employee VALUES (1, 'Ada', 1, 95000); INSERT INTO employee VALUES (2, 'Brian', 2, 72000); INSERT INTO employee VALUES (3, 'Carmen', 1, 105000); INSERT INTO employee VALUES (4, 'David', 2, 68000); INSERT INTO employee VALUES (5, 'Elena', 3, 88000);" rows="10">-- Join + selection + projection in one query
 SELECT e.name, dept.name AS department, dept.location, e.salary
 FROM employee e
 INNER JOIN dept ON e.dept_id = dept.id

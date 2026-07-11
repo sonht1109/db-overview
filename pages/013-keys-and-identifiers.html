@@ -50,7 +50,7 @@
 <li><strong>Not null</strong> — a primary key must always have a value; it cannot be left blank.</li>
 </ul>
 <pre><code class="language-sql">CREATE TABLE customers (
-    customer_id INTEGER PRIMARY KEY,
+    customer_id SERIAL PRIMARY KEY,
     name        TEXT NOT NULL,
     email       TEXT NOT NULL
 );
@@ -80,14 +80,14 @@
 <td>Stable and compact, but opaque</td>
 </tr>
 </tbody></table>
-<p>Most production tables use surrogate keys — typically an auto-incrementing integer (<code>INTEGER PRIMARY KEY</code> in SQLite auto-increments) or a UUID — because natural identifiers change more than people expect. An email address seems permanent until a customer asks to change it.</p>
+<p>Most production tables use surrogate keys — typically an auto-incrementing integer (<code>SERIAL PRIMARY KEY</code> in SQLite auto-increments) or a UUID — because natural identifiers change more than people expect. An email address seems permanent until a customer asks to change it.</p>
 <blockquote>
-<p><strong>Note:</strong> In SQLite, declaring a column as <code>INTEGER PRIMARY KEY</code> automatically makes it an alias for the internal <code>rowid</code>, giving you auto-increment behavior with no extra syntax.</p>
+<p><strong>Note:</strong> In SQLite, declaring a column as <code>SERIAL PRIMARY KEY</code> automatically makes it an alias for the internal <code>rowid</code>, giving you auto-increment behavior with no extra syntax.</p>
 </blockquote>
 <h2>Foreign Keys: Linking Tables Together</h2>
 <p>A <strong>foreign key</strong> is a column whose value must match an existing primary key in another table. It is how relationships are expressed in a relational database.</p>
 <pre><code class="language-sql">CREATE TABLE orders (
-    order_id    INTEGER PRIMARY KEY,
+    order_id    SERIAL PRIMARY KEY,
     customer_id INTEGER NOT NULL,
     placed_at   TEXT NOT NULL,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
@@ -107,7 +107,7 @@
 <p>A student can enroll in many courses, and a course can have many students — but the pair <code>(student_id, course_id)</code> must be unique. Attempting to enroll the same student in the same course twice is rejected.</p>
 <p>A <strong>UNIQUE constraint</strong> is a softer version: it enforces uniqueness without making the column the primary key. This is useful for things like email addresses that should not repeat but are not the main identifier.</p>
 <pre><code class="language-sql">CREATE TABLE users (
-    user_id INTEGER PRIMARY KEY,
+    user_id SERIAL PRIMARY KEY,
     email   TEXT NOT NULL UNIQUE
 );
 </code></pre>
@@ -116,7 +116,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Keys in action</span></div>
   <div class="widget-body">
-    <textarea data-setup="PRAGMA foreign_keys = ON; CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, FOREIGN KEY (customer_id) REFERENCES customers(customer_id)); INSERT INTO customers VALUES (1, 'Alice', 'alice@example.com'); INSERT INTO customers VALUES (2, 'Bob', 'bob@example.com'); INSERT INTO orders VALUES (101, 1, 49.95); INSERT INTO orders VALUES (102, 1, 12.00); INSERT INTO orders VALUES (103, 2, 89.50);" rows="10">SELECT
+    <textarea data-setup="CREATE TABLE customers (customer_id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE); CREATE TABLE orders (order_id SERIAL PRIMARY KEY, customer_id INTEGER NOT NULL, amount REAL NOT NULL, FOREIGN KEY (customer_id) REFERENCES customers(customer_id)); INSERT INTO customers VALUES (1, 'Alice', 'alice@example.com'); INSERT INTO customers VALUES (2, 'Bob', 'bob@example.com'); INSERT INTO orders VALUES (101, 1, 49.95); INSERT INTO orders VALUES (102, 1, 12.00); INSERT INTO orders VALUES (103, 2, 89.50);" rows="10">SELECT
   c.customer_id,
   c.name,
   o.order_id,

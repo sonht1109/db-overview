@@ -140,7 +140,7 @@ COMMIT;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Booking under concurrency</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE flights (id INTEGER PRIMARY KEY, route TEXT, seats_remaining INTEGER); INSERT INTO flights VALUES (1, 'NYC→LAX', 1); INSERT INTO flights VALUES (2, 'SFO→ORD', 10);" rows="10">-- Simulate two transactions both trying to book the last seat.
+    <textarea data-setup="CREATE TABLE flights (id SERIAL PRIMARY KEY, route TEXT, seats_remaining INTEGER); INSERT INTO flights VALUES (1, 'NYC→LAX', 1); INSERT INTO flights VALUES (2, 'SFO→ORD', 10);" rows="10">-- Simulate two transactions both trying to book the last seat.
 -- Run this as-is to see an oversell occur without locking:
 SELECT seats_remaining FROM flights WHERE id = 1;
 -- (Both sessions would see 1 — and both proceed)

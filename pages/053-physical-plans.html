@@ -119,8 +119,8 @@
 </tbody></table>
 <p>The optimizer chooses operators based on statistics: estimated table sizes, column cardinality, available indexes, and filter selectivity. The goal is to minimize total work — measured in I/O and CPU.</p>
 <h2>Reading a Physical Plan</h2>
-<p>Most databases let you inspect the chosen physical plan with <code>EXPLAIN</code> or <code>EXPLAIN ANALYZE</code>. SQLite&#39;s <code>EXPLAIN QUERY PLAN</code> shows a simplified version:</p>
-<pre><code class="language-sql">EXPLAIN QUERY PLAN
+<p>Most databases let you inspect the chosen physical plan with <code>EXPLAIN</code> or <code>EXPLAIN ANALYZE</code>. SQLite&#39;s <code>EXPLAIN</code> shows a simplified version:</p>
+<pre><code class="language-sql">EXPLAIN
 SELECT e.name, d.dept_name
 FROM employees e
 JOIN departments d ON e.dept_id = d.id
@@ -128,11 +128,11 @@ WHERE e.salary &gt; 80000;
 </code></pre>
 <p>You might see output like:</p>
 <pre><code>SCAN employees AS e
-SEARCH departments AS d USING INTEGER PRIMARY KEY (rowid=?)
+SEARCH departments AS d USING SERIAL PRIMARY KEY (rowid=?)
 </code></pre>
-<p>Two things stand out here. First, <code>SCAN</code> means a full table scan — SQLite will read every row in <code>employees</code> to evaluate the <code>salary</code> filter. Second, <code>SEARCH ... USING INTEGER PRIMARY KEY</code> means for each matching employee the engine does a fast primary-key lookup into <code>departments</code>. This is a <strong>nested-loop join</strong>: the outer loop scans <code>employees</code>, and the inner loop looks up the matching department row by its primary key.</p>
+<p>Two things stand out here. First, <code>SCAN</code> means a full table scan — SQLite will read every row in <code>employees</code> to evaluate the <code>salary</code> filter. Second, <code>SEARCH ... USING SERIAL PRIMARY KEY</code> means for each matching employee the engine does a fast primary-key lookup into <code>departments</code>. This is a <strong>nested-loop join</strong>: the outer loop scans <code>employees</code>, and the inner loop looks up the matching department row by its primary key.</p>
 <blockquote>
-<p><strong>Note:</strong> <code>EXPLAIN QUERY PLAN</code> shows the <em>intended</em> plan before execution. <code>EXPLAIN ANALYZE</code> (in PostgreSQL) runs the query and reports actual row counts and timing alongside estimates — invaluable for spotting optimizer mistakes. Note that <code>EXPLAIN VERBOSE</code> in PostgreSQL adds extra detail (output column lists, schema names) but does <em>not</em> execute the query; only <code>EXPLAIN ANALYZE</code> actually runs it.</p>
+<p><strong>Note:</strong> <code>EXPLAIN</code> shows the <em>intended</em> plan before execution. <code>EXPLAIN ANALYZE</code> (in PostgreSQL) runs the query and reports actual row counts and timing alongside estimates — invaluable for spotting optimizer mistakes. Note that <code>EXPLAIN VERBOSE</code> in PostgreSQL adds extra detail (output column lists, schema names) but does <em>not</em> execute the query; only <code>EXPLAIN ANALYZE</code> actually runs it.</p>
 </blockquote>
 <h2>The Three Common Join Algorithms</h2>
 <p>Joins are where physical planning has the biggest impact on performance, so it is worth knowing the three algorithms most engines implement:</p>
@@ -142,20 +142,20 @@ SEARCH departments AS d USING INTEGER PRIMARY KEY (rowid=?)
 <h2>See It Live</h2>
 <p>The widget below creates a small <code>employees</code>/<code>departments</code> schema. Run the default query and note the plan SQLite chooses. Then try removing the <code>WHERE</code> clause, or try adding <code>ORDER BY e.salary</code> — see if the plan changes.</p>
 <div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Physical plans with EXPLAIN QUERY PLAN</span></div>
+  <div class="widget-head"><span>Interactive SQL · Physical plans with EXPLAIN</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, dept_name TEXT); INSERT INTO departments VALUES (1, 'Engineering'), (2, 'Marketing'), (3, 'Finance'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 95000), (2, 'Bob', 2, 72000), (3, 'Carol', 1, 88000), (4, 'Dan', 3, 61000), (5, 'Eve', 1, 102000), (6, 'Frank', 2, 55000);" rows="10">EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE departments (id SERIAL PRIMARY KEY, dept_name TEXT); INSERT INTO departments VALUES (1, 'Engineering'), (2, 'Marketing'), (3, 'Finance'); CREATE TABLE employees (id SERIAL PRIMARY KEY, name TEXT, dept_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 95000), (2, 'Bob', 2, 72000), (3, 'Carol', 1, 88000), (4, 'Dan', 3, 61000), (5, 'Eve', 1, 102000), (6, 'Frank', 2, 55000);" rows="10">EXPLAIN
 SELECT e.name, d.dept_name, e.salary
 FROM employees e
 JOIN departments d ON e.dept_id = d.id
 WHERE e.salary > 80000
 ORDER BY e.salary DESC;</textarea>
   </div>
-</div><p>Now add an index on <code>employees.salary</code> and re-run <code>EXPLAIN QUERY PLAN</code> to see how SQLite&#39;s plan shifts:</p>
+</div><p>Now add an index on <code>employees.salary</code> and re-run <code>EXPLAIN</code> to see how SQLite&#39;s plan shifts:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Plan after adding an index</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE departments (id INTEGER PRIMARY KEY, dept_name TEXT); INSERT INTO departments VALUES (1, 'Engineering'), (2, 'Marketing'), (3, 'Finance'); CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 95000), (2, 'Bob', 2, 72000), (3, 'Carol', 1, 88000), (4, 'Dan', 3, 61000), (5, 'Eve', 1, 102000), (6, 'Frank', 2, 55000); CREATE INDEX idx_emp_salary ON employees(salary);" rows="10">EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE departments (id SERIAL PRIMARY KEY, dept_name TEXT); INSERT INTO departments VALUES (1, 'Engineering'), (2, 'Marketing'), (3, 'Finance'); CREATE TABLE employees (id SERIAL PRIMARY KEY, name TEXT, dept_id INTEGER, salary REAL); INSERT INTO employees VALUES (1, 'Alice', 1, 95000), (2, 'Bob', 2, 72000), (3, 'Carol', 1, 88000), (4, 'Dan', 3, 61000), (5, 'Eve', 1, 102000), (6, 'Frank', 2, 55000); CREATE INDEX idx_emp_salary ON employees(salary);" rows="10">EXPLAIN
 SELECT e.name, d.dept_name, e.salary
 FROM employees e
 JOIN departments d ON e.dept_id = d.id

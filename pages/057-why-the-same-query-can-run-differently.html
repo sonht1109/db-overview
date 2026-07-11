@@ -95,19 +95,19 @@ SELECT name FROM orders WHERE customer_id = 42;
 </tr>
 </tbody></table>
 <blockquote>
-<p><strong>Note:</strong> Databases expose the chosen plan via <code>EXPLAIN</code> (or <code>EXPLAIN QUERY PLAN</code> in SQLite). Reading the plan is the most reliable way to understand <em>why</em> a query runs the way it does.</p>
+<p><strong>Note:</strong> Databases expose the chosen plan via <code>EXPLAIN</code> (or <code>EXPLAIN</code> in SQLite). Reading the plan is the most reliable way to understand <em>why</em> a query runs the way it does.</p>
 </blockquote>
 <h2>Seeing It Yourself</h2>
-<p>The widget below sets up a small <code>orders</code> table and lets you inspect the query plan for different filters. Try running <code>EXPLAIN QUERY PLAN</code> on queries that filter by an indexed column versus an unindexed one.</p>
+<p>The widget below sets up a small <code>orders</code> table and lets you inspect the query plan for different filters. Try running <code>EXPLAIN</code> on queries that filter by an indexed column versus an unindexed one.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Query plans and indexes</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, amount REAL); INSERT INTO orders VALUES (1,10,'completed',99.5),(2,42,'pending',14.0),(3,42,'completed',200.0),(4,7,'pending',55.0),(5,42,'completed',30.0),(6,10,'pending',80.0),(7,3,'completed',120.0),(8,42,'pending',9.99),(9,5,'completed',300.0),(10,42,'completed',45.0); CREATE INDEX idx_customer ON orders(customer_id);" rows="10">-- EXPLAIN QUERY PLAN shows how SQLite will execute a query.
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER, status TEXT, amount REAL); INSERT INTO orders VALUES (1,10,'completed',99.5),(2,42,'pending',14.0),(3,42,'completed',200.0),(4,7,'pending',55.0),(5,42,'completed',30.0),(6,10,'pending',80.0),(7,3,'completed',120.0),(8,42,'pending',9.99),(9,5,'completed',300.0),(10,42,'completed',45.0); CREATE INDEX idx_customer ON orders(customer_id);" rows="10">-- EXPLAIN shows how SQLite will execute a query.
 -- This query can use the index on customer_id:
-EXPLAIN QUERY PLAN
+EXPLAIN
 SELECT * FROM orders WHERE customer_id = 42;
 -- Change customer_id to status (no index) and re-run to compare:
--- EXPLAIN QUERY PLAN
+-- EXPLAIN
 -- SELECT * FROM orders WHERE status = 'pending';</textarea>
   </div>
 </div><p>Run the first plan and look for <code>USING INDEX idx_customer</code> in the output. Then uncomment the second block and run it — you should see <code>SCAN orders</code> instead, meaning SQLite reads every row. Both queries return correct results; only the path differs.</p>

@@ -158,14 +158,14 @@
 </code></pre>
 <p>Step 3 before step 4 is the write-ahead rule. Steps 5 and 7 are separate <code>fsync</code> calls — one to protect durability of the commit, one to advance the checkpoint so recovery is fast.</p>
 <h2>Watching the Pattern with SQLite</h2>
-<p>SQLite&#39;s <code>pragma_page_count</code> and the <code>wal_checkpoint</code> pragma let you observe checkpointing directly. The widget below creates a small table, inserts some rows (dirtying pages), then runs a checkpoint that flushes them. Watch how the WAL frame count resets after the checkpoint.</p>
+<p>PostgreSQL's <code>CHECKPOINT</code> command forces dirty pages to be flushed to disk. The widget below creates a small table and inserts some rows (dirtying pages). Run <code>CHECKPOINT</code> to flush WAL frames to the main data files.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Dirty pages and checkpointing</span></div>
   <div class="widget-body">
-    <textarea data-setup="PRAGMA journal_mode=WAL; CREATE TABLE events (id INTEGER PRIMARY KEY, kind TEXT, payload TEXT); INSERT INTO events VALUES (1, 'login',  'user=alice'); INSERT INTO events VALUES (2, 'login',  'user=bob'); INSERT INTO events VALUES (3, 'update', 'user=alice,field=email'); INSERT INTO events VALUES (4, 'logout', 'user=bob'); INSERT INTO events VALUES (5, 'login',  'user=carol');" rows="10">-- These rows were inserted into the WAL (dirty pages not yet in main db file).
+    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, kind TEXT, payload TEXT); INSERT INTO events VALUES (1, 'login',  'user=alice'); INSERT INTO events VALUES (2, 'login',  'user=bob'); INSERT INTO events VALUES (3, 'update', 'user=alice,field=email'); INSERT INTO events VALUES (4, 'logout', 'user=bob'); INSERT INTO events VALUES (5, 'login',  'user=carol');" rows="10">-- These rows were inserted into the WAL (dirty pages not yet in main db file).
 -- A PASSIVE checkpoint flushes WAL frames that are not being read.
 -- Run this to checkpoint and then inspect what remains.
-PRAGMA wal_checkpoint(PASSIVE);
+CHECKPOINT;
 -- Returns: (busy, log, checkpointed)
 --   log         = total WAL frames written
 --   checkpointed = frames flushed to the main db file
@@ -173,7 +173,7 @@ PRAGMA wal_checkpoint(PASSIVE);
 -- After checkpointing, query the data normally:
 SELECT id, kind, payload FROM events ORDER BY id;</textarea>
   </div>
-</div><p>Try adding more <code>INSERT</code> statements before the checkpoint pragma and observe how the <code>log</code> count grows. Then try <code>PRAGMA wal_checkpoint(FULL)</code> — it waits for all readers to finish before flushing, so <code>checkpointed</code> equals <code>log</code>.</p>
+</div><p>Try adding more <code>INSERT</code> statements before the checkpoint command and observe the effect. In PostgreSQL, <code>CHECKPOINT</code> forces all dirty buffers to be written to disk immediately.</p>
 <h2>The Cost of Too Many (or Too Few) Dirty Pages</h2>
 <p>Holding many dirty pages in RAM is good for write throughput — batching reduces I/O. But there are limits:</p>
 <ul>

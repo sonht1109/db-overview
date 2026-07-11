@@ -100,13 +100,13 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Full scan cost</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, product TEXT NOT NULL, amount REAL NOT NULL); WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n < 10000) INSERT INTO orders SELECT n, ((n * 1103515245 + 12345) % 5000) + 1, CASE ((n * 6364136223846793005 + 1442695040888963407) % 4) WHEN 0 THEN 'Widget' WHEN 1 THEN 'Gadget' WHEN 2 THEN 'Doohickey' ELSE 'Thingamajig' END, ROUND(((n * 1103515245 + 12345) % 9900) / 100.0 + 1.0, 2) FROM seq;" rows="10">-- Find all orders for customer 42.
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER NOT NULL, product TEXT NOT NULL, amount REAL NOT NULL); WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n < 10000) INSERT INTO orders SELECT n, ((n * 1103515245 + 12345) % 5000) + 1, CASE ((n * 6364136223846793005 + 1442695040888963407) % 4) WHEN 0 THEN 'Widget' WHEN 1 THEN 'Gadget' WHEN 2 THEN 'Doohickey' ELSE 'Thingamajig' END, ROUND(((n * 1103515245 + 12345) % 9900) / 100.0 + 1.0, 2) FROM seq;" rows="10">-- Find all orders for customer 42.
 -- The engine checks every one of the 10,000 rows.
 SELECT id, product, amount
 FROM orders
 WHERE customer_id = 42;</textarea>
   </div>
-</div><p>SQLite retrieves the right rows, but it examined all 10 000 rows to find them. Now run <code>EXPLAIN QUERY PLAN SELECT id, product, amount FROM orders WHERE customer_id = 42;</code> — you will see <code>SCAN orders</code> in the output, confirming a full table scan with no index involved.</p>
+</div><p>SQLite retrieves the right rows, but it examined all 10 000 rows to find them. Now run <code>EXPLAIN SELECT id, product, amount FROM orders WHERE customer_id = 42;</code> — you will see <code>SCAN orders</code> in the output, confirming a full table scan with no index involved.</p>
 <h2>Why Linear Scaling Hurts</h2>
 <p>A full scan is an <strong>O(n)</strong> operation: double the rows, double the work. That is fine when n is 500. It is catastrophic when n is 50 000 000.</p>
 <pre><code>Rows in table     Time for full scan (relative)

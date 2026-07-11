@@ -139,7 +139,7 @@ with Transaction(table, idx) as txn:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Transactions</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1,'Alice',1000),(2,'Bob',500);" rows="10">-- Atomic transfer: debit Alice, credit Bob
+    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1,'Alice',1000),(2,'Bob',500);" rows="10">-- Atomic transfer: debit Alice, credit Bob
 BEGIN;
   UPDATE accounts SET balance = balance - 200 WHERE id = 1;
   UPDATE accounts SET balance = balance + 200 WHERE id = 2;

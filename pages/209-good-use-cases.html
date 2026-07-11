@@ -129,7 +129,7 @@ RETURN phone.number, [acc IN ring | acc.id] AS fraud_ring
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Fraud ring detection with WITH RECURSIVE</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id INTEGER PRIMARY KEY, name TEXT, credit_score INTEGER); INSERT INTO accounts VALUES (1,'Alice',720),(2,'Bob',690),(3,'Carol',750),(4,'Dave',705),(5,'Eve',800),(6,'Frank',660); CREATE TABLE shared_phone (account_id INTEGER, phone TEXT); INSERT INTO shared_phone VALUES (1,'+15550199'),(2,'+15550199'),(3,'+15550199'),(4,'+15550199'),(5,'+15559999'),(6,'+15558888'); CREATE TABLE shared_device (account_id INTEGER, device_id TEXT); INSERT INTO shared_device VALUES (2,'device-XYZ'),(3,'device-XYZ'),(5,'device-ABC');" rows="10">-- Step 1: find which phone numbers are shared by multiple accounts
+    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, name TEXT, credit_score INTEGER); INSERT INTO accounts VALUES (1,'Alice',720),(2,'Bob',690),(3,'Carol',750),(4,'Dave',705),(5,'Eve',800),(6,'Frank',660); CREATE TABLE shared_phone (account_id INTEGER, phone TEXT); INSERT INTO shared_phone VALUES (1,'+15550199'),(2,'+15550199'),(3,'+15550199'),(4,'+15550199'),(5,'+15559999'),(6,'+15558888'); CREATE TABLE shared_device (account_id INTEGER, device_id TEXT); INSERT INTO shared_device VALUES (2,'device-XYZ'),(3,'device-XYZ'),(5,'device-ABC');" rows="10">-- Step 1: find which phone numbers are shared by multiple accounts
 -- (direct 1-hop detection)
 SELECT p.phone,
        COUNT(DISTINCT p.account_id) AS account_count,

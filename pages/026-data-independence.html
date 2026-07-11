@@ -85,15 +85,15 @@
 <p>Imagine a <code>users</code> table that is later split into two tables for organizational reasons:</p>
 <pre><code class="language-sql">-- Original schema
 CREATE TABLE users (
-  id      INTEGER PRIMARY KEY,
+  id      SERIAL PRIMARY KEY,
   name    TEXT,
   email   TEXT,
   country TEXT
 );
 
 -- After refactoring: split into two tables
-CREATE TABLE user_accounts (id INTEGER PRIMARY KEY, name TEXT, email TEXT);
-CREATE TABLE user_locations (user_id INTEGER PRIMARY KEY, country TEXT);
+CREATE TABLE user_accounts (id SERIAL PRIMARY KEY, name TEXT, email TEXT);
+CREATE TABLE user_locations (user_id SERIAL PRIMARY KEY, country TEXT);
 
 -- A view that reconstructs the original interface
 CREATE VIEW users AS
@@ -110,7 +110,7 @@ CREATE VIEW users AS
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · View as logical adapter</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE user_accounts (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL); CREATE TABLE user_locations (user_id INTEGER PRIMARY KEY, country TEXT NOT NULL); INSERT INTO user_accounts VALUES (1, 'Ada', 'ada@example.com'); INSERT INTO user_accounts VALUES (2, 'Brian', 'brian@example.com'); INSERT INTO user_accounts VALUES (3, 'Carmen', 'carmen@example.com'); INSERT INTO user_locations VALUES (1, 'TH'); INSERT INTO user_locations VALUES (2, 'SG'); INSERT INTO user_locations VALUES (3, 'TH'); CREATE VIEW users AS SELECT a.id, a.name, a.email, l.country FROM user_accounts a JOIN user_locations l ON l.user_id = a.id;" rows="10">-- Query the view exactly as you would the original table.
+    <textarea data-setup="CREATE TABLE user_accounts (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL); CREATE TABLE user_locations (user_id SERIAL PRIMARY KEY, country TEXT NOT NULL); INSERT INTO user_accounts VALUES (1, 'Ada', 'ada@example.com'); INSERT INTO user_accounts VALUES (2, 'Brian', 'brian@example.com'); INSERT INTO user_accounts VALUES (3, 'Carmen', 'carmen@example.com'); INSERT INTO user_locations VALUES (1, 'TH'); INSERT INTO user_locations VALUES (2, 'SG'); INSERT INTO user_locations VALUES (3, 'TH'); CREATE VIEW users AS SELECT a.id, a.name, a.email, l.country FROM user_accounts a JOIN user_locations l ON l.user_id = a.id;" rows="10">-- Query the view exactly as you would the original table.
 -- Try also: SELECT * FROM user_accounts; or SELECT * FROM user_locations;
 SELECT name, email
 FROM users

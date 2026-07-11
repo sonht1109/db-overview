@@ -131,7 +131,7 @@ Parent:  (root dissolves, tree shrinks)
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index page growth</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, amount REAL); CREATE INDEX idx_amount ON orders(amount); WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 500) INSERT INTO orders SELECT n, CAST((n * 17 % 1000) AS REAL) / 10.0 FROM r;" rows="10">-- How many pages does the index occupy?
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, amount REAL); CREATE INDEX idx_amount ON orders(amount); WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 500) INSERT INTO orders SELECT n, CAST((n * 17 % 1000) AS REAL) / 10.0 FROM r;" rows="10">-- How many pages does the index occupy?
 -- rootpage is where SQLite's B-tree for this index starts.
 SELECT name, rootpage
 FROM sqlite_master

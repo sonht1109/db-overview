@@ -151,13 +151,13 @@ db.users.find({ email: &quot;a@x.com&quot; }, { name: 1, _id: 0 })
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Secondary index on a JSON field (simulated)</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO products VALUES ('p1', '{&quot;name&quot;:&quot;Trail Shoe&quot;,&quot;category&quot;:&quot;footwear&quot;,&quot;price&quot;:120,&quot;tags&quot;:[&quot;sale&quot;,&quot;sport&quot;]}'); INSERT INTO products VALUES ('p2', '{&quot;name&quot;:&quot;Running Hat&quot;,&quot;category&quot;:&quot;apparel&quot;,&quot;price&quot;:35,&quot;tags&quot;:[&quot;sport&quot;]}'); INSERT INTO products VALUES ('p3', '{&quot;name&quot;:&quot;Sandal&quot;,&quot;category&quot;:&quot;footwear&quot;,&quot;price&quot;:60,&quot;tags&quot;:[&quot;sale&quot;,&quot;casual&quot;]}'); INSERT INTO products VALUES ('p4', '{&quot;name&quot;:&quot;Polo Shirt&quot;,&quot;category&quot;:&quot;apparel&quot;,&quot;price&quot;:45,&quot;tags&quot;:[&quot;casual&quot;]}'); CREATE TABLE product_tags (product_id TEXT, tag TEXT); INSERT INTO product_tags SELECT products.id, e.value FROM products, json_each(json_extract(doc,'$.tags')) e; CREATE INDEX idx_product_tags ON product_tags(tag); CREATE INDEX idx_product_category ON products(json_extract(doc,'$.category'));" rows="10">-- Query using secondary index on category (SQLite functional index)
-SELECT id, json_extract(doc, '$.name') AS name, json_extract(doc, '$.price') AS price
+    <textarea data-setup="CREATE TABLE products (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO products VALUES ('p1', '{&quot;name&quot;:&quot;Trail Shoe&quot;,&quot;category&quot;:&quot;footwear&quot;,&quot;price&quot;:120,&quot;tags&quot;:[&quot;sale&quot;,&quot;sport&quot;]}'); INSERT INTO products VALUES ('p2', '{&quot;name&quot;:&quot;Running Hat&quot;,&quot;category&quot;:&quot;apparel&quot;,&quot;price&quot;:35,&quot;tags&quot;:[&quot;sport&quot;]}'); INSERT INTO products VALUES ('p3', '{&quot;name&quot;:&quot;Sandal&quot;,&quot;category&quot;:&quot;footwear&quot;,&quot;price&quot;:60,&quot;tags&quot;:[&quot;sale&quot;,&quot;casual&quot;]}'); INSERT INTO products VALUES ('p4', '{&quot;name&quot;:&quot;Polo Shirt&quot;,&quot;category&quot;:&quot;apparel&quot;,&quot;price&quot;:45,&quot;tags&quot;:[&quot;casual&quot;]}'); CREATE TABLE product_tags (product_id TEXT, tag TEXT); INSERT INTO product_tags SELECT products.id, e.value FROM products, jsonb_each(doc::jsonb->'tags') e; CREATE INDEX idx_product_tags ON product_tags(tag); CREATE INDEX idx_product_category ON products(doc->>'$.category');" rows="10">-- Query using secondary index on category (SQLite functional index)
+SELECT id, doc->>'$.name' AS name, doc->>'$.price' AS price
 FROM products
-WHERE json_extract(doc, '$.category') = 'footwear'
-ORDER BY json_extract(doc, '$.price');
+WHERE doc->>'$.category' = 'footwear'
+ORDER BY doc->>'$.price';
 -- Uncomment to query via the multikey-style tag index:
--- SELECT DISTINCT p.id, json_extract(p.doc, '$.name') AS name
+-- SELECT DISTINCT p.id, p.doc->>'$.name' AS name
 -- FROM products p JOIN product_tags pt ON p.id = pt.product_id
 -- WHERE pt.tag = 'sale';</textarea>
   </div>

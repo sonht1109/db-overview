@@ -98,17 +98,17 @@ WHERE  status = &#39;shipped&#39;;
 <p><strong>Note:</strong> Column order still matters for filtering and sorting. Put the equality-filter columns first, range-filter or <code>ORDER BY</code> columns next, and any remaining <code>SELECT</code> columns last — they&#39;re just &quot;payload&quot; carried along for the ride.</p>
 </blockquote>
 <h2>Trying It Yourself</h2>
-<p>The widget below creates an <code>orders</code> table, adds a covering index, and lets you compare two queries. Run the first query (no covering index), then swap the comment lines to use the covered version. In a real database you would use <code>EXPLAIN</code> to see whether an index-only scan is chosen — SQLite&#39;s query planner output is shown via <code>EXPLAIN QUERY PLAN</code>.</p>
+<p>The widget below creates an <code>orders</code> table, adds a covering index, and lets you compare two queries. Run the first query (no covering index), then swap the comment lines to use the covered version. In a real database you would use <code>EXPLAIN</code> to see whether an index-only scan is chosen — SQLite&#39;s query planner output is shown via <code>EXPLAIN</code>.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Covering index demo</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL, status TEXT, created_at TEXT); INSERT INTO orders VALUES (1, 101, 49.99, 'shipped', '2024-01-10'), (2, 102, 120.00, 'pending', '2024-01-11'), (3, 103, 75.50, 'shipped', '2024-01-12'), (4, 101, 200.00, 'shipped', '2024-01-13'), (5, 104, 35.00, 'cancelled', '2024-01-14'), (6, 102, 88.00, 'shipped', '2024-01-15'); CREATE INDEX idx_covering ON orders (status, customer_id, total);" rows="10">-- See the query plan: does SQLite use the index?
-EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER, total REAL, status TEXT, created_at TEXT); INSERT INTO orders VALUES (1, 101, 49.99, 'shipped', '2024-01-10'), (2, 102, 120.00, 'pending', '2024-01-11'), (3, 103, 75.50, 'shipped', '2024-01-12'), (4, 101, 200.00, 'shipped', '2024-01-13'), (5, 104, 35.00, 'cancelled', '2024-01-14'), (6, 102, 88.00, 'shipped', '2024-01-15'); CREATE INDEX idx_covering ON orders (status, customer_id, total);" rows="10">-- See the query plan: does SQLite use the index?
+EXPLAIN
 SELECT customer_id, total
 FROM   orders
 WHERE  status = 'shipped';</textarea>
   </div>
-</div><p>Try editing the <code>SELECT</code> list to include a column <em>not</em> in the index (like <code>created_at</code>) and re-run <code>EXPLAIN QUERY PLAN</code>. You should see the planner fall back to a full scan or row lookup, because the index no longer covers all needed columns.</p>
+</div><p>Try editing the <code>SELECT</code> list to include a column <em>not</em> in the index (like <code>created_at</code>) and re-run <code>EXPLAIN</code>. You should see the planner fall back to a full scan or row lookup, because the index no longer covers all needed columns.</p>
 <h2>Trade-offs and When to Use Them</h2>
 <p>Covering indexes are powerful but not free.</p>
 <table>

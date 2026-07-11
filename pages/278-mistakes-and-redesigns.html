@@ -19,7 +19,7 @@
 <h2>Mistake 1: Storing Multiple Values in a Single Column</h2>
 <p><strong>What happened:</strong> A developer needed to tag articles with multiple categories. The quick solution: store tags as a comma-separated string in a <code>tags TEXT</code> column.</p>
 <pre><code class="language-sql">-- Wrong
-CREATE TABLE articles (id INTEGER PRIMARY KEY, title TEXT, tags TEXT);
+CREATE TABLE articles (id SERIAL PRIMARY KEY, title TEXT, tags TEXT);
 INSERT INTO articles VALUES (1, &#39;Intro to SQL&#39;, &#39;database,tutorial,beginner&#39;);
 </code></pre>
 <p><strong>Why it breaks:</strong> Every operation becomes painful. Finding all &quot;database&quot; articles requires <code>WHERE tags LIKE &#39;%database%&#39;</code> — a full table scan that also matches &quot;non-database&quot;. Counting uses of a tag is a string parsing exercise. Renaming a tag means string replacement across millions of rows.</p>
@@ -50,10 +50,10 @@ LIMIT 20;
 <h2>Mistake 3: Storing Money as REAL (Float)</h2>
 <p><strong>What happened:</strong> A billing system stored prices in a <code>REAL</code> column. Totals accumulated rounding errors. An invoice for $19.99 × 12 = $239.88 sometimes computed as $239.87999999…</p>
 <pre><code class="language-sql">-- Wrong
-CREATE TABLE invoices (id INTEGER PRIMARY KEY, amount REAL);
+CREATE TABLE invoices (id SERIAL PRIMARY KEY, amount REAL);
 </code></pre>
 <p><strong>The redesign:</strong> Store money as integer cents (or the smallest currency unit):</p>
-<pre><code class="language-sql">CREATE TABLE invoices (id INTEGER PRIMARY KEY, amount_cents INTEGER);
+<pre><code class="language-sql">CREATE TABLE invoices (id SERIAL PRIMARY KEY, amount_cents INTEGER);
 -- $239.88 = 23988
 </code></pre>
 <p>Format for display in the application layer. Integer arithmetic is exact; floating-point is not.</p>
@@ -61,7 +61,7 @@ CREATE TABLE invoices (id INTEGER PRIMARY KEY, amount REAL);
 <h2>Mistake 4: Using NULLs to Model State Machines</h2>
 <p><strong>What happened:</strong> An order&#39;s lifecycle was modeled as a series of nullable timestamp columns:</p>
 <pre><code class="language-sql">CREATE TABLE orders (
-  id INTEGER PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   placed_at   INTEGER,
   confirmed_at INTEGER,  -- NULL until confirmed
   shipped_at   INTEGER,  -- NULL until shipped
@@ -71,13 +71,13 @@ CREATE TABLE invoices (id INTEGER PRIMARY KEY, amount REAL);
 <p><strong>Why it breaks:</strong> Determining current status requires checking which columns are non-NULL. Invalid states are possible (e.g., <code>delivered_at</code> set but <code>shipped_at</code> still NULL). Adding a new state requires a schema migration.</p>
 <p><strong>The redesign:</strong> A single <code>status</code> column and a separate <code>status_history</code> table for auditing:</p>
 <pre><code class="language-sql">CREATE TABLE orders (
-  id     INTEGER PRIMARY KEY,
+  id     SERIAL PRIMARY KEY,
   status TEXT NOT NULL DEFAULT &#39;pending&#39;
   -- &#39;pending&#39; | &#39;confirmed&#39; | &#39;shipped&#39; | &#39;delivered&#39; | &#39;cancelled&#39;
 );
 
 CREATE TABLE order_status_history (
-  id        INTEGER PRIMARY KEY,
+  id        SERIAL PRIMARY KEY,
   order_id  INTEGER REFERENCES orders(id),
   status    TEXT NOT NULL,
   changed_at INTEGER NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE order_status_history (
 <p><strong>What happened:</strong> An app stored comments with a <code>post_id</code> foreign key. Loading comments for a post worked fine during development with 100 rows. In production with 10 million rows, it took 4 seconds.</p>
 <pre><code class="language-sql">-- Missing index!
 CREATE TABLE comments (
-  id      INTEGER PRIMARY KEY,
+  id      SERIAL PRIMARY KEY,
   post_id INTEGER REFERENCES posts(id),
   body    TEXT
 );
@@ -148,10 +148,10 @@ CREATE TABLE comments (
   <div class="widget-head"><span>Interactive SQL · Mistakes in Action</span></div>
   <div class="widget-body">
     <textarea data-setup="
-CREATE TABLE articles_bad (id INTEGER PRIMARY KEY, title TEXT, tags TEXT);
+CREATE TABLE articles_bad (id SERIAL PRIMARY KEY, title TEXT, tags TEXT);
 INSERT INTO articles_bad VALUES (1,'SQL Basics','database,tutorial,beginner'),(2,'Indexing','database,performance'),(3,'Python Tips','python,tutorial');
-CREATE TABLE articles (id INTEGER PRIMARY KEY, title TEXT);
-CREATE TABLE tags (id INTEGER PRIMARY KEY, name TEXT UNIQUE);
+CREATE TABLE articles (id SERIAL PRIMARY KEY, title TEXT);
+CREATE TABLE tags (id SERIAL PRIMARY KEY, name TEXT UNIQUE);
 CREATE TABLE article_tags (article_id INTEGER, tag_id INTEGER, PRIMARY KEY(article_id, tag_id));
 INSERT INTO articles VALUES (1,'SQL Basics'),(2,'Indexing'),(3,'Python Tips');
 INSERT INTO tags VALUES (1,'database'),(2,'tutorial'),(3,'beginner'),(4,'performance'),(5,'python');

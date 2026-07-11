@@ -100,7 +100,7 @@ SELECT 10 + 20 = 30;        -- 1 (true), always
 
 -- SQLite equivalent: inline CHECK on the column
 CREATE TABLE products (
-  product_id  INTEGER PRIMARY KEY,
+  product_id  SERIAL PRIMARY KEY,
   name        TEXT    NOT NULL,
   price_cents INTEGER NOT NULL CHECK (price_cents &gt; 0),
   rating      INTEGER          CHECK (rating BETWEEN 1 AND 5)
@@ -115,7 +115,7 @@ CREATE TABLE products (
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Data Types</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (emp_id INTEGER PRIMARY KEY, name TEXT NOT NULL, salary_cents INTEGER NOT NULL CHECK (salary_cents  rows="10"> 0), hire_date TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))); INSERT INTO employees VALUES (1, 'Alice', 9500000, '2019-06-01', 1), (2, 'Bob', 7200000, '2022-03-15', 1), (3, 'Carol', 8100000, '2020-11-30', 0);">SELECT
+    <textarea data-setup="CREATE TABLE employees (emp_id SERIAL PRIMARY KEY, name TEXT NOT NULL, salary_cents INTEGER NOT NULL CHECK (salary_cents  rows="10"> 0), hire_date TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))); INSERT INTO employees VALUES (1, 'Alice', 9500000, '2019-06-01', 1), (2, 'Bob', 7200000, '2022-03-15', 1), (3, 'Carol', 8100000, '2020-11-30', 0);">SELECT
   name,
   salary_cents / 100.0   AS salary_dollars,
   hire_date,
@@ -127,7 +127,7 @@ ORDER BY salary_cents DESC;</textarea>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Constraint Rejection</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (emp_id INTEGER PRIMARY KEY, name TEXT NOT NULL, salary_cents INTEGER NOT NULL CHECK (salary_cents  rows="10"> 0), hire_date TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))); INSERT INTO employees VALUES (1, 'Alice', 9500000, '2019-06-01', 1);">-- This should succeed:
+    <textarea data-setup="CREATE TABLE employees (emp_id SERIAL PRIMARY KEY, name TEXT NOT NULL, salary_cents INTEGER NOT NULL CHECK (salary_cents  rows="10"> 0), hire_date TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))); INSERT INTO employees VALUES (1, 'Alice', 9500000, '2019-06-01', 1);">-- This should succeed:
 INSERT INTO employees VALUES (2, 'Bob', 7200000, '2022-03-15', 1);
 -- Now try a bad salary (negative) — uncomment the line below and run:
 -- INSERT INTO employees VALUES (3, 'Bad', -500, '2023-01-01', 1);</textarea>

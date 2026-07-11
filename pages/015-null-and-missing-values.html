@@ -65,7 +65,7 @@
 </tbody></table>
 <p>Consider a <code>users</code> table where <code>phone</code> is optional. A user who has not provided a phone number should have <code>NULL</code> there, not an empty string. That distinction matters when you later query &quot;give me all users who have a phone number&quot; — an empty string would silently slip through.</p>
 <pre><code class="language-sql">CREATE TABLE users (
-  user_id  INTEGER PRIMARY KEY,
+  user_id  SERIAL PRIMARY KEY,
   name     TEXT    NOT NULL,
   email    TEXT    NOT NULL,
   phone    TEXT             -- NULL = not provided
@@ -109,7 +109,7 @@ SELECT * FROM users WHERE phone IS NULL;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · NULL and missing values</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT NOT NULL, amount_cents INTEGER NOT NULL, shipped_at TEXT); INSERT INTO orders VALUES (1, 'Alice', 4999, '2024-03-01'), (2, 'Bob', 1200, NULL), (3, 'Carol', 8750, '2024-03-05'), (4, 'Dave', 300, NULL), (5, 'Eve', 2200, '2024-03-07');" rows="10">-- How many orders have not shipped yet?
+    <textarea data-setup="CREATE TABLE orders (order_id SERIAL PRIMARY KEY, customer TEXT NOT NULL, amount_cents INTEGER NOT NULL, shipped_at TEXT); INSERT INTO orders VALUES (1, 'Alice', 4999, '2024-03-01'), (2, 'Bob', 1200, NULL), (3, 'Carol', 8750, '2024-03-05'), (4, 'Dave', 300, NULL), (5, 'Eve', 2200, '2024-03-07');" rows="10">-- How many orders have not shipped yet?
 SELECT
   COUNT(*)            AS total_orders,
   COUNT(shipped_at)   AS shipped,

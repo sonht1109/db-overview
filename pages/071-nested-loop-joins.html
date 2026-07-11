@@ -120,14 +120,14 @@
 <p><strong>Best case — index on the inner table.</strong> If the inner table has an index on the join column, each outer-row lookup becomes an index seek rather than a full scan. The cost drops from O(M × N) to roughly O(M × log N). This is why databases almost always prefer nested loop joins when one side is small and the other side is indexed.</p>
 <p><strong>Worst case — no index, large tables.</strong> Without an index, every outer row triggers a full scan of the inner table. For two tables with 100 000 rows each, that&#39;s 10 billion comparisons. In practice, the query planner switches to a hash join or merge join for large unindexed joins.</p>
 <blockquote>
-<p><strong>Note:</strong> You can observe which join strategy the planner chose by running <code>EXPLAIN</code> (or <code>EXPLAIN QUERY PLAN</code> in SQLite) before your query. If you see &quot;SCAN TABLE&quot; for the inner side, it is doing an unindexed nested loop.</p>
+<p><strong>Note:</strong> You can observe which join strategy the planner chose by running <code>EXPLAIN</code> (or <code>EXPLAIN</code> in SQLite) before your query. If you see &quot;SCAN TABLE&quot; for the inner side, it is doing an unindexed nested loop.</p>
 </blockquote>
 <h2>Try It Live</h2>
-<p>The widget below creates a small <code>orders</code> and <code>customers</code> table and runs a join. Try adding an index on <code>customers(customer_id)</code> and then re-running <code>EXPLAIN QUERY PLAN</code> to see the planner&#39;s note change.</p>
+<p>The widget below creates a small <code>orders</code> and <code>customers</code> table and runs a join. Try adding an index on <code>customers(customer_id)</code> and then re-running <code>EXPLAIN</code> to see the planner&#39;s note change.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Nested loop join</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (17, 'Priya'), (42, 'Leon'), (55, 'Amara'); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders VALUES (1, 42, 99.99), (2, 17, 14.50), (3, 42, 250.00), (4, 55, 5.00);" rows="10">-- See the join result
+    <textarea data-setup="CREATE TABLE customers (customer_id SERIAL PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (17, 'Priya'), (42, 'Leon'), (55, 'Amara'); CREATE TABLE orders (order_id SERIAL PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders VALUES (1, 42, 99.99), (2, 17, 14.50), (3, 42, 250.00), (4, 55, 5.00);" rows="10">-- See the join result
 SELECT o.order_id, c.name, o.amount
 FROM orders AS o
 JOIN customers AS c ON o.customer_id = c.customer_id
@@ -137,14 +137,14 @@ ORDER BY o.order_id;</textarea>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Query plan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (17, 'Priya'), (42, 'Leon'), (55, 'Amara'); CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders VALUES (1, 42, 99.99), (2, 17, 14.50), (3, 42, 250.00), (4, 55, 5.00);" rows="10">-- Inspect the query plan
-EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE customers (customer_id SERIAL PRIMARY KEY, name TEXT); INSERT INTO customers VALUES (17, 'Priya'), (42, 'Leon'), (55, 'Amara'); CREATE TABLE orders (order_id SERIAL PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders VALUES (1, 42, 99.99), (2, 17, 14.50), (3, 42, 250.00), (4, 55, 5.00);" rows="10">-- Inspect the query plan
+EXPLAIN
 SELECT o.order_id, c.name, o.amount
 FROM orders AS o
 JOIN customers AS c ON o.customer_id = c.customer_id;</textarea>
   </div>
 </div><blockquote>
-<p><strong>Note:</strong> SQLite&#39;s <code>customer_id INTEGER PRIMARY KEY</code> implicitly creates an index, so you will already see an index seek on the inner table. Try adding a third table without a primary key and joining on a non-indexed column to observe a full scan instead.</p>
+<p><strong>Note:</strong> SQLite&#39;s <code>customer_id SERIAL PRIMARY KEY</code> implicitly creates an index, so you will already see an index seek on the inner table. Try adding a third table without a primary key and joining on a non-indexed column to observe a full scan instead.</p>
 </blockquote>
 <h2>Key Takeaways</h2>
 <ul>

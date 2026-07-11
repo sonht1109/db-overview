@@ -94,7 +94,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Workload Analysis</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE workload_profile (id INTEGER PRIMARY KEY, query_name TEXT, frequency_per_sec REAL, access_pattern TEXT, latency_target_ms INTEGER); INSERT INTO workload_profile VALUES (1,'Get user session',850,'point-lookup',5); INSERT INTO workload_profile VALUES (2,'List recent orders',120,'range-scan',50); INSERT INTO workload_profile VALUES (3,'Product search',60,'full-text',100); INSERT INTO workload_profile VALUES (4,'Daily revenue report',2,'aggregate',5000); INSERT INTO workload_profile VALUES (5,'Friend recommendations',5,'graph-traversal',200);" rows="10">-- Which queries dominate and what do they demand?
+    <textarea data-setup="CREATE TABLE workload_profile (id SERIAL PRIMARY KEY, query_name TEXT, frequency_per_sec REAL, access_pattern TEXT, latency_target_ms INTEGER); INSERT INTO workload_profile VALUES (1,'Get user session',850,'point-lookup',5); INSERT INTO workload_profile VALUES (2,'List recent orders',120,'range-scan',50); INSERT INTO workload_profile VALUES (3,'Product search',60,'full-text',100); INSERT INTO workload_profile VALUES (4,'Daily revenue report',2,'aggregate',5000); INSERT INTO workload_profile VALUES (5,'Friend recommendations',5,'graph-traversal',200);" rows="10">-- Which queries dominate and what do they demand?
 SELECT
   query_name,
   frequency_per_sec,

@@ -118,7 +118,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Data vs. Records</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE weather_observations (observation_id INTEGER PRIMARY KEY, city TEXT NOT NULL, country TEXT NOT NULL, temperature_celsius REAL NOT NULL, recorded_at TEXT NOT NULL); INSERT INTO weather_observations VALUES (1,'Paris','France',32.0,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (2,'Tokyo','Japan',18.5,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (3,'Cairo','Egypt',27.3,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (4,'Paris','France',29.1,'2024-03-16 09:00:00'); INSERT INTO weather_observations VALUES (5,'Tokyo','Japan',20.2,'2024-03-16 09:00:00');" rows="10">SELECT city, country, temperature_celsius, recorded_at
+    <textarea data-setup="CREATE TABLE weather_observations (observation_id SERIAL PRIMARY KEY, city TEXT NOT NULL, country TEXT NOT NULL, temperature_celsius REAL NOT NULL, recorded_at TEXT NOT NULL); INSERT INTO weather_observations VALUES (1,'Paris','France',32.0,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (2,'Tokyo','Japan',18.5,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (3,'Cairo','Egypt',27.3,'2024-03-15 09:00:00'); INSERT INTO weather_observations VALUES (4,'Paris','France',29.1,'2024-03-16 09:00:00'); INSERT INTO weather_observations VALUES (5,'Tokyo','Japan',20.2,'2024-03-16 09:00:00');" rows="10">SELECT city, country, temperature_celsius, recorded_at
 FROM weather_observations
 WHERE city = 'Paris'
 ORDER BY recorded_at;</textarea>

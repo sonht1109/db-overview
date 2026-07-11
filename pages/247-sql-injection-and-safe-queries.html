@@ -112,7 +112,7 @@ query = f&quot;SELECT * FROM orders ORDER BY {sort_col}&quot;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Injection vs. Safe Query</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, role TEXT, password_hash TEXT); INSERT INTO users VALUES (1, 'alice', 'admin', 'abc123hash'); INSERT INTO users VALUES (2, 'bob', 'viewer', 'xyz456hash'); INSERT INTO users VALUES (3, 'carol', 'editor', 'def789hash');" rows="10">-- SAFE: parameterized equivalent -- the WHERE matches literally
+    <textarea data-setup="CREATE TABLE users (id SERIAL PRIMARY KEY, username TEXT, role TEXT, password_hash TEXT); INSERT INTO users VALUES (1, 'alice', 'admin', 'abc123hash'); INSERT INTO users VALUES (2, 'bob', 'viewer', 'xyz456hash'); INSERT INTO users VALUES (3, 'carol', 'editor', 'def789hash');" rows="10">-- SAFE: parameterized equivalent -- the WHERE matches literally
 -- The user supplies 'alice' and nothing else matches
 SELECT id, username, role
 FROM users

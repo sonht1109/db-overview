@@ -119,14 +119,14 @@ while any run has rows remaining:
 <p><strong>Note:</strong> PostgreSQL calls its memory budget <code>work_mem</code>. Doubling <code>work_mem</code> can cut external sort from two passes to one, which meaningfully speeds up large <code>ORDER BY</code> queries.</p>
 </blockquote>
 <h2>What This Looks Like in a Query Plan</h2>
-<p>Run <code>EXPLAIN QUERY PLAN</code> (SQLite) or <code>EXPLAIN ANALYZE</code> (PostgreSQL) on a query with <code>ORDER BY</code> and no suitable index. You will often see a note like <strong>&quot;USE TEMP B-TREE FOR ORDER BY&quot;</strong> (SQLite) or <strong>&quot;Sort Method: external merge&quot;</strong> (PostgreSQL) — that is the external sort at work.</p>
+<p>Run <code>EXPLAIN</code> (SQLite) or <code>EXPLAIN ANALYZE</code> (PostgreSQL) on a query with <code>ORDER BY</code> and no suitable index. You will often see a note like <strong>&quot;USE TEMP B-TREE FOR ORDER BY&quot;</strong> (SQLite) or <strong>&quot;Sort Method: external merge&quot;</strong> (PostgreSQL) — that is the external sort at work.</p>
 <p>The best way to avoid external sort is an <strong>index</strong> whose key order matches the <code>ORDER BY</code> clause. When such an index exists, the engine reads rows in sorted order directly from the index with no sort phase at all.</p>
 <h2>Try It Live</h2>
-<p>The widget below creates a small <code>sales</code> table and lets you observe how <code>ORDER BY</code> changes the output. In a real engine on a large table, this <code>ORDER BY</code> would trigger external sort when no index covers the sort key. Try sorting by different columns or adding <code>EXPLAIN QUERY PLAN</code> in front of the query.</p>
+<p>The widget below creates a small <code>sales</code> table and lets you observe how <code>ORDER BY</code> changes the output. In a real engine on a large table, this <code>ORDER BY</code> would trigger external sort when no index covers the sort key. Try sorting by different columns or adding <code>EXPLAIN</code> in front of the query.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · ORDER BY and sort plans</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, region TEXT, amount REAL, sale_date TEXT); INSERT INTO sales VALUES (1, 'North', 520.00, '2024-03-01'), (2, 'South', 310.50, '2024-03-02'), (3, 'East', 875.25, '2024-02-28'), (4, 'North', 200.00, '2024-03-05'), (5, 'South', 640.75, '2024-03-03'), (6, 'East', 130.00, '2024-02-20'), (7, 'West', 990.10, '2024-03-07'), (8, 'West', 450.00, '2024-03-01');" rows="10">-- Sort by amount descending (no index on amount -- engine must sort)
+    <textarea data-setup="CREATE TABLE sales (id SERIAL PRIMARY KEY, region TEXT, amount REAL, sale_date TEXT); INSERT INTO sales VALUES (1, 'North', 520.00, '2024-03-01'), (2, 'South', 310.50, '2024-03-02'), (3, 'East', 875.25, '2024-02-28'), (4, 'North', 200.00, '2024-03-05'), (5, 'South', 640.75, '2024-03-03'), (6, 'East', 130.00, '2024-02-20'), (7, 'West', 990.10, '2024-03-07'), (8, 'West', 450.00, '2024-03-01');" rows="10">-- Sort by amount descending (no index on amount -- engine must sort)
 SELECT region, amount, sale_date
 FROM sales
 ORDER BY amount DESC;</textarea>
@@ -135,8 +135,8 @@ ORDER BY amount DESC;</textarea>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Eliminating the sort with an index</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sales (id INTEGER PRIMARY KEY, region TEXT, amount REAL, sale_date TEXT); INSERT INTO sales VALUES (1, 'North', 520.00, '2024-03-01'), (2, 'South', 310.50, '2024-03-02'), (3, 'East', 875.25, '2024-02-28'), (4, 'North', 200.00, '2024-03-05'), (5, 'South', 640.75, '2024-03-03'), (6, 'East', 130.00, '2024-02-20'), (7, 'West', 990.10, '2024-03-07'), (8, 'West', 450.00, '2024-03-01');" rows="10">-- Step 1: see the plan without an index
-EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE sales (id SERIAL PRIMARY KEY, region TEXT, amount REAL, sale_date TEXT); INSERT INTO sales VALUES (1, 'North', 520.00, '2024-03-01'), (2, 'South', 310.50, '2024-03-02'), (3, 'East', 875.25, '2024-02-28'), (4, 'North', 200.00, '2024-03-05'), (5, 'South', 640.75, '2024-03-03'), (6, 'East', 130.00, '2024-02-20'), (7, 'West', 990.10, '2024-03-07'), (8, 'West', 450.00, '2024-03-01');" rows="10">-- Step 1: see the plan without an index
+EXPLAIN
 SELECT region, amount FROM sales ORDER BY amount DESC;
 -- Step 2: create an index, then re-run the EXPLAIN above
 -- CREATE INDEX idx_sales_amount ON sales(amount DESC);</textarea>

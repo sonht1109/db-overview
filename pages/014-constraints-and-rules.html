@@ -93,12 +93,12 @@
 <h3>Primary and foreign keys working together</h3>
 <p>A <strong>primary key</strong> is the anchor of a table — it uniquely names every row. A <strong>foreign key</strong> in another table points back to that anchor, creating a <em>referential link</em> between the two. The database will refuse to insert a foreign key value that has no matching primary key, and (depending on configuration) will refuse to delete a primary key row while child rows still reference it.</p>
 <pre><code class="language-sql">CREATE TABLE departments (
-    id   INTEGER PRIMARY KEY,
+    id   SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE employees (
-    id            INTEGER PRIMARY KEY,
+    id            SERIAL PRIMARY KEY,
     name          TEXT NOT NULL,
     department_id INTEGER NOT NULL
         REFERENCES departments(id)   -- foreign key
@@ -108,21 +108,21 @@ CREATE TABLE employees (
 <h3>CHECK constraints</h3>
 <p><code>CHECK</code> lets you express any rule that can be written as a SQL expression. Common uses: enforcing a range, restricting a column to a known set of values, or requiring that one column&#39;s value relates sensibly to another&#39;s.</p>
 <pre><code class="language-sql">CREATE TABLE products (
-    id       INTEGER PRIMARY KEY,
+    id       SERIAL PRIMARY KEY,
     name     TEXT    NOT NULL,
     price    REAL    NOT NULL CHECK (price &gt;= 0),
     status   TEXT    NOT NULL CHECK (status IN (&#39;active&#39;, &#39;discontinued&#39;, &#39;draft&#39;))
 );
 </code></pre>
 <blockquote>
-<p><strong>Note:</strong> SQLite enforces <code>CHECK</code> constraints on <code>INSERT</code> and <code>UPDATE</code>, but does not enforce foreign keys by default — you must run <code>PRAGMA foreign_keys = ON;</code> at the start of each connection.</p>
+<p><strong>Note:</strong> PostgreSQL enforces <code>CHECK</code> constraints on <code>INSERT</code> and <code>UPDATE</code>, and enforces foreign keys by default — no pragma needed.</p>
 </blockquote>
 <h2>Seeing Constraints Fail in Real Time</h2>
 <p>The best way to understand constraints is to violate them and watch the engine push back. The widget below creates a small <code>orders</code> table with several constraints in place. Try running each of the commented statements to see exactly which constraint fires.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Constraints in action</span></div>
   <div class="widget-body">
-    <textarea data-setup="PRAGMA foreign_keys = ON; CREATE TABLE customers (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), amount REAL NOT NULL CHECK (amount  rows="10"> 0), status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'shipped', 'cancelled'))); INSERT INTO customers VALUES (1, 'alice@example.com'); INSERT INTO customers VALUES (2, 'bob@example.com'); INSERT INTO orders VALUES (1, 1, 49.99, 'pending'); INSERT INTO orders VALUES (2, 2, 12.50, 'shipped');">-- Succeeds: valid data
+    <textarea data-setup="CREATE TABLE customers (id SERIAL PRIMARY KEY, email TEXT NOT NULL UNIQUE); CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), amount REAL NOT NULL CHECK (amount  rows="10"> 0), status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'shipped', 'cancelled'))); INSERT INTO customers VALUES (1, 'alice@example.com'); INSERT INTO customers VALUES (2, 'bob@example.com'); INSERT INTO orders VALUES (1, 1, 49.99, 'pending'); INSERT INTO orders VALUES (2, 2, 12.50, 'shipped');">-- Succeeds: valid data
 SELECT * FROM orders;
 -- Try these one at a time to see each constraint fire:
 -- Violates CHECK (amount must be > 0):

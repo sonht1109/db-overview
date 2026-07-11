@@ -109,23 +109,23 @@
 <h2>Low-Selectivity Columns</h2>
 <p>An index on a <strong>low-selectivity</strong> column — one with very few distinct values — rarely helps. If 40 % of your rows have <code>status = &#39;active&#39;</code>, the database often finds it cheaper to scan the whole table than to bounce between the index and the heap for 400,000 rows out of 1,000,000.</p>
 <blockquote>
-<p><strong>Note:</strong> A common rule of thumb: if a column has fewer than ~10–20 distinct values and rows are spread roughly evenly across them, a full table scan usually beats an index scan. Always verify with <code>EXPLAIN QUERY PLAN</code> before assuming an index will help.</p>
+<p><strong>Note:</strong> A common rule of thumb: if a column has fewer than ~10–20 distinct values and rows are spread roughly evenly across them, a full table scan usually beats an index scan. Always verify with <code>EXPLAIN</code> before assuming an index will help.</p>
 </blockquote>
 <p>Try it below. The <code>events</code> table has a <code>type</code> column with only two values. Notice that even with an index, SQLite&#39;s planner may choose a full scan for the high-frequency value but use the index for a rare one.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Low-selectivity index</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id INTEGER PRIMARY KEY, type TEXT, payload TEXT); INSERT INTO events WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x < 900) SELECT x, 'common', 'data-' || x FROM cnt; INSERT INTO events WITH RECURSIVE cnt(x) AS (SELECT 901 UNION ALL SELECT x+1 FROM cnt WHERE x < 1000) SELECT x, 'rare', 'data-' || x FROM cnt; CREATE INDEX idx_type ON events(type);" rows="10">-- 900 rows are 'common', only 100 are 'rare'
+    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, type TEXT, payload TEXT); INSERT INTO events WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x < 900) SELECT x, 'common', 'data-' || x FROM cnt; INSERT INTO events WITH RECURSIVE cnt(x) AS (SELECT 901 UNION ALL SELECT x+1 FROM cnt WHERE x < 1000) SELECT x, 'rare', 'data-' || x FROM cnt; CREATE INDEX idx_type ON events(type);" rows="10">-- 900 rows are 'common', only 100 are 'rare'
 -- Compare the plans for each value:
-EXPLAIN QUERY PLAN SELECT * FROM events WHERE type = 'common';
+EXPLAIN SELECT * FROM events WHERE type = 'common';
 -- Now try the rare value — does the planner behave differently?
--- EXPLAIN QUERY PLAN SELECT * FROM events WHERE type = 'rare';</textarea>
+-- EXPLAIN SELECT * FROM events WHERE type = 'rare';</textarea>
   </div>
 </div><h2>Write-Heavy Tables</h2>
 <p>Consider a <code>page_views</code> table that records every click on a website. If you add indexes on <code>user_id</code>, <code>page_id</code>, <code>session_id</code>, and <code>created_at</code> separately, each page view triggers four index writes in addition to the row insert. Under heavy load, those writes compete for I/O and locks — you can turn a fast insert path into a bottleneck.</p>
 <pre><code class="language-sql">-- A table drowning in indexes
 CREATE TABLE page_views (
-  id         INTEGER PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
   user_id    INTEGER,
   page_id    INTEGER,
   session_id TEXT,

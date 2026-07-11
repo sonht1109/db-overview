@@ -177,7 +177,7 @@ SELECT * FROM users WHERE user_id BETWEEN 1000001 AND 2000000;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating sharding with hash mod</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE users (user_id INTEGER PRIMARY KEY, name TEXT, email TEXT); INSERT INTO users VALUES (1, 'Alice', 'alice@example.com'); INSERT INTO users VALUES (2, 'Bob', 'bob@example.com'); INSERT INTO users VALUES (3, 'Carol', 'carol@example.com'); INSERT INTO users VALUES (4, 'Dave', 'dave@example.com'); INSERT INTO users VALUES (5, 'Eve', 'eve@example.com'); INSERT INTO users VALUES (6, 'Frank', 'frank@example.com'); INSERT INTO users VALUES (7, 'Grace', 'grace@example.com'); INSERT INTO users VALUES (8, 'Hank', 'hank@example.com'); INSERT INTO users VALUES (9, 'Ivy', 'ivy@example.com');" rows="10">-- Show which logical shard each user lands on (hash mod 3)
+    <textarea data-setup="CREATE TABLE users (user_id SERIAL PRIMARY KEY, name TEXT, email TEXT); INSERT INTO users VALUES (1, 'Alice', 'alice@example.com'); INSERT INTO users VALUES (2, 'Bob', 'bob@example.com'); INSERT INTO users VALUES (3, 'Carol', 'carol@example.com'); INSERT INTO users VALUES (4, 'Dave', 'dave@example.com'); INSERT INTO users VALUES (5, 'Eve', 'eve@example.com'); INSERT INTO users VALUES (6, 'Frank', 'frank@example.com'); INSERT INTO users VALUES (7, 'Grace', 'grace@example.com'); INSERT INTO users VALUES (8, 'Hank', 'hank@example.com'); INSERT INTO users VALUES (9, 'Ivy', 'ivy@example.com');" rows="10">-- Show which logical shard each user lands on (hash mod 3)
 -- Shard 0, 1, or 2 based on user_id
 SELECT
   user_id,

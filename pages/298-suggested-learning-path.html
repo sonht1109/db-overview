@@ -244,14 +244,14 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Query Analysis Practice</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, total REAL NOT NULL, status TEXT NOT NULL, created_at INTEGER NOT NULL); CREATE INDEX idx_customer ON orders(customer_id); CREATE INDEX idx_status ON orders(status); INSERT INTO orders VALUES (1,101,99.0,'completed',1700000001); INSERT INTO orders VALUES (2,102,250.0,'pending',1700000002); INSERT INTO orders VALUES (3,101,75.0,'completed',1700000010); INSERT INTO orders VALUES (4,103,500.0,'completed',1700000020); INSERT INTO orders VALUES (5,102,30.0,'cancelled',1700000030); INSERT INTO orders VALUES (6,101,120.0,'pending',1700000040);" rows="10">-- Stage 1: write the query
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER NOT NULL, total REAL NOT NULL, status TEXT NOT NULL, created_at INTEGER NOT NULL); CREATE INDEX idx_customer ON orders(customer_id); CREATE INDEX idx_status ON orders(status); INSERT INTO orders VALUES (1,101,99.0,'completed',1700000001); INSERT INTO orders VALUES (2,102,250.0,'pending',1700000002); INSERT INTO orders VALUES (3,101,75.0,'completed',1700000010); INSERT INTO orders VALUES (4,103,500.0,'completed',1700000020); INSERT INTO orders VALUES (5,102,30.0,'cancelled',1700000030); INSERT INTO orders VALUES (6,101,120.0,'pending',1700000040);" rows="10">-- Stage 1: write the query
 SELECT customer_id, COUNT(*) AS order_count, SUM(total) AS revenue
 FROM orders
 WHERE status = 'completed'
 GROUP BY customer_id
 ORDER BY revenue DESC;
--- Stage 2: understand the plan (SQLite EXPLAIN QUERY PLAN)
-EXPLAIN QUERY PLAN
+-- Stage 2: understand the plan (SQLite EXPLAIN)
+EXPLAIN
 SELECT customer_id, COUNT(*) AS order_count, SUM(total) AS revenue
 FROM orders
 WHERE status = 'completed'

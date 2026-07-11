@@ -134,17 +134,17 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Index vs. Full Scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, amount REAL); WITH RECURSIVE gs(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM gs WHERE value &lt; 5000) INSERT INTO orders SELECT value, abs(random() % 1000), CASE abs(random()%3) WHEN 0 THEN 'pending' WHEN 1 THEN 'shipped' ELSE 'delivered' END, round(abs(random() % 10000) / 100.0, 2) FROM gs; CREATE INDEX idx_orders_customer ON orders(customer_id);" rows="10">-- With the index on customer_id, this is an instant lookup:
+    <textarea data-setup="CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER, status TEXT, amount REAL); WITH RECURSIVE gs(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM gs WHERE value &lt; 5000) INSERT INTO orders SELECT value, abs(random() % 1000), CASE abs(random()%3) WHEN 0 THEN 'pending' WHEN 1 THEN 'shipped' ELSE 'delivered' END, round(abs(random() % 10000) / 100.0, 2) FROM gs; CREATE INDEX idx_orders_customer ON orders(customer_id);" rows="10">-- With the index on customer_id, this is an instant lookup:
 SELECT id, status, amount
 FROM orders
 WHERE customer_id = 42;
 -- Compare: searching on an unindexed column (status) requires a full scan.
--- EXPLAIN QUERY PLAN shows which path SQLite picks:
-EXPLAIN QUERY PLAN
+-- EXPLAIN shows which path SQLite picks:
+EXPLAIN
 SELECT id, status FROM orders WHERE status = 'shipped';</textarea>
   </div>
 </div><blockquote>
-<p><strong>Key insight:</strong> <code>EXPLAIN QUERY PLAN</code> (SQLite) or <code>EXPLAIN ANALYZE</code> (PostgreSQL) tells you exactly what the planner is doing. Run it before concluding that SQL is slow — nine times out of ten you&#39;ll find a missing index or a query that can be rewritten.</p>
+<p><strong>Key insight:</strong> <code>EXPLAIN</code> (SQLite) or <code>EXPLAIN ANALYZE</code> (PostgreSQL) tells you exactly what the planner is doing. Run it before concluding that SQL is slow — nine times out of ten you&#39;ll find a missing index or a query that can be rewritten.</p>
 </blockquote>
 <h2>Key Takeaways</h2>
 <ul>

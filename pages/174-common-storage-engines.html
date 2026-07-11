@@ -128,7 +128,7 @@
 <blockquote>
 <p><strong>Note:</strong> Most production key-value systems are not single-engine. Redis adds persistence layers on top of its hash table. RocksDB is embedded inside larger systems (TiKV, Pebble) that add distributed replication on top. The engine is one layer in a larger stack.</p>
 </blockquote>
-<p>The interactive widget below lets you observe a key behavior that distinguishes engines: with a B-tree-style sorted store, range scans are cheap; with a hash table, they require a full scan. Simulate both patterns and compare their <code>EXPLAIN QUERY PLAN</code> output.</p>
+<p>The interactive widget below lets you observe a key behavior that distinguishes engines: with a B-tree-style sorted store, range scans are cheap; with a hash table, they require a full scan. Simulate both patterns and compare their <code>EXPLAIN</code> output.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · B-tree range scan vs hash scan</span></div>
   <div class="widget-body">
@@ -138,9 +138,9 @@ FROM btree_store
 WHERE key BETWEEN 'product:' AND 'product:~'
 ORDER BY key;
 -- Uncomment to compare query plans:
--- EXPLAIN QUERY PLAN
+-- EXPLAIN
 -- SELECT key FROM btree_store WHERE key BETWEEN 'session:' AND 'session:~';
--- EXPLAIN QUERY PLAN
+-- EXPLAIN
 -- SELECT key FROM hash_store  WHERE key BETWEEN 'session:' AND 'session:~';</textarea>
   </div>
 </div><h2>Key Takeaways</h2>

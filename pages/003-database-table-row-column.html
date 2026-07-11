@@ -150,7 +150,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Books table basics</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT, author TEXT, price REAL); INSERT INTO books VALUES (1, 'The Pragmatic Programmer', 'Hunt & Thomas', 49.95); INSERT INTO books VALUES (2, 'Designing Data-Intensive Applications', 'Kleppmann', 54.99); INSERT INTO books VALUES (3, 'Database Internals', 'Petrov', 44.99);" rows="10">SELECT id, title, price
+    <textarea data-setup="CREATE TABLE books (id SERIAL PRIMARY KEY, title TEXT, author TEXT, price REAL); INSERT INTO books VALUES (1, 'The Pragmatic Programmer', 'Hunt & Thomas', 49.95); INSERT INTO books VALUES (2, 'Designing Data-Intensive Applications', 'Kleppmann', 54.99); INSERT INTO books VALUES (3, 'Database Internals', 'Petrov', 44.99);" rows="10">SELECT id, title, price
 FROM books
 ORDER BY price ASC;</textarea>
   </div>

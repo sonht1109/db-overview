@@ -103,7 +103,7 @@ COMMIT;  -- constraints verified here; all-or-nothing
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Inventory oversell</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, stock INTEGER); INSERT INTO products VALUES (77, 'Limited-Edition Hat', 1);" rows="10">-- Two buyers race. Both read stock = 1 and both proceed.
+    <textarea data-setup="CREATE TABLE products (id SERIAL PRIMARY KEY, name TEXT, stock INTEGER); INSERT INTO products VALUES (77, 'Limited-Edition Hat', 1);" rows="10">-- Two buyers race. Both read stock = 1 and both proceed.
 -- Session A updates first:
 UPDATE products SET stock = stock - 1 WHERE id = 77;
 -- Session B updates next (used stale read, no guard):

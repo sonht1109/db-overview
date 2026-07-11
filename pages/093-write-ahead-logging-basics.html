@@ -151,7 +151,7 @@ LSN 501 → LSN 502 → ... → LSN 610 [COMMIT txn 77]
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · WAL mode and transactions</span></div>
   <div class="widget-body">
-    <textarea data-setup="PRAGMA journal_mode=WAL; CREATE TABLE transfers (id INTEGER PRIMARY KEY, from_acct INTEGER, to_acct INTEGER, amount REAL, committed_at TEXT); INSERT INTO transfers VALUES (1, 101, 202, 250.00, '2024-01-10 09:00:00'); INSERT INTO transfers VALUES (2, 303, 404, 75.50, '2024-01-10 09:01:12'); INSERT INTO transfers VALUES (3, 101, 505, 500.00, '2024-01-10 09:03:44');" rows="10">-- WAL mode is active. Each committed transaction appends to the WAL.
+    <textarea data-setup="CREATE TABLE transfers (id SERIAL PRIMARY KEY, from_acct INTEGER, to_acct INTEGER, amount REAL, committed_at TEXT); INSERT INTO transfers VALUES (1, 101, 202, 250.00, '2024-01-10 09:00:00'); INSERT INTO transfers VALUES (2, 303, 404, 75.50, '2024-01-10 09:01:12'); INSERT INTO transfers VALUES (3, 101, 505, 500.00, '2024-01-10 09:03:44');" rows="10">-- WAL mode is active. Each committed transaction appends to the WAL.
 -- Run a transaction and see how SQLite tracks journal mode.
 PRAGMA journal_mode;   -- should show 'wal'
 -- Now simulate a transfer as an atomic transaction:

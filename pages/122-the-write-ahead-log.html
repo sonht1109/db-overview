@@ -163,7 +163,7 @@
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · WAL log structure simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE wal_log (lsn INTEGER PRIMARY KEY, txn_id INTEGER, page_id INTEGER, record_type TEXT, before_val TEXT, after_val TEXT); INSERT INTO wal_log VALUES (1001, 42, 7, 'BEGIN',   NULL,     NULL); INSERT INTO wal_log VALUES (1002, 42, 7, 'UPDATE',  '1000',   '1500'); INSERT INTO wal_log VALUES (1003, 42, 7, 'UPDATE',  '2500',   '2000'); INSERT INTO wal_log VALUES (1004, 42, 7, 'COMMIT',  NULL,     NULL); INSERT INTO wal_log VALUES (1005, 55, 3, 'BEGIN',   NULL,     NULL); INSERT INTO wal_log VALUES (1006, 55, 3, 'UPDATE',  'Alice',  'Alicia'); INSERT INTO wal_log VALUES (1007, 99, 5, 'BEGIN',   NULL,     NULL); INSERT INTO wal_log VALUES (1008, 99, 5, 'UPDATE',  '999',    '0');" rows="10">-- Browse the simulated WAL log
+    <textarea data-setup="CREATE TABLE wal_log (lsn SERIAL PRIMARY KEY, txn_id INTEGER, page_id INTEGER, record_type TEXT, before_val TEXT, after_val TEXT); INSERT INTO wal_log VALUES (1001, 42, 7, 'BEGIN',   NULL,     NULL); INSERT INTO wal_log VALUES (1002, 42, 7, 'UPDATE',  '1000',   '1500'); INSERT INTO wal_log VALUES (1003, 42, 7, 'UPDATE',  '2500',   '2000'); INSERT INTO wal_log VALUES (1004, 42, 7, 'COMMIT',  NULL,     NULL); INSERT INTO wal_log VALUES (1005, 55, 3, 'BEGIN',   NULL,     NULL); INSERT INTO wal_log VALUES (1006, 55, 3, 'UPDATE',  'Alice',  'Alicia'); INSERT INTO wal_log VALUES (1007, 99, 5, 'BEGIN',   NULL,     NULL); INSERT INTO wal_log VALUES (1008, 99, 5, 'UPDATE',  '999',    '0');" rows="10">-- Browse the simulated WAL log
 SELECT lsn, txn_id, page_id, record_type, before_val, after_val
 FROM wal_log
 ORDER BY lsn;

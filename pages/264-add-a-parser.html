@@ -170,7 +170,7 @@ def parse(sql: str) -&gt; dict:
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Parsing Queries</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice',30,70000),(2,'Bob',25,55000),(3,'Carol',34,92000),(4,'Dave',28,61000),(5,'Eve',40,110000);" rows="10">-- Each of these is what our parser produces as an AST, then executes:
+    <textarea data-setup="CREATE TABLE employees (id SERIAL PRIMARY KEY, name TEXT NOT NULL, age INTEGER NOT NULL, salary INTEGER NOT NULL); INSERT INTO employees VALUES (1,'Alice',30,70000),(2,'Bob',25,55000),(3,'Carol',34,92000),(4,'Dave',28,61000),(5,'Eve',40,110000);" rows="10">-- Each of these is what our parser produces as an AST, then executes:
 -- SELECT name, age FROM employees WHERE salary > 80000
 SELECT name, age FROM employees WHERE salary &gt; 80000;
 -- SELECT * FROM employees WHERE name = 'Alice'

@@ -152,7 +152,7 @@
   <div class="widget-head"><span>Interactive SQL · Buffer hit rate simulation</span></div>
   <div class="widget-body">
     <textarea data-setup="CREATE TABLE access_log (
-  id       INTEGER PRIMARY KEY,
+  id       SERIAL PRIMARY KEY,
   page_no  INTEGER NOT NULL,
   hit      INTEGER NOT NULL CHECK(hit IN (0, 1))
 );

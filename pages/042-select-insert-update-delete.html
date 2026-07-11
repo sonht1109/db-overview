@@ -77,7 +77,7 @@ LIMIT   &lt;n&gt;;          -- optional
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · SELECT basics</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT, department TEXT, salary INTEGER); INSERT INTO employees VALUES (1,'Ada','Lovelace','Engineering',95000); INSERT INTO employees VALUES (2,'Grace','Hopper','Engineering',105000); INSERT INTO employees VALUES (3,'Alan','Turing','Research',98000); INSERT INTO employees VALUES (4,'Margaret','Hamilton','Engineering',110000); INSERT INTO employees VALUES (5,'Claude','Shannon','Research',92000);" rows="10">SELECT first_name, last_name, salary
+    <textarea data-setup="CREATE TABLE employees (id SERIAL PRIMARY KEY, first_name TEXT, last_name TEXT, department TEXT, salary INTEGER); INSERT INTO employees VALUES (1,'Ada','Lovelace','Engineering',95000); INSERT INTO employees VALUES (2,'Grace','Hopper','Engineering',105000); INSERT INTO employees VALUES (3,'Alan','Turing','Research',98000); INSERT INTO employees VALUES (4,'Margaret','Hamilton','Engineering',110000); INSERT INTO employees VALUES (5,'Claude','Shannon','Research',92000);" rows="10">SELECT first_name, last_name, salary
 FROM employees
 WHERE department = 'Engineering'
 ORDER BY salary DESC;</textarea>
@@ -120,7 +120,7 @@ WHERE id = 5;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · INSERT / UPDATE / DELETE</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE employees (id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT, department TEXT, salary INTEGER); INSERT INTO employees VALUES (1,'Ada','Lovelace','Engineering',95000); INSERT INTO employees VALUES (2,'Grace','Hopper','Engineering',105000); INSERT INTO employees VALUES (3,'Alan','Turing','Research',98000); INSERT INTO employees VALUES (4,'Margaret','Hamilton','Engineering',110000); INSERT INTO employees VALUES (5,'Claude','Shannon','Research',92000);" rows="10">-- 1. Add a new employee
+    <textarea data-setup="CREATE TABLE employees (id SERIAL PRIMARY KEY, first_name TEXT, last_name TEXT, department TEXT, salary INTEGER); INSERT INTO employees VALUES (1,'Ada','Lovelace','Engineering',95000); INSERT INTO employees VALUES (2,'Grace','Hopper','Engineering',105000); INSERT INTO employees VALUES (3,'Alan','Turing','Research',98000); INSERT INTO employees VALUES (4,'Margaret','Hamilton','Engineering',110000); INSERT INTO employees VALUES (5,'Claude','Shannon','Research',92000);" rows="10">-- 1. Add a new employee
 INSERT INTO employees (first_name, last_name, department, salary)
 VALUES ('Linus', 'Torvalds', 'Engineering', 120000);
 -- 2. Give Research a 10% raise

@@ -178,20 +178,20 @@ DROP INDEX idx_orders_status;
 <p><strong>Note:</strong> Low selectivity is not always a dead end. A composite index that pairs a low-selectivity column with a high-selectivity one (e.g., <code>(status, user_id)</code>) can be very useful when queries filter on both.</p>
 </blockquote>
 <h2>Try It: Secondary Index Lookups</h2>
-<p>The widget below creates a small <code>products</code> table, seeds it with data, and adds a secondary index on <code>category</code>. Run the <code>EXPLAIN QUERY PLAN</code> to see the index being used, then try the commented queries to observe when the engine skips it.</p>
+<p>The widget below creates a small <code>products</code> table, seeds it with data, and adds a secondary index on <code>category</code>. Run the <code>EXPLAIN</code> to see the index being used, then try the commented queries to observe when the engine skips it.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Secondary indexes</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL, in_stock INTEGER); INSERT INTO products VALUES (1, 'Laptop Pro',      'electronics', 1299.00, 1); INSERT INTO products VALUES (2, 'Wireless Mouse',  'electronics',   29.99, 1); INSERT INTO products VALUES (3, 'Standing Desk',   'furniture',    449.00, 1); INSERT INTO products VALUES (4, 'Ergonomic Chair', 'furniture',    299.00, 0); INSERT INTO products VALUES (5, 'USB-C Hub',       'electronics',   49.99, 1); INSERT INTO products VALUES (6, 'Bookshelf',       'furniture',    189.00, 1); INSERT INTO products VALUES (7, 'Notebook',        'stationery',     4.99, 1); INSERT INTO products VALUES (8, 'Fountain Pen',    'stationery',    24.99, 0); CREATE INDEX idx_products_category ON products (category); CREATE INDEX idx_products_price ON products (price);" rows="10">-- See the secondary index used for a specific category
-EXPLAIN QUERY PLAN
+    <textarea data-setup="CREATE TABLE products (id SERIAL PRIMARY KEY, name TEXT, category TEXT, price REAL, in_stock INTEGER); INSERT INTO products VALUES (1, 'Laptop Pro',      'electronics', 1299.00, 1); INSERT INTO products VALUES (2, 'Wireless Mouse',  'electronics',   29.99, 1); INSERT INTO products VALUES (3, 'Standing Desk',   'furniture',    449.00, 1); INSERT INTO products VALUES (4, 'Ergonomic Chair', 'furniture',    299.00, 0); INSERT INTO products VALUES (5, 'USB-C Hub',       'electronics',   49.99, 1); INSERT INTO products VALUES (6, 'Bookshelf',       'furniture',    189.00, 1); INSERT INTO products VALUES (7, 'Notebook',        'stationery',     4.99, 1); INSERT INTO products VALUES (8, 'Fountain Pen',    'stationery',    24.99, 0); CREATE INDEX idx_products_category ON products (category); CREATE INDEX idx_products_price ON products (price);" rows="10">-- See the secondary index used for a specific category
+EXPLAIN
 SELECT id, name, price
 FROM products
 WHERE category = 'electronics';
 -- Try: look up by price range (uses idx_products_price)
--- EXPLAIN QUERY PLAN
+-- EXPLAIN
 -- SELECT name, price FROM products WHERE price < 50;
 -- Try: no index on in_stock — watch for SCAN
--- EXPLAIN QUERY PLAN
+-- EXPLAIN
 -- SELECT name FROM products WHERE in_stock = 0;</textarea>
   </div>
 </div><p>Look for <code>USING INDEX idx_products_category</code> in the plan output. When you uncomment the <code>in_stock</code> query you&#39;ll see a full <code>SCAN</code> — there&#39;s no index covering that column, so the engine reads every row.</p>

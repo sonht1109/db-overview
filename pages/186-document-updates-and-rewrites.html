@@ -189,19 +189,19 @@ db.orders.updateOne(
     <textarea data-setup="CREATE TABLE docs (id TEXT PRIMARY KEY, doc TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1); INSERT INTO docs VALUES ('usr-001', '{&quot;name&quot;:&quot;Priya&quot;,&quot;status&quot;:&quot;active&quot;,&quot;login_count&quot;:5,&quot;tags&quot;:[&quot;beta&quot;]}', 1); INSERT INTO docs VALUES ('usr-002', '{&quot;name&quot;:&quot;Leo&quot;,&quot;status&quot;:&quot;inactive&quot;,&quot;login_count&quot;:0,&quot;tags&quot;:[]}', 1);" rows="10">-- Simulate an atomic field-level update (increment login_count, set status)
 UPDATE docs
 SET
-  doc = json_set(
-          json_set(doc, '$.login_count', json_extract(doc, '$.login_count') + 1),
-          '$.status', 'active'
+  doc = jsonb_set(
+          jsonb_set(doc::jsonb, '{login_count}', to_jsonb((doc->>'login_count')::int + 1)),
+          '{status}', '"active"'
         ),
   version = version + 1
 WHERE id = 'usr-001';
 -- See the result
-SELECT id, json_extract(doc, '$.login_count') AS login_count,
-           json_extract(doc, '$.status') AS status,
+SELECT id, doc->>'$.login_count' AS login_count,
+           doc->>'$.status' AS status,
            version
 FROM docs;</textarea>
   </div>
-</div><p>The <code>json_set()</code> function updates fields in place without replacing the full document. The <code>version</code> column increments with each write, enabling optimistic concurrency checks.</p>
+</div><p>The <code>jsonb_set()</code> function updates fields in place without replacing the full document. The <code>version</code> column increments with each write, enabling optimistic concurrency checks.</p>
 <h2>Key Takeaways</h2>
 <ul>
 <li><strong>Read-modify-write cycles are dangerous</strong> under concurrency; use atomic update operators (<code>$set</code>, <code>$inc</code>, <code>$push</code>, etc.) to avoid lost updates.</li>

@@ -179,21 +179,21 @@ db.orders.find({ &quot;items.0.sku&quot;: &quot;NB-001&quot; })
 db.orders.find({ total: { $gt: 500 } })
 </code></pre>
 <p>Even relational databases have adopted JSON path syntax. SQLite&#39;s <code>json_extract()</code> and PostgreSQL&#39;s <code>-&gt;</code> / <code>-&gt;&gt;</code> operators let you query into JSON columns with similar path expressions. Try it yourself below.</p>
-<p>Run this query to extract and filter fields stored as JSON text in SQLite:</p>
+<p>Run this query to extract and filter fields stored as JSON text:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Querying JSON fields</span></div>
   <div class="widget-body">
     <textarea data-setup="CREATE TABLE orders (order_id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO orders VALUES ('ORD-5512', '{&quot;customer&quot;:&quot;usr-8821&quot;,&quot;total&quot;:1004.98,&quot;items&quot;:[{&quot;sku&quot;:&quot;NB-001&quot;,&quot;qty&quot;:2},{&quot;sku&quot;:&quot;LP-042&quot;,&quot;qty&quot;:1}]}'); INSERT INTO orders VALUES ('ORD-5513', '{&quot;customer&quot;:&quot;usr-0042&quot;,&quot;total&quot;:5.98,&quot;items&quot;:[{&quot;sku&quot;:&quot;NB-001&quot;,&quot;qty&quot;:2}]}'); INSERT INTO orders VALUES ('ORD-5514', '{&quot;customer&quot;:&quot;usr-8821&quot;,&quot;total&quot;:299.00,&quot;items&quot;:[{&quot;sku&quot;:&quot;TB-009&quot;,&quot;qty&quot;:1}]}');" rows="10">-- Extract nested fields and filter by total > 100
 SELECT
   order_id,
-  json_extract(doc, '$.customer')       AS customer,
-  json_extract(doc, '$.total')          AS total,
-  json_extract(doc, '$.items[0].sku')   AS first_item_sku
+  doc->>'$.customer'       AS customer,
+  doc->>'$.total'          AS total,
+  doc->>'$.items[0].sku'   AS first_item_sku
 FROM orders
-WHERE CAST(json_extract(doc, '$.total') AS REAL) > 100
+WHERE (doc->>'$.total')::double precision > 100
 ORDER BY total DESC;</textarea>
   </div>
-</div><p>Try changing the threshold (<code>&gt; 100</code>) or extracting a different path like <code>$.items[1].sku</code>. Notice that when an index is out of range, <code>json_extract</code> returns <code>NULL</code> — the document model&#39;s version of a missing column.</p>
+</div><p>Try changing the threshold (<code>&gt; 100</code>) or extracting a different path like <code>$.items[1].sku</code>. Notice that when an index is out of range, the <code>-&gt;</code> operator returns <code>NULL</code> — the document model&#39;s version of a missing column.</p>
 
 </div>
   <nav class="pagenav"><a class="prev" href="180-chapter-18-summary.html"><span class="dir">← Previous</span><span class="ttl">Design patterns</span></a><a class="next" href="182-flexible-schema.html"><span class="dir">Next →</span><span class="ttl">Flexible schema</span></a></nav>

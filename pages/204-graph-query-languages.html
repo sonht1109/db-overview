@@ -56,7 +56,7 @@
 <tr>
 <td><code>MERGE</code></td>
 <td>Upsert — create if not found</td>
-<td><code>INSERT OR IGNORE</code> + <code>UPDATE</code></td>
+<td><code>INSERT ... ON CONFLICT ... DO NOTHING</code> + <code>UPDATE</code></td>
 </tr>
 <tr>
 <td><code>SET</code></td>
@@ -218,7 +218,7 @@ RETURN friend.name;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating Cypher MATCH with Relational Tables</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE nodes (id INTEGER PRIMARY KEY, label TEXT, name TEXT, age INTEGER); INSERT INTO nodes VALUES (1,'Person','Alice',31),(2,'Person','Bob',28),(3,'Person','Carol',35),(4,'Person','Dave',24),(5,'Person','Eve',29); CREATE TABLE edges (id INTEGER PRIMARY KEY, from_id INTEGER, to_id INTEGER, type TEXT, since TEXT); INSERT INTO edges VALUES (1,1,2,'KNOWS','2020-03'),(2,1,3,'KNOWS','2019-07'),(3,2,4,'KNOWS','2021-11'),(4,3,5,'KNOWS','2022-05'),(5,4,1,'KNOWS','2023-01');" rows="10">-- Simulates: MATCH (a:Person {name:&quot;Alice&quot;})-[:KNOWS]-&gt;(b:Person) RETURN b.name
+    <textarea data-setup="CREATE TABLE nodes (id SERIAL PRIMARY KEY, label TEXT, name TEXT, age INTEGER); INSERT INTO nodes VALUES (1,'Person','Alice',31),(2,'Person','Bob',28),(3,'Person','Carol',35),(4,'Person','Dave',24),(5,'Person','Eve',29); CREATE TABLE edges (id SERIAL PRIMARY KEY, from_id INTEGER, to_id INTEGER, type TEXT, since TEXT); INSERT INTO edges VALUES (1,1,2,'KNOWS','2020-03'),(2,1,3,'KNOWS','2019-07'),(3,2,4,'KNOWS','2021-11'),(4,3,5,'KNOWS','2022-05'),(5,4,1,'KNOWS','2023-01');" rows="10">-- Simulates: MATCH (a:Person {name:&quot;Alice&quot;})-[:KNOWS]-&gt;(b:Person) RETURN b.name
 SELECT b.name AS friend
 FROM nodes a
 JOIN edges e ON a.id = e.from_id AND e.type = 'KNOWS'
