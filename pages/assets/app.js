@@ -2,7 +2,7 @@
  * Responsibilities:
  *   1. Mount interactive SQL widgets after page load (sql.js)
  *   2. Mount other interactive widgets as needed
- *   3. Track reading progress — mark page as done when scrolled to bottom
+ *   3. Track reading progress — mark page as done when user stays at bottom for 10s
  */
 (function () {
   "use strict";
@@ -101,11 +101,12 @@
 
   /* ---------------- Reading progress tracker ---------------- */
   var DONE_KEY = "db-done";
-  var SCROLL_THRESHOLD = 80; // px from bottom to consider "done"
+  var SCROLL_THRESHOLD = 80; // px from bottom to consider "at bottom"
+  var BOTTOM_DWELL_MS = 10000; // must stay at bottom for 10s to mark read
+  var dwellTimer = null;
 
   function pageSlug() {
     var path = window.location.pathname;
-    // Extract filename without extension, e.g. "/pages/007-why-database-systems-matter.html" -> "007-why-database-systems-matter"
     var m = path.match(/\/([^/]+)\.html$/);
     return m ? m[1] : null;
   }
@@ -142,17 +143,29 @@
     topbar.appendChild(badge);
   }
 
+  function atBottom() {
+    var scrollBottom = window.innerHeight + window.scrollY;
+    var docHeight = document.documentElement.scrollHeight;
+    return scrollBottom >= docHeight - SCROLL_THRESHOLD;
+  }
+
   function onScrollCheck() {
     var slug = pageSlug();
     if (!slug || isDone(slug)) return;
 
-    var scrollBottom = window.innerHeight + window.scrollY;
-    var docHeight = document.documentElement.scrollHeight;
-
-    if (scrollBottom >= docHeight - SCROLL_THRESHOLD) {
-      markDone(slug);
-      showDoneIndicator();
-      window.removeEventListener("scroll", onScrollCheck);
+    if (atBottom()) {
+      if (!dwellTimer) {
+        dwellTimer = setTimeout(function () {
+          markDone(slug);
+          showDoneIndicator();
+          window.removeEventListener("scroll", onScrollCheck);
+        }, BOTTOM_DWELL_MS);
+      }
+    } else {
+      if (dwellTimer) {
+        clearTimeout(dwellTimer);
+        dwellTimer = null;
+      }
     }
   }
 
