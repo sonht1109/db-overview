@@ -32,7 +32,7 @@ hostssl  all  all  0.0.0.0/0  scram-sha-256
 <h3>Mutual TLS (mTLS)</h3>
 <p>Standard TLS authenticates only the server. <strong>Mutual TLS</strong> also authenticates the client via a client certificate, so both sides prove their identity. This is common in database-as-a-service environments and microservice meshes.</p>
 <pre><code># PostgreSQL: require client certificate
-hostssl  all  app_user  0.0.0.0/0  cert clientcert=verify-full
+hostssl  all  app_user  0.0.0.0/0  cert
 </code></pre>
 <h3>Verifying Your Connection</h3>
 <p>After enabling TLS, verify that connections actually use it:</p>
@@ -42,6 +42,9 @@ WHERE pid = pg_backend_pid();
 </code></pre>
 <blockquote>
 <p><strong>Never disable certificate verification.</strong> Drivers often have a <code>sslmode=require</code> (encrypt but don&#39;t verify the certificate) option. Use <code>sslmode=verify-full</code> to also validate the server&#39;s hostname — otherwise you&#39;re vulnerable to man-in-the-middle attacks.</p>
+</blockquote>
+<blockquote>
+<p><strong>PostgreSQL server-side config:</strong> TLS is configured via <code>ssl_cert_file</code> (server certificate), <code>ssl_key_file</code> (private key), and <code>ssl_ca_file</code> (CA certificate for verifying client certs) in <code>postgresql.conf</code>. On the client side, <code>sslmode=verify-full</code> requires the server certificate&#39;s Common Name (CN) to match the hostname used in the connection string; a mismatch will cause the connection to fail.</p>
 </blockquote>
 <figure class="diagram">
 <svg viewBox="0 0 680 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TLS handshake flow between application and database: ClientHello, ServerHello with certificate, key exchange, then encrypted query/response">
@@ -87,7 +90,7 @@ WHERE pid = pg_backend_pid();
 </thead>
 <tbody><tr>
 <td>PostgreSQL</td>
-<td>Native TDE in v17+ (preview); also via pgcrypto or file-system encryption</td>
+<td>No native TDE; use pgcrypto for column-level encryption or file-system encryption (LUKS, ZFS native encryption) for at-rest protection</td>
 </tr>
 <tr>
 <td>MySQL / MariaDB</td>

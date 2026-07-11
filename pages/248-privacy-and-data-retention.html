@@ -44,7 +44,7 @@ SET
   full_name     = &#39;Deleted User&#39;,
   phone         = NULL,
   date_of_birth = NULL,
-  deleted_at    = strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;, &#39;now&#39;)
+  deleted_at    = to_char(now(), &#39;YYYY-MM-DD&quot;T&quot;HH24:MI:SS&#39;)
 WHERE id = :user_id;
 </code></pre>
 <p>The user&#39;s orders and financial records (needed for accounting and legal compliance) remain intact and linked by <code>user_id</code>, but the personal identifiers are gone.</p>
@@ -135,11 +135,11 @@ SET email = &#39;anon-&#39; || id || &#39;@deleted.invalid&#39;,
     full_name = &#39;Deleted&#39;,
     phone = NULL
 WHERE deleted_at IS NOT NULL
-  AND deleted_at &lt; strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;, &#39;now&#39;, &#39;-30 days&#39;);
+  AND deleted_at &lt; to_char(now() - interval &#39;30 days&#39;, &#39;YYYY-MM-DD&quot;T&quot;HH24:MI:SS&#39;);
 
 -- Purge log rows older than retention period
 DELETE FROM app_logs
-WHERE created_at &lt; strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;, &#39;now&#39;, &#39;-90 days&#39;);
+WHERE created_at &lt; to_char(now() - interval &#39;90 days&#39;, &#39;YYYY-MM-DD&quot;T&quot;HH24:MI:SS&#39;);
 </code></pre>
 <p>Run these as scheduled jobs (cron, pg_cron, cloud scheduler). Make them idempotent so a failed run can be re-executed without harm.</p>
 <h2>Data Masking for Non-Production Environments</h2>

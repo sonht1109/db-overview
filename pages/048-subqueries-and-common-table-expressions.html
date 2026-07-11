@@ -137,6 +137,9 @@ SELECT depth, name FROM org ORDER BY depth, name;
 </tr>
 </tbody></table>
 <p>Neither tool is inherently faster than the other — most modern query optimizers treat them equivalently. The real benefit of CTEs is <strong>readability</strong>: they let you give meaningful names to intermediate steps, which makes queries far easier to review and maintain.</p>
+<blockquote>
+<p><strong>PostgreSQL note:</strong> In PostgreSQL versions before 12, CTEs were <strong>optimization fences</strong> — the planner always materialized them separately and could not push predicates from the outer query into the CTE. This could cause dramatically worse performance compared to an equivalent subquery. Since PostgreSQL 12, CTEs can be inlined (folded into the outer query) like subqueries, unless you add the <code>MATERIALIZED</code> keyword to force the old behavior.</p>
+</blockquote>
 <p>Try rewriting the subquery from the first widget as a CTE in the box below:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · CTEs</span></div>

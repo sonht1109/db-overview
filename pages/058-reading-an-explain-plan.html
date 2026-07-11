@@ -101,7 +101,7 @@
   -&gt;  Hash  (cost=8.20..8.20 rows=370 width=36)
         -&gt;  Seq Scan on customers  (cost=0.00..8.20 rows=370 width=36)
 </code></pre>
-<p>Read it from the <strong>innermost indentation outward</strong>: SQLite scans <code>customers</code>, builds a hash table from those rows, then streams <code>orders</code> through the hash to find matches. The root <code>Hash Join</code> emits 120 rows at a total estimated cost of 38.80 units.</p>
+<p>Read it from the <strong>innermost indentation outward</strong>: the engine scans <code>customers</code>, builds a hash table from those rows, then streams <code>orders</code> through the hash to find matches. The root <code>Hash Join</code> emits 120 rows at a total estimated cost of 38.80 units. (This is PostgreSQL-style EXPLAIN output; the same tree-reading principle applies to SQLite&#39;s <code>EXPLAIN QUERY PLAN</code> and other engines.)</p>
 <h2>The Signals That Matter</h2>
 <h3>Scan type</h3>
 <p>The scan type tells you how the engine is reading a table:</p>

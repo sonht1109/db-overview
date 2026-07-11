@@ -68,7 +68,10 @@ log_min_duration_statement = 1000  # milliseconds
 log_failed_connections = on  # (available in PG 15+)
 </code></pre>
 <p>For finer-grained DML auditing, the community extension <strong>pgAudit</strong> (PostgreSQL Audit Extension) logs individual <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, and <code>DELETE</code> statements with full context:</p>
-<pre><code class="language-sql">-- Enable pgAudit for a specific role
+<pre><code class="language-sql">-- Install the extension (requires superuser)
+CREATE EXTENSION pgaudit;
+
+-- Enable pgAudit for a specific role
 SET pgaudit.log = &#39;read,write&#39;;
 SET pgaudit.log_relation = on;
 </code></pre>
@@ -95,7 +98,7 @@ BEGIN
     TG_TABLE_NAME,
     TG_OP,
     current_user,
-    strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;, &#39;now&#39;),
+    to_char(now(), &#39;YYYY-MM-DD&quot;T&quot;HH24:MI:SS&#39;),
     CASE WHEN TG_OP = &#39;DELETE&#39; THEN row_to_json(OLD)::text ELSE NULL END,
     CASE WHEN TG_OP IN (&#39;INSERT&#39;,&#39;UPDATE&#39;) THEN row_to_json(NEW)::text ELSE NULL END
   );

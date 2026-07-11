@@ -54,7 +54,7 @@
 </tr>
 <tr>
 <td><strong>2P-Set</strong></td>
-<td>Set with removals (element can be re-added once removed)</td>
+<td>Set with removals (element CANNOT be re-added once removed)</td>
 <td>Union of add-set and remove-set</td>
 </tr>
 <tr>
@@ -130,6 +130,9 @@ Merge (element-wise max):  [5, 3, 2]         → total = 10
 <li><strong>Semantic conflicts still happen.</strong> A CRDT for a shopping cart will correctly merge two concurrent &quot;add item&quot; operations, but if both users concurrently applied a coupon that is only valid once, the merge produces two applied coupons — which is semantically wrong even if structurally valid.</li>
 </ul>
 <p>The key question: <em>&quot;Is the merge semantics of this data type the same as the business semantics?&quot;</em> When the answer is yes, CRDTs give you coordination-free availability with guaranteed convergence. When it is no, you still need transactions or application-level conflict resolution.</p>
+<blockquote>
+<p><strong>Note:</strong> PostgreSQL has no native CRDT support, but its <code>JSONB</code> and <code>HSTORE</code> types can serve as building blocks for implementing CRDT-like merge semantics in application code. For example, a G-Counter can be modeled as a <code>JSONB</code> object mapping node IDs to counts, with the merge operation implemented as a user-defined function using element-wise <code>GREATEST</code>. This is not a replacement for true CRDTs, but it can be sufficient for moderate-scale multi-master or edge-sync scenarios where the conflict resolution logic is simple and well-understood.</p>
+</blockquote>
 <p>Try the widget below to see how a simple CRDT-like merge works in SQL — simulating two nodes that each recorded increments independently, then sync.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · G-Counter merge simulation</span></div>

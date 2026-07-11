@@ -58,7 +58,18 @@
 </svg></p>
 <figcaption>Undo walks T9's log records newest-to-oldest, writing each before-image back to the data page. The result is as if T9 never ran.</figcaption>
 </figure><p>Each undo step is itself written to the WAL as a <strong>Compensation Log Record (CLR)</strong>. The CLR says: &quot;the undo of LSN X has been applied.&quot; If the engine crashes again <em>during</em> the undo phase, it does not re-undo steps that CLRs already mark as done. This makes undo survivable under multiple crashes.</p>
-<h2>Savepoints: Partial Rollback Within a Session</h2>
+<h2>PostgreSQL: Recovery Without an Undo Pass</h2>
+<p>The undo mechanism described above — walking the WAL backward and writing before-images — is the <strong>ARIES protocol</strong> used by MySQL InnoDB, SQL Server, and others. <strong>PostgreSQL does not work this way.</strong></p>
+<p>PostgreSQL recovery has only an <strong>analysis pass and a redo pass</strong> — there is no undo phase. Here is why:</p>
+<ul>
+<li>PostgreSQL's WAL stores only <strong>redo information</strong> (after-images). There is no before-image in the WAL record.</li>
+<li>Uncommitted work is handled by <strong>MVCC visibility</strong>, not by physical undo. When a transaction modifies a row, the old version stays in the heap page. The new version carries a transaction ID (xmin). If that transaction never commits and the database crashes, recovery marks it as <strong>aborted</strong> — the row version it created simply becomes invisible to all future transactions.</li>
+<li>No physical rollback occurs. The "undo" is purely logical: the visibility rules hide the uncommitted version, and the old version (which was never overwritten) remains visible.</li>
+<li>VACUUM later cleans up the dead row versions.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> This is why PostgreSQL recovery is generally faster than ARIES-style recovery — there is no undo pass scanning the log backward. The trade-off is that PostgreSQL accumulates dead tuples, requiring periodic VACUUM to reclaim space and prevent table bloat. Monitoring <code>pg_stat_user_tables.n_dead_tup</code> helps track this overhead.</p>
+</blockquote>
 <p>Crash recovery is not the only way unfinished work gets cleaned up. A running session can deliberately back out to a named <strong>savepoint</strong> — a marker set earlier in the transaction. Everything after the savepoint is rolled back; work before it stays intact.</p>
 <pre><code class="language-sql">BEGIN;
 

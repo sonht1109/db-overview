@@ -123,7 +123,7 @@ ANALYZE;
 </tbody></table>
 <p>Most planners sort this out automatically with correct statistics, but explicit <code>WHERE</code> clauses and proper indexes on join columns are the best way to give the planner the information it needs.</p>
 <h3>4. Missing index on a foreign key used in a join</h3>
-<p>A foreign key constraint guarantees referential integrity, but it does not automatically create an index on the referencing column. Without that index, every join on that column requires a full scan of the child table.</p>
+<p>A foreign key constraint guarantees referential integrity, but — in PostgreSQL and SQLite — it does <em>not</em> automatically create an index on the referencing column. (MySQL&#39;s InnoDB engine is an exception: it does auto-create an index on FK columns.) Without that index, every join on that column requires a full scan of the child table.</p>
 <pre><code class="language-sql">-- If orders.customer_id has no index, this join scans all of orders
 SELECT c.name, COUNT(o.id)
 FROM customers c

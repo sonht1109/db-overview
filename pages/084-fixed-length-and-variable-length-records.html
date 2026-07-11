@@ -157,6 +157,9 @@
 <h2>Seeing the Difference in Practice</h2>
 <p>SQLite stores <code>TEXT</code> and <code>BLOB</code> columns as variable-length values internally, while <code>INTEGER</code> and <code>REAL</code> use compact fixed-width encodings. The query below lets you compare storage for a table that mixes both kinds of columns.</p>
 <p>Try running the default query, then change the <code>INSERT</code> values to very long or very short strings and observe how <code>length()</code> changes — that variation is variable-length storage in action.</p>
+<blockquote>
+<p><strong>Note:</strong> <code>length()</code> returns the number of <em>characters</em>, not bytes. For multi-byte encodings like UTF-8, a single character can occupy 1–4 bytes. In PostgreSQL, use <code>octet_length()</code> to get the actual byte count of a string. The difference matters for understanding storage: a 100-character string of emoji (4 bytes each) costs 400 bytes on disk, not 100.</p>
+</blockquote>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Fixed vs. Variable-Length Fields</span></div>
   <div class="widget-body">

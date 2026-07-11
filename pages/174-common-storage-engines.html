@@ -35,7 +35,7 @@
 <li><strong>Write-ahead log (WAL)</strong> — every write is also appended to a sequential log on disk for crash recovery.</li>
 <li><strong>SSTables</strong> — when the MemTable fills up, it is flushed to disk as an immutable, sorted file called an SSTable (Sorted String Table). Background compaction periodically merges SSTables to reclaim space and remove stale versions.</li>
 </ol>
-<p><strong>RocksDB</strong> (developed at Meta, forked from LevelDB) is the dominant LSM-tree engine. It powers <strong>TiKV</strong>, <strong>Apache Cassandra</strong> (internally uses a similar model), <strong>Pebble</strong> (CockroachDB&#39;s storage layer), and many others. <strong>WiredTiger</strong>, the default storage engine in MongoDB, also uses an LSM-like approach for its write-heavy collections.</p>
+<p><strong>RocksDB</strong> (developed at Meta, forked from LevelDB) is the dominant LSM-tree engine. RocksDB powers <strong>TiKV</strong>, <strong>Pebble</strong> (CockroachDB), and many others. Apache Cassandra uses its own independent LSM-tree implementation inspired by the Bigtable paper. <strong>WiredTiger</strong>, the default storage engine in MongoDB, is B-tree based by default but offers an optional LSM-tree mode for write-heavy workloads.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LSM-tree write path: writes go to WAL and MemTable, then flush to L0 SSTables, compacted into deeper levels">
   <defs>
@@ -84,7 +84,10 @@
   <line x1="120" y1="55" x2="240" y2="55" stroke="var(--border)" stroke-width="1"/>
 </svg></p>
 <figcaption>LSM-tree write path: writes land in the WAL and MemTable; when the MemTable is full it flushes to L0 SSTables on disk; background compaction merges levels.</figcaption>
-</figure><p><strong>Read amplification</strong> is the LSM trade-off: a read might need to check the MemTable, then several L0 files, then L1, and so on until it finds the key (or confirms it is absent). Bloom filters on each SSTable reduce this cost by letting the engine skip files that definitely do not contain the key.</p>
+</figure><blockquote>
+<p><strong>PostgreSQL note:</strong> PostgreSQL&#39;s default heap storage suffers from write amplification due to its MVCC model (old row versions remain until vacuumed). The <code>zheap</code> storage engine effort aims to address this with in-place updates and undo logs, reducing both write amplification and vacuum overhead. Additionally, <strong>BRIN indexes</strong> (Block Range INdexes) mitigate storage overhead for very large, naturally ordered tables by storing summary statistics per block range rather than per row — a useful tool when B-tree index size becomes the bottleneck.</p>
+</blockquote>
+<p><strong>Read amplification</strong> is the LSM trade-off: a read might need to check the MemTable, then several L0 files, then L1, and so on until it finds the key (or confirms it is absent). Bloom filters on each SSTable reduce this cost by letting the engine skip files that definitely do not contain the key.</p>
 <h2>Choosing Between Them</h2>
 <table>
 <thead>

@@ -25,7 +25,7 @@
     <text x="25" y="58" font-size="9" fill="#1c2330">Tables: employees, orders, line_items</text>
     <text x="25" y="76" font-size="9" fill="#1c2330">PK: id (or table_id for clarity)</text>
     <text x="25" y="94" font-size="9" fill="#1c2330">FK: customer_id, order_id</text>
-    <text x="25" y="112" font-size="9" fill="#1c2330">Singular names, snake_case</text>
+    <text x="25" y="112" font-size="9" fill="#1c2330">Plural nouns, snake_case</text>
     <text x="25" y="130" font-size="9" fill="#5a6678">timestamps: created_at, updated_at</text>
     <rect x="360" y="0" width="340" height="140" rx="10" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
     <text x="530" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#dc2626">❌ Avoid</text>
@@ -33,11 +33,11 @@
     <text x="385" y="58" font-size="9" fill="#1c2330">tbl_employees, EmployeeData</text>
     <text x="385" y="76" font-size="9" fill="#1c2330">Ambiguous: id (on every table)</text>
     <text x="385" y="94" font-size="9" fill="#1c2330">Reserved words: order, group, user</text>
-    <text x="385" y="112" font-size="9" fill="#1c2330">Plurals on tables (inconsistent)</text>
+    <text x="385" y="112" font-size="9" fill="#1c2330">Inconsistent naming: mixing singular/plural</text>
     <text x="385" y="130" font-size="9" fill="#5a6678">Abbreviations: cust_addr vs customer_address</text>
   </g>
 </svg>
-<figcaption>Consistent naming: singular table names, snake_case, descriptive FK names (customer_id not just id), and timestamps following a pattern (created_at/updated_at).</figcaption>
+<figcaption>Consistent naming: plural table names, snake_case, descriptive FK names (customer_id not just id), and timestamps following a pattern (created_at/updated_at).</figcaption>
 </figure>
 <p>The names you give your tables and columns are part of your schema&#39;s public contract. Every query, every piece of application code, and every teammate who reads your SQL will use those names constantly. Good naming makes the structure self-explanatory; bad naming forces everyone to consult external documentation just to understand what a column holds.</p>
 <h2>The Core Rules</h2>
@@ -124,6 +124,9 @@ CREATE TABLE OrderItems (
 <p>The <code>is_</code> and <code>has_</code> prefixes make boolean columns read like true/false questions — a reader can immediately infer the domain of values.</p>
 <blockquote>
 <p><strong>Note:</strong> Avoid names that are SQL reserved words: <code>order</code>, <code>group</code>, <code>select</code>, <code>table</code>, <code>value</code>. If you use them as identifiers, you must quote them everywhere — a maintenance headache. Most engines will let you do it; you just should not.</p>
+</blockquote>
+<blockquote>
+<p><strong>PostgreSQL note — identifier folding and length limit:</strong> PostgreSQL folds unquoted identifiers to lowercase automatically. <code>CREATE TABLE MyTable</code> creates a table named <code>mytable</code>, not <code>MyTable</code> — if you reference it as <code>MyTable</code> without quotes, it resolves to <code>mytable</code>. If you need mixed case, you must quote the name everywhere: <code>&quot;MyTable&quot;</code>. This is the main reason snake_case dominates the PostgreSQL ecosystem. Additionally, PostgreSQL enforces a <strong>63‑byte identifier length limit</strong> (<code>NAMEDATALEN</code>). Long table names like <code>inventory_warehouse_location_mapping_archive</code> will be silently truncated, which can cause hard-to-debug name collisions. Keep names descriptive but concise.</p>
 </blockquote>
 <h2>See It in Practice</h2>
 <p>The widget below shows a small e-commerce schema with carefully named tables and columns. Run the default query, then try renaming a column alias in the <code>SELECT</code> list to see how name clarity affects readability.</p>

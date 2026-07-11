@@ -75,6 +75,9 @@
 </code></pre>
 <p>Each leaf node holds the indexed column value paired with a <strong>pointer</strong> (a row identifier) back to the actual row in the table. The tree stays balanced so that any lookup takes at most O(log n) steps — for a million rows, that is roughly 20 comparisons instead of 1,000,000.</p>
 <blockquote>
+<p><strong>Note:</strong> The ~20 comparisons figure assumes a binary tree (log₂ 1M ≈ 20). Real database B-trees have much higher fanout — each node stores hundreds of keys. That means a B-tree for 1M rows is typically only 3–4 nodes deep, requiring even fewer I/O operations than the binary-tree model suggests.</p>
+</blockquote>
+<blockquote>
 <p><strong>Note:</strong> An index is not magic — it is a trade-off. The engine must update every index on every <code>INSERT</code>, <code>UPDATE</code>, and <code>DELETE</code>. More indexes means slower writes and more disk space. The win is on reads.</p>
 </blockquote>
 <p>The table itself does not change when you create an index. The index is a parallel structure the optimizer can choose to use — or ignore — depending on the query.</p>

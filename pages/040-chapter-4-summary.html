@@ -53,7 +53,7 @@
     <tr>
       <td>036</td>
       <td><strong>Naming tables and columns</strong></td>
-      <td>Consistent naming (singular table names, snake_case, descriptive column names) prevents years of confusion.</td>
+      <td>Consistent naming (singular or plural table names<sup>*</sup>, snake_case, descriptive column names) prevents years of confusion.</td>
     </tr>
     <tr>
       <td>037</td>
@@ -71,6 +71,7 @@
       <td>Every modeling decision trades simplicity against flexibility — document your reasoning alongside your schema.</td>
     </tr>
 </tbody></table>
+<p style="font-size:0.85em;color:#5a6678;margin-top:12px;"><sup>*</sup> Whether you choose singular (<code>user</code>) or plural (<code>users</code>) table names matters less than consistency across the entire schema. Pick one convention and apply it everywhere.</p>
 <details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 4 taught you to design schemas — turning real-world entities into tables, relationships into foreign keys, and invariants into constraints. But a schema is only useful if you can interact with it. Chapter 5 hands you the language: SQL. You will learn to query, insert, update, and delete data using declarative statements. The schemas you designed in this chapter will become the tables you SELECT from, JOIN across, and GROUP BY in the next. Design informs query; query tests design.</div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="039-tradeoffs-in-modeling.html"><span class="dir">← Previous</span><span class="ttl">Tradeoffs in modeling</span></a><a class="next" href="041-what-sql-is-for.html"><span class="dir">Next →</span><span class="ttl">What SQL is for</span></a></nav>

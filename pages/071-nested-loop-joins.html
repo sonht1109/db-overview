@@ -151,7 +151,7 @@ JOIN customers AS c ON o.customer_id = c.customer_id;</textarea>
 <li>A nested loop join iterates the outer table once and, for each row, probes the inner table.</li>
 <li>With an index on the inner join column, cost is O(M × log N) — efficient even for moderate-sized tables.</li>
 <li>Without an index, cost is O(M × N) — the planner will typically avoid nested loops for large tables and choose a hash join or sort-merge join instead.</li>
-<li>Choosing the <strong>smaller</strong> table as the outer input reduces total work when both sides lack indexes.</li>
+<li>Choosing the <strong>smaller</strong> table as the outer input only helps when the <em>inner</em> table has an index — otherwise M×N equals N×M. The real benefit of swapping the outer/inner roles comes when the inner side can be probed via an index seek, turning a full scan into O(log N) per outer row.</li>
 <li>Most relational engines choose the join algorithm automatically, but understanding nested loops helps you interpret <code>EXPLAIN</code> output and write index-friendly queries.</li>
 </ul>
 

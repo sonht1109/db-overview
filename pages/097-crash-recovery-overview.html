@@ -59,11 +59,11 @@
     <!-- Arrow down -->
     <line x1="345" y1="110" x2="345" y2="138" stroke="#16a34a" stroke-width="2" marker-end="url(#ag)"/>
 
-    <!-- Step 4: Undo uncommitted -->
+    <!-- Step 4: Undo uncommitted (ARIES only; not in PostgreSQL) -->
     <rect x="100" y="142" width="490" height="55" rx="6" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
-    <text x="345" y="159" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">UNDO phase: roll back uncommitted transactions</text>
-    <text x="345" y="177" text-anchor="middle" font-size="9" fill="#5a6678">Txn 43: had BEGIN but no COMMIT → UNDO all its changes</text>
-    <text x="345" y="192" text-anchor="middle" font-size="9" fill="#5a6678">Result: never-began or never-finished txns completely gone</text>
+    <text x="345" y="159" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">UNDO phase (ARIES engines only): roll back uncommitted txns</text>
+    <text x="345" y="177" text-anchor="middle" font-size="9" fill="#5a6678">Txn 43: had BEGIN but no COMMIT → ARIES walks backward to UNDO</text>
+    <text x="345" y="192" text-anchor="middle" font-size="9" fill="#5a6678">PostgreSQL: no UNDO pass — MVCC visibility rules handle it</text>
 
     <!-- Arrow down -->
     <line x1="345" y1="197" x2="345" y2="225" stroke="#16a34a" stroke-width="2" marker-end="url(#ag)"/>
@@ -73,10 +73,10 @@
     <text x="345" y="248" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">5. CONSISTENT STATE</text>
     <text x="345" y="266" text-anchor="middle" font-size="9" fill="#bbf7d0">Committed txns: intact   |   Uncommitted: gone</text>
 
-    <text x="345" y="288" text-anchor="middle" font-size="8" fill="#9aa6b8">RECOVERY = CHECKPOINT + REDO (committed) + UNDO (uncommitted) → guaranteed ACID durability</text>
+    <text x="345" y="288" text-anchor="middle" font-size="8" fill="#9aa6b8">ARIES model: RECOVERY = CHECKPOINT + REDO + UNDO (InnoDB, SQL Server, DB2) — PostgreSQL is REDO-only with MVCC visibility</text>
   </g>
 </svg>
-<figcaption>Crash recovery in five steps: restart, find checkpoint, redo committed WAL entries, undo uncommitted transactions, and land in a consistent state.</figcaption>
+<figcaption>ARIES-style crash recovery in five steps (InnoDB, SQL Server, DB2). PostgreSQL skips the UNDO phase — instead it relies on REDO-only WAL replay and MVCC visibility rules to hide uncommitted changes.</figcaption>
 </figure>
 <p>When a database crashes — power cut, OS panic, process killed — it must restart and end up in a <strong>consistent state</strong>. That means committed transactions are fully visible, and any transaction that never finished is completely gone. Getting this right is called <strong>crash recovery</strong>, and it is one of the most carefully engineered parts of any serious database engine.</p>
 <h2>The Problem: Writes Are Not Atomic by Default</h2>
@@ -140,13 +140,25 @@ COMMIT;
 </tbody></table>
 <p><strong>LSN</strong> (Log Sequence Number) is a monotonically increasing ID that orders every log record. Two recovery rules follow directly from this structure:</p>
 <ul>
-<li><strong>REDO</strong>: If a committed transaction&#39;s changes did not make it to the data pages before the crash, replay those log records to put them back.</li>
-<li><strong>UNDO</strong>: If an uncommitted transaction left partial changes on the data pages, reverse its log records to erase the partial work.</li>
+<li><strong>REDO</strong>: If a committed transaction&#39;s changes did not make it to the data pages before the crash, replay those log records to put them back. <em>All recovery systems do this.</em></li>
+<li><strong>UNDO</strong>: If an uncommitted transaction left partial changes on the data pages, reverse its log records to erase the partial work. <em>Used by ARIES engines (InnoDB, SQL Server, DB2). PostgreSQL handles this differently — see below.</em></li>
 </ul>
 <h3>Checkpoints</h3>
 <p>Replaying the entire log on every restart would be too slow. Engines periodically write a <strong>checkpoint</strong> — a log record that says &quot;at this point, all changes up to LSN X are safely on disk.&quot; Recovery only needs to process records <em>after</em> the last checkpoint, keeping restart time bounded regardless of how long the database has been running.</p>
-<h2>ARIES: The Algorithm Behind the Practice</h2>
-<p>Most production databases (PostgreSQL, SQL Server, DB2, and many others) implement a recovery protocol called <strong>ARIES</strong> (Algorithm for Recovery and Isolation Exploiting Semantics), developed at IBM in the 1990s. ARIES has three phases:</p>
+<h2>PostgreSQL Recovery: REDO-Only (Not ARIES)</h2>
+<p><strong>PostgreSQL does not implement ARIES.</strong> There is no Analysis phase, and — critically — there is no backward UNDO pass. PostgreSQL’s recovery works differently:</p>
+<ol>
+<li><strong>Read the checkpoint</strong> from <code>pg_control</code> to find the last known-safe LSN.</li>
+<li><strong>REDO-only replay</strong> — replay WAL forward from the checkpoint LSN to the end of the log, reapplying every record. Full-page images (FPI) embedded in WAL records provide a known starting point for each page, so REDO can begin from the checkpoint without needing an earlier consistent snapshot.</li>
+<li><strong>Commit log (clog / pg_xact)</strong> — after REDO finishes, the commit log determines which transactions actually committed. Uncommitted transactions are <em>not</em> rolled back via undo records; instead, their row versions simply never become visible to any snapshot.</li>
+<li><strong>MVCC visibility</strong> — every row version carries an <code>xmin</code> (creating transaction) and <code>xmax</code> (deleting transaction). When an uncommitted transaction’s <code>xmin</code> never appears in the commit log, that row version is invisible to all queries. No explicit backward unwinding of changes is performed.</li>
+</ol>
+<p>This design simplifies the recovery code significantly and avoids the complexity of maintaining undo logs during normal operation. The cost is that WAL records must be self-contained enough to replay forward without knowing the prior state of every page — which is where full-page images come in.</p>
+<blockquote>
+<p><strong>PostgreSQL note — Full-page images and pg_control:</strong> After a checkpoint, the first modification to each data page writes a full copy of that page into the WAL (an FPI). This ensures REDO always has a clean starting image for every page. <code>pg_control</code>, located at a fixed offset in the <code>PGDATA</code> directory, stores the checkpoint LSN, the WAL segment to start replay from, and critical timeline information. If <code>pg_control</code> is lost or corrupted, PostgreSQL cannot recover — it has no way to know where to begin scanning the WAL. This is why <code>pg_backup_start()</code> / <code>pg_backup_stop()</code> and file-system-level snapshots must preserve <code>pg_control</code>.</p>
+</blockquote>
+<h2>ARIES: The Algorithm Some Other Engines Use</h2>
+<p><strong>InnoDB (MySQL), SQL Server, and DB2</strong> implement a recovery protocol called <strong>ARIES</strong> (Algorithm for Recovery and Isolation Exploiting Semantics), developed at IBM in the 1990s. ARIES has three phases:</p>
 <ol>
 <li><strong>Analysis</strong> — scan the log forward from the last checkpoint to figure out which transactions were active at crash time and which pages were dirty (modified but not flushed).</li>
 <li><strong>REDO</strong> — replay the log forward from the earliest relevant LSN, reapplying every update, even for transactions that will later be rolled back. This restores the database to its exact state at the moment of the crash.</li>
@@ -154,18 +166,18 @@ COMMIT;
 </ol>
 <p>The counter-intuitive step is REDO-before-UNDO: ARIES first reconstructs the crash state (including uncommitted garbage), then cleanly removes it. This approach handles edge cases such as transactions that were in the middle of rolling back when the crash occurred.</p>
 <blockquote>
-<p><strong>Note:</strong> SQLite uses a simpler journal-based mechanism (rollback journal or WAL mode) that achieves the same safety guarantees with less complexity, trading some throughput for simplicity. The core ideas — log before you write, track what committed, redo then undo — are the same.</p>
+<p><strong>Note:</strong> SQLite uses a simpler journal-based mechanism (rollback journal or WAL mode) that achieves the same safety guarantees with less complexity, trading some throughput for simplicity. The core ideas — log before you write, track what committed — are the same.</p>
 </blockquote>
 <h2>Try It: Simulating a Transaction Log</h2>
-<p>The widget below models a tiny transaction log table. The query identifies which transactions committed and which were left incomplete — exactly what the Analysis phase of ARIES does. Try adding a <code>COMMIT</code> row for <code>T55</code> and re-run to see it change status.</p>
+<p>The widget below models a tiny transaction log table. The query identifies which transactions committed and which were left incomplete — exactly what the Analysis phase of ARIES does (in ARIES engines like InnoDB or SQL Server). Try adding a <code>COMMIT</code> row for <code>T55</code> and re-run to see it change status.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Transaction log analysis</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE wal_log (lsn INTEGER PRIMARY KEY, txn_id TEXT NOT NULL, op TEXT NOT NULL, detail TEXT); INSERT INTO wal_log VALUES (101,'T42','UPDATE','accounts: balance 500- rows="10">400'); INSERT INTO wal_log VALUES (102,'T42','UPDATE','accounts: balance 300->400'); INSERT INTO wal_log VALUES (103,'T42','COMMIT',''); INSERT INTO wal_log VALUES (104,'T55','INSERT','orders: row 9'); INSERT INTO wal_log VALUES (105,'T55','UPDATE','inventory: qty 10->9');">-- Which transactions committed, and which need to be rolled back?
+    <textarea data-setup="CREATE TABLE wal_log (lsn INTEGER PRIMARY KEY, txn_id TEXT NOT NULL, op TEXT NOT NULL, detail TEXT); INSERT INTO wal_log VALUES (101,'T42','UPDATE','accounts: balance 500- rows="10">400'); INSERT INTO wal_log VALUES (102,'T42','UPDATE','accounts: balance 300->400'); INSERT INTO wal_log VALUES (103,'T42','COMMIT',''); INSERT INTO wal_log VALUES (104,'T55','INSERT','orders: row 9'); INSERT INTO wal_log VALUES (105,'T55','UPDATE','inventory: qty 10->9');">-- Which transactions committed, and which are incomplete?
 SELECT
   txn_id,
   CASE WHEN MAX(op) = 'COMMIT' THEN 'committed'
-       ELSE 'incomplete -- must UNDO'
+       ELSE 'incomplete (ARIES would UNDO; PG ignores via MVCC)'
   END AS status,
   COUNT(*) AS log_records
 FROM wal_log
@@ -197,11 +209,11 @@ ORDER BY txn_id;</textarea>
 <td>Replays the log to reconstruct the exact state at crash time</td>
 </tr>
 <tr>
-<td>UNDO phase</td>
-<td>Reverses every uncommitted transaction&#39;s changes to restore consistency</td>
+<td>UNDO phase (ARIES)</td>
+<td>Reverses uncommitted transaction changes (InnoDB, SQL Server, DB2); PostgreSQL uses MVCC visibility instead</td>
 </tr>
 </tbody></table>
-<p>Crash recovery is what lets a database make the &quot;durable&quot; and &quot;atomic&quot; promises in ACID. The WAL is the mechanism; ARIES (or a similar protocol) is the algorithm that uses it correctly even when the crash happens at the worst possible moment.</p>
+<p>Crash recovery is what lets a database make the &quot;durable&quot; and &quot;atomic&quot; promises in ACID. The WAL is the mechanism; the recovery strategy — whether ARIES-style REDO+UNDO or PostgreSQL&#39;s REDO-only with MVCC visibility — is how each engine uses it correctly even when the crash happens at the worst possible moment.</p>
 
 </div>
   <nav class="pagenav"><a class="prev" href="096-dirty-pages-and-flushing.html"><span class="dir">← Previous</span><span class="ttl">Dirty pages and flushing</span></a><a class="next" href="098-space-amplification.html"><span class="dir">Next →</span><span class="ttl">Space amplification</span></a></nav>

@@ -88,7 +88,7 @@
     <text x="567" y="238" text-anchor="middle" font-size="8" fill="#9aa6b8">All-or-nothing + valid state</text>
     <text x="567" y="252" text-anchor="middle" font-size="8" fill="#9aa6b8">DB enforces constraints; you define correctness</text>
 
-    <text x="350" y="318" text-anchor="middle" font-size="8" fill="#9aa6b8">Consistency = the database never shows you data that violates defined rules — even mid-transaction</text>
+    <text x="350" y="318" text-anchor="middle" font-size="8" fill="#9aa6b8">Consistency = the database never shows you data that violates defined rules — at READ COMMITTED or higher, other sessions cannot see mid-transaction changes until COMMIT</text>
   </g>
 </svg>
 <figcaption>Consistency in a multi-table transaction: both debit and credit succeed (COMMIT) or both roll back — the database never shows an intermediate invalid state.</figcaption>

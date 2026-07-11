@@ -147,7 +147,7 @@ HAVING total_spent > 100
 ORDER  BY total_spent DESC;</textarea>
   </div>
 </div><blockquote>
-<p><strong>Note:</strong> SQLite allows referencing a <code>SELECT</code> alias (<code>total_spent</code>) inside <code>HAVING</code>, but most other databases (PostgreSQL, MySQL in strict mode) do not — they require repeating <code>SUM(amount) &gt; 100</code>. For portability, prefer the explicit form.</p>
+<p><strong>Note:</strong> SQLite, PostgreSQL, and MySQL all allow referencing a <code>SELECT</code> alias (<code>total_spent</code>) inside <code>HAVING</code>; Oracle and SQL Server do not. For maximum portability, prefer repeating the aggregate expression (<code>SUM(amount) &gt; 100</code>) in the <code>HAVING</code> clause.</p>
 </blockquote>
 <h2>Why This Mental Model Matters</h2>
 <p>Reading SQL as a data flow pays dividends beyond just understanding one query:</p>

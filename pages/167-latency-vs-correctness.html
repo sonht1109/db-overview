@@ -23,7 +23,7 @@
 <p><strong>Note:</strong> This is not an engineering limitation you can optimize away. The speed of light, geographic distance, and the laws of physics set a hard floor on coordination latency. It is a fundamental constraint, not a bug.</p>
 </blockquote>
 <h2>The spectrum: from fast-but-stale to slow-but-safe</h2>
-<p>Consistency is not binary. Real systems expose a dial with several named positions:</p>
+<p>Consistency is not binary. Real systems expose a dial with several named positions. <strong>Important:</strong> the models below address two different dimensions. <strong>Linearizability</strong> is about recency — what order reads and writes appear in relative to real time. <strong>Serializability</strong> is about isolation — whether concurrent transactions produce results equivalent to some serial execution. They are orthogonal: a system can be serializable but not linearizable (e.g., snapshot isolation), or linearizable but not serializable (e.g., linearizable key-value store). The table lists them together for comparison, not because they are points on a single axis.</p>
 <table>
 <thead>
 <tr>

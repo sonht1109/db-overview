@@ -146,7 +146,7 @@ ORDER BY total_spent DESC;</textarea>
 <li><code>SELECT</code> — project the columns you asked for</li>
 <li><code>ORDER BY</code> — sort the final result</li>
 </ol>
-<p>This order explains why you cannot reference a <code>SELECT</code> alias inside <code>WHERE</code> or <code>HAVING</code> in most databases — the alias does not exist yet at those stages.</p>
+<p>This order explains why you cannot reference a <code>SELECT</code> alias inside <code>WHERE</code> in any database — the alias does not exist yet at that stage. For <code>HAVING</code>, the story is mixed: PostgreSQL, MySQL, and SQLite accept <code>SELECT</code> aliases in <code>HAVING</code>, while Oracle and SQL Server follow the SQL standard strictly and require repeating the aggregate expression.</p>
 
 </div>
   <nav class="pagenav"><a class="prev" href="045-limiting-results.html"><span class="dir">← Previous</span><span class="ttl">Limiting results</span></a><a class="next" href="047-joining-tables.html"><span class="dir">Next →</span><span class="ttl">Joining tables</span></a></nav>

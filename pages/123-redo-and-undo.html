@@ -97,7 +97,19 @@ FROM wal
 GROUP BY txn
 ORDER BY txn;</textarea>
   </div>
-</div><h2>Key Differences at a Glance</h2>
+</div>
+<h2>PostgreSQL vs. ARIES: Two Different Approaches to Undo</h2>
+<p>The undo mechanism described above (reversing changes via before-images in the WAL) is the <strong>ARIES protocol</strong> used by MySQL InnoDB, SQL Server, and DB2. The WAL stores both before- and after-images, and recovery walks backward to restore old values.</p>
+<p><strong>PostgreSQL takes a fundamentally different approach.</strong> PostgreSQL's WAL records contain only redo information (the after-image). There is no undo log and no undo pass during recovery. Instead, PostgreSQL relies on <strong>MVCC (Multi-Version Concurrency Control)</strong>:</p>
+<ul>
+<li>Every UPDATE or DELETE creates a <strong>new row version</strong> rather than overwriting the old one. The old row versions remain in the heap pages.</li>
+<li>Each row version carries <strong>visibility markers</strong> (xmin/xmax) recording which transaction created and deleted it.</li>
+<li>After a crash, recovery replays the WAL to restore committed changes. Uncommitted transactions are <strong>not physically rolled back</strong> — their row versions simply remain invisible because the transaction that created them is marked as aborted/crashed.</li>
+<li>The old row versions are eventually cleaned up by <strong>VACUUM</strong>, which removes rows no longer visible to any transaction.</li>
+</ul>
+<blockquote>
+<p><strong>Key difference:</strong> ARIES does undo-by-reversing; PostgreSQL does undo-by-ignoring (old data is already there, new data is marked invisible). This is why PostgreSQL recovery has no "undo phase" — it only needs the redo pass, then marks crashed transactions as aborted. The trade-off is that PostgreSQL accumulates dead tuples that need periodic VACUUM.</p>
+</blockquote><h2>Key Differences at a Glance</h2>
 <table>
 <thead>
 <tr>

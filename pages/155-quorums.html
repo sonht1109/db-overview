@@ -100,7 +100,7 @@
 <ul>
 <li><strong>Apache Cassandra</strong> exposes <code>QUORUM</code>, <code>LOCAL_QUORUM</code>, and <code>ALL</code> consistency levels directly — you choose W and R per query.</li>
 <li><strong>Raft / Paxos consensus</strong> (used by etcd, CockroachDB, TiKV) implicitly require majority quorums to elect a leader and commit log entries.</li>
-<li><strong>Amazon DynamoDB</strong> uses quorum reads/writes across its replication group by default, with eventual consistency as an opt-in shortcut.</li>
+<li><strong>Amazon DynamoDB</strong> uses quorum reads/writes across its replication group. Reads are <strong>eventually consistent by default</strong> (fast, cheap); strongly consistent reads use a quorum round-trip and must be requested explicitly per operation.</li>
 </ul>
 <p>Try reasoning through the quorum math yourself before moving on.</p>
 <details class="reveal"><summary>Reveal: What is the minimum W for a 7-node cluster that must survive 2 simultaneous failures?</summary><div class="reveal-body"><p>With N = 7 and a need to survive 2 failures, you need at least <strong>5 nodes alive</strong> to form quorums. Set <strong>W = 4, R = 4</strong> (since 4 + 4 = 8 &gt; 7, overlap is guaranteed). You could also use W = 5, R = 3 or other combinations as long as W + R &gt; 7 and W &gt; 2 (so writes always reach a majority of the 5 surviving nodes). The symmetric majority choice is W = R = 4.</p>

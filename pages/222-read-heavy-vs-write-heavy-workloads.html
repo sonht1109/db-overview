@@ -95,7 +95,7 @@ SELECT relname,
 FROM   pg_stat_user_tables
 ORDER  BY (n_tup_ins + n_tup_upd + n_tup_del) DESC;
 </code></pre>
-<p>SQLite exposes similar counts through the <code>sqlite_stat</code> tables after <code>ANALYZE</code>. Use the widget below to simulate checking operation ratios on a small dataset.</p>
+<p>SQLite does not expose cumulative read/write operation counters like PostgreSQL's <code>pg_stat_user_tables</code>. The <code>sqlite_stat1</code> table (populated by <code>ANALYZE</code>) stores query planner statistics about index selectivity — not cumulative row operation counts. For operation-level monitoring in SQLite, consider application-layer instrumentation or the <code>SQLITE_DBSTATUS</code> options in the C API. Use the widget below to simulate checking operation ratios on a small dataset.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Estimating Read/Write Ratio</span></div>
   <div class="widget-body">

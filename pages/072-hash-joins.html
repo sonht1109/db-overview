@@ -54,6 +54,9 @@
 <figcaption>Hash join: build a hash table from the smaller table, then probe with the larger. O(M+N) — a massive improvement over nested loops for equi-joins.</figcaption>
 </figure>
 <p>The previous page showed that a nested loop join without indexes costs O(M × N) — a problem when both tables are large. The <strong>hash join</strong> is the standard remedy. It is the go-to algorithm for equi-joins (joins on <code>=</code>) on large, unindexed data, and it appears in virtually every major database engine: PostgreSQL, MySQL, SQL Server, Oracle, DuckDB, and more.</p>
+<blockquote>
+<p><strong>Note:</strong> SQLite does not implement hash joins — it relies on nested loop and sort-merge joins only. PostgreSQL, MySQL, and most other OLTP databases use hash joins for large, unordered equijoins. The interactive widgets on this page use SQLite for convenience, so you will see nested-loop plans; the concepts and SQL syntax are the same regardless of engine.</p>
+</blockquote>
 <h2>The Two-Phase Algorithm</h2>
 <p>A hash join works in two distinct phases.</p>
 <h3>Phase 1 — Build</h3>

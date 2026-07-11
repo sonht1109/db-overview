@@ -152,7 +152,7 @@
 <p>Two main strategies are used in practice:</p>
 <ul>
 <li><strong>Locking</strong> — a transaction acquires shared or exclusive locks on rows (or pages) before touching them. Other transactions that need conflicting locks must wait.</li>
-<li><strong>MVCC (Multi-Version Concurrency Control)</strong> — the engine keeps multiple timestamped versions of each row. Readers see a snapshot of the database as it existed at the start of their transaction, so writers don&#39;t block readers and vice versa. PostgreSQL, MySQL/InnoDB, and SQLite in WAL mode all use MVCC.</li>
+<li><strong>MVCC (Multi-Version Concurrency Control)</strong> — the engine keeps multiple timestamped versions of each row. Readers see a snapshot of the database as it existed at the start of their transaction, so writers don&#39;t block readers and vice versa. PostgreSQL, MySQL/InnoDB, and Oracle all use MVCC. SQLite's WAL mode provides a simpler multi-reader, single-writer mechanism rather than full MVCC.</li>
 </ul>
 <h2>Seeing Interference in Action</h2>
 <p>The widget below simulates a classic <strong>lost update</strong> scenario. Two &quot;sessions&quot; both read a bank balance, add a deposit, and write back. Run the setup, then study what the final balance should be versus what it actually is.</p>
@@ -181,7 +181,7 @@ FROM accounts;</textarea>
 <li><strong>Lost updates</strong> happen when two transactions read the same value, modify it, and write back without coordination — one write silently overwrites the other.</li>
 <li>The SQL standard defines four isolation levels: <strong>Read Uncommitted</strong>, <strong>Read Committed</strong>, <strong>Repeatable Read</strong>, and <strong>Serializable</strong> — each trades off correctness for concurrency.</li>
 <li><strong>Read Committed</strong> is the default in most engines; it prevents dirty reads but still allows lost updates and non-repeatable reads.</li>
-<li><strong>Repeatable Read</strong> (and Snapshot Isolation) prevents lost updates by giving each transaction a consistent snapshot of the database.</li>
+<li><strong>Repeatable Read</strong> gives each transaction a consistent snapshot of the database, preventing non-repeatable reads and phantom reads (depending on the engine). However, <strong>Snapshot Isolation alone does NOT prevent lost updates</strong> — two transactions can read the same snapshot, modify it, and both commit, causing one write to silently overwrite the other. Preventing lost updates requires <code>SELECT ... FOR UPDATE</code>, optimistic locking, or true Serializable isolation.</li>
 <li><strong>Serializable</strong> provides the strongest guarantee — transactions behave as if they ran one at a time — at the highest performance cost.</li>
 <li>Choosing an isolation level is always a tradeoff: stricter = fewer anomalies but less concurrency.</li>
 </ul>

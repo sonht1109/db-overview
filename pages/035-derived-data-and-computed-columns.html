@@ -111,6 +111,9 @@ ORDER BY line_total DESC;</textarea>
 </tr>
 </tbody></table>
 <p>Use <strong>stored</strong> when you query the column frequently and want to index it. Use <strong>virtual</strong> when storage is tight and the expression is cheap to recompute.</p>
+<blockquote>
+<p><strong>PostgreSQL note:</strong> PostgreSQL supports <code>GENERATED ALWAYS AS ... STORED</code> for computed columns since version 12. (Virtual generated columns are not yet supported in PostgreSQL as of 2024; use a view or an inline expression instead.) For auto-increment columns, PostgreSQL recommends <code>GENERATED ALWAYS AS IDENTITY</code> (introduced in PostgreSQL 10) over the older <code>SERIAL</code> pseudo-type.</p>
+</blockquote>
 <pre><code class="language-sql">-- Stored generated column (persisted to disk)
 CREATE TABLE order_items (
   id         INTEGER PRIMARY KEY,

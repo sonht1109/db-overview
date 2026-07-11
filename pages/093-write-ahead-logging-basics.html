@@ -33,48 +33,49 @@
     <text x="240" y="22" text-anchor="middle" font-size="8" font-weight="600" fill="#5a6678">1st</text>
 
     <!-- WAL on disk -->
-    <rect x="265" y="0" width="430" height="60" rx="8" fill="#fff" stroke="#d97706" stroke-width="2" filter="url(#sh)"/>
+    <rect x="265" y="0" width="430" height="74" rx="8" fill="#fff" stroke="#d97706" stroke-width="2" filter="url(#sh)"/>
     <text x="480" y="18" text-anchor="middle" font-size="10" font-weight="700" fill="#d97706">WAL File (append-only, sequential)</text>
     <line x1="280" y1="26" x2="680" y2="26" stroke="#e2e6ec"/>
     <text x="285" y="42" font-size="9" fill="#1c2330">LSN 100: BEGIN txn 42</text>
     <text x="285" y="56" font-size="9" fill="#1c2330">LSN 101: UPDATE page 7, slot 3 → balance=900 (old=1000)</text>
+    <text x="285" y="70" font-size="9" fill="#1c2330">LSN 102: UPDATE page 8, slot 4 → balance=1100 (old=1000)</text>
 
     <!-- Arrow to buffer pool -->
-    <line x1="480" y1="60" x2="480" y2="90" stroke="#2f6df6" stroke-width="1.5"/>
-    <text x="500" y="80" font-size="8" fill="#5a6678">2nd (later)</text>
+    <line x1="480" y1="74" x2="480" y2="104" stroke="#2f6df6" stroke-width="1.5"/>
+    <text x="500" y="94" font-size="8" fill="#5a6678">2nd (later)</text>
 
     <!-- Buffer pool -->
-    <rect x="100" y="94" width="500" height="60" rx="8" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
-    <text x="350" y="112" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">Buffer Pool (RAM) — data pages modified</text>
-    <line x1="115" y1="120" x2="585" y2="120" stroke="#e2e6ec"/>
-    <text x="350" y="136" text-anchor="middle" font-size="9" fill="#1c2330">Page 7 (dirty): accounts table — balance=900 written to slot 3</text>
-    <text x="350" y="148" text-anchor="middle" font-size="9" fill="#1c2330">Page 8 (dirty): accounts table — balance=1100 written to slot 4</text>
+    <rect x="100" y="108" width="500" height="60" rx="8" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="350" y="126" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">Buffer Pool (RAM) — data pages modified</text>
+    <line x1="115" y1="134" x2="585" y2="134" stroke="#e2e6ec"/>
+    <text x="350" y="150" text-anchor="middle" font-size="9" fill="#1c2330">Page 7 (dirty): accounts table — balance=900 written to slot 3</text>
+    <text x="350" y="162" text-anchor="middle" font-size="9" fill="#1c2330">Page 8 (dirty): accounts table — balance=1100 written to slot 4</text>
 
     <!-- Before/After crash -->
-    <text x="350" y="175" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2330">Crash Recovery Scenario</text>
+    <text x="350" y="189" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2330">Crash Recovery Scenario</text>
 
     <!-- Before crash -->
-    <rect x="20" y="188" width="330" height="75" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
-    <text x="185" y="207" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">After Crash (dirty pages lost from RAM)</text>
-    <text x="185" y="226" text-anchor="middle" font-size="9" fill="#5a6678">Data pages on disk: id=1 balance=1000 (stale!)</text>
-    <text x="185" y="242" text-anchor="middle" font-size="9" fill="#5a6678">But WAL has: LSN 101-102 with new values</text>
-    <text x="185" y="255" text-anchor="middle" font-size="8" fill="#9aa6b8">WAL survived — it was flushed before crash</text>
+    <rect x="20" y="202" width="330" height="75" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <text x="185" y="221" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">After Crash (dirty pages lost from RAM)</text>
+    <text x="185" y="240" text-anchor="middle" font-size="9" fill="#5a6678">Data pages on disk: id=1 balance=1000 (stale!)</text>
+    <text x="185" y="256" text-anchor="middle" font-size="9" fill="#5a6678">But WAL has: LSN 101-102 with new values</text>
+    <text x="185" y="269" text-anchor="middle" font-size="8" fill="#9aa6b8">WAL survived — it was flushed before crash</text>
 
-    <line x1="350" y1="220" x2="370" y2="220" stroke="#16a34a" stroke-width="2" marker-end="url(#ag)"/>
+    <line x1="350" y1="234" x2="370" y2="234" stroke="#16a34a" stroke-width="2" marker-end="url(#ag)"/>
 
     <!-- After recovery -->
-    <rect x="372" y="188" width="330" height="75" rx="8" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
-    <text x="537" y="207" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">After Recovery (WAL replayed)</text>
-    <text x="537" y="226" text-anchor="middle" font-size="9" fill="#1c2330">Engine reads checkpoint, replays LSN 100→102</text>
-    <text x="537" y="242" text-anchor="middle" font-size="9" fill="#1c2330">Data pages now: id=1 balance=900, id=2=1100</text>
-    <text x="537" y="255" text-anchor="middle" font-size="9" fill="#16a34a">Consistent — committed txns intact</text>
+    <rect x="372" y="202" width="330" height="75" rx="8" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
+    <text x="537" y="221" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">After Recovery (WAL replayed)</text>
+    <text x="537" y="240" text-anchor="middle" font-size="9" fill="#1c2330">Engine reads checkpoint, replays LSN 100→102</text>
+    <text x="537" y="256" text-anchor="middle" font-size="9" fill="#1c2330">Data pages now: id=1 balance=900, id=2=1100</text>
+    <text x="537" y="269" text-anchor="middle" font-size="9" fill="#16a34a">Consistent — committed txns intact</text>
 
     <!-- Rule box -->
-    <rect x="130" y="273" width="440" height="38" rx="6" fill="#1c2330" filter="url(#sh)"/>
-    <text x="350" y="288" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">THE WRITE-AHEAD RULE:</text>
-    <text x="350" y="302" text-anchor="middle" font-size="10" fill="#9aa6b8">WAL entry must hit disk BEFORE the corresponding data page is written</text>
+    <rect x="130" y="287" width="440" height="38" rx="6" fill="#1c2330" filter="url(#sh)"/>
+    <text x="350" y="302" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">THE WRITE-AHEAD RULE:</text>
+    <text x="350" y="316" text-anchor="middle" font-size="10" fill="#9aa6b8">WAL entry must hit disk BEFORE the corresponding data page is written</text>
 
-    <text x="350" y="325" text-anchor="middle" font-size="8" fill="#9aa6b8">Key insight: log is sequential (fast) · data pages are random (slow) · WAL decouples durability from page writes</text>
+    <text x="350" y="339" text-anchor="middle" font-size="8" fill="#9aa6b8">Key insight: log is sequential (fast) · data pages are random (slow) · WAL decouples durability from page writes</text>
   </g>
 </svg>
 <figcaption>Write-ahead logging: every change hits the sequential WAL first, guaranteeing that committed transactions survive even if data pages are lost.</figcaption>
@@ -85,13 +86,16 @@
 <blockquote>
 <p><strong>Before any change is written to the main data file, a record of that change must be written to the log.</strong></p>
 </blockquote>
-<p>The log (also called the redo log, transaction log, or WAL file) is an append-only sequence of <strong>log records</strong>. Each record captures which page was affected, the before-image (old value), the after-image (new value), and a <strong>log sequence number (LSN)</strong> that orders records globally.</p>
+<p>The log (also called the redo log, transaction log, or WAL file) is an append-only sequence of <strong>log records</strong>. Each record captures which page was affected, the modification itself (logical or physical), and a <strong>log sequence number (LSN)</strong> that orders records globally. PostgreSQL WAL records typically contain the changes made rather than full before-images; full-page images are a special case written only for the first modification to a page after a checkpoint.</p>
+<blockquote>
+<p><strong>Note — PostgreSQL WAL Levels:</strong> PostgreSQL offers three WAL levels: <code>minimal</code> (no replication support, skips enough info to save WAL volume during bulk loads), <code>replica</code> (default; enough for streaming replication and archive recovery), and <code>logical</code> (adds logical decoding info for change-data-capture). Use <code>minimal</code> only when you do not need PITR or replication.</p>
+</blockquote>
 <pre><code>WAL file (append-only, on disk)
 ───────────────────────────────────────────────────────
-LSN 101 | txn 42 | BEGIN
-LSN 102 | txn 42 | UPDATE accounts SET balance=900 WHERE id=1  (old=1000)
-LSN 103 | txn 42 | UPDATE accounts SET balance=1100 WHERE id=2 (old=1000)
-LSN 104 | txn 42 | COMMIT
+LSN 100 | txn 42 | BEGIN
+LSN 101 | txn 42 | UPDATE accounts SET balance=900 WHERE id=1  (old=1000)
+LSN 102 | txn 42 | UPDATE accounts SET balance=1100 WHERE id=2 (old=1000)
+LSN 103 | txn 42 | COMMIT
 ───────────────────────────────────────────────────────
          ↑ flushed to disk before the COMMIT returns to the client
 </code></pre>

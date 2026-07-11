@@ -75,7 +75,7 @@
   <rect x="30" y="210" width="580" height="80" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" stroke-dasharray="5 3"/>
   <text x="46" y="232" font-size="12" font-weight="bold" fill="var(--text)">If a crash happens after step 2 (log on disk, pages not yet written):</text>
   <text x="46" y="252" font-size="12" fill="var(--text)">→ Recovery reads the log and REDOES all committed changes. Durability preserved.</text>
-  <text x="46" y="272" font-size="12" fill="var(--text)">→ Uncommitted changes are UNDONE (rolled back) using undo info in the log.</text>  <defs>
+        <text x="46" y="272" font-size="12" fill="var(--text)">→ Uncommitted changes are ROLLED BACK. PostgreSQL uses MVCC visibility to hide them rather than a WAL undo pass. Other engines (InnoDB/ARIES) undo via before-images stored in the log.</text>  <defs>
     <marker id="arrowWAL" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--border)"/>
     </marker>
@@ -83,7 +83,7 @@
 </svg>
 <figcaption>WAL timeline: only the log must reach disk at commit time. Dirty data pages follow lazily in the background.</figcaption>
 </figure><h2>Anatomy of a Log Record</h2>
-<p>Each WAL record captures enough information to both <strong>redo</strong> and <strong>undo</strong> the change it describes:</p>
+<p>Each WAL record captures enough information to <strong>redo</strong> the change it describes. In ARIES-style systems (InnoDB, SQL Server, DB2), the record also carries the before-image for undo. PostgreSQL takes a different approach: its WAL records contain only redo information (the after-image). Undo is handled by <strong>MVCC</strong> — old row versions remain in the heap, invisible to new transactions, rather than being physically restored from WAL:</p>
 <table>
 <thead>
 <tr>
@@ -105,11 +105,11 @@
 </tr>
 <tr>
 <td>Before image</td>
-<td>Old value — used to <strong>undo</strong> if the transaction aborts</td>
+<td>Old value — used to <strong>undo</strong> if the transaction aborts (ARIES/InnoDB; not present in PostgreSQL WAL)</td>
 </tr>
 <tr>
 <td>After image</td>
-<td>New value — used to <strong>redo</strong> if a crash interrupted the write</td>
+<td>New value — used to <strong>redo</strong> if a crash interrupted the write (all WAL implementations)</td>
 </tr>
 <tr>
 <td>Record type</td>
@@ -118,7 +118,7 @@
 </tbody></table>
 <p>The <strong>LSN</strong> is central to everything. Each data page stores the LSN of the most recent log record that modified it. During recovery, the engine compares page LSNs against log LSNs to decide which records still need to be replayed.</p>
 <h2>Recovery: ARIES in a Nutshell</h2>
-<p>Most modern databases (PostgreSQL, SQL Server, DB2, MySQL InnoDB) use a recovery algorithm descended from <strong>ARIES</strong> (Algorithm for Recovery and Isolation Exploiting Semantics). Recovery runs in three passes:</p>
+<p>Most modern databases (SQL Server, DB2, MySQL InnoDB) use a recovery algorithm descended from <strong>ARIES</strong>. PostgreSQL uses a variant that skips the ARIES undo pass — instead relying on MVCC visibility rules to hide uncommitted work (Algorithm for Recovery and Isolation Exploiting Semantics). Recovery runs in three passes:</p>
 <ol>
 <li><strong>Analysis</strong> — Scan the log forward from the last checkpoint. Reconstruct which transactions were active at the crash and which pages were dirty.</li>
 <li><strong>Redo</strong> — Replay every logged operation in LSN order, exactly as it happened. This restores the buffer pool to its crash-time state — including uncommitted changes.</li>
@@ -127,6 +127,35 @@
 <p>After undo, the database is in a clean, consistent state and can reopen for business.</p>
 <blockquote>
 <p><strong>Note:</strong> Checkpoints bound how far back recovery needs to scan. Periodically, the engine writes a checkpoint record to the log and flushes all dirty pages up to that point. On restart, recovery only needs to start from the last checkpoint — not the beginning of all time.</p>
+</blockquote>
+<h2>PostgreSQL WAL Levels</h2>
+<p>PostgreSQL exposes different WAL detail levels via the <code>wal_level</code> parameter, each suited to different needs:</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>What it logs</th>
+<th>Use case</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>minimal</code></td>
+<td>Enough to recover from crash — no row-level detail</td>
+<td>Data import, bulk loads (can't replicate or PITR)</td>
+</tr>
+<tr>
+<td><code>replica</code></td>
+<td>Full row images — enough for streaming replication and read replicas</td>
+<td>High-availability setups, physical replication</td>
+</tr>
+<tr>
+<td><code>logical</code></td>
+<td>Row-level changes decoded into a replication stream</td>
+<td>Logical replication, CDC, change-data-capture tools like Debezium</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note:</strong> <code>wal_level = logical</code> adds WAL volume — each UPDATE logs the full old and new row. Measure your WAL throughput before enabling it in production.</p>
 </blockquote>
 <h2>WAL in SQLite</h2>
 <p>SQLite exposes WAL mode as a user-visible option. In the default journal mode (<code>DELETE</code>), SQLite writes a <em>rollback journal</em> (the old page content) before modifying the database file. In <code>WAL</code> mode it instead appends changes to a separate <code>-wal</code> file; readers can still access the original database file concurrently.</p>

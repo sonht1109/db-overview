@@ -67,7 +67,7 @@
 <h3>2. What are the read/write characteristics?</h3>
 <ul>
 <li><strong>Read-heavy (&gt;90% reads):</strong> Optimise for read latency; caching, read replicas, and columnar layouts all help.</li>
-<li><strong>Write-heavy:</strong> LSM-tree engines (RocksDB, Cassandra, ScyllaDB) are optimised for high-throughput sequential writes. B-tree engines struggle above ~10K writes/second on a single node.</li>
+<li><strong>Write-heavy:</strong> LSM-tree engines (RocksDB, Cassandra, ScyllaDB) are optimised for high-throughput sequential writes. B-tree engines achieve 10–50K writes/second on a single node, depending on SSD performance and index count.</li>
 <li><strong>Mixed, transactional:</strong> Relational databases with row-level locking are designed for this balance.</li>
 </ul>
 <h3>3. What is the consistency requirement?</h3>

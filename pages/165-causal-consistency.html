@@ -131,7 +131,7 @@ a write with replica_A: 6 until she has also seen replica_A: 5.
 <p>Notable systems that offer causal consistency:</p>
 <ul>
 <li><strong>MongoDB</strong> (since v3.6) — causally consistent sessions via <code>afterClusterTime</code></li>
-<li><strong>DynamoDB</strong> — optional strongly consistent reads, but causal sessions via client-side tokens</li>
+<li><strong>DynamoDB</strong> — offers strongly consistent reads (per-request opt-in) and client-side version tokens for read-your-writes, but has <strong>no native causal consistency API</strong>. Causally ordering reads across multiple keys requires application-level tracking with DynamoDB Streams or external coordination.</li>
 <li><strong>AntidoteDB</strong> — built from the ground up around causal+ consistency</li>
 <li><strong>CockroachDB</strong> — uses hybrid logical clocks (HLC) to approximate causal ordering</li>
 </ul>

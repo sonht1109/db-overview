@@ -117,6 +117,9 @@ CREATE TABLE orders (
   placed_at   TEXT    NOT NULL
 );
 </code></pre>
+<blockquote>
+<p><strong>PostgreSQL note:</strong> PostgreSQL offers richer type alternatives for the columns above. Use <code>TEXT</code> or <code>VARCHAR(n)</code> for strings (both work, <code>TEXT</code> has no length limit), <code>DATE</code> for calendar dates, <code>TIMESTAMPTZ</code> (timestamp with time zone) for moment-in-time values like <code>placed_at</code>, and <code>NUMERIC(precision, scale)</code> instead of <code>REAL</code> when exact decimal arithmetic matters (e.g. prices).</p>
+</blockquote>
 <p>Every constraint above has a concrete reason:</p>
 <ul>
 <li><code>NOT NULL</code> — title, email, and price must always be present; there is no meaningful default.</li>

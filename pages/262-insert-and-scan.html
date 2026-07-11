@@ -27,7 +27,7 @@
         raise ValueError(&quot;name exceeds 32 characters&quot;)
     return table.write_row(row)
 </code></pre>
-<p>Because appends are sequential, insert throughput is dominated by the underlying filesystem&#39;s write bandwidth — typically 100–500 MB/s on an SSD, giving hundreds of thousands of inserts per second even with <code>fsync()</code> after each one.</p>
+<p>Because appends are sequential, insert throughput is dominated by the underlying filesystem&#39;s write bandwidth — typically 100–500 MB/s on an SSD. Without <code>fsync()</code> after each write, throughput can reach hundreds of thousands of inserts per second. Calling <code>fsync()</code> after every individual insert, however, would drop throughput to the drive&#39;s fsync rate (typically hundreds to low thousands per second on consumer SSDs). Real databases batch commits and use group commit to amortize this cost.</p>
 <blockquote>
 <p><strong>Note:</strong> We are deliberately not calling <code>fsync()</code> in this toy. A real engine would flush the OS page cache to durable storage before acknowledging the insert. We will add that when we implement the write-ahead log in the recovery page.</p>
 </blockquote>

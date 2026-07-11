@@ -173,7 +173,11 @@ LIMIT 20;
 <td>Moderate</td>
 </tr>
 </tbody></table>
-<p>SQLite FTS5 is excellent for applications with up to a few million documents on a single node. Beyond that, or when you need typo tolerance, semantic search, or horizontal scaling, a dedicated search engine is the right tool.</p>
+<p>SQLite FTS5 is excellent for applications with up to a few million documents on a single node. Beyond that, or when you need typo tolerance, semantic search, or horizontal scaling, a dedicated search engine is the right tool.
+
+<blockquote>
+<p><strong>PostgreSQL full-text search:</strong> PostgreSQL provides built-in full-text search through <code>tsvector</code> (tokenized document) and <code>tsquery</code> (search query) types, backed by GIN indexes. It supports ranking (<code>ts_rank</code>, <code>ts_rank_cd</code>), stemming via dictionaries, and weighted fields. Compared to SQLite FTS5, PostgreSQL FTS integrates natively with the relational engine — no virtual table or trigger sync needed — and supports phrase search, prefix matching, and multiple language dictionaries. It lacks BM25 ranking out of the box but can be extended with the <code>pg_bm25</code> extension.</p>
+</blockquote></p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Full-Text Search</span></div>
   <div class="widget-body">

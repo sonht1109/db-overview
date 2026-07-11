@@ -49,6 +49,9 @@
 <p>JSON — JavaScript Object Notation — started life as a lightweight wire format for sending data between a browser and a server. It turned out to be such a natural way to describe a real-world record that the database world adopted it as a <strong>primary data model</strong>. Understanding JSON as a data model means understanding both <em>why it resonates</em> and <em>what it costs</em>.</p>
 <h2>What JSON Actually Is</h2>
 <p>JSON has exactly six value types:</p>
+<blockquote>
+<p><strong>PostgreSQL note:</strong> The JSON standard defines only one numeric type (IEEE 754 double-precision), but PostgreSQL's <code>jsonb</code> type stores numbers using the <code>NUMERIC</code> type internally — preserving arbitrary precision and avoiding floating-point rounding errors. This means <code>0.1 + 0.2</code> stored in a JSONB column retains exact decimal precision, unlike standard JSON implementations that would lose fidelity through float64 representation.</p>
+</blockquote>
 <table>
 <thead>
 <tr>

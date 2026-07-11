@@ -123,6 +123,7 @@ ORDER BY created_at;
 <ol>
 <li><strong>Equality first</strong> — columns you filter with <code>=</code> should come before range columns.</li>
 <li><strong>Selectivity matters</strong> — among equality columns, higher-cardinality columns first can reduce the scan size.</li>
+<li><strong>Equality before range</strong> — if some query filters are equality (<code>=</code>) and others are range (<code>&gt;</code>, <code>&lt;</code>, <code>BETWEEN</code>), place equality columns first. This matters more than cardinality: an equality-first index allows the database to seek directly to the matching prefix and then scan the range portion, while a range-first index forces a partial scan across many more entries.</li>
 <li><strong>Cover your <code>ORDER BY</code></strong> — if a common query sorts by a column, include it at the end of the index.</li>
 <li><strong>Don&#39;t over-index</strong> — each index costs write overhead. Prefer a well-ordered composite index over many narrow single-column indexes.</li>
 </ol>

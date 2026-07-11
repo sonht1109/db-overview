@@ -43,7 +43,7 @@ def tokenize(sql: str) -&gt; list[str]:
  &#39;WHERE&#39;, &#39;SALARY&#39;, &#39;&gt;&#39;, &#39;80000&#39;]
 </code></pre>
 <blockquote>
-<p><strong>Note:</strong> We uppercase everything at tokenize time, making keywords case-insensitive the same way real SQL engines do (<code>select</code>, <code>SELECT</code>, and <code>Select</code> are all valid).</p>
+<p><strong>Note:</strong> We uppercase everything at tokenize time, making keywords case-insensitive the same way real SQL engines do (<code>select</code>, <code>SELECT</code>, and <code>Select</code> are all valid). However, our naive approach uppercases <em>everything</em> including string literals and column names. This means column names must match the uppercased token, and case-sensitive string values in <code>WHERE</code> clauses would be destroyed. Real SQL engines are more careful: they case-fold identifiers and keywords but leave string literals alone. PostgreSQL, notably, folds unquoted identifiers to <strong>lowercase</strong> (not uppercase), so <code>SELECT Name FROM Employees</code> becomes <code>SELECT name FROM employees</code> internally.</p>
 </blockquote>
 <h2>The Parser</h2>
 <pre><code class="language-python">class Parser:

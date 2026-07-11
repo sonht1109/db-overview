@@ -37,7 +37,7 @@
     <tr>
       <td>183</td>
       <td><strong>Nested data and arrays</strong></td>
-      <td>Embedding related data inside a single document avoids joins — load a user with all their orders in one read.</td>
+      <td>Embedding related data inside a single document avoids joins — load an order with all its line items in one read.</td>
     </tr>
     <tr>
       <td>184</td>
@@ -67,7 +67,7 @@
     <tr>
       <td>189</td>
       <td><strong>Good use cases</strong></td>
-      <td>Business intelligence dashboards, periodic reports, machine learning feature engineering, log analysis, financial reconciliation.</td>
+      <td>CMS content, user profiles, product catalogs with variable attributes, event logs, and game/session state — entities that are self-contained, read as a whole, and variable in structure.</td>
     </tr>
 </tbody></table>
 <details class="reveal"><summary>Reveal: How do these ideas connect to the next chapter?</summary><div class="reveal-body">Chapter 19 showed you document databases — flexible, JSON-native, and developer-friendly. But what if your workload is not about flexible documents but about ingesting massive streams of sparse, wide-row data? Chapter 20 introduces column-family databases like Cassandra and HBase. You will learn about wide-column storage, LSM trees, compaction, and why these systems are built for append-heavy write workloads like time-series, IoT, and event logging. The design philosophy shifts from "store what the document looks like" to "store for how you will query."</div></details>

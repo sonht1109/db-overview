@@ -109,7 +109,17 @@ ORDER BY key;
 -- Single lookup:           WHERE key = 'acme:2024-03-10T14:22:00Z:evt_005'</textarea>
   </div>
 </div><p>The tilde <code>~</code> (ASCII 126) sits just above all printable alphanumeric characters, making it a reliable &quot;end of prefix&quot; sentinel for open-ended scans.</p>
-<h2>Trade-offs and When to Use Them</h2>
+<h2>PostgreSQL Range Scans on B-tree Indexes</h2>
+<p>PostgreSQL uses <strong>B-tree indexes</strong> as its default index type, and they are the workhorse for range queries. Key behaviors to know:</p>
+<ul>
+<li>PostgreSQL B-trees store index entries in <strong>sorted key order</strong> within each leaf page, and leaf pages are linked together in a doubly-linked list. A range scan performs a single seek to the start key (via B-tree traversal, O(log n)), then follows the leaf-page chain forward — reading multiple rows from each page — until the end key is reached. This is O(log n + k) where k is the result size.</li>
+<li>The <strong>Index Scan</strong> node reads matching index entries and fetches heap tuples. If the table is <strong>clustered</strong> on the index key (<code>CLUSTER</code> command) or correlation is high, the heap fetches benefit from sequential I/O. With low correlation, a <strong>Bitmap Index Scan</strong> may be chosen instead — it builds a bitmap of matching pages and fetches them in physical order to reduce random I/O.</li>
+<li><strong>Covering indexes</strong> (<code>INCLUDE</code> clause, PostgreSQL 11+) allow an <strong>Index Only Scan</strong> that never visits the heap at all, dramatically improving range scan throughput — especially on wide tables.</li>
+<li>For time-series or append-only workloads, <strong>BRIN indexes</strong> (Block Range INdex) can be far more compact than B-trees while still supporting range scans efficiently, because naturally ordered data already clusters nearby values in the same blocks.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> Use <code>EXPLAIN (ANALYZE, BUFFERS)</code> to see whether a query is using an Index Scan, Index Only Scan, or Bitmap Scan — and how many buffer hits it costs. The difference between an Index Scan (heap fetches per row) and an Index Only Scan (no heap fetches) can be 5–50× in throughput for large ranges.</p>
+</blockquote>
 <p>Maintaining sort order is not free. Ordered stores typically use a <strong>B-tree</strong> or an <strong>LSM-tree</strong> (log-structured merge-tree), both of which incur more write overhead than a simple hash table. Random inserts in a B-tree require page splits; LSM-trees batch writes but run background <strong>compaction</strong> to merge sorted runs.</p>
 <table>
 <thead>

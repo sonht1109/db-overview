@@ -123,6 +123,9 @@ Parent:  (root dissolves, tree shrinks)
 </tr>
 </tbody></table>
 <p>Production engines prefer redistribution when possible because it keeps pages fuller on average, reducing tree height and improving cache hit rates.</p>
+<blockquote>
+<p><strong>Note — PostgreSQL FILLFACTOR:</strong> You can reduce split frequency by reserving spare space inside each page during initial builds and index rebuilds. PostgreSQL's <code>FILLFACTOR</code> setting (default 100 for tables, 90 for B-tree indexes) leaves a percentage of each page free so that future inserts and updates have room without triggering immediate splits. For indexes with heavy random inserts, lowering the fill factor can dramatically reduce write amplification.</p>
+</blockquote>
 <h2>Observing the Effect in SQLite</h2>
 <p>You cannot watch splits happen directly, but you can see their footprint. The widget below builds a small table, then compares page usage before and after a bulk insert that forces the index to grow. Try adding more rows to push more splits.</p>
 <div class="widget" data-widget="sql">

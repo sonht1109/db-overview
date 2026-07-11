@@ -76,6 +76,9 @@ CREATE TABLE agg_daily_traffic (
   avg_duration_s REAL,
   PRIMARY KEY (report_date, page_key)
 );
+-- ⚠ avg_duration_s is NOT mergeable across time windows.
+-- To correctly compute the average over multiple days, store sum_duration_s
+-- and count_duration_s instead, then compute AVG = SUM(sum) / SUM(count).
 </code></pre>
 <h3>Slowly Changing Dimensions (SCD Type 2)</h3>
 <p>When a user upgrades their plan, you don&#39;t want to retroactively rewrite all their historical page views. <strong>SCD Type 2</strong> solves this by adding a new row to <code>dim_users</code> with the updated plan and a new <code>valid_from</code>, while setting <code>valid_to</code> on the old row. Historical facts still point to the old <code>user_key</code> (the old plan), so reports from last month remain accurate.</p>

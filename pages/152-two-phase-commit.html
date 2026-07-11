@@ -118,7 +118,7 @@
 </blockquote>
 <h2>What Databases Actually Do</h2>
 <p>Most relational databases support a variant of 2PC called <strong>XA transactions</strong> (from the X/Open DTP standard). A distributed transaction manager (the coordinator) drives multiple database connections through the prepare/commit cycle.</p>
-<pre><code class="language-sql">-- XA syntax (MySQL / PostgreSQL via JDBC):
+<pre><code class="language-sql">-- XA syntax (via JDBC driver abstraction — works with many databases):
 XA START &#39;txn-42&#39;;
   UPDATE accounts SET balance = balance - 500 WHERE id = 1;
 XA END &#39;txn-42&#39;;
@@ -126,7 +126,12 @@ XA PREPARE &#39;txn-42&#39;;   -- Phase 1: flush WAL, vote YES
 -- ... coordinator checks all participants ...
 XA COMMIT &#39;txn-42&#39;;    -- Phase 2: apply and release locks
 </code></pre>
-<p>PostgreSQL also supports a native <code>PREPARE TRANSACTION</code> / <code>COMMIT PREPARED</code> syntax for use by external transaction managers.</p>
+<p>PostgreSQL does <strong>not</strong> natively support the <code>XA</code> keyword syntax shown above. The XA commands work through a <strong>JDBC driver abstraction layer</strong> that translates them into PostgreSQL's native 2PC syntax: <code>PREPARE TRANSACTION 'name'</code> and <code>COMMIT PREPARED 'name'</code> (or <code>ROLLBACK PREPARED 'name'</code>).</p>
+<pre><code class="language-sql">-- PostgreSQL native 2PC syntax:
+PREPARE TRANSACTION 'txn-42';
+-- ... coordinator collects all votes ...
+COMMIT PREPARED 'txn-42';
+</code></pre>
 <blockquote>
 <p><strong>Note:</strong> XA transactions carry significant overhead — extra WAL writes, prolonged lock holding, and extra network round-trips. For this reason, many modern distributed systems avoid 2PC in favour of <strong>saga patterns</strong> (break the transaction into compensatable steps) or <strong>single-shard designs</strong> (route related data to the same node so no cross-node coordination is needed).</p>
 </blockquote>

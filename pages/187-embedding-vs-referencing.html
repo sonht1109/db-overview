@@ -174,7 +174,7 @@
 <p><strong>Extended reference pattern:</strong> Embed the fields you need for display; reference the full entity for editing.</p>
 <p>This avoids joins for the common read path while keeping a single source of truth for writes.</p>
 <h2>Referencing in a Document Database: No Joins</h2>
-<p>A critical difference from relational databases: <strong>document databases have no built-in JOIN</strong>. MongoDB&#39;s <code>$lookup</code> stage in aggregation pipelines approximates a join, but it is an application-level operation — not a deeply optimized relational join.</p>
+<p>A critical difference from relational databases: <strong>document databases have no built-in JOIN</strong>. MongoDB&#39;s <code>$lookup</code> stage in aggregation pipelines provides server-side joins, but these are executed within the aggregation framework rather than through a deeply optimized relational join engine. <code>$lookup</code> runs on the server, not at the application level, but it does not benefit from the decades of join optimization built into relational engines — it is generally slower and more resource-intensive than an equivalent SQL JOIN on indexed foreign keys.</p>
 <pre><code class="language-js">db.orders.aggregate([
   { $match: { status: &quot;shipped&quot; } },
   { $lookup: {

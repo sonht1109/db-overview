@@ -117,17 +117,17 @@ SELECT title, comment_count FROM posts ORDER BY comment_count DESC;
 -- "Live" path: COUNT(*) join — slower on large tables, always accurate
 SELECT p.title, COUNT(c.id) AS live_count
 FROM posts p
-LEFT JOIN comments c ON p.id = c.id
+LEFT JOIN comments c ON p.id = c.post_id
 GROUP BY p.id, p.title
 ORDER BY live_count DESC;
 -- Are they in sync? They should be:
 SELECT p.title, p.comment_count AS cached, COUNT(c.id) AS live
 FROM posts p
-LEFT JOIN comments c ON p.id = c.id
+LEFT JOIN comments c ON p.id = c.post_id
 GROUP BY p.id, p.title, p.comment_count;</textarea>
   </div>
 </div><blockquote>
-<p><strong>Tip:</strong> In PostgreSQL, you&#39;d maintain the <code>comment_count</code> with a trigger on <code>INSERT</code> and <code>DELETE</code> on the <code>comments</code> table. SQLite supports similar trigger patterns. The trigger approach keeps the counter in sync automatically without application-level bookkeeping — just like the database manages indexes automatically.</p>
+<p><strong>Tip:</strong> In PostgreSQL, you&#39;d maintain the <code>comment_count</code> with a trigger that fires on <code>INSERT</code>, <code>DELETE</code>, <em>and</em> <code>UPDATE OF post_id</code> on the <code>comments</code> table — if a comment is moved to a different post, both the old and new post counters must be adjusted. SQLite supports similar trigger patterns. Be aware that this pattern creates a write contention hotspot on the <code>comment_count</code> column in the <code>posts</code> row: every concurrent comment insert/delete on the same post contends for the same row lock, which can become a bottleneck under high write concurrency. The trigger approach keeps the counter in sync automatically without application-level bookkeeping — just like the database manages indexes automatically.</p>
 </blockquote>
 <h2>Key Takeaways</h2>
 <ul>

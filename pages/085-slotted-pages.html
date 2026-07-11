@@ -160,7 +160,7 @@ ORDER BY record_offset DESC;
 -- SELECT SUM(record_length) AS reclaimable_bytes
 -- FROM slot_directory WHERE is_live = 0;</textarea>
   </div>
-</div><p>Uncomment the second query to see how much space compaction would recover. In a real engine (PostgreSQL calls this <strong>VACUUM</strong>, SQLite does it via <code>REINDEX</code> or auto-reorganization), this reclaimed space becomes available for new inserts on the same page.</p>
+</div><p>Uncomment the second query to see how much space compaction would recover. In production engines, this reclaimed space becomes available for new inserts on the same page. PostgreSQL uses <strong>VACUUM</strong> to reclaim dead tuple space in both tables and indexes. In SQLite, tables are themselves B-trees, so page compaction happens automatically during normal operations; <code>REINDEX</code> only rebuilds indexes — it does not compact table pages.</p>
 <h2>Key Takeaways</h2>
 <ul>
 <li>A slotted page stores a <strong>slot array</strong> at the top and <strong>records</strong> packed from the bottom, with free space in the middle.</li>

@@ -66,7 +66,11 @@
   <line x1="540" y1="280" x2="472" y2="280" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr-chain)"/>
 </svg>
 <figcaption>Each node record points directly to its first relationship. Relationship records form a doubly-linked list per endpoint — traversal is pure pointer-chasing, no index needed.</figcaption>
-</figure><p>In Neo4j&#39;s original fixed-size record format, every node record is exactly <strong>15 bytes</strong> and every relationship record is exactly <strong>34 bytes</strong>. Because records are fixed-size, random access by ID is arithmetic: <code>offset = id × record_size</code>. Both node and relationship lookups are O(1) file seeks.</p>
+</figure><p>In Neo4j&#39;s original fixed-size record format (up to Neo4j 4.x), every node record is exactly <strong>15 bytes</strong> and every relationship record is exactly <strong>34 bytes</strong>. Because records are fixed-size, random access by ID is arithmetic: <code>offset = id × record_size</code>. Both node and relationship lookups are O(1) file seeks.
+
+<blockquote>
+<p><strong>Version note:</strong> Neo4j 5.x+ introduced a more flexible record format with different internal sizing. While the principle of index-free adjacency and pointer-based traversal remains, the exact byte sizes are no longer fixed at 15/34 bytes. The O(1) pointer-following behaviour, however, is unchanged.</p>
+</blockquote></p>
 <h2>Complexity Analysis by Query Type</h2>
 <table>
 <thead>

@@ -108,6 +108,9 @@
 </svg>
 <figcaption>Two versions of the same row coexist. Each transaction sees the version that was current at the moment it started.</figcaption>
 </figure><h2>Snapshot Isolation</h2>
+<blockquote>
+<p><strong>Important distinction:</strong> MVCC is the <em>mechanism</em> — keeping multiple row versions and serving each transaction from the right one. Snapshot Isolation is a specific <em>guarantee level</em> built on top of MVCC: every read in a transaction sees the same committed snapshot. PostgreSQL offers multiple isolation levels (Read Committed, Repeatable Read, Serializable) that all use MVCC under the hood — the isolation level determines which versions are visible and when, not whether MVCC is used.</p>
+</blockquote>
 <p>The visibility rule just described gives each transaction <strong>snapshot isolation</strong>: every read within a transaction sees a consistent point-in-time snapshot, as if the rest of the world froze when the transaction began.</p>
 <table>
 <thead>

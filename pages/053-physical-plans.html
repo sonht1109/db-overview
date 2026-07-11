@@ -132,7 +132,7 @@ SEARCH departments AS d USING INTEGER PRIMARY KEY (rowid=?)
 </code></pre>
 <p>Two things stand out here. First, <code>SCAN</code> means a full table scan — SQLite will read every row in <code>employees</code> to evaluate the <code>salary</code> filter. Second, <code>SEARCH ... USING INTEGER PRIMARY KEY</code> means for each matching employee the engine does a fast primary-key lookup into <code>departments</code>. This is a <strong>nested-loop join</strong>: the outer loop scans <code>employees</code>, and the inner loop looks up the matching department row by its primary key.</p>
 <blockquote>
-<p><strong>Note:</strong> <code>EXPLAIN QUERY PLAN</code> shows the <em>intended</em> plan before execution. <code>EXPLAIN ANALYZE</code> (in PostgreSQL) or <code>EXPLAIN</code> with <code>VERBOSE</code> runs the query and reports actual row counts and timing alongside estimates — invaluable for spotting optimizer mistakes.</p>
+<p><strong>Note:</strong> <code>EXPLAIN QUERY PLAN</code> shows the <em>intended</em> plan before execution. <code>EXPLAIN ANALYZE</code> (in PostgreSQL) runs the query and reports actual row counts and timing alongside estimates — invaluable for spotting optimizer mistakes. Note that <code>EXPLAIN VERBOSE</code> in PostgreSQL adds extra detail (output column lists, schema names) but does <em>not</em> execute the query; only <code>EXPLAIN ANALYZE</code> actually runs it.</p>
 </blockquote>
 <h2>The Three Common Join Algorithms</h2>
 <p>Joins are where physical planning has the biggest impact on performance, so it is worth knowing the three algorithms most engines implement:</p>

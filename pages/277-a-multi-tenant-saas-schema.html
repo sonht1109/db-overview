@@ -59,7 +59,7 @@ CREATE TABLE projects (
 CREATE TABLE audit_log (
   id         INTEGER PRIMARY KEY,
   tenant_id  INTEGER NOT NULL REFERENCES tenants(id),
-  user_id    INTEGER REFERENCES users(id),
+  user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
   action     TEXT NOT NULL,
   resource   TEXT NOT NULL,
   payload    TEXT,           -- JSON details
@@ -123,7 +123,11 @@ CREATE INDEX idx_audit_tenant    ON audit_log(tenant_id, occurred_at DESC);
 CREATE POLICY tenant_isolation ON projects
   USING (tenant_id = current_setting(&#39;app.tenant_id&#39;)::integer);
 </code></pre>
-<p>Now even if application code forgets a <code>WHERE tenant_id = ?</code>, the database silently filters to the current tenant. SQLite has no built-in RLS, so isolation is enforced entirely by the application.</p>
+<p>Now even if application code forgets a <code>WHERE tenant_id = ?</code>, the database silently filters to the current tenant. SQLite has no built-in RLS, so isolation is enforced entirely by the application.
+
+<blockquote>
+<p><strong>Safety note:</strong> The RLS policy depends on <code>current_setting('app.tenant_id')</code>. If your application forgets to call <code>SET app.tenant_id = ...</code> at the start of a session, the setting will be unset and <code>current_setting</code> will raise an error (blocking all queries) or fall back to an unpredictable value. Always set the tenant context in a connection pool hook or middleware that runs before any query. For defense in depth, consider a <code>BEFORE INSERT</code> trigger that raises an exception if the session variable is NULL.</p>
+</blockquote></p>
 <h2>Plan-Based Feature Flags</h2>
 <pre><code class="language-sql">CREATE TABLE plan_features (
   plan    TEXT NOT NULL,
