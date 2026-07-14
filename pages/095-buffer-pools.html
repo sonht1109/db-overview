@@ -148,7 +148,7 @@
 </tbody></table>
 <h2>Seeing Buffer Pool Pressure in Practice</h2>
 <p>Buffer pool behavior is mostly invisible — until the pool is too small. When hit rates drop, queries that used to be fast suddenly wait on disk I/O. Most databases expose cache statistics you can query directly.</p>
-<p>Try the interactive example below. It simulates a simplified page-access log and computes a hit rate, the same metric DBAs watch in production:</p>
+<p>Try the interactive example below. Run it on any real PostgreSQL instance:</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Buffer hit rate simulation</span></div>
   <div class="widget-body">
