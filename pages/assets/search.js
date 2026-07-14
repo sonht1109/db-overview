@@ -40,12 +40,12 @@
   }
 
   function resolveUrl(url) {
-    // url is like "/pages/001-...html"
-    // If on content page, resolve relative
+    // url is like "/pages/001-...html" in the index
+    // Convert to relative: "pages/001-...html" (from index) or "001-...html" (from content page)
     if (isContentPage()) {
       return url.replace(/^\/pages\//, "");
     }
-    return url;
+    return url.replace(/^\//, "");
   }
 
   // ── Overlay / dropdown ────────────────────────────────
