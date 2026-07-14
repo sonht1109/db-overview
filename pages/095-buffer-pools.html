@@ -167,7 +167,7 @@ ORDER BY total_accesses DESC
 LIMIT 20;
 </textarea>
   </div>
-</div><p>A healthy OLTP system typically runs at 95–99% hit rate. Try adding a <code>WHERE heap_blks_read > 100</code> clause to find tables that are under the most disk I/O pressure — these are candidates for larger buffer pool allocations or index tuning.</p>
+</div><p>A healthy OLTP system typically runs at 95–99% hit rate. Try sorting by <code>hit_rate_pct</code> to find tables that are under the most disk I/O pressure — these are candidates for larger buffer pool allocations or index tuning.</p>
 
 </div>
   <nav class="pagenav"><a class="prev" href="094-checkpoints.html"><span class="dir">← Previous</span><span class="ttl">Checkpoints</span></a><a class="next" href="096-dirty-pages-and-flushing.html"><span class="dir">Next →</span><span class="ttl">Dirty pages and flushing</span></a></nav>
