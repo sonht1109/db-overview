@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Multi-step updates — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
+<script>(function(){try{var t=localStorage.getItem("db-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();</script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>  <button type="button" class="theme-toggle" title="Toggle theme" aria-label="Toggle theme"></button>
 </div></div>
 <main class="wrap">
   <p class="eyebrow">Part III. Storage and Execution</p>
@@ -126,6 +127,7 @@ SELECT * FROM bookings;</textarea>
 </div>
   <nav class="pagenav"><a class="prev" href="107-commit-and-rollback.html"><span class="dir">← Previous</span><span class="ttl">Commit and rollback</span></a><a class="next" href="109-real-examples-of-broken-logic.html"><span class="dir">Next →</span><span class="ttl">Real examples of broken logic</span></a></nav>
 </main>
+<script src="assets/theme.js"></script>
 <script src="assets/app.js"></script>
   <script src="assets/search.js"></script>
   <script type="module" src="assets/codemirror.js"></script>

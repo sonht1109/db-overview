@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Database Overview — An Interactive Guide</title>
     <link rel="stylesheet" href="pages/assets/style.css" />
-  </head>
+  <script>(function(){try{var t=localStorage.getItem("db-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();</script>
+</head>
   <body>
     <div class="topbar">
       <div class="topbar-inner">
@@ -20,6 +21,7 @@
           /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd>
         </div>
         <a class="last-visit-btn" title="Jump to last visited page" style="display:none">Continue reading →</a>
+        <button type="button" class="theme-toggle" title="Toggle theme" aria-label="Toggle theme"></button>
       </div>
     </div>
 
@@ -1043,6 +1045,7 @@
       </div>
     </footer>
 
+    <script src="pages/assets/theme.js"></script>
     <script src="pages/assets/search.js"></script>
     <script>
       /* Last-visit button */

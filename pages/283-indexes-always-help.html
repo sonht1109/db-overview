@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Indexes always help — Database Overview</title>
 <link rel="stylesheet" href="assets/style.css">
+<script>(function(){try{var t=localStorage.getItem("db-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();</script>
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>
+  <a class="home-link" href="../index.html">← All topics</a>  <div class="search-container"><input type="text" class="search-input" placeholder="Search topics…" autocomplete="off" spellcheck="false" /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd></div>  <button type="button" class="theme-toggle" title="Toggle theme" aria-label="Toggle theme"></button>
 </div></div>
 <main class="wrap">
   <p class="eyebrow">Part VII. Building Understanding</p>
@@ -154,6 +155,7 @@ SELECT id, user_id FROM events WHERE type = 'click';
 </div>
   <nav class="pagenav"><a class="prev" href="282-nosql-means-no-schema.html"><span class="dir">← Previous</span><span class="ttl">NoSQL means no schema</span></a><a class="next" href="284-acid-means-no-scale.html"><span class="dir">Next →</span><span class="ttl">ACID means no scale</span></a></nav>
 </main>
+<script src="assets/theme.js"></script>
 <script src="assets/app.js"></script>
   <script src="assets/search.js"></script>
   <script type="module" src="assets/codemirror.js"></script>
