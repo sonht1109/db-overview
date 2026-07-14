@@ -20,7 +20,10 @@
             spellcheck="false"
           /><kbd class="search-shortcut" title="Press ⌘K to search">⌘K</kbd>
         </div>
-        <a class="last-visit-btn" title="Jump to last visited page" style="display:none">Continue reading →</a>
+        <div class="last-visit-wrap" style="display:none">
+          <a class="last-visit-btn" title="Jump to last visited page">Continue reading <span class="lv-arrow">▾</span></a>
+          <div class="last-visit-dropdown"></div>
+        </div>
         <button type="button" class="theme-toggle" title="Toggle theme" aria-label="Toggle theme"></button>
       </div>
     </div>
@@ -1048,15 +1051,46 @@
     <script src="pages/assets/theme.js"></script>
     <script src="pages/assets/search.js"></script>
     <script>
-      /* Last-visit button */
+      /* Last-visit button with dropdown */
       (function () {
-        var lastSlug = null;
-        try { lastSlug = localStorage.getItem("db-last-visit"); } catch (_) {}
-        if (lastSlug) {
-          var btn = document.querySelector(".last-visit-btn");
-          if (btn) {
-            btn.href = "pages/" + lastSlug + ".html";
-            btn.style.display = "";
+        var visits = [];
+        try {
+          var raw = localStorage.getItem("db-last-visits");
+          visits = raw ? JSON.parse(raw) : [];
+        } catch (_) {}
+
+        if (visits.length > 0) {
+          var wrap = document.querySelector(".last-visit-wrap");
+          if (wrap) {
+            wrap.style.display = "";
+            var btn = wrap.querySelector(".last-visit-btn");
+            var dropdown = wrap.querySelector(".last-visit-dropdown");
+            var open = false;
+
+            btn.href = "pages/" + visits[0].slug + ".html";
+
+            dropdown.innerHTML = visits.map(function (v) {
+              var d = new Date(v.time);
+              var label = v.title || v.slug;
+              return '<a href="pages/' + v.slug + '.html">' +
+                '<span class="lv-title">' + label.replace(/[<>&"']/g, function(c){return{'"':'&quot;',"'":'&#39;','<':'&lt;','>':'&gt;','&':'&amp;'}[c];}) + '</span>' +
+                '<span class="lv-time">' + d.toLocaleString() + '</span>' +
+                '</a>';
+            }).join("");
+
+            btn.addEventListener("click", function (e) {
+              if (visits.length <= 1) return;
+              e.preventDefault();
+              open = !open;
+              dropdown.classList.toggle("open", open);
+            });
+
+            document.addEventListener("click", function (e) {
+              if (open && !wrap.contains(e.target)) {
+                open = false;
+                dropdown.classList.remove("open");
+              }
+            });
           }
         }
       })();

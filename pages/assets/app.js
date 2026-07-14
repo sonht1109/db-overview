@@ -157,10 +157,32 @@
   }
 
   /* ---------------- Last visit tracker ---------------- */
+  var VISITS_KEY = "db-last-visits";
+  var MAX_VISITS = 5;
+
+  function getVisits() {
+    try {
+      var raw = localStorage.getItem(VISITS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
   function trackLastVisit() {
     var slug = pageSlug();
     if (!slug) return;
     try {
+      var visits = getVisits();
+      visits = visits.filter(function (v) { return v.slug !== slug; });
+      visits.unshift({
+        slug: slug,
+        title: document.title,
+        time: Date.now()
+      });
+      if (visits.length > MAX_VISITS) visits.length = MAX_VISITS;
+      localStorage.setItem(VISITS_KEY, JSON.stringify(visits));
+      // keep db-last-visit for backward compat
       localStorage.setItem("db-last-visit", slug);
     } catch (_) {}
   }

@@ -74,12 +74,34 @@ body {
   display: inline-flex; align-items: center; gap: 6px;
 }
 .home-link:hover { color: var(--accent); }
+.last-visit-wrap {
+  position: relative; display: inline-flex;
+}
 .last-visit-btn {
   color: var(--accent); text-decoration: none; font-size: 14px; font-weight: 600;
   padding: 4px 12px; border: 1px solid var(--accent); border-radius: 6px;
-  transition: background .15s, color .15s;
+  transition: background .15s, color .15s; white-space: nowrap;
+  cursor: pointer;
 }
 .last-visit-btn:hover { background: var(--accent); color: #fff; }
+.lv-arrow { font-size: 16px; margin-left: 2px; line-height: 1; }
+.last-visit-dropdown {
+  display: none; position: absolute; top: calc(100% + 4px); right: 0;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 280px; z-index: 100;
+  overflow: hidden;
+}
+.last-visit-dropdown.open { display: block; }
+.last-visit-dropdown a {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 14px; text-decoration: none; color: var(--text);
+  font-size: 13px; border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+.last-visit-dropdown a:last-child { border-bottom: none; }
+.last-visit-dropdown a:hover { background: var(--accent-soft); }
+.lv-title { font-weight: 600; line-height: 1.3; }
+.lv-time { font-size: 11px; color: var(--muted); }
 .done-indicator {
   font-size: 12px; font-weight: 700; color: var(--ok);
   background: color-mix(in srgb, var(--ok) 12%, transparent);
