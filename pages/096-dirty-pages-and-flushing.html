@@ -158,23 +158,20 @@
 9. Old WAL segments before this LSN can be recycled
 </code></pre>
 <p>Step 3 before step 4 is the write-ahead rule. Steps 5 and 7 are separate <code>fsync</code> calls — one to protect durability of the commit, one to advance the checkpoint so recovery is fast.</p>
-<h2>Watching the Pattern with SQLite</h2>
-<p>PostgreSQL's <code>CHECKPOINT</code> command forces dirty pages to be flushed to disk. The widget below creates a small table and inserts some rows (dirtying pages). Run <code>CHECKPOINT</code> to flush WAL frames to the main data files.</p>
+<h2>Watching the Pattern with PostgreSQL</h2>
+<p>PostgreSQL's <code>CHECKPOINT</code> command forces all dirty buffers to be flushed to the data files. The setup below creates a table, records the WAL position with <code>pg_current_wal_insert_lsn()</code>, inserts rows (dirtying pages and appending WAL records), records the position again, then runs <code>CHECKPOINT</code>. Querying the recorded marks shows the WAL advancing at each step.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Dirty pages and checkpointing</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, kind TEXT, payload TEXT); INSERT INTO events VALUES (1, 'login',  'user=alice'); INSERT INTO events VALUES (2, 'login',  'user=bob'); INSERT INTO events VALUES (3, 'update', 'user=alice,field=email'); INSERT INTO events VALUES (4, 'logout', 'user=bob'); INSERT INTO events VALUES (5, 'login',  'user=carol');" rows="10">-- These rows were inserted into the WAL (dirty pages not yet in main db file).
--- A PASSIVE checkpoint flushes WAL frames that are not being read.
--- Run this to checkpoint and then inspect what remains.
-CHECKPOINT;
--- Returns: (busy, log, checkpointed)
---   log         = total WAL frames written
---   checkpointed = frames flushed to the main db file
---   busy        = 0 means no readers blocked the flush
--- After checkpointing, query the data normally:
-SELECT id, kind, payload FROM events ORDER BY id;</textarea>
+    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, kind TEXT, payload TEXT); CREATE TABLE wal_marks (step INT, label TEXT, wal_lsn PG_LSN); INSERT INTO wal_marks SELECT 1, 'before inserts', pg_current_wal_insert_lsn(); INSERT INTO events VALUES (1, 'login',  'user=alice'); INSERT INTO events VALUES (2, 'login',  'user=bob'); INSERT INTO events VALUES (3, 'update', 'user=alice,field=email'); INSERT INTO events VALUES (4, 'logout', 'user=bob'); INSERT INTO events VALUES (5, 'login',  'user=carol'); INSERT INTO wal_marks SELECT 2, 'after inserts (pages dirtied)', pg_current_wal_insert_lsn(); CHECKPOINT; INSERT INTO wal_marks SELECT 3, 'after CHECKPOINT (dirty pages flushed)', pg_current_wal_insert_lsn();" rows="10">-- The setup dirtied pages with INSERTs, recorded the WAL insert
+-- position (LSN) before and after, then ran CHECKPOINT — which
+-- flushes every dirty buffer to the data files.
+-- Each step's LSN is higher than the last: the INSERTs appended
+-- WAL records, and the checkpoint itself wrote a checkpoint
+-- record into the WAL.
+SELECT step, label, wal_lsn FROM wal_marks ORDER BY step;</textarea>
   </div>
-</div><p>Try adding more <code>INSERT</code> statements before the checkpoint command and observe the effect. In PostgreSQL, <code>CHECKPOINT</code> forces all dirty buffers to be written to disk immediately.</p>
+</div><p>Replace the query with <code>SELECT id, kind, payload FROM events ORDER BY id;</code> to confirm the data is intact after the checkpoint, or with <code>SELECT pg_current_wal_insert_lsn();</code> to see the current WAL position. In PostgreSQL, <code>CHECKPOINT</code> forces all dirty buffers to be written to disk immediately.</p>
 <h2>The Cost of Too Many (or Too Few) Dirty Pages</h2>
 <p>Holding many dirty pages in RAM is good for write throughput — batching reduces I/O. But there are limits:</p>
 <ul>
