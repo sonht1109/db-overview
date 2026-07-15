@@ -111,18 +111,7 @@
 <li><strong>Use <code>SELECT ... FOR UPDATE</code> deliberately.</strong> Acquire all the locks you need at the start of the transaction, not halfway through.</li>
 <li><strong>Avoid user interaction inside a transaction.</strong> Never leave a transaction open while waiting for a human to click a button.</li>
 </ol>
-<h2>Try It Yourself</h2>
-<p>SQLite uses a coarser database-level lock, so true deadlocks from two concurrent connections are not demonstrable in a single sql.js session. The widget below simulates the <strong>logical pattern</strong> — the read-lock-then-request sequence — so you can see which steps conflict and in what order.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Lock order simulation</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 500); INSERT INTO accounts VALUES (2, 'Bob', 300); CREATE TABLE lock_log (step TEXT, txn TEXT, resource TEXT, action TEXT); INSERT INTO lock_log VALUES ('1', 'Txn A', 'accounts row id=1', 'LOCK acquired'); INSERT INTO lock_log VALUES ('2', 'Txn B', 'accounts row id=2', 'LOCK acquired'); INSERT INTO lock_log VALUES ('3', 'Txn A', 'accounts row id=2', 'WAITING -- B holds it'); INSERT INTO lock_log VALUES ('4', 'Txn B', 'accounts row id=1', 'WAITING -- A holds it (DEADLOCK)'); INSERT INTO lock_log VALUES ('5', 'Txn B', 'accounts row id=1', 'VICTIM: rolled back by engine'); INSERT INTO lock_log VALUES ('6', 'Txn A', 'accounts row id=2', 'LOCK acquired -- cycle broken'); -- Simulate the safe outcome after victim rollback: UPDATE accounts SET balance = balance - 100 WHERE id = 1; UPDATE accounts SET balance = balance + 100 WHERE id = 2;" rows="10">-- Walk through the deadlock scenario step by step:
-SELECT step, txn, resource, action FROM lock_log ORDER BY CAST(step AS INTEGER);
--- Then check the final account state after Txn A completes:
--- SELECT * FROM accounts;
-</textarea>
-  </div>
-</div><details class="reveal"><summary>Reveal: Why does locking in a consistent order prevent deadlocks?</summary><div class="reveal-body"><p>If every transaction locks resources in the same global order (say, always by ascending row ID), then no circular dependency can form. To have a cycle you would need: A holds resource X and wants Y, while B holds Y and wants X. But if both A and B must acquire X before Y, then whichever transaction gets X first will also get Y before the other transaction even requests Y — no cycle, no deadlock. Consistent ordering breaks the <strong>circular wait</strong> condition, which is one of the four conditions required for deadlock.</p>
+<details class="reveal"><summary>Reveal: Why does locking in a consistent order prevent deadlocks?</summary><div class="reveal-body"><p>If every transaction locks resources in the same global order (say, always by ascending row ID), then no circular dependency can form. To have a cycle you would need: A holds resource X and wants Y, while B holds Y and wants X. But if both A and B must acquire X before Y, then whichever transaction gets X first will also get Y before the other transaction even requests Y — no cycle, no deadlock. Consistent ordering breaks the <strong>circular wait</strong> condition, which is one of the four conditions required for deadlock.</p>
 </div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="115-two-phase-locking.html"><span class="dir">← Previous</span><span class="ttl">Two-phase locking</span></a><a class="next" href="117-multiversion-concurrency-control.html"><span class="dir">Next →</span><span class="ttl">Multiversion concurrency control</span></a></nav>

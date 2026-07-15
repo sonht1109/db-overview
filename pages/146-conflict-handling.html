@@ -114,28 +114,7 @@ UPDATE loyalty_points SET balance = 70, version = 3 WHERE user_id = 42;
 </code></pre>
 <h3>Custom Merge Functions</h3>
 <p>Some databases (like DynamoDB with Lambda triggers, or PostgreSQL logical replication with conflict-resolution plugins) let you register a server-side function that runs automatically when a conflict is detected — keeping the logic close to the data without exposing raw conflicts to every application client.</p>
-<h2>Trying It Out</h2>
-<p>The widget below simulates a simplified conflict log — the kind of table a multi-primary system might maintain before resolution runs. Explore the data, then try the query that mimics a Last Write Wins resolution.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Conflict Resolution</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE conflict_log (conflict_id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, node TEXT NOT NULL, new_balance INTEGER NOT NULL, written_at TEXT NOT NULL); INSERT INTO conflict_log VALUES (1, 42, 'EU', 150, '2024-06-01 10:00:00'); INSERT INTO conflict_log VALUES (2, 42, 'US', 120, '2024-06-01 10:00:01'); INSERT INTO conflict_log VALUES (3, 99, 'EU', 300, '2024-06-01 10:05:00'); INSERT INTO conflict_log VALUES (4, 99, 'US', 290, '2024-06-01 10:04:58');" rows="10">-- Last Write Wins: pick the row with the latest written_at per user
-SELECT user_id,
-       node        AS winning_node,
-       new_balance AS resolved_balance,
-       written_at  AS winning_timestamp
-FROM conflict_log
-WHERE (user_id, written_at) IN (
-    SELECT user_id, MAX(written_at)
-    FROM conflict_log
-    GROUP BY user_id
-)
-ORDER BY user_id;
--- Try changing MAX to MIN to see "First Write Wins" instead.
--- Notice user 99: the EU write arrives LATER even though it has a lower balance.
--- LWW picks it silently -- potentially wrong for a debit scenario.</textarea>
-  </div>
-</div><p>Notice how LWW chooses EU&#39;s balance of 300 for user 99, even though the US had the lower (and arguably more &quot;correct&quot;) debit applied first. This illustrates why LWW is dangerous for anything involving money or inventory.</p>
+
 <h2>Preventing Conflicts</h2>
 <p>Resolution is always imperfect — the best strategy is often to minimize conflicts in the first place:</p>
 <ul>

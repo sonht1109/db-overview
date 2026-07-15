@@ -120,18 +120,7 @@ UPDATE accounts SET balance = balance + 500 WHERE id = 2;
 COMMIT;  -- locks released here (strict 2PL)
 </code></pre>
 <p>Any other transaction trying to touch accounts 1 or 2 will block until this commit completes. Serializability is guaranteed: from the outside, these two transactions appear to run one after the other, in some order, with no interleaving.</p>
-<h2>Try It Yourself</h2>
-<p>The widget below simulates what happens when two transactions compete for the same row. Run it to see the lock-compatible read scenario, then modify it to observe a write conflict.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Lock compatibility demo</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000), (2, 'Bob', 500); CREATE TABLE xfer_log (note TEXT); INSERT INTO xfer_log VALUES ('Transfer simulation (SQLite runs statements sequentially, modeling one txn at a time)'); UPDATE accounts SET balance = balance - 200 WHERE id = 1; UPDATE accounts SET balance = balance + 200 WHERE id = 2; INSERT INTO xfer_log VALUES ('Transferred $200 from Alice to Bob');" rows="10">-- Check balances after the simulated transfer
-SELECT owner, balance FROM accounts;
--- Also see the log
-SELECT note FROM xfer_log;
-</textarea>
-  </div>
-</div><details class="reveal"><summary>Reveal: Why does 2PL guarantee serializability?</summary><div class="reveal-body"><p>Because of the lock point. At the moment a transaction passes its lock point, it holds every lock it will ever need. Any other transaction that conflicts with it must either have finished before the lock point (and released its locks) or must wait until after the lock point (and sees only committed data). This creates a total ordering of conflicting transactions — exactly what serializability requires.</p>
+<details class="reveal"><summary>Reveal: Why does 2PL guarantee serializability?</summary><div class="reveal-body"><p>Because of the lock point. At the moment a transaction passes its lock point, it holds every lock it will ever need. Any other transaction that conflicts with it must either have finished before the lock point (and released its locks) or must wait until after the lock point (and sees only committed data). This creates a total ordering of conflicting transactions — exactly what serializability requires.</p>
 <p>The formal proof is that the conflict graph of a 2PL schedule is always acyclic, which is the definition of a serializable execution.</p>
 </div></details>
 </div>

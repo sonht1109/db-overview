@@ -140,20 +140,24 @@ SHOW REPLICA STATUS\G
 <p><strong>Note:</strong> PostgreSQL&#39;s <em>synchronous_commit = remote_apply</em> setting guarantees a replica has applied (not just received) a WAL record before the primary acknowledges the commit. This eliminates lag for those writes at the cost of higher commit latency.</p>
 </blockquote>
 <hr>
-<p>The following widget simulates the kind of data discrepancy a lagged replica can create. The <code>events</code> table represents the primary state; <code>replica_snapshot</code> represents what a replica with lag might have seen at a slightly earlier point in time. Try querying both to see the difference.</p>
+<p>Below is a real query against <code>pg_stat_replication</code> that reports per-replica lag with a readable status indicator.</p>
 <div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Replica lag simulation</span></div>
+  <div class="widget-head"><span>Interactive SQL · pg_stat_replication</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, user_id INTEGER, action TEXT, ts TEXT); INSERT INTO events VALUES (1, 42, 'signup', '2024-06-01 09:00:00'), (2, 42, 'verify_email', '2024-06-01 09:01:10'), (3, 99, 'signup', '2024-06-01 09:05:00'), (4, 42, 'first_login', '2024-06-01 09:10:00'); CREATE TABLE replica_snapshot (id SERIAL PRIMARY KEY, user_id INTEGER, action TEXT, ts TEXT); INSERT INTO replica_snapshot VALUES (1, 42, 'signup', '2024-06-01 09:00:00'), (2, 42, 'verify_email', '2024-06-01 09:01:10'), (3, 99, 'signup', '2024-06-01 09:05:00');" rows="10">-- The primary has 4 rows for user 42; the lagged replica only has 3.
--- Try this: how does user 42's state look on each?
--- Primary (fully up to date):
-SELECT 'primary' AS source, id, action, ts FROM events WHERE user_id = 42
-UNION ALL
--- Replica (lagged — missing the most recent row):
-SELECT 'replica' AS source, id, action, ts FROM replica_snapshot WHERE user_id = 42
-ORDER BY source, id;</textarea>
+    <textarea rows="10">-- Real PostgreSQL replication lag per replica
+SELECT
+  application_name,
+  EXTRACT(EPOCH FROM replay_lag) AS lag_seconds,
+  pg_wal_lsn_diff(sent_lsn, replay_lsn) AS lag_bytes,
+  CASE
+    WHEN replay_lag > interval '5 seconds' THEN 'WARNING: Significant lag'
+    WHEN replay_lag > interval '1 second' THEN 'MINOR: Slight lag'
+    ELSE 'OK: Up to date'
+  END AS status
+FROM pg_stat_replication
+ORDER BY replay_lag DESC;</textarea>
   </div>
-</div><p>Notice that a read-your-own-writes check on the replica would miss <code>first_login</code> entirely — user 42 appears not to have logged in yet, even though the primary already recorded it.</p>
+</div>
 
 </div>
   <nav class="pagenav"><a class="prev" href="143-read-replicas.html"><span class="dir">← Previous</span><span class="ttl">Read replicas</span></a><a class="next" href="145-failover-and-promotion.html"><span class="dir">Next →</span><span class="ttl">Failover and promotion</span></a></nav>

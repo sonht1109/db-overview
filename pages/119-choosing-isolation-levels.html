@@ -137,26 +137,6 @@ COMMIT;
 <p><strong>You can mix levels within an application.</strong> A background analytics query can run at Read Committed while a payment handler runs at Serializable. Most database drivers let you set the level per connection or per transaction with <code>SET TRANSACTION ISOLATION LEVEL ...</code>.</p>
 <p><strong>Serializable is not always slow.</strong> Databases like PostgreSQL implement Serializable Snapshot Isolation (SSI), which detects conflicts optimistically rather than holding long locks. Throughput under SSI is often close to Snapshot Isolation unless conflict rates are high.</p>
 <p><strong><code>SELECT ... FOR UPDATE</code> is a practical middle ground.</strong> At Read Committed, you can lock specific rows you intend to modify, preventing concurrent updates without paying the full cost of Serializable for the whole transaction.</p>
-<p>Try the widget below — it demonstrates the check-then-act booking pattern and shows what happens under different strategies.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Booking under concurrency</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE flights (id SERIAL PRIMARY KEY, route TEXT, seats_remaining INTEGER); INSERT INTO flights VALUES (1, 'NYC→LAX', 1); INSERT INTO flights VALUES (2, 'SFO→ORD', 10);" rows="10">-- Simulate two transactions both trying to book the last seat.
--- Run this as-is to see an oversell occur without locking:
-SELECT seats_remaining FROM flights WHERE id = 1;
--- (Both sessions would see 1 — and both proceed)
-UPDATE flights SET seats_remaining = seats_remaining - 1 WHERE id = 1;
-SELECT seats_remaining FROM flights WHERE id = 1;
--- seats_remaining = 0 after first booking; -1 after a second concurrent one.
--- Reset and try with a guarded update instead:
-UPDATE flights SET seats_remaining = 1 WHERE id = 1;
-UPDATE flights
-  SET seats_remaining = seats_remaining - 1
-  WHERE id = 1 AND seats_remaining > 0;
-SELECT changes();   -- 1 row changed = booking succeeded; 0 = seat was gone
-SELECT seats_remaining FROM flights WHERE id = 1;</textarea>
-  </div>
-</div><p>The <code>WHERE seats_remaining &gt; 0</code> guard in the UPDATE turns the check-and-act into a single atomic statement — no extra isolation level needed for this specific pattern. More complex scenarios (booking multiple resources at once, or cross-table invariants) still call for Serializable.</p>
 
 </div>
   <nav class="pagenav"><a class="prev" href="118-snapshot-isolation.html"><span class="dir">← Previous</span><span class="ttl">Snapshot isolation</span></a><a class="next" href="120-chapter-12-summary.html"><span class="dir">Next →</span><span class="ttl">Chapter 12 Summary: What We Learned</span></a></nav>

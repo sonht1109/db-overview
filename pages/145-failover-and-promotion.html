@@ -147,24 +147,6 @@
 </tr>
 </tbody></table>
 <p>These tools watch node health, run elections, update connection routing, and re-attach the old leader as a follower — all automatically.</p>
-<p>The interactive example below lets you explore replication lag in a simulated replica log. The <code>replica_log</code> table mimics what a follower has received; notice which rows are missing compared to the leader.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Simulating replication lag and missing writes</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE leader_log (lsn SERIAL PRIMARY KEY, data TEXT, committed_at TEXT); INSERT INTO leader_log VALUES (1, 'INSERT users Alice', '10:00:01'); INSERT INTO leader_log VALUES (2, 'INSERT users Bob', '10:00:02'); INSERT INTO leader_log VALUES (3, 'UPDATE orders SET status=paid WHERE id=7', '10:00:03'); INSERT INTO leader_log VALUES (4, 'INSERT users Carol', '10:00:04'); INSERT INTO leader_log VALUES (5, 'DELETE orders WHERE id=2', '10:00:05'); CREATE TABLE replica_log (lsn SERIAL PRIMARY KEY, data TEXT, received_at TEXT); INSERT INTO replica_log VALUES (1, 'INSERT users Alice', '10:00:01'); INSERT INTO replica_log VALUES (2, 'INSERT users Bob', '10:00:02'); INSERT INTO replica_log VALUES (3, 'UPDATE orders SET status=paid WHERE id=7', '10:00:03');" rows="10">-- Which writes did the leader commit that the replica has NOT yet received?
--- These would be LOST if we promoted this replica right now.
-SELECT
-  l.lsn,
-  l.data          AS lost_write,
-  l.committed_at
-FROM leader_log l
-LEFT JOIN replica_log r ON r.lsn = l.lsn
-WHERE r.lsn IS NULL
-ORDER BY l.lsn;
--- Try: INSERT INTO replica_log VALUES (4, 'INSERT users Carol', '10:00:04');
--- Then re-run to see the lag shrink.</textarea>
-  </div>
-</div>
 </div>
   <nav class="pagenav"><a class="prev" href="144-replication-lag.html"><span class="dir">← Previous</span><span class="ttl">Replication lag</span></a><a class="next" href="146-conflict-handling.html"><span class="dir">Next →</span><span class="ttl">Conflict handling</span></a></nav>
 </main>

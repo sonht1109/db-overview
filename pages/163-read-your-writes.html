@@ -107,28 +107,7 @@
 <blockquote>
 <p><strong>Note:</strong> Multi-device sessions are harder. If you post from your phone and then open a laptop, the laptop&#39;s session has no knowledge of the phone&#39;s write. Timestamp fencing or a server-side session token is required to extend the guarantee across devices.</p>
 </blockquote>
-<h2>Seeing the Problem in Data</h2>
-<p>The widget below simulates a small replica that lags behind a leader. The <code>replication_offset</code> column mimics which writes each replica has applied. Try querying from the perspective of a client who just wrote at offset 5 — which replicas would show their data?</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Read-your-writes simulation</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE nodes (node_id TEXT, role TEXT, applied_offset INTEGER); INSERT INTO nodes VALUES ('leader', 'leader', 10), ('replica-A', 'follower', 10), ('replica-B', 'follower', 4), ('replica-C', 'follower', 7); CREATE TABLE user_writes (username TEXT, write_offset INTEGER, content TEXT); INSERT INTO user_writes VALUES ('alice', 5, 'my comment'), ('alice', 9, 'my edited comment'), ('bob', 3, 'bobs post');" rows="10">-- Alice just wrote at offset 5. Which nodes will show her comment?
--- A node can serve alice's read only if its applied_offset >= alice's write_offset.
-SELECT
-  n.node_id,
-  n.role,
-  n.applied_offset,
-  w.content,
-  CASE WHEN n.applied_offset >= w.write_offset
-       THEN 'visible ✓'
-       ELSE 'MISSING ✗'
-  END AS read_result
-FROM nodes n
-CROSS JOIN user_writes w
-WHERE w.username = 'alice' AND w.content = 'my comment'
-ORDER BY n.node_id;</textarea>
-  </div>
-</div><p>Now try changing <code>w.content = &#39;my comment&#39;</code> to <code>&#39;my edited comment&#39;</code> (written at offset 9) and re-run. Notice that even <code>replica-A</code>, which was fine before, may fall behind now.</p>
+
 <h2>Read-your-writes vs. Other Guarantees</h2>
 <p>It helps to know where read-your-writes sits relative to guarantees covered in this chapter:</p>
 <ul>

@@ -137,32 +137,22 @@
 <li><strong>Receive-and-buffer</strong> (semi-sync): replica has the data in memory but maybe not on disk. Still survives a leader crash if the replica doesn&#39;t crash simultaneously.</li>
 <li><strong>Receive-and-fsync</strong> (fully synchronous): replica has flushed to disk. Survives even if both machines lose power simultaneously.</li>
 </ul>
-<p>Use this widget to explore what a replication lag monitor might look like. The query identifies which replicas are dangerously behind.</p>
+<p>PostgreSQL exposes <code>pg_stat_replication</code> for monitoring replication state — below is a real query you can run on any primary to inspect sync vs async replicas and their lag.</p>
 <div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Replication lag monitor</span></div>
+  <div class="widget-head"><span>Interactive SQL · pg_stat_replication</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replicas (replica_id TEXT PRIMARY KEY, mode TEXT, leader_lsn INTEGER, replica_lsn INTEGER, last_contact_sec INTEGER); INSERT INTO replicas VALUES ('replica-1', 'sync',  10500, 10500, 1); INSERT INTO replicas VALUES ('replica-2', 'async', 10500, 10480, 3); INSERT INTO replicas VALUES ('replica-3', 'async', 10500, 10100, 8); INSERT INTO replicas VALUES ('replica-4', 'async', 10500,  9800, 45);" rows="10">
--- How far behind is each replica?
--- lag_bytes = how many log bytes the replica hasn't applied yet.
--- A replica that is too far behind may serve stale reads.
+    <textarea rows="10">-- Real PostgreSQL synchronous vs async replication
 SELECT
-  replica_id,
-  mode,
-  leader_lsn - replica_lsn   AS lag_bytes,
-  last_contact_sec            AS secs_since_contact,
-  CASE
-    WHEN mode = 'sync'                          THEN 'in-sync (guaranteed)'
-    WHEN leader_lsn - replica_lsn = 0          THEN 'caught up'
-    WHEN leader_lsn - replica_lsn < 100        THEN 'slight lag'
-    WHEN leader_lsn - replica_lsn < 500        THEN 'moderate lag'
-    ELSE                                             'WARNING: high lag'
-  END AS status
-FROM replicas
-ORDER BY lag_bytes DESC;
-</textarea>
+  application_name,
+  sync_state,
+  sync_priority,
+  pg_wal_lsn_diff(sent_lsn, replay_lsn) AS lag_bytes,
+  EXTRACT(EPOCH FROM replay_lag) AS lag_seconds
+FROM pg_stat_replication
+ORDER BY sync_priority;</textarea>
   </div>
-</div><p>Try changing <code>replica_lsn</code> values or switching a replica&#39;s mode from <code>&#39;async&#39;</code> to <code>&#39;sync&#39;</code> to see how the status column shifts. Notice that only the synchronous replica is guaranteed to be current — the others reflect the tradeoff you accept when you prioritise write throughput over read consistency.</p>
-<details class="reveal"><summary>Reveal: If the leader crashes right now, which replicas can safely be promoted without data loss?</summary><div class="reveal-body">Only <strong>replica-1</strong> (sync mode, zero lag). Replica-2 through replica-4 have not yet applied all writes — promoting any of them would silently lose the writes they haven't received. In a real system, the failover controller must check each replica's log position and pick the one closest to the leader, then accept that some commits may be rolled back.</div></details>
+</div><p>This query uses <code>pg_stat_replication</code> to surface which replicas are synchronous, how much they lag, and their priority in the sync standby list.</p>
+<details class="reveal"><summary>Reveal: If the leader crashes right now, which replicas can safely be promoted without data loss?</summary><div class="reveal-body">Only replicas with <code>sync_state = 'sync'</code> and <code>replay_lag</code> near zero. Asynchronous replicas may have not yet applied all writes — promoting any of them would silently lose the writes they haven't received. In a real system, the failover controller must check each replica's log position and pick the one closest to the leader, then accept that some commits may be rolled back.</div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="141-leader-follower-replication.html"><span class="dir">← Previous</span><span class="ttl">Leader-follower replication</span></a><a class="next" href="143-read-replicas.html"><span class="dir">Next →</span><span class="ttl">Read replicas</span></a></nav>
 </main>

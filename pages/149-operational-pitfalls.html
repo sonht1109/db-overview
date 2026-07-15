@@ -127,17 +127,7 @@ ORDER BY retained_wal DESC;
 <p><strong>Note:</strong> In MySQL, this topology is called <strong>relay chains</strong>. In PostgreSQL, cascading standby is supported but each hop adds latency. Monitor <em>every</em> hop, not just the primary&#39;s direct followers.</p>
 </blockquote>
 <hr>
-<p>Use this widget to explore how a missing column (simulating a migration applied on the primary but not yet on the replica) causes query failures. The <code>orders_primary</code> table has the new <code>status</code> column; <code>orders_replica</code> does not yet.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Schema mismatch simulation</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders_primary (id SERIAL PRIMARY KEY, customer_id INTEGER, amount REAL, status TEXT); INSERT INTO orders_primary VALUES (1, 7, 99.99, 'shipped'), (2, 7, 14.50, 'pending'), (3, 12, 200.00, 'shipped'); CREATE TABLE orders_replica (id SERIAL PRIMARY KEY, customer_id INTEGER, amount REAL); INSERT INTO orders_replica VALUES (1, 7, 99.99), (2, 7, 14.50), (3, 12, 200.00);" rows="10">-- The primary has a new 'status' column; the replica does not yet.
--- This query works on the primary:
-SELECT id, amount, status FROM orders_primary WHERE customer_id = 7;
--- Try changing the table name to orders_replica and re-run.
--- The replica query will fail because 'status' does not exist there yet.</textarea>
-  </div>
-</div><p>The gap between when a migration lands on the primary and when it fully propagates to all replicas is a real deployment risk. The expand–contract pattern closes that gap safely.</p>
+
 
 </div>
   <nav class="pagenav"><a class="prev" href="148-replication-logs.html"><span class="dir">← Previous</span><span class="ttl">Replication logs</span></a><a class="next" href="150-chapter-15-summary.html"><span class="dir">Next →</span><span class="ttl">Chapter 15 Summary: What We Learned</span></a></nav>

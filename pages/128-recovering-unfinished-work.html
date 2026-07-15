@@ -117,27 +117,7 @@ COMMIT;
 <blockquote>
 <p><strong>Note:</strong> Some databases let you monitor undo progress. In PostgreSQL, <code>pg_stat_activity</code> shows transactions in state <code>idle in transaction (aborted)</code> and the <code>pg_locks</code> view can show blocking. Long undo operations are a real operational concern, not just theory.</p>
 </blockquote>
-<h2>Explore It with a Simulated Log</h2>
-<p>The widget below models the undo decision for a crashed transaction. It uses a table of log records; the query identifies which records need to be undone (no matching COMMIT) and lists them newest-to-oldest — the exact traversal order the engine would use.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Simulating undo order</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE wal_log (lsn SERIAL PRIMARY KEY, txn_id INTEGER, op TEXT, page TEXT, before_val TEXT, after_val TEXT); INSERT INTO wal_log VALUES (301, 9, 'BEGIN', NULL, NULL, NULL); INSERT INTO wal_log VALUES (308, 9, 'UPDATE', 'accounts:42', '1000', '800'); INSERT INTO wal_log VALUES (315, 9, 'INSERT', 'orders:77', NULL, 'row 77'); INSERT INTO wal_log VALUES (322, 9, 'UPDATE', 'inventory:5', '20', '19'); INSERT INTO wal_log VALUES (400, 7, 'BEGIN', NULL, NULL, NULL); INSERT INTO wal_log VALUES (405, 7, 'UPDATE', 'accounts:10', '500', '450'); INSERT INTO wal_log VALUES (410, 7, 'COMMIT', NULL, NULL, NULL);" rows="10">-- Which transactions need undo, and in what order should changes be reversed?
-SELECT
-  w.txn_id,
-  w.lsn,
-  w.op,
-  w.page,
-  w.before_val AS restore_to,
-  w.after_val  AS current_val
-FROM wal_log w
-WHERE w.op NOT IN ('BEGIN', 'COMMIT')
-  AND w.txn_id NOT IN (
-      SELECT txn_id FROM wal_log WHERE op = 'COMMIT'
-  )
-ORDER BY w.lsn DESC;  -- newest first = correct undo order</textarea>
-  </div>
-</div><p>Try adding <code>INSERT INTO wal_log VALUES (330, 9, &#39;COMMIT&#39;, NULL, NULL, NULL);</code> at the top of the setup area, then re-run — transaction 9 disappears from the undo list because it is now committed.</p>
+
 <h2>Key Takeaways</h2>
 <ul>
 <li><strong>Uncommitted changes that reached disk</strong> are the target of the undo phase. They are not automatically safe just because the data file was written.</li>

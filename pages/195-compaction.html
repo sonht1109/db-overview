@@ -231,24 +231,7 @@ L2: [a-b][c-d][e-f]...[y-z]  ← non-overlapping, 10 MB each, ~10× more files
 <td>RocksDB, LevelDB</td>
 </tr>
 </tbody></table>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Simulating SSTable Merge and Tombstone Removal</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sst_before (source TEXT, seq INTEGER, key TEXT, value TEXT); INSERT INTO sst_before VALUES ('SST-1', 1, 'a', 'Alice v1'); INSERT INTO sst_before VALUES ('SST-1', 2, 'c', 'Carol v1'); INSERT INTO sst_before VALUES ('SST-1', 3, 'e', 'Eve v1'); INSERT INTO sst_before VALUES ('SST-2', 5, 'a', 'Alice v2'); INSERT INTO sst_before VALUES ('SST-2', 6, 'b', 'TOMBSTONE'); INSERT INTO sst_before VALUES ('SST-2', 7, 'c', 'Carol v2'); INSERT INTO sst_before VALUES ('SST-3', 8, 'e', 'TOMBSTONE'); INSERT INTO sst_before VALUES ('SST-3', 9, 'd', 'Diana'); INSERT INTO sst_before VALUES ('SST-3', 10, 'f', 'Fatima');" rows="10">-- Step 1: Find the winning version for each key (highest seq wins)
-WITH ranked AS (
-  SELECT key, value, seq,
-    ROW_NUMBER() OVER (PARTITION BY key ORDER BY seq DESC) AS rn
-  FROM sst_before
-)
--- Step 2: Keep only the latest version, and drop tombstones
-SELECT key, value AS compacted_value, seq AS winning_seq
-FROM ranked
-WHERE rn = 1
-  AND value != 'TOMBSTONE'
-ORDER BY key;
--- Notice: b and e disappear (tombstoned), older versions of a and c are gone.</textarea>
-  </div>
-</div><h2>Key Takeaways</h2>
+<h2>Key Takeaways</h2>
 <ul>
 <li>Compaction is what keeps LSM-trees healthy: without it, reads degrade, disk fills up with stale data, and tombstones accumulate.</li>
 <li><strong>Size-tiered compaction (STCS)</strong> optimizes for write throughput at the cost of read performance — ideal for append-heavy workloads.</li>

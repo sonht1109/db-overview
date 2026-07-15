@@ -169,23 +169,7 @@ COMMIT;
 <blockquote>
 <p><strong>Note:</strong> SQLite uses a simpler journal-based mechanism (rollback journal or WAL mode) that achieves the same safety guarantees with less complexity, trading some throughput for simplicity. The core ideas — log before you write, track what committed — are the same.</p>
 </blockquote>
-<h2>Try It: Simulating a Transaction Log</h2>
-<p>The widget below models a tiny transaction log table. The query identifies which transactions committed and which were left incomplete — exactly what the Analysis phase of ARIES does (in ARIES engines like InnoDB or SQL Server). Try adding a <code>COMMIT</code> row for <code>T55</code> and re-run to see it change status.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Transaction log analysis</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE wal_log (lsn SERIAL PRIMARY KEY, txn_id TEXT NOT NULL, op TEXT NOT NULL, detail TEXT); INSERT INTO wal_log VALUES (101,'T42','UPDATE','accounts: balance 500- rows="10">400'); INSERT INTO wal_log VALUES (102,'T42','UPDATE','accounts: balance 300->400'); INSERT INTO wal_log VALUES (103,'T42','COMMIT',''); INSERT INTO wal_log VALUES (104,'T55','INSERT','orders: row 9'); INSERT INTO wal_log VALUES (105,'T55','UPDATE','inventory: qty 10->9');">-- Which transactions committed, and which are incomplete?
-SELECT
-  txn_id,
-  CASE WHEN MAX(op) = 'COMMIT' THEN 'committed'
-       ELSE 'incomplete (ARIES would UNDO; PG ignores via MVCC)'
-  END AS status,
-  COUNT(*) AS log_records
-FROM wal_log
-GROUP BY txn_id
-ORDER BY txn_id;</textarea>
-  </div>
-</div><h2>Key Takeaways</h2>
+<h2>Key Takeaways</h2>
 <table>
 <thead>
 <tr>

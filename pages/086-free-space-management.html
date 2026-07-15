@@ -129,23 +129,24 @@ After deleting row 2:
 <blockquote>
 <p><strong>Note:</strong> SQLite&#39;s <code>VACUUM</code> rewrites the <em>entire</em> database file into a new, compact file and then replaces the old one. It reclaims space from dropped tables and deleted rows but requires enough disk space to hold two copies of the database at once during the operation.</p>
 </blockquote>
-<h2>Observing Free Space in SQLite</h2>
-<p>SQLite exposes page-level statistics through <code>PRAGMA</code> commands. Try the widget below to see how deletes affect the page count and how <code>VACUUM</code> reclaims space.</p>
+<p>In PostgreSQL, the <code>pg_stat_user_tables</code> view tracks live and dead tuples per table — dead tuples are rows that have been deleted or updated but not yet reclaimed by VACUUM.</p>
 <div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Free space and VACUUM</span></div>
+  <div class="widget-head"><span>Interactive SQL · Dead tuples and free space</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, payload TEXT); WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r WHERE n < 200) INSERT INTO events SELECT n, 'event-data-for-row-number-' || n FROM r;" rows="10">-- Check page usage before and after deletes.
--- page_count * page_size = total file bytes;
--- freelist_count = pages fully released to the freelist.
-SELECT page_count, page_size, freelist_count,
-       page_count * page_size AS total_bytes
-FROM pragma_page_count(), pragma_page_size(), pragma_freelist_count();
--- Try running: DELETE FROM events WHERE id % 2 = 0;
--- Then re-run this query to see freelist_count change.
--- Then run: VACUUM;
--- And check again.</textarea>
+    <textarea rows="10">-- PostgreSQL dead tuple and vacuum stats
+SELECT
+  schemaname || '.' || relname AS table_name,
+  n_live_tup AS live_rows,
+  n_dead_tup AS dead_rows,
+  ROUND(100.0 * n_dead_tup / NULLIF(n_live_tup + n_dead_tup, 0), 1) AS pct_dead,
+  n_tup_upd AS updates,
+  n_tup_del AS deletes,
+  last_vacuum,
+  last_autovacuum
+FROM pg_stat_user_tables
+ORDER BY n_dead_tup DESC;</textarea>
   </div>
-</div><p>Run the <code>SELECT</code> above to see the baseline, then delete half the rows and re-run it to watch <code>freelist_count</code> grow. After <code>VACUUM</code>, the numbers reset to a compact state.</p>
+</div><p>Tables with a high percentage of dead tuples are candidates for <code>VACUUM</code>. After vacuum, <code>n_dead_tup</code> drops and reclaimed space becomes available for new inserts.</p>
 <h2>The Cost of Ignoring Free Space</h2>
 <p>Neglecting free space management has cascading effects:</p>
 <ol>

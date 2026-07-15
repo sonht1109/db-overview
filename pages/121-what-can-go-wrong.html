@@ -104,30 +104,7 @@
 <blockquote>
 <p><strong>Note:</strong> Modern cloud databases sidestep most media failures by replicating data across multiple availability zones automatically. But the underlying principle is the same: have a known-good copy, and have a log to bring it forward.</p>
 </blockquote>
-<h2>Putting It Together</h2>
-<p>Try this widget to see how the database distinguishes in-flight from committed transactions. The <code>status</code> column plays the role of the commit record in a real log.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Crash scenario simulation</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE txn_log (txn_id INTEGER, action TEXT, committed INTEGER);
-INSERT INTO txn_log VALUES (1, 'UPDATE accounts SET balance = 900 WHERE id = 1', 1);
-INSERT INTO txn_log VALUES (1, 'UPDATE accounts SET balance = 1100 WHERE id = 2', 1);
-INSERT INTO txn_log VALUES (2, 'UPDATE accounts SET balance = 500 WHERE id = 3', 1);
-INSERT INTO txn_log VALUES (3, 'UPDATE accounts SET balance = 200 WHERE id = 1', 0);
-INSERT INTO txn_log VALUES (3, 'UPDATE accounts SET balance = 750 WHERE id = 4', 0);" rows="10">-- After a crash, recovery scans the log.
--- Rows where committed=1 need to be redone (replayed).
--- Rows where committed=0 belong to in-flight txns and must be undone (ignored or reversed).
-SELECT
-  txn_id,
-  action,
-  CASE committed
-    WHEN 1 THEN 'REDO — replay this change'
-    ELSE        'UNDO — reverse this change'
-  END AS recovery_action
-FROM txn_log
-ORDER BY txn_id, rowid;</textarea>
-  </div>
-</div><p>The output makes the split clear: every entry for committed transactions must be replayed; every entry for the uncommitted transaction (txn 3) must be rolled back. Real recovery algorithms — ARIES being the most influential — do exactly this, but with far more bookkeeping to handle checkpoints, page boundaries, and concurrent transactions efficiently.</p>
+
 
 </div>
   <nav class="pagenav"><a class="prev" href="120-chapter-12-summary.html"><span class="dir">← Previous</span><span class="ttl">Choosing isolation levels</span></a><a class="next" href="122-the-write-ahead-log.html"><span class="dir">Next →</span><span class="ttl">The write-ahead log</span></a></nav>

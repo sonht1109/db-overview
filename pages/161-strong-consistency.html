@@ -131,27 +131,7 @@
 Eventual   Monotonic read   Session   Bounded staleness   Linearizable
 </code></pre>
 <p>Eventual consistency is fastest but offers the fewest guarantees. Linearizability is the gold standard but every operation pays coordination costs. The chapters that follow in this part cover where each weaker model sits and which guarantees it preserves.</p>
-<p>Try the interactive example below to see how consistency levels map to concrete behaviour in Cassandra-style query syntax. The table simulates a write log across replicas so you can inspect what different quorum settings would return.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Consistency level simulation</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replica_log (replica TEXT, key TEXT, value INTEGER, written_at INTEGER); INSERT INTO replica_log VALUES ('node_a', 'balance', 500, 1); INSERT INTO replica_log VALUES ('node_b', 'balance', 500, 1); INSERT INTO replica_log VALUES ('node_c', 'balance', 500, 1); INSERT INTO replica_log VALUES ('node_a', 'balance', 750, 2); INSERT INTO replica_log VALUES ('node_b', 'balance', 750, 2); /* node_c did NOT yet receive the latest write (simulating async lag) */;" rows="10">-- Which nodes have the latest value of 'balance'?
--- With a QUORUM read (any 2 of 3 nodes), do we see the new write?
-SELECT replica, value, written_at
-FROM replica_log
-WHERE key = 'balance'
-ORDER BY replica;
--- Uncomment to simulate a quorum read: pick the max value from any 2 nodes
--- SELECT MAX(value) AS quorum_read_result
--- FROM (
---   SELECT value FROM replica_log
---   WHERE key = 'balance'
---   ORDER BY written_at DESC
---   LIMIT 2
--- );
-    </textarea>
-  </div>
-</div><p>Notice that node_c still holds <code>balance = 500</code>. A quorum read (W=2 of 3 nodes) reaches node_a and node_b — both have the latest value, so a strongly consistent system returns <code>750</code>. An eventual-consistency read routed to node_c would silently return <code>500</code>. That single observable difference is what strong consistency prevents.</p>
+
 <details class="reveal"><summary>Reveal: Why does strong consistency also require coordinated reads, not just synchronous writes?</summary><div class="reveal-body"><p>A write might be synchronously replicated to a majority and acknowledged — but a replica that was briefly partitioned at that moment is now lagging. If you let clients read freely from any replica, a client routed to the lagging replica sees a value that predates the acknowledged write, violating linearizability. Strong consistency therefore requires that <em>reads</em> also go through a coordination step (leader routing, a read quorum, or a lease check) to confirm the replica is current before it responds.</p>
 </div></details>
 

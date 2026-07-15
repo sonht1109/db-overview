@@ -137,25 +137,7 @@
 <li>How do you debug a query that touches 12 shards and one of them returned an error?</li>
 </ul>
 <p>Every guarantee that was &quot;free&quot; on one machine — serializability, a single clock, a single write-ahead log — becomes a protocol that must be designed, implemented, tested, and operated. This is why the first rule of distributed systems is: <strong>don&#39;t distribute until you must</strong>. Vertical scaling (bigger machine) stays simpler longer than most people expect, and sharding or replication should only appear when a single machine genuinely cannot meet your requirements.</p>
-<p>Try the query below to explore how quorum math works across different replication configurations.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Quorum calculator</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE configs (label TEXT, N INTEGER, W INTEGER, R INTEGER); INSERT INTO configs VALUES ('Weak (AP)', 3, 1, 1); INSERT INTO configs VALUES ('Quorum (balanced)', 3, 2, 2); INSERT INTO configs VALUES ('Strong (CP)', 3, 3, 2); INSERT INTO configs VALUES ('High-write (5 replicas)', 5, 3, 3); INSERT INTO configs VALUES ('Read-heavy (5 replicas)', 5, 2, 4);" rows="10">-- For each config, compute whether it guarantees consistency (W+R > N)
--- and how many node failures it can tolerate for writes and reads.
-SELECT
-  label,
-  N,
-  W,
-  R,
-  W + R AS w_plus_r,
-  CASE WHEN W + R > N THEN 'YES' ELSE 'NO (eventual)' END AS consistent,
-  W - 1 AS write_fault_tolerance,
-  R - 1 AS read_fault_tolerance
-FROM configs
-ORDER BY N, W;</textarea>
-  </div>
-</div><p>Edit the <code>W</code> and <code>R</code> values in the setup, or add your own row, to see how consistency and fault-tolerance shift. Notice that you can never get both <code>write_fault_tolerance</code> and <code>read_fault_tolerance</code> to be as high as <code>N - 1</code> at the same time — that&#39;s CAP and quorum math in action.</p>
+
 
 </div>
   <nav class="pagenav"><a class="prev" href="138-failure-becomes-normal.html"><span class="dir">← Previous</span><span class="ttl">Failure becomes normal</span></a><a class="next" href="140-chapter-14-summary.html"><span class="dir">Next →</span><span class="ttl">Chapter 14 Summary: What We Learned</span></a></nav>

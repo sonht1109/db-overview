@@ -103,27 +103,7 @@
 <blockquote>
 <p><strong>Note:</strong> Replication and fault tolerance come with a catch: you now have <em>multiple copies of data</em>, and those copies can disagree. Every distributed database has to decide what to do when two nodes have conflicting versions of the same row — a question that leads directly into consistency models and the CAP theorem, coming up soon.</p>
 </blockquote>
-<p>Try the query below to model a simple heartbeat table and see how a coordinator might identify which nodes are suspected failed versus healthy.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Detecting failed nodes via heartbeats</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE heartbeats (node_id TEXT PRIMARY KEY, last_seen_at INTEGER); INSERT INTO heartbeats VALUES ('node-A', 1000); INSERT INTO heartbeats VALUES ('node-B', 985); INSERT INTO heartbeats VALUES ('node-C', 940); INSERT INTO heartbeats VALUES ('node-D', 1001); INSERT INTO heartbeats VALUES ('node-E', 750);-- current_tick simulates 'now'
-WITH current_tick AS (SELECT 1005 AS now),
-     status AS (
-       SELECT h.node_id,
-              h.last_seen_at,
-              c.now - h.last_seen_at AS seconds_since_seen,
-              CASE WHEN c.now - h.last_seen_at  rows="10"> 30 THEN 'SUSPECTED FAILED'
-                   WHEN c.now - h.last_seen_at > 10 THEN 'SLOW / DEGRADED'
-                   ELSE 'HEALTHY'
-              END AS health
-       FROM heartbeats h, current_tick c
-     )
-SELECT node_id, last_seen_at, seconds_since_seen, health
-FROM status
-ORDER BY seconds_since_seen DESC;</textarea>
-  </div>
-</div><p>Try changing the timeout thresholds (30, 10) or adjusting a node&#39;s <code>last_seen_at</code> timestamp to see how the coordinator&#39;s view shifts. Notice that from the coordinator&#39;s perspective, a partitioned node (alive but unreachable) looks identical to a crashed one — both just stop sending heartbeats.</p>
+
 
 </div>
   <nav class="pagenav"><a class="prev" href="137-hot-partitions.html"><span class="dir">← Previous</span><span class="ttl">Hot partitions</span></a><a class="next" href="139-new-tradeoffs-at-scale.html"><span class="dir">Next →</span><span class="ttl">New tradeoffs at scale</span></a></nav>

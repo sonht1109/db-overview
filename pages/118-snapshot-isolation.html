@@ -106,18 +106,7 @@ Result: nobody is on call. Policy violated.
 <li><strong>Serializable Snapshot Isolation (SSI)</strong> — used by PostgreSQL <code>SERIALIZABLE</code>, which tracks read/write dependencies and aborts when a dangerous cycle is detected.</li>
 <li><strong>Explicit locking</strong> — <code>SELECT ... FOR UPDATE</code> to force conflict detection on the rows you read.</li>
 </ul>
-<h2>Try It: Seeing Your Snapshot in Action</h2>
-<p>The widget below sets up an <code>accounts</code> table and simulates what each transaction sees. SQLite runs in <code>DEFERRED</code> transaction mode; you can experiment with the version-visible logic by querying data before and after updates within the same session.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Snapshot reads</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000), (2, 'Bob', 500); /* Simulate Txn C committing a write */ UPDATE accounts SET balance = 1500 WHERE id = 1; CREATE TABLE snapshots (label TEXT, owner TEXT, balance INTEGER); /* before-write snapshot */ INSERT INTO snapshots VALUES ('before-write snapshot', 'Alice', 1000), ('before-write snapshot', 'Bob', 500); /* after-write snapshot */ INSERT INTO snapshots SELECT 'after-write snapshot', owner, balance FROM accounts;" rows="10">-- Compare what two transactions at different times see:
-SELECT label, owner, balance FROM snapshots ORDER BY label, owner;
--- Current committed state (what a new txn would see today):
-SELECT 'current' AS label, owner, balance FROM accounts ORDER BY owner;
-</textarea>
-  </div>
-</div><details class="reveal"><summary>Reveal: Why does snapshot isolation improve throughput compared to locking?</summary><div class="reveal-body"><p>Under two-phase locking, a writer must acquire an exclusive lock, which blocks all readers until the writer commits. Under snapshot isolation, readers never acquire locks on the rows they read — they simply consult the appropriate old version. Writers still lock rows they <em>write</em> (to detect write-write conflicts), but read-heavy workloads see dramatically less contention. This is why OLTP databases switched to MVCC: analytic queries and long reports no longer stall fast transactional writes.</p>
+<details class="reveal"><summary>Reveal: Why does snapshot isolation improve throughput compared to locking?</summary><div class="reveal-body"><p>Under two-phase locking, a writer must acquire an exclusive lock, which blocks all readers until the writer commits. Under snapshot isolation, readers never acquire locks on the rows they read — they simply consult the appropriate old version. Writers still lock rows they <em>write</em> (to detect write-write conflicts), but read-heavy workloads see dramatically less contention. This is why OLTP databases switched to MVCC: analytic queries and long reports no longer stall fast transactional writes.</p>
 </div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="117-multiversion-concurrency-control.html"><span class="dir">← Previous</span><span class="ttl">Multiversion concurrency control</span></a><a class="next" href="119-choosing-isolation-levels.html"><span class="dir">Next →</span><span class="ttl">Choosing isolation levels</span></a></nav>

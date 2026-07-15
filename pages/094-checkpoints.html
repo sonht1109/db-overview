@@ -157,22 +157,20 @@
 <p>Most engines let you tune this. PostgreSQL exposes several settings: <code>checkpoint_timeout</code> (max seconds between checkpoints; default 5 min), <code>max_wal_size</code> (triggers a checkpoint when the WAL reaches this size; default 1 GB), <code>min_wal_size</code> (floor for WAL retention; old segments below this threshold are recycled rather than removed), and <code>checkpoint_completion_target</code> (fraction of the timeout interval to spread the flush over; default 0.9). SQLite checkpoints its WAL when it hits 1,000 pages by default, and also exposes a manual <code>PRAGMA wal_checkpoint</code>.</p>
 <p>The right setting depends on your workload. OLTP systems with many small writes benefit from frequent checkpoints to keep recovery fast. Bulk-load jobs often disable or defer checkpoints temporarily for throughput, then checkpoint once at the end.</p>
 <h2>Observing Checkpoint State</h2>
-<p>The widget below simulates what a checkpoint must track: which buffer-pool pages are dirty (must be flushed) versus already clean. It also shows a checkpoint history log. Try modifying the queries to explore both tables.</p>
+<p>PostgreSQL&#39;s <code>pg_stat_bgwriter</code> view exposes checkpoint and background writer statistics — run this query to see how many checkpoints have occurred and how dirty pages are being flushed.</p>
 <div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Checkpoint state simulation</span></div>
+  <div class="widget-head"><span>Interactive SQL · pg_stat_bgwriter</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE buffer_pool (page_id SERIAL PRIMARY KEY, table_name TEXT, last_lsn INTEGER, status TEXT); INSERT INTO buffer_pool VALUES (101, 'orders', 4310, 'dirty'); INSERT INTO buffer_pool VALUES (102, 'orders', 4285, 'clean'); INSERT INTO buffer_pool VALUES (103, 'customers', 4400, 'dirty'); INSERT INTO buffer_pool VALUES (104, 'customers', 4100, 'clean'); INSERT INTO buffer_pool VALUES (105, 'products', 4390, 'dirty'); INSERT INTO buffer_pool VALUES (106, 'products', 4050, 'clean'); CREATE TABLE checkpoint_log (ckpt_id SERIAL PRIMARY KEY, begin_lsn INTEGER, end_lsn INTEGER, pages_flushed INTEGER, started_at TEXT); INSERT INTO checkpoint_log VALUES (1, 3000, 3980, 8, '2024-01-15 10:00:00'); INSERT INTO checkpoint_log VALUES (2, 3980, 4280, 11, '2024-01-15 10:05:00');" rows="10">-- Which pages must be flushed in the next checkpoint?
+    <textarea rows="10">-- Real PostgreSQL checkpoint statistics
 SELECT
-  page_id,
-  table_name,
-  last_lsn,
-  status
-FROM buffer_pool
-WHERE status = 'dirty'
-ORDER BY last_lsn;
--- Try: change 'dirty' to 'clean' to see already-flushed pages.
--- Try: SELECT COUNT(*), status FROM buffer_pool GROUP BY status;
--- Try: SELECT * FROM checkpoint_log ORDER BY ckpt_id;</textarea>
+  checkpoints_timed,
+  checkpoints_req,
+  buffers_checkpoint,
+  buffers_clean,
+  buffers_backend,
+  maxwritten_clean,
+  ROUND(100.0 * buffers_checkpoint / NULLIF(buffers_checkpoint + buffers_clean + buffers_backend, 0), 1) AS pct_from_checkpoints
+FROM pg_stat_bgwriter;</textarea>
   </div>
 </div><h2>Key Takeaways</h2>
 <ul>

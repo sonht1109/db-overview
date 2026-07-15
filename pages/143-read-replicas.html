@@ -91,24 +91,7 @@
 <li><strong>Write bottlenecks.</strong> Every replica still applies every write. If writes are the problem, you need sharding or a different architecture.</li>
 <li><strong>Reduced durability by themselves.</strong> An async replica is not a substitute for backups — if the primary crashes before a write is replicated, that write is lost.</li>
 </ul>
-<h2>Observing Replication Lag in SQLite (Simulated)</h2>
-<p>Real replication lag is a runtime phenomenon, but you can reason about it with a simple model. The widget below seeds two &quot;snapshot&quot; tables — one representing the primary at time T, one representing a lagging replica at time T−1 — and lets you compare what each would return.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Simulating stale reads from a lagging replica</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE primary_orders (id SERIAL PRIMARY KEY, customer TEXT, status TEXT, amount INTEGER); INSERT INTO primary_orders VALUES (1, 'Alice', 'shipped', 120); INSERT INTO primary_orders VALUES (2, 'Bob', 'cancelled', 45); INSERT INTO primary_orders VALUES (3, 'Carol', 'pending', 88); INSERT INTO primary_orders VALUES (4, 'Dave', 'shipped', 200); CREATE TABLE replica_orders (id SERIAL PRIMARY KEY, customer TEXT, status TEXT, amount INTEGER); INSERT INTO replica_orders VALUES (1, 'Alice', 'pending', 120); INSERT INTO replica_orders VALUES (2, 'Bob', 'pending', 45); INSERT INTO replica_orders VALUES (3, 'Carol', 'pending', 88);" rows="10">-- The replica is one replication cycle behind the primary.
--- Row 4 (Dave) does not exist yet on the replica.
--- Alice and Bob have stale statuses on the replica.
--- Compare total shipped revenue as seen by each node:
-SELECT 'primary' AS source, SUM(amount) AS shipped_revenue
-FROM primary_orders WHERE status = 'shipped'
-UNION ALL
-SELECT 'replica' AS source, SUM(amount) AS shipped_revenue
-FROM replica_orders WHERE status = 'shipped';
--- Try: query replica_orders for Bob's status — it shows 'pending'
--- even though the primary already has 'cancelled'.</textarea>
-  </div>
-</div><p>The numbers diverge because the replica hasn&#39;t applied the latest writes yet. In a real system this gap closes within milliseconds — but for reads that must be accurate the moment after a write, that window matters.</p>
+
 <details class="reveal"><summary>Reveal: If you need to guarantee a user sees their own write, what is the simplest routing rule?</summary><div class="reveal-body">Send reads that belong to the <em>same user session that just wrote</em> to the primary, at least for a brief window after the write. Everything else can go to replicas. This is sometimes implemented with a sticky session flag or a short TTL cache entry: "user 42 wrote at T, route their reads to primary until T + 2 s." It's not elegant, but it's the most straightforward way to avoid read-your-own-write anomalies without sacrificing replica scalability for all other users.</div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="142-synchronous-vs-asynchronous-replication.html"><span class="dir">← Previous</span><span class="ttl">Synchronous vs asynchronous replication</span></a><a class="next" href="144-replication-lag.html"><span class="dir">Next →</span><span class="ttl">Replication lag</span></a></nav>

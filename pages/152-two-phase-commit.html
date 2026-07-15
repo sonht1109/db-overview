@@ -138,24 +138,24 @@ COMMIT PREPARED 'txn-42';
 </blockquote>
 <h2>Tracking In-Doubt Transactions</h2>
 <p>When a coordinator failure leaves participants waiting, those transactions are called <strong>in-doubt</strong> (or &quot;prepared but not committed&quot;). Databases expose them so operators can intervene.</p>
-<p>The widget below simulates querying a table that mimics PostgreSQL&#39;s <code>pg_prepared_xacts</code> view — real-world DBAs use this to spot stuck transactions and manually commit or roll them back after a coordinator outage.</p>
+<p>PostgreSQL&#39;s <code>pg_prepared_xacts</code> view surfaces in-doubt transactions — DBAs use this to spot stuck prepared transactions and manually commit or roll them back after a coordinator outage.</p>
 <div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · In-doubt transaction monitor</span></div>
+  <div class="widget-head"><span>Interactive SQL · pg_prepared_xacts</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE prepared_xacts (gid TEXT, prepared_at TEXT, owner TEXT, database TEXT, age_seconds INTEGER); INSERT INTO prepared_xacts VALUES ('txn-42', '2024-06-25 03:11:00', 'app_user', 'payments', 14400), ('txn-43', '2024-06-25 07:55:00', 'app_user', 'payments', 3), ('txn-99', '2024-06-24 22:00:00', 'etl_user', 'warehouse', 36000);" rows="10">-- Find in-doubt (prepared but not committed) transactions
--- older than 60 seconds -- these likely need operator intervention.
+    <textarea rows="10">-- Real PostgreSQL in-doubt prepared transactions
 SELECT
   gid,
-  owner,
   database,
-  age_seconds,
+  owner,
+  prepared,
+  EXTRACT(EPOCH FROM now() - prepared)::integer AS age_seconds,
   CASE
-    WHEN age_seconds > 3600 THEN 'CRITICAL - coordinator likely crashed'
-    WHEN age_seconds > 60   THEN 'WARNING  - stale, investigate'
-    ELSE                         'OK       - recently prepared'
+    WHEN now() - prepared > interval '5 minutes'
+      THEN 'ORPHANED — investigate'
+    ELSE 'RECENT'
   END AS status
-FROM prepared_xacts
-ORDER BY age_seconds DESC;</textarea>
+FROM pg_prepared_xacts
+ORDER BY prepared;</textarea>
   </div>
 </div>
 </div>

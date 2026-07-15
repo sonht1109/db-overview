@@ -158,18 +158,19 @@
 <p><strong>Note:</strong> This creates a weaker consistency guarantee called <em>eventual consistency</em>: followers will eventually catch up, but there is no guarantee about <em>when</em>. Chapter 16 examines consistency models in depth.</p>
 </blockquote>
 <p>A common symptom is &quot;read your own writes&quot; breakage: a user submits a form (write goes to leader), then immediately reloads (read hits a lagging follower) and sees the old data. The fix is to route writes and the reads immediately following them to the leader, or use a replication position token to wait until a follower has caught up to the write.</p>
-<p>Below is an interactive query that simulates what a replication lag monitoring view might look like — databases like PostgreSQL expose <code>pg_stat_replication</code> for this purpose.</p>
+<p>PostgreSQL exposes <code>pg_stat_replication</code> for monitoring replication status — below is a real query you can run on any primary to inspect replication lag per replica.</p>
 <div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Replication lag simulation</span></div>
+  <div class="widget-head"><span>Interactive SQL · pg_stat_replication</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replication_status (replica_name TEXT, sent_lsn INTEGER, write_lsn INTEGER, flush_lsn INTEGER, replay_lsn INTEGER, lag_seconds REAL); INSERT INTO replication_status VALUES ('replica-1', 10500, 10500, 10500, 10498, 0.04), ('replica-2', 10500, 10499, 10495, 10480, 1.20), ('replica-3', 10500, 10490, 10488, 10450, 8.75);" rows="10">-- Which replicas are lagging more than 1 second behind the leader?
+    <textarea rows="10">-- Real PostgreSQL replication lag query
 SELECT
-  replica_name,
-  sent_lsn - replay_lsn AS log_bytes_behind,
-  lag_seconds
-FROM replication_status
-WHERE lag_seconds > 1.0
-ORDER BY lag_seconds DESC;</textarea>
+  application_name AS replica_name,
+  pg_wal_lsn_diff(sent_lsn, replay_lsn) AS lag_bytes,
+  EXTRACT(EPOCH FROM replay_lag) AS lag_seconds,
+  state,
+  sync_state
+FROM pg_stat_replication
+ORDER BY replay_lag DESC;</textarea>
   </div>
 </div>
 

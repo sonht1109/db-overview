@@ -176,17 +176,6 @@
 <blockquote>
 <p><strong>Note:</strong> Releasing locks early (non-strict 2PL) can improve throughput but requires careful application design to avoid dirty reads and write skew. Most production systems stick with strict 2PL unless they use an optimistic or MVCC-based approach instead.</p>
 </blockquote>
-<h2>Try It: Watching Lock Conflicts</h2>
-<p>SQLite serialises writes at the database level (it uses a simpler locking model than row-level systems), but you can observe the <em>effect</em> of exclusive locking: a write transaction prevents any concurrent write. The widget below lets you explore how <code>BEGIN EXCLUSIVE</code> versus <code>BEGIN DEFERRED</code> behave.</p>
-<p>Run the setup first, then try the query to see what data is there. Edit the query to run different <code>SELECT</code> or <code>UPDATE</code> statements and observe results.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Lock simulation with version check</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE inventory (id SERIAL PRIMARY KEY, product TEXT, qty INTEGER, locked_by TEXT); INSERT INTO inventory VALUES (1, 'Widget A', 100, NULL); INSERT INTO inventory VALUES (2, 'Widget B', 50, NULL); INSERT INTO inventory VALUES (3, 'Widget C', 200, NULL); CREATE TABLE lock_log (ts TEXT, msg TEXT); INSERT INTO lock_log VALUES ('t1', 'Txn A: SELECT qty WHERE id=1 (S-lock on row 1)'); INSERT INTO lock_log VALUES ('t2', 'Txn B: SELECT qty WHERE id=1 (S-lock granted — compatible)'); INSERT INTO lock_log VALUES ('t3', 'Txn C: UPDATE qty WHERE id=1 (X-lock requested — BLOCKED by A and B)'); INSERT INTO lock_log VALUES ('t4', 'Txn A: COMMIT — S-lock released'); INSERT INTO lock_log VALUES ('t5', 'Txn B: COMMIT — S-lock released'); INSERT INTO lock_log VALUES ('t6', 'Txn C: X-lock GRANTED — write proceeds'); UPDATE inventory SET qty = qty - 10 WHERE id = 1;" rows="10">-- The lock_log table narrates the lock sequence from the diagram above.
--- Try changing the SELECT below to an UPDATE to see write behaviour.
-SELECT ts, msg FROM lock_log;
-</textarea>
-  </div>
 </div><details class="reveal"><summary>Reveal: Why do two readers never block each other?</summary><div class="reveal-body"><p>Two <code>SELECT</code> statements both acquire <strong>shared (S) locks</strong>. S locks are compatible with other S locks because reading data never changes it — two readers see exactly the same version of the row, so there is no conflict. The engine can safely grant both locks simultaneously.</p>
 <p>An <strong>exclusive (X) lock</strong> is incompatible with everything because a writer is about to change the data. If another reader or writer were allowed in simultaneously, they could see a half-written row or overwrite the in-progress change. Blocking them until the write commits guarantees they always see a consistent, committed state.</p>
 </div></details>

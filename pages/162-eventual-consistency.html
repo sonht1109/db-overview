@@ -116,29 +116,7 @@
 <blockquote>
 <p><strong>Note:</strong> Last-Write-Wins is the default in many systems (Cassandra, DynamoDB) because it requires no extra bookkeeping. Use it only when losing a concurrent write is acceptable — which rules out financial balances, stock levels, and most counters.</p>
 </blockquote>
-<h2>Seeing eventual consistency in SQLite (simulated)</h2>
-<p>SQLite is a single-node engine so it is always strongly consistent — but you can <em>simulate</em> a replication lag by modeling two replicas as separate tables and applying writes asynchronously. Try this exercise to see how a stale read can slip through before replication catches up.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Simulating stale reads</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replica_a (key TEXT PRIMARY KEY, value INTEGER, updated_at INTEGER); CREATE TABLE replica_b (key TEXT PRIMARY KEY, value INTEGER, updated_at INTEGER); INSERT INTO replica_a VALUES ('balance', 100, 1); INSERT INTO replica_b VALUES ('balance', 100, 1); /* Simulate a write that reached replica_a but NOT yet replica_b */ UPDATE replica_a SET value = 80, updated_at = 2 WHERE key = 'balance';" rows="10">
--- Read from both replicas right after the write.
--- Replica B hasn't synced yet, so it returns stale data.
-SELECT 'replica_a' AS replica, value, updated_at FROM replica_a WHERE key = 'balance'
-UNION ALL
-SELECT 'replica_b' AS replica, value, updated_at FROM replica_b WHERE key = 'balance';
-</textarea>
-  </div>
-</div><p>Now try manually &quot;applying&quot; the replication to Replica B and re-running the SELECT:</p>
-<pre><code class="language-sql">-- Replication arrives: bring replica_b up to date
-UPDATE replica_b SET value = 80, updated_at = 2 WHERE key = &#39;balance&#39;;
 
--- Both replicas now agree — converged!
-SELECT &#39;replica_a&#39; AS replica, value FROM replica_a WHERE key = &#39;balance&#39;
-UNION ALL
-SELECT &#39;replica_b&#39; AS replica, value FROM replica_b WHERE key = &#39;balance&#39;;
-</code></pre>
-<p>This toy example mirrors what a real replication pipeline does: the write journal from the primary is replayed on each replica until all copies converge.</p>
 <h2>Key takeaways</h2>
 <ul>
 <li>Eventual consistency trades <strong>perfect synchrony for availability and performance</strong>.</li>

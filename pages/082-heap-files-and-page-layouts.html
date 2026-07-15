@@ -164,19 +164,7 @@
 <li>Immediately reclaiming space would require rewriting the page under concurrent readers.</li>
 </ul>
 <p>Over time, a heavily-updated table accumulates dead rows and fragmented free space spread across many pages. This is <strong>table bloat</strong>. A full-table scan must still read every page, even pages that are 80% dead rows. Databases like PostgreSQL run a background process called <code>VACUUM</code> to reclaim that space.</p>
-<h2>Try It: Observing Row Storage</h2>
-<p>SQLite exposes some of its page-level internals through <code>PRAGMA</code> commands. Run the query below to see how SQLite allocates pages as you insert data, and observe how page count grows with the table.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Page allocation</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products ( id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT, price REAL NOT NULL ); INSERT INTO products VALUES (1, 'Widget A', 'A sturdy widget for everyday use', 9.99); INSERT INTO products VALUES (2, 'Gadget B', 'A compact gadget with many features', 24.99); INSERT INTO products VALUES (3, 'Doohickey C', 'The classic doohickey, now improved', 4.99); INSERT INTO products VALUES (4, 'Thingamajig D', 'Precision-engineered thingamajig', 49.99); INSERT INTO products VALUES (5, 'Contraption E', 'Industrial-strength contraption', 99.99);" rows="10">-- Check how many pages SQLite has allocated for this database.
--- Try adding more INSERT statements above and re-running to see page_count grow.
-SELECT page_count,
-       page_size,
-       page_count * page_size AS total_bytes_on_disk
-FROM pragma_page_count(), pragma_page_size();</textarea>
-  </div>
-</div><p>The <code>page_count</code> climbs as the table grows — each page is exactly <code>page_size</code> bytes on disk, read and written as a unit regardless of how much of the page is actually occupied by live rows.</p>
+<p>Each page is exactly the database block size on disk (8 KB by default in PostgreSQL), read and written as a unit regardless of how much of the page is actually occupied by live rows.</p>
 <h2>The Key Takeaway</h2>
 <p>A heap file is simply a collection of fixed-size pages containing variable-size records, with no inherent row ordering. The slot array inside each page makes it possible to locate and reference rows efficiently without re-packing the page on every change. This design — simple, append-friendly, and MVCC-compatible — is the foundation on top of which indexes, vacuum, and the buffer pool all operate.</p>
 

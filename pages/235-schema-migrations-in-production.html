@@ -180,16 +180,21 @@ sqitch:     dependency-aware; works with any SQL dialect
 </ul>
 <h2>Interactive: Checking for Dangerous Lock Holders</h2>
 <div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Lock Wait Analysis</span></div>
+  <div class="widget-head"><span>Interactive SQL · pg_locks</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE pg_locks_sim (pid INTEGER, relation TEXT, lock_type TEXT, granted INTEGER, query TEXT, wait_seconds INTEGER); INSERT INTO pg_locks_sim VALUES (1234,'orders','AccessExclusiveLock',1,'ALTER TABLE orders ADD COLUMN discount NUMERIC',0); INSERT INTO pg_locks_sim VALUES (5678,'orders','RowExclusiveLock',0,'UPDATE orders SET status=''shipped'' WHERE id=99',45); INSERT INTO pg_locks_sim VALUES (9012,'orders','AccessShareLock',0,'SELECT * FROM orders WHERE user_id=42',45); INSERT INTO pg_locks_sim VALUES (3456,'orders','RowExclusiveLock',0,'INSERT INTO orders VALUES (...)',46);" rows="10">-- Find queries blocked by the ALTER TABLE lock
-SELECT pid,
-       lock_type,
-       CASE granted WHEN 1 THEN 'holding' ELSE 'waiting' END AS status,
-       wait_seconds || 's waited' AS waited,
-       query
-FROM pg_locks_sim
-ORDER BY granted DESC, wait_seconds;</textarea>
+    <textarea rows="10">-- Real pg_locks: find blocked queries during migrations
+SELECT
+  l.pid AS blocked_pid,
+  l.locktype,
+  l.mode,
+  l.granted,
+  l.relation::regclass AS locked_table,
+  a.query AS blocked_query,
+  a.query_start
+FROM pg_locks l
+JOIN pg_stat_activity a ON l.pid = a.pid
+WHERE NOT l.granted
+ORDER BY a.query_start;</textarea>
   </div>
 </div><h2>Key Takeaways</h2>
 <ul>

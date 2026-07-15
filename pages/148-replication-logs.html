@@ -133,19 +133,7 @@ Kafka topic              Elasticsearch index
 <p><strong>Note:</strong> CDC is one of the most powerful patterns in distributed data architectures. It decouples producers from consumers without requiring the application to explicitly write to multiple stores.</p>
 </blockquote>
 <hr>
-<p>The widget below models a simple replication log table. Each row is a log entry. Try querying for the changes that happened after a given log position to simulate a follower that needs to catch up.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Replication log catch-up</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replog (lsn SERIAL PRIMARY KEY, op TEXT, tbl TEXT, row_id INTEGER, old_val TEXT, new_val TEXT, committed_at TEXT); INSERT INTO replog VALUES (1001, 'INSERT', 'orders', 7, NULL, '{status:pending}', '2024-06-01 09:00:01'), (1002, 'UPDATE', 'orders', 3, '{status:pending}', '{status:shipped}', '2024-06-01 09:00:04'), (1003, 'DELETE', 'customers', 12, '{name:Alice}', NULL, '2024-06-01 09:00:07'), (1004, 'INSERT', 'orders', 8, NULL, '{status:pending}', '2024-06-01 09:00:09'), (1005, 'UPDATE', 'orders', 7, '{status:pending}', '{status:shipped}', '2024-06-01 09:00:15'), (1006, 'INSERT', 'customers', 99, NULL, '{name:Bob}', '2024-06-01 09:00:20');" rows="10">-- A follower last confirmed position LSN 1002.
--- Ask the leader for everything after that:
-SELECT lsn, op, tbl, row_id, old_val, new_val
-FROM replog
-WHERE lsn > 1002
-ORDER BY lsn;
--- Try changing the threshold to see different catch-up windows.</textarea>
-  </div>
-</div><p>Notice how the follower only needs to know its last confirmed LSN to resume — it requests the open-ended range <code>lsn &gt; 1002</code> and applies each row in order. This is exactly how PostgreSQL streaming replication and MySQL replication work at the protocol level.</p>
+
 
 </div>
   <nav class="pagenav"><a class="prev" href="147-multi-leader-systems.html"><span class="dir">← Previous</span><span class="ttl">Multi-leader systems</span></a><a class="next" href="149-operational-pitfalls.html"><span class="dir">Next →</span><span class="ttl">Operational pitfalls</span></a></nav>

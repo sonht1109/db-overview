@@ -117,24 +117,7 @@
 <li><strong>Prefer commutative operations</strong> (counters with <code>+</code>, set <code>UNION</code>) that can be applied in any order without coordination.</li>
 <li><strong>Use saga patterns</strong> for long-running business processes: break a multi-step workflow into individually committed local transactions with compensating steps instead of one big distributed transaction.</li>
 </ul>
-<p>The widget below lets you explore how the number of involved nodes and the round-trip time interact to determine total commit latency — concretely, by simulating a latency table.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Commit latency model</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE scenarios (label TEXT, nodes INTEGER, rtt_ms INTEGER, phases INTEGER, local_ms INTEGER); INSERT INTO scenarios VALUES ('Local (1 node)', 1, 0, 0, 4), ('Same-DC 2PC (3 nodes)', 3, 1, 2, 4), ('Same-DC Raft (3 nodes)', 3, 1, 1, 4), ('Cross-region 2PC (3 nodes)', 3, 80, 2, 4), ('Cross-region Raft (5 nodes)', 5, 80, 1, 4), ('Global 2PC (5 nodes, US-EU-AP)', 5, 160, 2, 4);" rows="10">-- Estimated commit latency = local work + (round-trip time × phases)
--- Adjust rtt_ms or phases to see the effect.
-SELECT
-  label,
-  nodes,
-  rtt_ms,
-  phases,
-  local_ms,
-  (local_ms + rtt_ms * phases) AS estimated_commit_ms,
-  ROUND(CAST(local_ms + rtt_ms * phases AS REAL) / 4.0, 1) AS slowdown_vs_local
-FROM scenarios
-ORDER BY estimated_commit_ms;</textarea>
-  </div>
-</div><p>The <code>slowdown_vs_local</code> column shows how many times slower each scenario is than a plain local commit. Try editing <code>rtt_ms</code> to <code>150</code> for a US–West-Coast-to–EU link and see how quickly coordination becomes the dominant cost — often eclipsing all local database work by an order of magnitude.</p>
+
 <details class="reveal"><summary>Reveal: If coordination is so expensive, why not just avoid all distributed transactions?</summary><div class="reveal-body"><p>You can — and often should — design systems to avoid them. But some invariants genuinely span multiple partitions or services: moving money between accounts on different shards, booking a seat on a flight while decrementing inventory, or ensuring an order and its payment record are created together. When the business rule <em>requires</em> atomicity across nodes, you must either coordinate (and pay the cost), relax the isolation guarantee (and handle anomalies in application code), or re-design the data model so the data lives on the same node.</p>
 <p>There is no free lunch: every system that skips distributed coordination is implicitly accepting some form of eventual consistency, application-level compensation, or careful data placement. Understanding the cost of coordination is what lets you make that trade-off deliberately rather than by accident.</p>
 </div></details>

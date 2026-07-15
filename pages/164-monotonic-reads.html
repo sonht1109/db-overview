@@ -94,19 +94,7 @@
 <blockquote>
 <p><strong>Note:</strong> This is the mechanism behind <strong>causal consistency</strong> in systems like MongoDB and CockroachDB. The session automatically carries a &quot;read timestamp&quot; so the cluster can always route to a node that is sufficiently up to date.</p>
 </blockquote>
-<h2>Seeing It in a Simulated Form</h2>
-<p>The following widget lets you explore what monotonic reads protect. The <code>replica_log</code> table simulates two replicas at different applied positions. The query finds which replica a client can safely read from given their last-seen version.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Replica selection by LSN</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE replica_log (replica_id TEXT, lsn INTEGER, data TEXT); INSERT INTO replica_log VALUES ('replica_a', 1, 'row inserted'); INSERT INTO replica_log VALUES ('replica_a', 2, 'row updated to v2'); INSERT INTO replica_log VALUES ('replica_a', 3, 'row deleted'); INSERT INTO replica_log VALUES ('replica_b', 1, 'row inserted'); INSERT INTO replica_log VALUES ('replica_b', 2, 'row updated to v2');" rows="10">/* Client last saw LSN 2. Which replicas are safe to read from? */
-SELECT replica_id, MAX(lsn) AS max_applied_lsn
-FROM replica_log
-GROUP BY replica_id
-HAVING MAX(lsn) >= 2   -- client's last-seen LSN
-ORDER BY replica_id;</textarea>
-  </div>
-</div><p>Try changing the <code>&gt;= 2</code> threshold to <code>&gt;= 3</code> — now only <code>replica_a</code> qualifies, because <code>replica_b</code> hasn&#39;t applied LSN 3 yet. This is exactly how LSN-based routing enforces monotonic reads.</p>
+
 <h2>The Takeaway</h2>
 <p>Monotonic reads is a <strong>session-level consistency guarantee</strong> that prevents a client from observing the past after they have already seen the present. It does not require global coordination or linearizability — it only promises that <em>for one client</em>, time moves forward. That makes it a practical and widely implemented guarantee even in eventually-consistent systems.</p>
 

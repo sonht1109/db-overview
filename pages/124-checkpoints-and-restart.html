@@ -89,24 +89,7 @@
 <li><strong>Less frequent checkpoints</strong> → less ongoing I/O, but <strong>longer restart</strong> if a crash occurs.</li>
 </ul>
 <p>Database administrators (and configuration files) expose a knob for this. In PostgreSQL the relevant settings are <code>checkpoint_timeout</code> and <code>max_wal_size</code>; in SQLite WAL mode the checkpoint is triggered after a configurable number of WAL frames.</p>
-<h2>Seeing It in the WAL</h2>
-<p>Real WAL records are binary, but we can simulate their logical content in a table. The widget below models a tiny transaction log. Run the query to identify which transactions would be <strong>redone</strong> and which would be <strong>undone</strong> given a crash after the last record — exactly what the ARIES analysis pass determines.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Simulated WAL analysis</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE wal_log (lsn SERIAL PRIMARY KEY, type TEXT NOT NULL, txn_id INTEGER NOT NULL, page TEXT, description TEXT); INSERT INTO wal_log VALUES (4990,'CHECKPOINT',0,NULL,'Checkpoint — all pages flushed'); INSERT INTO wal_log VALUES (5001,'BEGIN',101,NULL,'Transaction 101 starts'); INSERT INTO wal_log VALUES (5010,'UPDATE',101,'accounts:42','Debit $200 from account 42'); INSERT INTO wal_log VALUES (5020,'BEGIN',102,NULL,'Transaction 102 starts'); INSERT INTO wal_log VALUES (5030,'UPDATE',102,'accounts:17','Credit $50 to account 17'); INSERT INTO wal_log VALUES (5040,'COMMIT',102,NULL,'Transaction 102 commits'); INSERT INTO wal_log VALUES (5050,'UPDATE',101,'accounts:99','Credit $200 to account 99'); -- CRASH here — txn 101 never committed" rows="10">SELECT
-  txn_id,
-  CASE
-    WHEN txn_id IN (SELECT txn_id FROM wal_log WHERE type = 'COMMIT') THEN 'REDO then keep'
-    ELSE 'REDO then UNDO'
-  END AS recovery_action,
-  GROUP_CONCAT(type || ' (' || lsn || ')', ' → ') AS log_entries
-FROM wal_log
-WHERE type != 'CHECKPOINT'
-GROUP BY txn_id
-ORDER BY txn_id;</textarea>
-  </div>
-</div><p>Try adding another <code>INSERT INTO wal_log VALUES (5060,&#39;COMMIT&#39;,101,NULL,&#39;Transaction 101 commits&#39;);</code> inside the textarea before the <code>SELECT</code>, then re-run — watch transaction 101&#39;s recovery action change from <code>REDO then UNDO</code> to <code>REDO then keep</code>.</p>
+
 <h2>Key Takeaways</h2>
 <ul>
 <li>A <strong>checkpoint</strong> flushes dirty pages and records the WAL position so recovery never needs to go further back.</li>
