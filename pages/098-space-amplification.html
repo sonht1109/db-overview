@@ -17,7 +17,7 @@
   <h1 class="content-title">Space amplification</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+<svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
   <defs>
     <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
     <marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#dc2626"/></marker>
@@ -25,34 +25,34 @@
   </defs>
   <g transform="translate(15,8)">
     <!-- Logical vs Physical comparison -->
-    <rect x="10" y="0" width="320" height="70" rx="8" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
+    <rect x="10" y="0" width="320" height="65" rx="8" fill="#dcfce7" stroke="#86efac" filter="url(#sh)"/>
     <text x="170" y="20" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a">Logical Data Size</text>
-    <text x="170" y="38" text-anchor="middle" font-size="10" fill="#1c2330">User-visible rows — what you INSERTed</text>
+    <text x="170" y="33" text-anchor="middle" font-size="10" fill="#1c2330">User-visible rows — what you INSERTed</text>
     <text x="170" y="56" text-anchor="middle" font-size="22" font-weight="800" fill="#16a34a">100 MB</text>
 
-    <rect x="370" y="0" width="320" height="70" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
+    <rect x="370" y="0" width="320" height="65" rx="8" fill="#fef2f2" stroke="#fca5a5" filter="url(#sh)"/>
     <text x="530" y="20" text-anchor="middle" font-size="12" font-weight="700" fill="#dc2626">Physical Storage Used</text>
-    <text x="530" y="38" text-anchor="middle" font-size="10" fill="#5a6678">Actual bytes consumed on disk</text>
+    <text x="530" y="33" text-anchor="middle" font-size="10" fill="#5a6678">Actual bytes consumed on disk</text>
     <text x="530" y="56" text-anchor="middle" font-size="22" font-weight="800" fill="#dc2626">250 MB</text>
 
-    <text x="350" y="60" text-anchor="middle" font-size="16" font-weight="800" fill="#d97706">Space Amplification = 250/100 = 2.5x</text>
+    <text x="350" y="70" text-anchor="middle" font-size="16" font-weight="800" fill="#d97706">Space Amplification = 250/100 = 2.5x</text>
 
     <!-- Breakdown -->
-    <rect x="10" y="85" width="700" height="10" rx="3" fill="#e2e6ec"/>
+    <rect x="10" y="92" width="700" height="10" rx="0" fill="#e2e6ec"/>
     <!-- Segments showing what takes space -->
-    <rect x="10" y="85" width="280" height="10" rx="3" fill="#16a34a"/>
+    <rect x="10" y="92" width="280" height="10" rx="0" fill="#16a34a"/>
     <text x="150" y="82" text-anchor="middle" font-size="8" fill="#16a34a">Actual data 100MB</text>
-    <rect x="290" y="85" width="55" height="10" rx="0" fill="#d97706"/>
-    <text x="317" y="82" text-anchor="middle" font-size="8" fill="#d97706">Tombstones 20MB</text>
-    <rect x="345" y="85" width="65" height="10" rx="0" fill="#dc2626"/>
-    <text x="377" y="82" text-anchor="middle" font-size="8" fill="#dc2626">Fragmentation 40MB</text>
-    <rect x="410" y="85" width="55" height="10" rx="0" fill="#facc15"/>
-    <text x="437" y="82" text-anchor="middle" font-size="8" fill="#b45309">Page gaps 28MB</text>
-    <rect x="465" y="85" width="55" height="10" rx="0" fill="#5a6678"/>
-    <text x="492" y="82" text-anchor="middle" font-size="8" fill="#5a6678">Indexes 35MB</text>
-    <rect x="520" y="85" width="55" height="10" rx="0" fill="#9aa6b8"/>
-    <text x="547" y="82" text-anchor="middle" font-size="8" fill="#9aa6b8">Metadata 15MB</text>
-    <rect x="575" y="85" width="135" height="10" rx="3" fill="#e2e6ec"/>
+    <rect x="290" y="92" width="55" height="10" rx="0" fill="#d97706"/>
+    <text x="317" y="78" text-anchor="middle" font-size="8" fill="#d97706"><tspan x="317" dy="0">Tombstones</tspan><tspan x="317" dy="10">20MB</tspan></text>
+    <rect x="345" y="92" width="65" height="10" rx="0" fill="#dc2626"/>
+    <text x="377" y="78" text-anchor="middle" font-size="8" fill="#dc2626"><tspan x="377" dy="0">Fragmentation</tspan><tspan x="377" dy="10">40MB</tspan></text>
+    <rect x="410" y="92" width="55" height="10" rx="0" fill="#facc15"/>
+    <text x="437" y="78" text-anchor="middle" font-size="8" fill="#b45309"><tspan x="437" dy="0">Page gaps</tspan><tspan x="437" dy="10">28MB</tspan></text>
+    <rect x="465" y="92" width="55" height="10" rx="0" fill="#5a6678"/>
+    <text x="492" y="78" text-anchor="middle" font-size="8" fill="#5a6678"><tspan x="492" dy="0">Indexes</tspan><tspan x="492" dy="10">35MB</tspan></text>
+    <rect x="520" y="92" width="55" height="10" rx="0" fill="#9aa6b8"/>
+    <text x="547" y="78" text-anchor="middle" font-size="8" fill="#9aa6b8"><tspan x="547" dy="0">Metadata</tspan><tspan x="547" dy="10">15MB</tspan></text>
+    <rect x="575" y="92" width="135" height="10" rx="0" fill="#e2e6ec"/>
     <text x="642" y="82" text-anchor="middle" font-size="8" fill="#9aa6b8">WAL 12MB</text>
 
     <!-- Source detail boxes -->
