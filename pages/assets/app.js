@@ -182,8 +182,6 @@
       });
       if (visits.length > MAX_VISITS) visits.length = MAX_VISITS;
       localStorage.setItem(VISITS_KEY, JSON.stringify(visits));
-      // keep db-last-visit for backward compat
-      localStorage.setItem("db-last-visit", slug);
     } catch (_) {}
   }
 

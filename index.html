@@ -1071,7 +1071,9 @@
 
             dropdown.innerHTML = visits.map(function (v) {
               var d = new Date(v.time);
-              var label = v.title || v.slug;
+              var label = (v.title || v.slug).replace(/\s*[—-]\s*Database Overview\s*$/i, "");
+              var numMatch = v.slug.match(/^(\d+)/);
+              if (numMatch) label = parseInt(numMatch[1], 10) + ". " + label;
               return '<a href="pages/' + v.slug + '.html">' +
                 '<span class="lv-title">' + label.replace(/[<>&"']/g, function(c){return{'"':'&quot;',"'":'&#39;','<':'&lt;','>':'&gt;','&':'&amp;'}[c];}) + '</span>' +
                 '<span class="lv-time">' + d.toLocaleString() + '</span>' +
