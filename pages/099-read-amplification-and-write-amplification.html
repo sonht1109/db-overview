@@ -32,13 +32,13 @@
     <text x="95" y="54" text-anchor="middle" font-size="9" font-weight="600" fill="#16a34a">Logical Read</text>
     <text x="95" y="66" text-anchor="middle" font-size="8" fill="#5a6678">SELECT 1 row by PK</text>
 
-    <text x="180" y="62" font-size="20" fill="#5a6678">➔</text>
+    <text x="172" y="62" font-size="20" fill="#5a6678">➔</text>
 
     <rect x="190" y="40" width="150" height="32" rx="5" fill="#fef2f2"/>
     <text x="265" y="54" text-anchor="middle" font-size="9" font-weight="600" fill="#dc2626">Physical I/O</text>
     <text x="265" y="66" text-anchor="middle" font-size="8" fill="#5a6678">3—5 page reads</text>
 
-    <text x="180" y="55" text-anchor="middle" font-size="12" font-weight="800" fill="#d97706">RA = 3—5x</text>
+    <text x="180" y="40" text-anchor="middle" font-size="12" font-weight="800" fill="#d97706">RA = 3—5x</text>
 
     <text x="25" y="92" font-size="9" fill="#5a6678">Why so many reads?</text>
     <text x="25" y="108" font-size="9" fill="#1c2330">1. B-tree root page read</text>
@@ -55,13 +55,13 @@
     <text x="455" y="54" text-anchor="middle" font-size="9" font-weight="600" fill="#16a34a">Logical Write</text>
     <text x="455" y="66" text-anchor="middle" font-size="8" fill="#5a6678">UPDATE 1 row (100 B)</text>
 
-    <text x="540" y="62" font-size="20" fill="#5a6678">➔</text>
+    <text x="532" y="62" font-size="20" fill="#5a6678">➔</text>
 
     <rect x="550" y="40" width="150" height="32" rx="5" fill="#fef2f2"/>
     <text x="625" y="54" text-anchor="middle" font-size="9" font-weight="600" fill="#dc2626">Physical I/O</text>
     <text x="625" y="66" text-anchor="middle" font-size="8" fill="#5a6678">2—12 KB written</text>
 
-    <text x="540" y="55" text-anchor="middle" font-size="12" font-weight="800" fill="#d97706">WA = 20—120x</text>
+    <text x="540" y="40" text-anchor="middle" font-size="12" font-weight="800" fill="#d97706">WA = 20—120x</text>
 
     <text x="385" y="92" font-size="9" fill="#5a6678">What gets written on disk:</text>
     <text x="385" y="108" font-size="9" fill="#1c2330">1. WAL record (~50—200 B)</text>
@@ -70,7 +70,7 @@
     <text x="385" y="150" font-size="9" fill="#1c2330">4. FSM/VIS map updates</text>
 
     <!-- Comparison table -->
-    <rect x="10" y="175" width="700" height="75" rx="8" fill="#fff" stroke="#e2e6ec" filter="url(#sh)"/>
+    <rect x="10" y="175" width="700" height="90" rx="8" fill="#fff" stroke="#e2e6ec" filter="url(#sh)"/>
     <text x="360" y="193" text-anchor="middle" font-size="11" font-weight="700" fill="#1c2330">Amplification by Storage Engine Type</text>
     <line x1="25" y1="201" x2="695" y2="201" stroke="#e2e6ec"/>
 
@@ -90,7 +90,7 @@
     <text x="590" y="256" text-anchor="middle" font-size="9" fill="#5a6678">Write-heavy / inserts</text>
 
     <!-- Insight -->
-    <rect x="50" y="265" width="620" height="35" rx="6" fill="#1c2330" filter="url(#sh)"/>
+    <rect x="50" y="268" width="620" height="35" rx="6" fill="#1c2330" filter="url(#sh)"/>
     <text x="360" y="283" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">You cannot minimize all three amplifications at once — every engine is a trade-off</text>
     <text x="360" y="296" text-anchor="middle" font-size="9" fill="#9aa6b8">Space x Read x Write: optimize for your workload</text>
 
