@@ -65,8 +65,19 @@
           var db = new PGlite();
           var query = ta.value.replace(/<[^>]*>/g, '');
           return (setup ? db.exec(setup) : Promise.resolve())
-            .then(function () { return db.query(query); })
-            .then(function (res) { renderResult(out, res); })
+            .then(function () { return db.exec(query); })
+            .then(function (results) {
+              // exec returns an array of results (one per statement).
+              // Show the last result that returned rows, or the last result overall.
+              var res = null;
+              if (Array.isArray(results) && results.length) {
+                for (var i = results.length - 1; i >= 0; i--) {
+                  if (results[i] && results[i].rows && results[i].rows.length) { res = results[i]; break; }
+                }
+                if (!res) res = results[results.length - 1];
+              }
+              renderResult(out, res);
+            })
             .catch(function (e) { out.innerHTML = '<div class="err">' + esc(e.message) + "</div>"; })
             .then(function () { return db.close(); });
         })

@@ -109,7 +109,7 @@ COMMIT;
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Atomic ticket sale</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, name TEXT NOT NULL, seats_remaining INTEGER NOT NULL CHECK(seats_remaining  rows="10">= 0)); CREATE TABLE bookings (id SERIAL PRIMARY KEY AUTOINCREMENT, event_id INTEGER NOT NULL REFERENCES events(id), user_id INTEGER NOT NULL, booked_at TEXT NOT NULL); INSERT INTO events VALUES (42, 'Opening Night', 1);">-- One seat left. Sell it atomically.
+    <textarea data-setup="CREATE TABLE events (id SERIAL PRIMARY KEY, name TEXT NOT NULL, seats_remaining INTEGER NOT NULL CHECK(seats_remaining >= 0)); CREATE TABLE bookings (id SERIAL PRIMARY KEY, event_id INTEGER NOT NULL REFERENCES events(id), user_id INTEGER NOT NULL, booked_at TEXT NOT NULL); INSERT INTO events VALUES (42, 'Opening Night', 1);">-- One seat left. Sell it atomically.
 BEGIN;
 UPDATE events
 SET    seats_remaining = seats_remaining - 1
@@ -118,7 +118,7 @@ INSERT INTO bookings (event_id, user_id, booked_at)
 VALUES (42, 7, '2024-06-01 14:00:00');
 COMMIT;
 -- Check the results of both tables:
-SELECT 'events'   AS tbl, id, name, seats_remaining AS seats FROM events
+SELECT 'events'   AS tbl, id, name, CAST(seats_remaining AS TEXT) AS seats FROM events
 UNION ALL
 SELECT 'bookings' AS tbl, id, CAST(event_id AS TEXT), CAST(user_id AS TEXT) FROM bookings;</textarea>
   </div>
