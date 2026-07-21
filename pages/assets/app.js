@@ -2,7 +2,7 @@
  * Responsibilities:
  *   1. Mount interactive SQL widgets after page load (sql.js)
  *   2. Mount other interactive widgets as needed
- *   3. Track reading progress — mark page as done when user stays at bottom for 10s
+ *   3. Track reading progress — mark page as done 10s after user reaches the bottom
  */
 (function () {
   "use strict";
@@ -140,19 +140,12 @@
     var slug = pageSlug();
     if (!slug || isDone(slug)) return;
 
-    if (atBottom()) {
-      if (!dwellTimer) {
-        dwellTimer = setTimeout(function () {
-          markDone(slug);
-          showDoneIndicator();
-          window.removeEventListener("scroll", onScrollCheck);
-        }, BOTTOM_DWELL_MS);
-      }
-    } else {
-      if (dwellTimer) {
-        clearTimeout(dwellTimer);
-        dwellTimer = null;
-      }
+    if (atBottom() && !dwellTimer) {
+      dwellTimer = setTimeout(function () {
+        markDone(slug);
+        showDoneIndicator();
+        window.removeEventListener("scroll", onScrollCheck);
+      }, BOTTOM_DWELL_MS);
     }
   }
 
