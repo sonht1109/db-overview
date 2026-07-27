@@ -17,7 +17,7 @@
   <h1 class="content-title">Consistency in practice</h1>
   <div id="rendered" class="content">
 <figure class="diagram">
-<svg viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
+<svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg" style="max-width:720px">
   <defs>
     <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
     <marker id="ag" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
@@ -29,7 +29,7 @@
     <text x="350" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Transaction: Transfer $100 from Alice (id=1) to Bob (id=2)</text>
     <text x="350" y="31" text-anchor="middle" font-size="8" fill="#bfdbfe">BEGIN … COMMIT — must be all-or-nothing and preserve consistency</text>
 
-    <line x1="350" y1="36" x2="350" y2="55" stroke="#2f6df6" stroke-width="1.5"/>
+    <!-- <line x1="350" y1="36" x2="350" y2="55" stroke="#2f6df6" stroke-width="1.5"/> -->
 
     <!-- Constraint box -->
     <rect x="80" y="58" width="245" height="40" rx="6" fill="#e8f0ff" stroke="#2f6df6" filter="url(#sh)"/>
@@ -44,8 +44,7 @@
     <rect x="10" y="115" width="320" height="70" rx="8" fill="#f0fdf4" stroke="#86efac" filter="url(#sh)"/>
     <text x="170" y="133" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">BEFORE (consistent)</text>
     <line x1="25" y1="141" x2="315" y2="141" stroke="#86efac"/>
-    <text x="25" y="158" font-size="9" fill="#1c2330">accounts table:</text>
-    <text x="170" y="158" font-size="9" fill="#1c2330">Alice (id=1): $1000  |  Bob (id=2): $500</text>
+    <text x="170" y="158" text-anchor="middle" font-size="9" fill="#1c2330">Alice (id=1): $1000  |  Bob (id=2): $500</text>
     <text x="170" y="174" font-size="9" fill="#16a34a">✓ invariant: total = $1500</text>
 
     <!-- During transaction -->
@@ -89,7 +88,8 @@
     <text x="567" y="238" text-anchor="middle" font-size="8" fill="#9aa6b8">All-or-nothing + valid state</text>
     <text x="567" y="252" text-anchor="middle" font-size="8" fill="#9aa6b8">DB enforces constraints; you define correctness</text>
 
-    <text x="350" y="318" text-anchor="middle" font-size="8" fill="#9aa6b8">Consistency = the database never shows you data that violates defined rules — at READ COMMITTED or higher, other sessions cannot see mid-transaction changes until COMMIT</text>
+    <text x="350" y="325" text-anchor="middle" font-size="8" fill="#9aa6b8">Consistency = the database never shows you data that violates defined rules</text>
+    <text x="350" y="335" text-anchor="middle" font-size="8" fill="#9aa6b8">at READ COMMITTED or higher, other sessions cannot see mid-transaction changes until COMMIT</text>
   </g>
 </svg>
 <figcaption>Consistency in a multi-table transaction: both debit and credit succeed (COMMIT) or both roll back — the database never shows an intermediate invalid state.</figcaption>
