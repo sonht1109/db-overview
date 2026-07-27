@@ -272,12 +272,7 @@
         showDoneIndicator();
       }
     });
-    var homeLink = topbar.querySelector(".home-link");
-    if (homeLink && homeLink.nextSibling) {
-      topbar.insertBefore(btn, homeLink.nextSibling);
-    } else {
-      topbar.appendChild(btn);
-    }
+    topbar.appendChild(btn);
   }
 
   /* ---------------- Next-button guard ---------------- */
@@ -453,13 +448,8 @@
       toggleBtn.innerHTML = '&#x2630;';
       toggleBtn.title = 'Toggle navigation sidebar';
       toggleBtn.addEventListener('click', toggleSidebar);
-      // Insert after home link
-      var homeLink = topbar.querySelector('.home-link');
-      if (homeLink && homeLink.nextSibling) {
-        topbar.insertBefore(toggleBtn, homeLink.nextSibling);
-      } else {
-        topbar.insertBefore(toggleBtn, topbar.firstChild);
-      }
+      // Append at the end (rightmost)
+      topbar.appendChild(toggleBtn);
     }
 
     // Keyboard shortcuts

@@ -67,7 +67,7 @@ body {
 }
 .topbar-inner {
   max-width: var(--maxw); margin: 0 auto; padding: 10px 20px;
-  display: flex; align-items: center; gap: 12px; justify-content: space-between;
+  display: flex; align-items: center; gap: 12px;
 }
 .home-link {
   color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 600;
@@ -177,6 +177,7 @@ body {
   border: 1px solid var(--border); background: var(--surface);
   color: var(--text); cursor: pointer; font-size: 15px; line-height: 1;
   padding: 0; transition: border-color .15s ease, background .15s ease;
+  margin-left: auto;
 }
 .theme-toggle:hover { border-color: var(--accent); background: var(--accent-soft); }
 
