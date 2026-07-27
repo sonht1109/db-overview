@@ -339,5 +339,179 @@
   function initNav(slug) {
     mountMarkAllPrevBtn(slug);
     mountNextGuard(slug);
+    initSidebar(slug);
+  }
+
+  /* ---------------- Sidebar Navigation ---------------- */
+  var sidebarOpen = false;
+  var sidebarEl = null;
+  var overlayEl = null;
+  var toggleBtn = null;
+
+  function initSidebar(slug) {
+    if (typeof NAV_DATA === 'undefined') return;
+    buildSidebar(slug);
+  }
+
+  function buildSidebar(slug) {
+    if (typeof NAV_DATA === 'undefined') return;
+
+    // Create overlay
+    overlayEl = document.createElement('div');
+    overlayEl.className = 'sidebar-overlay';
+    overlayEl.addEventListener('click', closeSidebar);
+    document.body.appendChild(overlayEl);
+
+    // Create sidebar
+    sidebarEl = document.createElement('nav');
+    sidebarEl.className = 'sidebar';
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'sidebar-header';
+    var h2 = document.createElement('h2');
+    h2.textContent = 'Contents';
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'sidebar-close';
+    closeBtn.innerHTML = '&#x2715;';
+    closeBtn.title = 'Close sidebar';
+    closeBtn.addEventListener('click', closeSidebar);
+    header.appendChild(h2);
+    header.appendChild(closeBtn);
+    sidebarEl.appendChild(header);
+
+    // Body
+    var body = document.createElement('div');
+    body.className = 'sidebar-body';
+
+    var doneSet = {};
+    getDoneSlugs().forEach(function (s) { doneSet[s] = true; });
+
+    NAV_DATA.forEach(function (part) {
+      var partEl = document.createElement('div');
+      partEl.className = 'sidebar-part';
+      partEl.textContent = part.title;
+      body.appendChild(partEl);
+
+      part.chapters.forEach(function (ch) {
+        var chEl = document.createElement('div');
+        chEl.className = 'sidebar-chapter';
+        chEl.textContent = ch.title;
+        body.appendChild(chEl);
+
+        ch.pages.forEach(function (pg) {
+          var link = document.createElement('a');
+          link.className = 'sidebar-link';
+          link.href = pg.slug + '.html';
+          link.textContent = pg.title;
+
+          // Summary styling
+          if (/summary/i.test(pg.title)) {
+            link.classList.add('summary');
+          }
+
+          // Current page
+          if (pg.slug === slug) {
+            link.classList.add('current');
+          }
+
+          // Read/unread status
+          if (doneSet[pg.slug]) {
+            link.classList.add('read');
+          } else if (pg.slug !== slug) {
+            link.classList.add('unread');
+          }
+
+          link.addEventListener('click', function (e) {
+            if (pg.slug === slug) {
+              e.preventDefault();
+              closeSidebar();
+            }
+            // Otherwise navigate naturally
+          });
+
+          body.appendChild(link);
+        });
+      });
+    });
+
+    sidebarEl.appendChild(body);
+
+    // Hint
+    var hint = document.createElement('div');
+    hint.className = 'sidebar-hint';
+    hint.innerHTML = 'Press <kbd>Esc</kbd> to close';
+    sidebarEl.appendChild(hint);
+
+    document.body.appendChild(sidebarEl);
+
+    // Toggle button in topbar
+    var topbar = document.querySelector('.topbar-inner');
+    if (topbar) {
+      toggleBtn = document.createElement('button');
+      toggleBtn.className = 'nav-toggle';
+      toggleBtn.innerHTML = '&#x2630;';
+      toggleBtn.title = 'Toggle navigation sidebar';
+      toggleBtn.addEventListener('click', toggleSidebar);
+      // Insert after home link
+      var homeLink = topbar.querySelector('.home-link');
+      if (homeLink && homeLink.nextSibling) {
+        topbar.insertBefore(toggleBtn, homeLink.nextSibling);
+      } else {
+        topbar.insertBefore(toggleBtn, topbar.firstChild);
+      }
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function (e) {
+      // Escape to close
+      if (e.key === 'Escape' && sidebarOpen) {
+        closeSidebar();
+      }
+      // Ctrl+B or Cmd+B to toggle
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    });
+
+    // Scroll current page into view
+    var currentLink = sidebarEl.querySelector('.sidebar-link.current');
+    if (currentLink) {
+      setTimeout(function () {
+        currentLink.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }, 100);
+    }
+  }
+
+  function openSidebar() {
+    if (sidebarOpen) return;
+    sidebarOpen = true;
+    sidebarEl.classList.add('open');
+    overlayEl.classList.add('open');
+    if (toggleBtn) toggleBtn.classList.add('active');
+    // Scroll current into view
+    var currentLink = sidebarEl.querySelector('.sidebar-link.current');
+    if (currentLink) {
+      setTimeout(function () {
+        currentLink.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }, 250);
+    }
+  }
+
+  function closeSidebar() {
+    if (!sidebarOpen) return;
+    sidebarOpen = false;
+    sidebarEl.classList.remove('open');
+    overlayEl.classList.remove('open');
+    if (toggleBtn) toggleBtn.classList.remove('active');
+  }
+
+  function toggleSidebar() {
+    if (sidebarOpen) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
   }
 })();

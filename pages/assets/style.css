@@ -487,3 +487,196 @@ figure.diagram figcaption {
   color: var(--muted);
   font-size: 13.5px;
 }
+
+/* ======== Sidebar Navigation ======== */
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  transition: border-color .15s ease, background .15s ease;
+}
+.nav-toggle:hover { border-color: var(--accent); background: var(--accent-soft); }
+.nav-toggle.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Sidebar overlay (mobile backdrop) */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(2px);
+}
+.sidebar-overlay.open { display: block; }
+
+/* Sidebar panel */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  width: 320px;
+  max-width: 85vw;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+  box-shadow: 4px 0 24px rgba(0,0,0,.08);
+}
+.sidebar.open { transform: translateX(0); }
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sidebar-header h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -.01em;
+}
+.sidebar-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  transition: border-color .15s, color .15s;
+}
+.sidebar-close:hover { border-color: var(--accent); color: var(--accent); }
+
+.sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 0;
+}
+
+/* Part heading */
+.sidebar-part {
+  padding: 10px 16px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--accent);
+}
+
+/* Chapter heading */
+.sidebar-chapter {
+  padding: 6px 16px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Page link */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 16px 5px 28px;
+  text-decoration: none;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+  transition: background .1s, color .1s;
+  border-left: 3px solid transparent;
+}
+.sidebar-link:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* Read page */
+.sidebar-link.read {
+  color: var(--ok);
+}
+.sidebar-link.read::before {
+  content: "✓";
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+}
+
+/* Unread page */
+.sidebar-link.unread {
+  color: var(--muted);
+  opacity: .55;
+}
+
+/* Current page */
+.sidebar-link.current {
+  color: var(--accent);
+  font-weight: 700;
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  opacity: 1;
+}
+.sidebar-link.current.read {
+  color: var(--ok);
+  border-left-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 8%, transparent);
+}
+
+/* Summary links slightly different */
+.sidebar-link.summary {
+  font-style: italic;
+  font-size: 12.5px;
+}
+
+/* Keyboard hint */
+.sidebar-hint {
+  padding: 10px 16px;
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  text-align: center;
+}
+.sidebar-hint kbd {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin: 0 2px;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 300px;
+    max-width: 85vw;
+  }
+}

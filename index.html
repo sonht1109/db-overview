@@ -11,6 +11,7 @@
     <div class="topbar">
       <div class="topbar-inner">
         <a class="home-link" href=".">← All topics</a>
+        <button type="button" class="nav-toggle" title="Toggle navigation sidebar" aria-label="Toggle navigation">☰</button>
         <div class="search-container">
           <input
             type="text"
@@ -1049,7 +1050,115 @@
     </footer>
 
     <script src="pages/assets/theme.js"></script>
+    <script src="pages/assets/nav-data.js"></script>
     <script src="pages/assets/search.js"></script>
+    <script>
+      /* ---------------- Sidebar Navigation for index ---------------- */
+      (function () {
+        var sidebarOpen = false;
+        var sidebarEl = null;
+        var overlayEl = null;
+
+        function getDoneSlugs() {
+          try { var raw = localStorage.getItem("db-done"); return raw ? raw.split(",") : []; } catch (_) { return []; }
+        }
+
+        function buildSidebar() {
+          if (typeof NAV_DATA === 'undefined') return;
+
+          overlayEl = document.createElement('div');
+          overlayEl.className = 'sidebar-overlay';
+          overlayEl.addEventListener('click', closeSidebar);
+          document.body.appendChild(overlayEl);
+
+          sidebarEl = document.createElement('nav');
+          sidebarEl.className = 'sidebar';
+
+          var header = document.createElement('div');
+          header.className = 'sidebar-header';
+          header.innerHTML = '<h2>Contents</h2><button class="sidebar-close" title="Close sidebar">✕</button>';
+          header.querySelector('.sidebar-close').addEventListener('click', closeSidebar);
+          sidebarEl.appendChild(header);
+
+          var body = document.createElement('div');
+          body.className = 'sidebar-body';
+
+          var doneSet = {};
+          getDoneSlugs().forEach(function (s) { doneSet[s] = true; });
+
+          NAV_DATA.forEach(function (part) {
+            var partEl = document.createElement('div');
+            partEl.className = 'sidebar-part';
+            partEl.textContent = part.title;
+            body.appendChild(partEl);
+
+            part.chapters.forEach(function (ch) {
+              var chEl = document.createElement('div');
+              chEl.className = 'sidebar-chapter';
+              chEl.textContent = ch.title;
+              body.appendChild(chEl);
+
+              ch.pages.forEach(function (pg) {
+                var link = document.createElement('a');
+                link.className = 'sidebar-link';
+                link.href = 'pages/' + pg.slug + '.html';
+                link.textContent = pg.title;
+                if (/summary/i.test(pg.title)) link.classList.add('summary');
+                if (doneSet[pg.slug]) {
+                  link.classList.add('read');
+                } else {
+                  link.classList.add('unread');
+                }
+                body.appendChild(link);
+              });
+            });
+          });
+
+          sidebarEl.appendChild(body);
+
+          var hint = document.createElement('div');
+          hint.className = 'sidebar-hint';
+          hint.innerHTML = 'Press <kbd>Esc</kbd> to close';
+          sidebarEl.appendChild(hint);
+
+          document.body.appendChild(sidebarEl);
+
+          document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && sidebarOpen) closeSidebar();
+            if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); toggleSidebar(); }
+          });
+        }
+
+        function openSidebar() {
+          if (sidebarOpen) return;
+          sidebarOpen = true;
+          sidebarEl.classList.add('open');
+          overlayEl.classList.add('open');
+          var tb = document.querySelector('.nav-toggle');
+          if (tb) tb.classList.add('active');
+        }
+
+        function closeSidebar() {
+          if (!sidebarOpen) return;
+          sidebarOpen = false;
+          sidebarEl.classList.remove('open');
+          overlayEl.classList.remove('open');
+          var tb = document.querySelector('.nav-toggle');
+          if (tb) tb.classList.remove('active');
+        }
+
+        function toggleSidebar() {
+          sidebarOpen ? closeSidebar() : openSidebar();
+        }
+
+        var toggleBtn = document.querySelector('.nav-toggle');
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', toggleSidebar);
+        }
+
+        buildSidebar();
+      })();
+    </script>
     <script>
       /* Last-visit button with dropdown */
       (function () {
