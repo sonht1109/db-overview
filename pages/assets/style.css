@@ -136,6 +136,9 @@ body {
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-dasharray: 50.27;
+  transform: scale(-1, 1) rotate(-90deg);
+  transform-origin: center;
+  transform-box: fill-box;
   animation: fill-progress 10s linear forwards;
 }
 /* ---------- Confirm modal (next-button guard) ---------- */

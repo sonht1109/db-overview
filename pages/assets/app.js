@@ -139,7 +139,14 @@
     var badge = document.createElement("span");
     badge.className = "done-indicator";
     badge.textContent = "✓ Read";
-    topbar.appendChild(badge);
+    // Insert before mark-all-prev-btn (or nav-toggle as fallback) so position
+    // is consistent regardless of timing.
+    var ref = topbar.querySelector(".mark-all-prev-btn") || topbar.querySelector(".nav-toggle");
+    if (ref) {
+      topbar.insertBefore(badge, ref);
+    } else {
+      topbar.appendChild(badge);
+    }
   }
 
   function atBottom() {
@@ -154,7 +161,13 @@
     spinnerEl = document.createElement("span");
     spinnerEl.className = "spinner-indicator";
     spinnerEl.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/></svg>';
-    topbar.appendChild(spinnerEl);
+    // Insert at the same position as the done-indicator will appear.
+    var ref = topbar.querySelector(".mark-all-prev-btn") || topbar.querySelector(".nav-toggle");
+    if (ref) {
+      topbar.insertBefore(spinnerEl, ref);
+    } else {
+      topbar.appendChild(spinnerEl);
+    }
   }
 
   function removeSpinner() {
