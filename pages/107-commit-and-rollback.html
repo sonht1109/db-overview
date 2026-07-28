@@ -83,21 +83,6 @@ INSERT INTO orders (id, customer_id, total) VALUES (102, 999, 75.00);
 COMMIT;  -- behaves like ROLLBACK — neither row is saved
 </code></pre>
 <p>This all-or-nothing behavior is what &quot;atomicity&quot; means in practice: a half-finished transaction cannot be committed.</p>
-<h2>Trying It Live</h2>
-<p>The widget below sets up a small <code>accounts</code> table. Run the block as-is to see a successful commit. Then change <code>COMMIT</code> to <code>ROLLBACK</code> and re-run — notice that the balance stays at its original value, as if the update never happened.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Commit vs. rollback</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL); INSERT INTO accounts VALUES (1, 'Alice', 500); INSERT INTO accounts VALUES (2, 'Bob', 300);" rows="10">-- Transfer $100 from Alice to Bob.
--- Change COMMIT to ROLLBACK to undo everything.
-BEGIN;
-UPDATE accounts SET balance = balance - 100 WHERE id = 1;
-UPDATE accounts SET balance = balance + 100 WHERE id = 2;
-COMMIT;
--- See the final state:
-SELECT id, owner, balance FROM accounts;</textarea>
-  </div>
-</div><p>Now try introducing an error. Remove the second <code>UPDATE</code> entirely and add a line that references a non-existent row (<code>WHERE id = 99</code>). The first update succeeds in isolation, but swap <code>COMMIT</code> for <code>ROLLBACK</code> and confirm that Alice&#39;s balance is untouched — demonstrating that you control the outcome right up until the commit.</p>
 <h2>Savepoints: Partial Rollback</h2>
 <p>Full rollback is all-or-nothing, but SQL also provides <strong>savepoints</strong> — named checkpoints within a transaction that you can roll back to without aborting the whole thing.</p>
 <pre><code class="language-sql">BEGIN;
