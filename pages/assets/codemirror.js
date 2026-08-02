@@ -71,9 +71,9 @@ const sqlSetup = [
 ];
 
 function initCodeMirror() {
-  document.querySelectorAll('[data-widget="sql"] textarea').forEach(ta => {
-    const body = ta.closest('.widget-body');
-    const runBtn = body && body.querySelector('.run-btn');
+  document.querySelectorAll('[data-widget="sql"] textarea, [data-widget="sql-dual"] textarea').forEach(ta => {
+    const container = ta.closest('.session') || ta.closest('.widget-body');
+    const runBtn = container && container.querySelector('.run-btn');
 
     const wrapper = document.createElement('div');
     ta.parentNode.insertBefore(wrapper, ta);

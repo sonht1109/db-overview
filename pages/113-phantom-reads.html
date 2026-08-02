@@ -68,9 +68,9 @@ SELECT COUNT(*) FROM bookings WHERE flight_id = 42 AND status = &#39;confirmed&#
   <line x1="60" y1="40" x2="60" y2="280" stroke="var(--border)" stroke-width="2"/>
   <text x="64" y="36" fill="var(--text)" font-size="12" font-style="italic">time</text>
   <polygon points="60,20 54,38 66,38" fill="var(--border)"/>  <!-- Txn A label -->
-<p>  <text x="160" y="36" fill="var(--accent)" font-size="14" font-weight="bold" text-anchor="middle">Transaction A</text>
+  <text x="160" y="36" fill="var(--accent)" font-size="14" font-weight="bold" text-anchor="middle">Transaction A</text>
   <!-- Txn B label -->
-  <text x="450" y="36" fill="var(--text)" font-size="14" font-weight="bold" text-anchor="middle">Transaction B</text></p>
+  <text x="450" y="36" fill="var(--text)" font-size="14" font-weight="bold" text-anchor="middle">Transaction B</text>
   <!-- Txn A bar -->
   <rect x="100" y="50" width="120" height="220" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
   <!-- Txn B bar -->
@@ -138,21 +138,32 @@ SELECT COUNT(*) FROM bookings WHERE flight_id = 42 AND status = &#39;confirmed&#
 <li><strong>Serializable Snapshot Isolation (SSI)</strong> (PostgreSQL, newer engines): transactions run optimistically on snapshots. The engine tracks read/write dependencies between transactions and aborts any cycle that would make the history non-serializable.</li>
 </ul>
 <h2>Try It Yourself</h2>
-<p>The widget below simulates what phantom reads look like in a single-session context. It seeds a <code>bookings</code> table, then shows a query that could see different results if rows were inserted between calls. Modify the <code>INSERT</code> and re-run the <code>SELECT</code> to see how the count changes — exactly what a concurrent transaction would experience.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Phantom Reads Demo</span></div>
+<div class="widget" data-widget="sql-dual" data-setup="CREATE TABLE bookings (id SERIAL PRIMARY KEY, flight_id INTEGER NOT NULL, passenger_id INTEGER NOT NULL, status TEXT NOT NULL); INSERT INTO bookings (flight_id, passenger_id, status) VALUES (42,101,'confirmed'), (42,102,'confirmed'), (42,103,'confirmed'), (42,104,'cancelled'), (99,201,'confirmed');">
+  <div class="widget-head"><span>Interactive · Phantom read simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE bookings (id SERIAL PRIMARY KEY, flight_id INTEGER NOT NULL, passenger_id INTEGER NOT NULL, status TEXT NOT NULL); INSERT INTO bookings VALUES (1,42,101,'confirmed'); INSERT INTO bookings VALUES (2,42,102,'confirmed'); INSERT INTO bookings VALUES (3,42,103,'confirmed'); INSERT INTO bookings VALUES (4,42,104,'cancelled'); INSERT INTO bookings VALUES (5,99,201,'confirmed');" rows="10">-- Step 1: check how many confirmed seats are booked on flight 42
-SELECT COUNT(*) AS confirmed_count FROM bookings
-WHERE flight_id = 42 AND status = 'confirmed';
--- Imagine another transaction runs here and inserts a new confirmed booking:
--- INSERT INTO bookings VALUES (6, 42, 999, 'confirmed');
--- Step 2: uncomment the INSERT above (remove the leading --),
--- then re-run the whole block to see the count jump.
--- That extra row is the 'phantom'.</textarea>
+    <div class="dual-session">
+      <div class="session session-a">
+        <div class="session-label">Session A</div>
+        <textarea rows="6">-- 1. Read first time → 3 confirmed on flight 42
+SELECT 'first read' AS step, COUNT(*) AS confirmed_count
+FROM bookings WHERE flight_id = 42 AND status = 'confirmed';
+-- 3. Read second time → 4 (a phantom appeared!)
+SELECT 'second read' AS step, COUNT(*) AS confirmed_count
+FROM bookings WHERE flight_id = 42 AND status = 'confirmed';</textarea>
+      </div>
+      <div class="session session-b">
+        <div class="session-label">Session B</div>
+        <textarea rows="6">-- 2. Insert a new confirmed booking and commit
+BEGIN;
+INSERT INTO bookings (flight_id, passenger_id, status) VALUES (42, 999, 'confirmed');
+COMMIT;</textarea>
+      </div>
+    </div>
+    <p class="dual-hint">Run steps in order (1→2→3). Session A's <code>COUNT(*)</code> returns 3, then 4 — the extra row is a <strong>phantom</strong>. It was never touched by A, but appeared in A's result set because B inserted a row matching A's filter.</p>
   </div>
-</div><blockquote>
-<p><strong>Note:</strong> In a real concurrent scenario you would need two separate database connections running simultaneously. Single-session demos can only approximate the effect by manually inserting the row — but the result is identical to what Transaction A would observe.</p>
+</div>
+<blockquote>
+<p><strong>Note:</strong> This demo uses a shared in-memory PGlite instance rather than true concurrent connections. In a real database you'd need two separate connections running simultaneously — but the effect is the same: Transaction A observes new rows appearing in its result set.</p>
 </blockquote>
 <h2>The Takeaway</h2>
 <p>Phantom reads arise from <em>range queries</em> in concurrent transactions. Preventing them requires the database to protect the search predicate itself, not just the rows it currently returns. Serializable isolation is the standard guarantee; in practice, snapshot-based engines often handle it transparently at Repeatable Read. Understanding phantoms matters most when your transactions make decisions based on aggregates (<code>COUNT</code>, <code>SUM</code>, <code>MIN</code>, <code>MAX</code>) or range scans — any time the <em>absence</em> of a row is part of your logic.</p>

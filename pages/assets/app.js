@@ -67,8 +67,6 @@
           return (setup ? db.exec(setup) : Promise.resolve())
             .then(function () { return db.exec(query); })
             .then(function (results) {
-              // exec returns an array of results (one per statement).
-              // Show the last result that returned rows, or the last result overall.
               var res = null;
               if (Array.isArray(results) && results.length) {
                 for (var i = results.length - 1; i >= 0; i--) {
@@ -87,8 +85,65 @@
     });
   }
 
+  function mountSqlDual(widget) {
+    var taA = widget.querySelector('.session-a textarea');
+    var taB = widget.querySelector('.session-b textarea');
+    if (!taA || !taB) return;
+
+    var setup = widget.getAttribute('data-setup') || '';
+
+    var sessions = [
+      { ta: taA, label: 'Run A ▶' },
+      { ta: taB, label: 'Run B ▶' }
+    ];
+
+    sessions.forEach(function (s) {
+      var container = s.ta.closest('.session');
+      var btn = document.createElement('button');
+      btn.className = 'run-btn';
+      btn.textContent = s.label;
+      var out = document.createElement('div');
+      out.className = 'result';
+      container.appendChild(btn);
+      container.appendChild(out);
+    });
+
+    loadPGlite().then(function (PGlite) {
+      var db = new PGlite();
+      var ready = setup ? db.exec(setup) : Promise.resolve();
+
+      sessions.forEach(function (s) {
+        var container = s.ta.closest('.session');
+        var btn = container.querySelector('.run-btn');
+        var out = container.querySelector('.result');
+
+        btn.addEventListener('click', function () {
+          out.innerHTML = '<span class="muted">Running…</span>';
+          ready
+            .then(function () { return db.exec(s.ta.value); })
+            .then(function (results) {
+              var res = null;
+              if (Array.isArray(results) && results.length) {
+                for (var i = results.length - 1; i >= 0; i--) {
+                  if (results[i] && results[i].rows && results[i].rows.length) { res = results[i]; break; }
+                }
+                if (!res) res = results[results.length - 1];
+              }
+              renderResult(out, res);
+            })
+            .catch(function (e) { out.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
+        });
+      });
+    }).catch(function (e) {
+      widget.querySelectorAll('.result').forEach(function (o) {
+        o.innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+      });
+    });
+  }
+
   function mountWidgets() {
     document.querySelectorAll('[data-widget="sql"]').forEach(mountSql);
+    document.querySelectorAll('[data-widget="sql-dual"]').forEach(mountSqlDual);
   }
 
   if (document.readyState === "loading") {

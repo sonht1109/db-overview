@@ -67,15 +67,40 @@
   <line x1="240" y1="62" x2="370" y2="109" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="6,3"/>
   <polygon points="370,109 360,104 362,114" fill="var(--accent)"/>
   <text x="300" y="80" fill="var(--accent)" font-size="11" text-anchor="middle">dirty read</text>  <!-- Rollback note -->
-<p>  <text x="160" y="214" fill="var(--text)" font-size="11" text-anchor="middle" opacity="0.75">data reverts — A lied to</text></p>
+  <text x="160" y="214" fill="var(--text)" font-size="11" text-anchor="middle" opacity="0.75">data reverts — A lied to</text>
   <!-- Lane labels -->
-<p>  <text x="160" y="16" fill="var(--text)" font-size="13" font-weight="bold" text-anchor="middle">Transaction B</text>
+  <text x="160" y="16" fill="var(--text)" font-size="13" font-weight="bold" text-anchor="middle">Transaction B</text>
   <text x="465" y="16" fill="var(--text)" font-size="13" font-weight="bold" text-anchor="middle">Transaction A</text>
-</svg></p>
+</svg>
 <figcaption>Dirty read timeline: Txn A reads Txn B's uncommitted write; when B rolls back, A's data was never real.</figcaption>
 </figure><blockquote>
 <p><strong>Note:</strong> Most databases prevent dirty reads by default. In SQL standard terms, this requires at least <strong>Read Committed</strong> isolation level. The lowest level, <strong>Read Uncommitted</strong>, explicitly allows dirty reads — it is rarely used in production.</p>
 </blockquote>
+<div class="widget" data-widget="sql-dual" data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000);">
+  <div class="widget-head"><span>Interactive · Dirty read simulation</span></div>
+  <div class="widget-body">
+    <div class="dual-session">
+      <div class="session session-a">
+        <div class="session-label">Session A</div>
+        <textarea rows="6">-- 1. Run this first → Alice has 1000
+SELECT owner, balance FROM accounts WHERE id = 1;
+-- 3. Run after Session B → sees 0 (dirty read!)
+SELECT owner, balance FROM accounts WHERE id = 1;
+-- 5. Run after B ROLLBACK → back to 1000
+SELECT owner, balance FROM accounts WHERE id = 1;</textarea>
+      </div>
+      <div class="session session-b">
+        <div class="session-label">Session B</div>
+        <textarea rows="6">-- 2. Run this → uncommitted write
+BEGIN;
+UPDATE accounts SET balance = 0 WHERE id = 1;
+-- 4. Roll it back
+ROLLBACK;</textarea>
+      </div>
+    </div>
+    <p class="dual-hint">Run steps in order (1→2→3→4→5). Session A reads uncommitted data from B — a <strong>dirty read</strong>. When B rolls back, that data was never real.</p>
+  </div>
+</div>
 <h2>Non-Repeatable Reads: Data That Changes Under You</h2>
 <p>A <strong>non-repeatable read</strong> is subtler. Transaction A reads a row, then reads it again later in the same transaction — and gets a <em>different</em> value because Transaction B committed a change in between.</p>
 <p><strong>Example scenario:</strong></p>
@@ -117,6 +142,28 @@
 <h3>Why It Matters</h3>
 <p>In a pricing report, two reads of the same product during one transaction should agree. Inconsistency here can produce wrong totals, incorrect audit logs, or subtle application bugs that are hard to reproduce.</p>
 <p>Preventing non-repeatable reads requires <strong>Repeatable Read</strong> isolation level, which guarantees a transaction always sees the same value for a row it has already read — even if a concurrent transaction commits a change.</p>
+<div class="widget" data-widget="sql-dual" data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000);">
+  <div class="widget-head"><span>Interactive · Non-repeatable read simulation</span></div>
+  <div class="widget-body">
+    <div class="dual-session">
+      <div class="session session-a">
+        <div class="session-label">Session A</div>
+        <textarea rows="6">-- 1. Read first time → sees 1000
+SELECT 'first read' AS step, owner, balance FROM accounts WHERE id = 1;
+-- 4. Read second time → sees 150 (different!)
+SELECT 'second read' AS step, owner, balance FROM accounts WHERE id = 1;</textarea>
+      </div>
+      <div class="session session-b">
+        <div class="session-label">Session B</div>
+        <textarea rows="6">-- 2-3. Update and commit
+BEGIN;
+UPDATE accounts SET balance = 150 WHERE id = 1;
+COMMIT;</textarea>
+      </div>
+    </div>
+    <p class="dual-hint">Run steps in order (1→2-3→4). Session A reads the same row twice but gets different values — a <strong>non-repeatable read</strong>.</p>
+  </div>
+</div>
 <h2>Isolation Levels at a Glance</h2>
 <table>
 <thead>
@@ -153,23 +200,6 @@
 </tr>
 </tbody></table>
 <p>Each level adds stronger guarantees at the cost of reduced concurrency (more locking or version tracking). Choosing the right level is always a tradeoff.</p>
-<hr>
-<p>Try the widget below to observe how read isolation works in practice. The setup creates two &quot;snapshots&quot; by using SQLite&#39;s <code>BEGIN</code> semantics — notice how a committed change by one session appears in a subsequent read by another.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Non-repeatable read simulation</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT, balance INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000); INSERT INTO accounts VALUES (2, 'Bob', 500);" rows="10">-- Simulate a non-repeatable read scenario:
--- Step 1: read Alice's balance (first read)
-SELECT owner, balance FROM accounts WHERE id = 1;
--- Imagine another transaction runs: UPDATE accounts SET balance = 250 WHERE id = 1;
--- Step 2: apply that change here to simulate a committed update
-UPDATE accounts SET balance = 250 WHERE id = 1;
--- Step 3: read Alice's balance again (second read in the same "transaction")
-SELECT owner, balance FROM accounts WHERE id = 1;
--- Under Read Committed: you see 250. A non-repeatable read occurred.
--- Under Repeatable Read: the DB would return 1000 again (snapshot isolation).</textarea>
-  </div>
-</div><p>Try changing the <code>UPDATE</code> amount and re-running both <code>SELECT</code>s to see how the second read reflects the new value — this is exactly the non-repeatable read anomaly in action.</p>
 
 </div>
   <nav class="pagenav"><a class="prev" href="111-the-lost-update-problem.html"><span class="dir">← Previous</span><span class="ttl">The lost update problem</span></a><a class="next" href="113-phantom-reads.html"><span class="dir">Next →</span><span class="ttl">Phantom reads</span></a></nav>
