@@ -30,8 +30,8 @@
     <text x="170" y="41" text-anchor="middle" font-size="9" fill="#2f6df6">① Read balance: $100</text>
     <rect x="300" y="60" width="140" height="24" rx="5" fill="#e8f0ff" stroke="#2f6df6"/>
     <text x="370" y="76" text-anchor="middle" font-size="9" fill="#2f6df6">③ Add $50 → $150</text>
-    <rect x="480" y="100" width="140" height="24" rx="5" fill="#e8f0ff" stroke="#2f6df6"/>
-    <text x="550" y="116" text-anchor="middle" font-size="9" fill="#2f6df6">⑤ Write $150</text>
+    <rect x="480" y="60" width="140" height="24" rx="5" fill="#e8f0ff" stroke="#2f6df6"/>
+    <text x="550" y="76" text-anchor="middle" font-size="9" fill="#2f6df6">⑤ Write $150</text>
 
     <!-- Txn B -->
     <text x="10" y="140" font-size="11" font-weight="700" fill="#16a34a">Txn B (Bob)</text>
@@ -39,14 +39,16 @@
     <text x="250" y="146" text-anchor="middle" font-size="9" fill="#16a34a">② Read balance: $100</text>
     <rect x="400" y="160" width="140" height="26" rx="5" fill="#fee2e2" stroke="#dc2626"/>
     <text x="470" y="177" text-anchor="middle" font-size="9" fill="#dc2626">④ Add $20 → $120</text>
-    <rect x="580" y="100" width="140" height="24" rx="5" fill="#fef2f2" stroke="#fca5a5"/>
-    <text x="650" y="116" text-anchor="middle" font-size="9" fill="#dc2626">⑥ Write $120 → LOST $50!</text>
+    <rect x="550" y="100" width="140" height="24" rx="5" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="620" y="116" text-anchor="middle" font-size="9" fill="#dc2626">⑥ Write $120 → LOST $50!</text>
 
     <!-- Connection lines -->
-    <line x1="240" y1="49" x2="240" y2="90" stroke="#2f6df6" stroke-width="1" stroke-dasharray="3,2"/>
-    <line x1="320" y1="142" x2="320" y2="90" stroke="#16a34a" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="170" y1="49" x2="170" y2="90" stroke="#2f6df6" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="250" y1="130" x2="250" y2="90" stroke="#16a34a" stroke-width="1" stroke-dasharray="3,2"/>
     <line x1="370" y1="84" x2="370" y2="90" stroke="#2f6df6" stroke-width="1" stroke-dasharray="3,2"/>
-    <line x1="470" y1="186" x2="470" y2="90" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="470" y1="160" x2="470" y2="90" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="550" y1="84" x2="550" y2="90" stroke="#2f6df6" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="620" y1="100" x2="620" y2="90" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2"/>
   </g>
 </svg>
 <figcaption>The lost update problem: two transactions read the same value, each computes a new value based on what they read, and the second write silently overwrites the first. Fix: SELECT FOR UPDATE or optimistic locking.</figcaption>
@@ -100,33 +102,39 @@
 <h2>Timeline Diagram</h2>
 <figure class="diagram">
 <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing Transaction A and Transaction B interleaving reads and writes, causing a lost update">
-  <!-- Lane backgrounds -->
-  <rect x="10" y="30" width="290" height="210" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
-  <rect x="340" y="30" width="290" height="210" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>  <!-- Lane headers -->
-<p>  <text x="155" y="20" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--accent)">Transaction A</text>
-  <text x="485" y="20" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--accent)">Transaction B</text></p>
-  <!-- Time axis label -->
-<p>  <text x="322" y="55" text-anchor="middle" font-size="11" fill="var(--text)">time ↓</text></p>
-  <!-- Timeline spine for A -->
-  <line x1="155" y1="60" x2="155" y2="230" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <!-- Timeline spine for B -->
-  <line x1="485" y1="60" x2="485" y2="230" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4 3"/>  <!-- t1: A reads -->
-  <circle cx="155" cy="75" r="5" fill="var(--accent)"/>
-  <text x="165" y="79" font-size="12" fill="var(--text)">READ balance → 1000</text>  <!-- t2: B reads -->
-  <circle cx="485" cy="110" r="5" fill="var(--accent)"/>
-  <text x="495" y="114" font-size="12" fill="var(--text)">READ balance → 1000</text>  <!-- t3: A writes -->
-  <circle cx="155" cy="155" r="5" fill="var(--accent)"/>
-  <rect x="60" y="163" width="190" height="22" rx="4" fill="var(--accent)" opacity="0.18"/>
-  <text x="155" y="178" text-anchor="middle" font-size="12" fill="var(--text)">WRITE 1000+200 = <tspan font-weight="bold">1200</tspan></text>  <!-- t4: B writes (overwrites) -->
-  <circle cx="485" cy="200" r="5" fill="#e05252"/>
-  <rect x="385" y="208" width="200" height="22" rx="4" fill="#e05252" opacity="0.2"/>
-  <text x="485" y="223" text-anchor="middle" font-size="12" fill="var(--text)">WRITE 1000+300 = <tspan font-weight="bold" fill="#e05252">1300 ✗</tspan></text>  <!-- Arrow: A's write is clobbered -->
-  <line x1="300" y1="174" x2="340" y2="215" stroke="#e05252" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr)"/>
   <defs>
     <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="#e05252"/>
     </marker>
   </defs>
+  <!-- Lane backgrounds -->
+  <rect x="10" y="30" width="290" height="210" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="340" y="30" width="290" height="210" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
+  <!-- Lane headers -->
+  <text x="155" y="20" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--accent)">Transaction A</text>
+  <text x="485" y="20" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--accent)">Transaction B</text>
+  <!-- Time axis label -->
+  <text x="322" y="55" text-anchor="middle" font-size="11" fill="var(--text)">time ↓</text>
+  <!-- Timeline spine for A -->
+  <line x1="155" y1="60" x2="155" y2="230" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <!-- Timeline spine for B -->
+  <line x1="485" y1="60" x2="485" y2="230" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <!-- t1: A reads -->
+  <circle cx="155" cy="75" r="5" fill="var(--accent)"/>
+  <text x="165" y="79" font-size="12" fill="var(--text)">READ balance → 1000</text>
+  <!-- t2: B reads -->
+  <circle cx="485" cy="110" r="5" fill="var(--accent)"/>
+  <text x="495" y="114" font-size="12" fill="var(--text)">READ balance → 1000</text>
+  <!-- t3: A writes -->
+  <circle cx="155" cy="155" r="5" fill="var(--accent)"/>
+  <rect x="60" y="163" width="190" height="22" rx="4" fill="var(--accent)" opacity="0.18"/>
+  <text x="155" y="178" text-anchor="middle" font-size="12" fill="var(--text)">WRITE 1000+200 = <tspan font-weight="bold">1200</tspan></text>
+  <!-- t4: B writes (overwrites) -->
+  <circle cx="485" cy="200" r="5" fill="#e05252"/>
+  <rect x="385" y="208" width="200" height="22" rx="4" fill="#e05252" opacity="0.2"/>
+  <text x="485" y="223" text-anchor="middle" font-size="12" fill="var(--text)">WRITE 1000+300 = <tspan font-weight="bold" fill="#e05252">1300 ✗</tspan></text>
+  <!-- Arrow: A's write is clobbered -->
+  <line x1="300" y1="174" x2="340" y2="215" stroke="#e05252" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr)"/>
   <text x="308" y="200" font-size="11" fill="#e05252">overwrites</text>
 </svg>
 <figcaption>Both transactions read 1000, then both write back. B's write at t4 silently discards A's committed deposit.</figcaption>
@@ -173,20 +181,7 @@ WHERE id = 1 AND version = 7;
 -- If 0 rows updated → someone else changed it → retry
 </code></pre>
 <p>OCC avoids locks entirely; it detects conflicts only at write time and lets the application retry. It works well when conflicts are rare (optimistic about success).</p>
-<h2>Try It Yourself</h2>
-<p>The widget below demonstrates all three patterns. Run the setup, then try each <code>UPDATE</code> style and observe the final balance.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Lost update &amp; fixes</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE accounts (id SERIAL PRIMARY KEY, owner TEXT, balance INTEGER, version INTEGER); INSERT INTO accounts VALUES (1, 'Alice', 1000, 1); CREATE TABLE log (msg TEXT); INSERT INTO log VALUES ('=== Simulated lost update ==='); UPDATE accounts SET balance = 1000 + 200; UPDATE accounts SET balance = 1000 + 300; INSERT INTO log VALUES ('After lost update, balance = ' || (SELECT balance FROM accounts WHERE id=1) || ', expected 1500'); UPDATE accounts SET balance = 1000, version = 1; INSERT INTO log VALUES ('=== Reset to 1000 ==='); INSERT INTO log VALUES ('=== Atomic update (both deposits) ==='); UPDATE accounts SET balance = balance + 200 WHERE id = 1; UPDATE accounts SET balance = balance + 300 WHERE id = 1; INSERT INTO log VALUES ('After atomic updates, balance = ' || (SELECT balance FROM accounts WHERE id=1) || ', expected 1500');" rows="10">-- See the log of what happened in the setup:
-SELECT msg FROM log;
-</textarea>
-  </div>
-</div><details class="reveal"><summary>Reveal: Which fix is best for a high-traffic likes counter?</summary><div class="reveal-body"><p>Use the <strong>atomic update</strong> approach:</p>
-<pre><code class="language-sql">UPDATE posts SET likes = likes + 1 WHERE id = ?;
-</code></pre>
-<p>Optimistic locking requires retries (wasteful when conflicts are frequent) and pessimistic locking serializes all increments (a bottleneck). The atomic update lets the engine batch the arithmetic efficiently. For extreme throughput, some systems batch these writes in memory (e.g. Redis) and flush to the DB periodically, accepting a small margin of error in the displayed count.</p>
-</div></details>
+
 </div>
   <nav class="pagenav"><a class="prev" href="110-chapter-11-summary.html"><span class="dir">← Previous</span><span class="ttl">Real examples of broken logic</span></a><a class="next" href="112-dirty-reads-and-non-repeatable-reads.html"><span class="dir">Next →</span><span class="ttl">Dirty reads and non-repeatable reads</span></a></nav>
 </main>
