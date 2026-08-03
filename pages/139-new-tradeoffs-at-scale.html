@@ -55,25 +55,25 @@
 <svg viewBox="0 0 620 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CAP theorem triangle showing three vertices: Consistency, Availability, and Partition Tolerance, with example databases placed between each pair">
   <!-- Triangle -->
   <polygon points="310,30 570,260 50,260" fill="none" stroke="var(--border)" stroke-width="2"/>  <!-- Vertex labels -->
-<p>  <text x="310" y="20" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--accent)">Consistency</text>
-  <text x="310" y="34" text-anchor="middle" font-size="11" fill="var(--text)">(every read = latest write)</text></p>
-<p>  <text x="582" y="258" text-anchor="start" font-size="14" font-weight="bold" fill="var(--accent)">Availability</text>
-  <text x="582" y="272" text-anchor="start" font-size="11" fill="var(--text)">(always responds)</text></p>
-<p>  <text x="38" y="258" text-anchor="end" font-size="14" font-weight="bold" fill="var(--accent)">Partition</text>
+  <text x="310" y="20" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--accent)">Consistency</text>
+  <text x="310" y="34" text-anchor="middle" font-size="11" fill="var(--text)">(every read = latest write)</text>
+  <text x="582" y="258" text-anchor="start" font-size="14" font-weight="bold" fill="var(--accent)">Availability</text>
+  <text x="582" y="272" text-anchor="start" font-size="11" fill="var(--text)">(always responds)</text>
+  <text x="38" y="258" text-anchor="end" font-size="14" font-weight="bold" fill="var(--accent)">Partition</text>
   <text x="38" y="272" text-anchor="end" font-size="14" font-weight="bold" fill="var(--accent)">Tolerance</text>
-  <text x="38" y="286" text-anchor="end" font-size="11" fill="var(--text)">(survives splits)</text></p>
+  <text x="38" y="286" text-anchor="end" font-size="11" fill="var(--text)">(survives splits)</text>
   <!-- CP zone label -->
-<p>  <text x="178" y="130" text-anchor="middle" font-size="12" fill="var(--text)" font-style="italic">CP</text>
+  <text x="178" y="130" text-anchor="middle" font-size="12" fill="var(--text)" font-style="italic">CP</text>
   <text x="178" y="145" text-anchor="middle" font-size="11" fill="var(--text)">etcd, HBase</text>
-  <text x="178" y="159" text-anchor="middle" font-size="11" fill="var(--text)">Zookeeper</text></p>
+  <text x="178" y="159" text-anchor="middle" font-size="11" fill="var(--text)">Zookeeper</text>
   <!-- AP zone label -->
-<p>  <text x="442" y="130" text-anchor="middle" font-size="12" fill="var(--text)" font-style="italic">AP</text>
+  <text x="442" y="130" text-anchor="middle" font-size="12" fill="var(--text)" font-style="italic">AP</text>
   <text x="442" y="145" text-anchor="middle" font-size="11" fill="var(--text)">Cassandra, DynamoDB</text>
-  <text x="442" y="159" text-anchor="middle" font-size="11" fill="var(--text)">(eventual consistency)</text></p>
+  <text x="442" y="159" text-anchor="middle" font-size="11" fill="var(--text)">(eventual consistency)</text>
   <!-- CA zone label (impossible in practice) -->
-<p>  <text x="310" y="230" text-anchor="middle" font-size="12" fill="var(--text)" font-style="italic">CA (single-node only)</text>
+  <text x="310" y="230" text-anchor="middle" font-size="12" fill="var(--text)" font-style="italic">CA (single-node only)</text>
   <text x="310" y="245" text-anchor="middle" font-size="11" fill="var(--text)">PostgreSQL, MySQL</text>
-  <text x="310" y="259" text-anchor="middle" font-size="11" fill="var(--text)">(not partition-tolerant by design)</text></p>
+  <text x="310" y="259" text-anchor="middle" font-size="11" fill="var(--text)">(not partition-tolerant by design)</text>
   <!-- "Must pick one side" arrow during partition -->
   <line x1="310" y1="55" x2="310" y2="195" stroke="var(--border)" stroke-width="1" stroke-dasharray="5,3"/>
   <text x="315" y="135" font-size="10" fill="var(--text)">partition</text>

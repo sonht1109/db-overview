@@ -86,8 +86,8 @@
       <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
     </marker>
   </defs>  <!-- ── CACHE MODE row ── -->
-<p>  <text x="16" y="48" font-size="13" font-weight="600" fill="var(--text)">Cache mode</text>
-  <line x1="16" y1="75" x2="620" y2="75" stroke="var(--border)" stroke-width="2"/></p>
+  <text x="16" y="48" font-size="13" font-weight="600" fill="var(--text)">Cache mode</text>
+  <line x1="16" y1="75" x2="620" y2="75" stroke="var(--border)" stroke-width="2"/>
   <rect x="40" y="58" width="52" height="18" rx="3" fill="var(--accent)" opacity="0.7"/>
   <text x="66" y="71" text-anchor="middle" font-size="11" fill="var(--surface-2)">writes</text>  <rect x="110" y="58" width="52" height="18" rx="3" fill="var(--accent)" opacity="0.7"/>
   <text x="136" y="71" text-anchor="middle" font-size="11" fill="var(--surface-2)">writes</text>  <line x1="220" y1="55" x2="220" y2="100" stroke="#e05252" stroke-width="2.5" stroke-dasharray="4,3"/>
@@ -97,10 +97,10 @@
   <rect x="434" y="58" width="80" height="18" rx="3" fill="var(--accent)" opacity="0.35"/>
   <text x="474" y="71" text-anchor="middle" font-size="11" fill="var(--text)">cache warms</text>
   <rect x="528" y="58" width="72" height="18" rx="3" fill="var(--accent)" opacity="0.7"/>
-  <text x="564" y="71" text-anchor="middle" font-size="11" fill="var(--surface-2)">normal</text><p>  <text x="281" y="98" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">origin DB fills the gap</text></p>
+  <text x="564" y="71" text-anchor="middle" font-size="11" fill="var(--surface-2)">normal</text>  <text x="281" y="98" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">origin DB fills the gap</text>
   <!-- ── PERSISTENT MODE row ── -->
-<p>  <text x="16" y="168" font-size="13" font-weight="600" fill="var(--text)">Persistent mode (AOF)</text>
-  <line x1="16" y1="195" x2="620" y2="195" stroke="var(--border)" stroke-width="2"/></p>
+  <text x="16" y="168" font-size="13" font-weight="600" fill="var(--text)">Persistent mode (AOF)</text>
+  <line x1="16" y1="195" x2="620" y2="195" stroke="var(--border)" stroke-width="2"/>
   <rect x="40" y="178" width="52" height="18" rx="3" fill="var(--accent)" opacity="0.7"/>
   <text x="66" y="191" text-anchor="middle" font-size="11" fill="var(--surface-2)">writes</text>
   <rect x="40" y="200" width="52" height="14" rx="2" fill="var(--accent)" opacity="0.25"/>
@@ -115,7 +115,7 @@
   <text x="286" y="191" text-anchor="middle" font-size="11" fill="var(--accent)">replay AOF log</text>  <rect x="350" y="178" width="90" height="18" rx="3" fill="var(--accent)" opacity="0.7"/>
   <text x="395" y="191" text-anchor="middle" font-size="11" fill="var(--surface-2)">recovered</text>
   <rect x="454" y="178" width="72" height="18" rx="3" fill="var(--accent)" opacity="0.7"/>
-  <text x="490" y="191" text-anchor="middle" font-size="11" fill="var(--surface-2)">normal</text><p>  <text x="286" y="218" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">data intact — at most 1 s lost</text>
+  <text x="490" y="191" text-anchor="middle" font-size="11" fill="var(--surface-2)">normal</text>  <text x="286" y="218" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.6">data intact — at most 1 s lost</text>
 </svg></p>
 <figcaption>Cache mode accepts data loss on crash and relies on the origin DB to refill. Persistent mode replays the append-only log and recovers within seconds.</figcaption>
 </figure><h2>Eviction: The Cache-Only Feature</h2>

@@ -122,7 +122,7 @@ L2: [a-b][c-d][e-f]...[y-z]  ← non-overlapping, 10 MB each, ~10× more files
       <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
     </marker>
   </defs>  <!-- Left panel: Before -->
-<p>  <text x="160" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Before Compaction</text></p>
+  <text x="160" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Before Compaction</text>
   <!-- SST-1 -->
   <rect x="20" y="36" width="280" height="90" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="160" y="56" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">SST-1 (oldest)</text>
@@ -139,26 +139,26 @@ L2: [a-b][c-d][e-f]...[y-z]  ← non-overlapping, 10 MB each, ~10× more files
   <text x="36" y="280" font-size="11" fill="var(--accent)" font-family="monospace">e → TOMBSTONE</text>
   <text x="36" y="297" font-size="11" fill="var(--text)" font-family="monospace">d → &quot;Diana&quot; (v4)</text>
   <text x="36" y="314" font-size="11" fill="var(--text)" font-family="monospace">f → &quot;Fatima&quot; (v5)</text>  <!-- Stale/deleted labels -->
-<p>  <text x="36" y="76" font-size="11" fill="var(--muted)" font-family="monospace" opacity="0.5">a → &quot;Alice&quot; (v1)</text>
+  <text x="36" y="76" font-size="11" fill="var(--muted)" font-family="monospace" opacity="0.5">a → &quot;Alice&quot; (v1)</text>
   <text x="248" y="76" font-size="10" fill="var(--muted)">← stale</text>
   <text x="36" y="93" font-size="11" fill="var(--muted)" font-family="monospace" opacity="0.5">c → &quot;Carol&quot; (v1)</text>
-  <text x="248" y="93" font-size="10" fill="var(--muted)">← stale</text></p>
+  <text x="248" y="93" font-size="10" fill="var(--muted)">← stale</text>
   <!-- Compaction arrow -->
   <line x1="316" y1="210" x2="358" y2="210" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arrcmp)"/>
   <text x="337" y="202" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">compact</text>  <!-- Right panel: After -->
-<p>  <text x="520" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">After Compaction</text></p>
+  <text x="520" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">After Compaction</text>
   <rect x="370" y="36" width="290" height="280" rx="6" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
-  <text x="515" y="62" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">Merged SSTable</text><p>  <text x="386" y="88" font-size="11" fill="var(--text)" font-family="monospace">a → &quot;Alice v2&quot; ✓</text>
+  <text x="515" y="62" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">Merged SSTable</text>  <text x="386" y="88" font-size="11" fill="var(--text)" font-family="monospace">a → &quot;Alice v2&quot; ✓</text>
   <text x="386" y="110" font-size="11" fill="var(--muted)" font-family="monospace" text-decoration="line-through">b → (removed)</text>
   <text x="620" y="110" font-size="10" fill="var(--muted)" text-anchor="end">tombstone purged</text>
   <text x="386" y="132" font-size="11" fill="var(--text)" font-family="monospace">c → &quot;Carol v2&quot; ✓</text>
   <text x="386" y="154" font-size="11" fill="var(--text)" font-family="monospace">d → &quot;Diana&quot; ✓</text>
   <text x="386" y="176" font-size="11" fill="var(--muted)" font-family="monospace" text-decoration="line-through">e → (removed)</text>
   <text x="620" y="176" font-size="10" fill="var(--muted)" text-anchor="end">tombstone purged</text>
-  <text x="386" y="198" font-size="11" fill="var(--text)" font-family="monospace">f → &quot;Fatima&quot; ✓</text></p>
-<p>  <text x="515" y="248" text-anchor="middle" font-size="10" fill="var(--muted)">Sorted · No duplicates</text>
+  <text x="386" y="198" font-size="11" fill="var(--text)" font-family="monospace">f → &quot;Fatima&quot; ✓</text>
+  <text x="515" y="248" text-anchor="middle" font-size="10" fill="var(--muted)">Sorted · No duplicates</text>
   <text x="515" y="264" text-anchor="middle" font-size="10" fill="var(--muted)">No tombstones · Smallest footprint</text>
-  <text x="515" y="280" text-anchor="middle" font-size="10" fill="var(--muted)">One file → one read per level</text></p>
+  <text x="515" y="280" text-anchor="middle" font-size="10" fill="var(--muted)">One file → one read per level</text>
   <!-- Disk space savings note -->
   <rect x="20" y="356" width="640" height="60" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" stroke-dasharray="5,3"/>
   <text x="340" y="380" text-anchor="middle" font-size="12" fill="var(--text)" font-weight="600">3 files → 1 file · Stale data reclaimed · Reads now check one file instead of three</text>

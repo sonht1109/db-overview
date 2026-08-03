@@ -77,9 +77,9 @@
       <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
     </marker>
   </defs>  <!-- Title -->
-<p>  <text x="340" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Wide Rows vs Relational Rows</text></p>
+  <text x="340" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Wide Rows vs Relational Rows</text>
   <!-- RELATIONAL SIDE -->
-<p>  <text x="170" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="var(--muted)">Relational (NULLs stored)</text>
+  <text x="170" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="var(--muted)">Relational (NULLs stored)</text>
   <!-- Header row -->
   <rect x="20" y="56" width="60" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
   <text x="50" y="74" text-anchor="middle" font-size="11" fill="var(--muted)">row_id</text>
@@ -92,7 +92,7 @@
   <rect x="230" y="56" width="50" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
   <text x="255" y="74" text-anchor="middle" font-size="11" fill="var(--muted)">col_D</text>
   <rect x="280" y="56" width="50" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.2"/>
-  <text x="305" y="74" text-anchor="middle" font-size="11" fill="var(--muted)">col_E</text></p>
+  <text x="305" y="74" text-anchor="middle" font-size="11" fill="var(--muted)">col_E</text>
   <!-- Row 1 (relational) -->
   <rect x="20" y="84" width="60" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="50" y="102" text-anchor="middle" font-size="11" fill="var(--text)">1</text>
@@ -129,34 +129,34 @@
   <rect x="230" y="140" width="50" height="28" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" opacity="0.5"/>
   <text x="255" y="158" text-anchor="middle" font-size="10" fill="var(--muted)">NULL</text>
   <rect x="280" y="140" width="50" height="28" fill="var(--accent)" opacity="0.25" stroke="var(--border)" stroke-width="1"/>
-  <text x="305" y="158" text-anchor="middle" font-size="11" fill="var(--text)">v8</text><p>  <text x="170" y="190" text-anchor="middle" font-size="11" fill="var(--muted)">NULLs occupy space on disk</text></p>
+  <text x="305" y="158" text-anchor="middle" font-size="11" fill="var(--text)">v8</text>  <text x="170" y="190" text-anchor="middle" font-size="11" fill="var(--muted)">NULLs occupy space on disk</text>
   <!-- WIDE ROW SIDE -->
-<p>  <text x="530" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">Column-Family (sparse)</text></p>
+  <text x="530" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">Column-Family (sparse)</text>
   <!-- Row 1 wide -->
-<p>  <text x="360" y="98" font-size="11" font-weight="600" fill="var(--text)">row:1</text>
+  <text x="360" y="98" font-size="11" font-weight="600" fill="var(--text)">row:1</text>
   <rect x="405" y="82" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="432" y="100" text-anchor="middle" font-size="10" fill="var(--text)">A=v1</text>
   <rect x="465" y="82" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="492" y="100" text-anchor="middle" font-size="10" fill="var(--text)">B=v2</text>
   <rect x="525" y="82" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="552" y="100" text-anchor="middle" font-size="10" fill="var(--text)">C=v3</text>
-  <!-- no col_D, col_E for row 1 — nothing drawn --></p>
+  <!-- no col_D, col_E for row 1 — nothing drawn -->
   <!-- Row 2 wide -->
-<p>  <text x="360" y="138" font-size="11" font-weight="600" fill="var(--text)">row:2</text>
+  <text x="360" y="138" font-size="11" font-weight="600" fill="var(--text)">row:2</text>
   <rect x="405" y="122" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="432" y="140" text-anchor="middle" font-size="10" fill="var(--text)">A=v4</text>
   <rect x="465" y="122" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="492" y="140" text-anchor="middle" font-size="10" fill="var(--text)">D=v5</text>
-  <!-- no B, C, E for row 2 --></p>
+  <!-- no B, C, E for row 2 -->
   <!-- Row 3 wide -->
-<p>  <text x="360" y="178" font-size="11" font-weight="600" fill="var(--text)">row:3</text>
+  <text x="360" y="178" font-size="11" font-weight="600" fill="var(--text)">row:3</text>
   <rect x="405" y="162" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="432" y="180" text-anchor="middle" font-size="10" fill="var(--text)">B=v6</text>
   <rect x="465" y="162" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
   <text x="492" y="180" text-anchor="middle" font-size="10" fill="var(--text)">C=v7</text>
   <rect x="525" y="162" width="55" height="28" rx="4" fill="var(--accent)" opacity="0.3" stroke="var(--accent)" stroke-width="1.2"/>
-  <text x="552" y="180" text-anchor="middle" font-size="10" fill="var(--text)">E=v8</text></p>
-<p>  <text x="530" y="210" text-anchor="middle" font-size="11" fill="var(--muted)">Only present columns stored</text></p>
+  <text x="552" y="180" text-anchor="middle" font-size="10" fill="var(--text)">E=v8</text>
+  <text x="530" y="210" text-anchor="middle" font-size="11" fill="var(--muted)">Only present columns stored</text>
   <!-- divider -->
   <line x1="345" y1="40" x2="345" y2="220" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5,4"/>
 </svg>

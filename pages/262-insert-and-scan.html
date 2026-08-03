@@ -68,8 +68,8 @@ alices = list(scan(table, lambda r: r[&quot;name&quot;] == &quot;Alice&quot;))
       <path d="M0,0 L0,6 L8,3 z" fill="var(--muted)"/>
     </marker>
   </defs>  <!-- File rows -->
-<p>  <text x="20" y="28" font-size="13" font-weight="700" fill="var(--text)">INSERT</text>
-  <text x="320" y="28" font-size="13" font-weight="700" fill="var(--text)">SCAN</text></p>
+  <text x="20" y="28" font-size="13" font-weight="700" fill="var(--text)">INSERT</text>
+  <text x="320" y="28" font-size="13" font-weight="700" fill="var(--text)">SCAN</text>
   <!-- Left: file with append arrow -->
   <rect x="20" y="40" width="100" height="34" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="70" y="62" text-anchor="middle" font-size="11" fill="var(--text)">Row 0</text>
@@ -79,7 +79,7 @@ alices = list(scan(table, lambda r: r[&quot;name&quot;] == &quot;Alice&quot;))
   <text x="70" y="134" text-anchor="middle" font-size="11" fill="var(--text)">Row 2</text>
   <rect x="20" y="148" width="100" height="34" rx="3" fill="var(--accent)" opacity="0.25" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5,3"/>
   <text x="70" y="170" text-anchor="middle" font-size="11" font-style="italic" fill="var(--accent)">New row ← append</text>  <!-- Arrow from caller to new row -->
-<p>  <text x="70" y="212" text-anchor="middle" font-size="11" fill="var(--muted)">O(1) — sequential write</text></p>
+  <text x="70" y="212" text-anchor="middle" font-size="11" fill="var(--muted)">O(1) — sequential write</text>
   <!-- Right: scan with predicate -->
   <rect x="320" y="40" width="100" height="34" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="370" y="62" text-anchor="middle" font-size="11" fill="var(--text)">Row 0</text>
@@ -100,7 +100,7 @@ alices = list(scan(table, lambda r: r[&quot;name&quot;] == &quot;Alice&quot;))
   <text x="520" y="93" text-anchor="middle" font-size="11" fill="var(--text)">Row 1 → yield</text>
   <rect x="460" y="143" width="120" height="34" rx="3" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="520" y="165" text-anchor="middle" font-size="11" fill="var(--text)">Row 3 → yield</text>  <line x1="422" y1="93" x2="458" y2="93" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
-  <line x1="422" y1="165" x2="458" y2="165" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/><p>  <text x="370" y="212" text-anchor="middle" font-size="11" fill="var(--muted)">O(n) — reads every row</text>
+  <line x1="422" y1="165" x2="458" y2="165" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>  <text x="370" y="212" text-anchor="middle" font-size="11" fill="var(--muted)">O(n) — reads every row</text>
 </svg></p>
 <figcaption>Insert appends at the end in O(1). Scan reads every row and emits those that pass the predicate — O(n).</figcaption>
 </figure><h2>Putting It Together: A Mini REPL</h2>

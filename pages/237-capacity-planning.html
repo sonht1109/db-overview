@@ -97,11 +97,11 @@ Months to 85% full:   (2048 × 0.85 - 800) / 40 = 23.5 months
     </marker>
   </defs>  <!-- Chart area -->
   <rect x="60" y="20" width="590" height="200" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>  <!-- Y axis labels (GB) -->
-<p>  <text x="55" y="225" text-anchor="end" font-size="10" fill="var(--muted)">0</text>
+  <text x="55" y="225" text-anchor="end" font-size="10" fill="var(--muted)">0</text>
   <text x="55" y="175" text-anchor="end" font-size="10" fill="var(--muted)">500</text>
   <text x="55" y="125" text-anchor="end" font-size="10" fill="var(--muted)">1000</text>
   <text x="55" y="75" text-anchor="end" font-size="10" fill="var(--muted)">1500</text>
-  <text x="55" y="30" text-anchor="end" font-size="10" fill="var(--muted)">2000</text></p>
+  <text x="55" y="30" text-anchor="end" font-size="10" fill="var(--muted)">2000</text>
   <!-- 85% threshold line -->
   <line x1="60" y1="54" x2="650" y2="54" stroke="var(--text)" stroke-width="1" stroke-dasharray="6,3" opacity="0.5"/>
   <text x="655" y="58" font-size="10" fill="var(--text)" opacity="0.7">85%</text>  <!-- 75% threshold line -->
@@ -115,22 +115,22 @@ Months to 85% full:   (2048 × 0.85 - 800) / 40 = 23.5 months
   <circle cx="359" cy="168" r="4" fill="var(--accent)"/>
   <circle cx="442" cy="162" r="4" fill="var(--accent)"/>
   <circle cx="525" cy="156" r="4" fill="var(--accent)"/>  <!-- Historical line -->
-<p>  <polyline points="110,180 193,176 276,172 359,168 442,162 525,156"
-    fill="none" stroke="var(--accent)" stroke-width="2"/></p>
+  <polyline points="110,180 193,176 276,172 359,168 442,162 525,156"
+    fill="none" stroke="var(--accent)" stroke-width="2"/>
   <!-- Projection line (dashed, Jul-Dec): 680,720,760,800,840,880 GB -->
   <!-- Jul 680→152, Aug 720→148, Sep 760→144, Oct 800→140, Nov 840→136, Dec 880→132 — but 85% = 1700 GB = y54 -->
   <!-- Actually project to cross 85%: 1700 GB at ~27 months out. Let's show a steeper example. -->
   <!-- Use scenario: 40GB/month: Jun=640, Jul=680→y153, Aug=720→148, Sep=760→144, Oct=800→140, Dec=880→132 -->
-<p>  <polyline points="525,156 608,152 645,140"
-    fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6,3"/></p>
+  <polyline points="525,156 608,152 645,140"
+    fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6,3"/>
   <!-- X axis labels -->
-<p>  <text x="110" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Jan</text>
+  <text x="110" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Jan</text>
   <text x="193" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Feb</text>
   <text x="276" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Mar</text>
   <text x="359" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Apr</text>
   <text x="442" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">May</text>
   <text x="525" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">Jun</text>
-  <text x="645" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">→</text></p>
+  <text x="645" y="240" text-anchor="middle" font-size="10" fill="var(--muted)">→</text>
   <!-- Legend -->
   <line x1="80" y1="258" x2="110" y2="258" stroke="var(--accent)" stroke-width="2"/>
   <text x="115" y="262" font-size="10" fill="var(--text)">actual usage</text>

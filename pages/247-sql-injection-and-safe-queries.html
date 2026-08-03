@@ -87,7 +87,7 @@ stmt.setString(1, username);
   <text x="445" y="142" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">' OR '1'='1</text>  <rect x="380" y="175" width="260" height="50" rx="5" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1"/>
   <text x="510" y="196" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text)">Sent separately to driver</text>
   <text x="510" y="213" text-anchor="middle" font-size="9" fill="var(--accent)">Template + [&apos; OR &apos;1&apos;=&apos;1] as data</text>  <line x1="515" y1="90" x2="515" y2="108" stroke="var(--border)" stroke-width="1.5"/>
-  <line x1="445" y1="152" x2="445" y2="173" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/><p>  <text x="510" y="250" text-anchor="middle" font-size="10" fill="var(--accent)">Input treated as string literal only</text>
+  <line x1="445" y1="152" x2="445" y2="173" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>  <text x="510" y="250" text-anchor="middle" font-size="10" fill="var(--accent)">Input treated as string literal only</text>
 </svg></p>
 <figcaption>String concatenation merges attacker-controlled content into the SQL AST. Parameterized queries send template and data separately — the parser never sees user input as SQL syntax.</figcaption>
 </figure><h2>Dynamic SQL: When You Must Construct Queries</h2>

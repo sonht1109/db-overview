@@ -88,19 +88,19 @@ def decode_row(raw: bytes) -&gt; dict:
   <text x="370" y="97" text-anchor="middle" font-size="10" fill="var(--muted)">offset 82</text>  <!-- Row N -->
   <rect x="440" y="60" width="200" height="50" rx="0" fill="var(--surface-2)" stroke="var(--border)" stroke-dasharray="6,3" stroke-width="1.5"/>
   <text x="540" y="81" text-anchor="middle" font-size="12" fill="var(--muted)">Row N … offset N×41</text>  <!-- Byte breakdown for Row 0 -->
-<p>  <text x="20" y="145" font-size="11" fill="var(--text)" font-weight="600">Row 0 bytes:</text>
+  <text x="20" y="145" font-size="11" fill="var(--text)" font-weight="600">Row 0 bytes:</text>
   <rect x="20" y="155" width="30" height="22" fill="var(--accent)" opacity="0.3" stroke="var(--border)" stroke-width="1"/>
   <text x="35" y="170" text-anchor="middle" font-size="10" fill="var(--text)">id</text>
-  <text x="35" y="183" text-anchor="middle" font-size="9" fill="var(--muted)">4B</text></p>
+  <text x="35" y="183" text-anchor="middle" font-size="9" fill="var(--muted)">4B</text>
   <rect x="52" y="155" width="120" height="22" fill="var(--accent)" opacity="0.15" stroke="var(--border)" stroke-width="1"/>
   <text x="112" y="170" text-anchor="middle" font-size="10" fill="var(--text)">name (padded)</text>
   <text x="112" y="183" text-anchor="middle" font-size="9" fill="var(--muted)">32B</text>  <rect x="174" y="155" width="20" height="22" fill="var(--accent)" opacity="0.3" stroke="var(--border)" stroke-width="1"/>
   <text x="184" y="170" text-anchor="middle" font-size="10" fill="var(--text)">age</text>
   <text x="184" y="183" text-anchor="middle" font-size="9" fill="var(--muted)">1B</text>  <rect x="196" y="155" width="30" height="22" fill="var(--accent)" opacity="0.3" stroke="var(--border)" stroke-width="1"/>
   <text x="211" y="170" text-anchor="middle" font-size="10" fill="var(--text)">sal</text>
-  <text x="211" y="183" text-anchor="middle" font-size="9" fill="var(--muted)">4B</text><p>  <text x="240" y="170" font-size="11" fill="var(--muted)">= 41 bytes total</text></p>
+  <text x="211" y="183" text-anchor="middle" font-size="9" fill="var(--muted)">4B</text>  <text x="240" y="170" font-size="11" fill="var(--muted)">= 41 bytes total</text>
   <!-- Title -->
-<p>  <text x="330" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">Fixed-Row File Layout</text>
+  <text x="330" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">Fixed-Row File Layout</text>
 </svg></p>
 <figcaption>Every row is exactly 41 bytes. Row N lives at file offset N × 41 — seekable without parsing.</figcaption>
 </figure><h2>The Table File Class</h2>

@@ -62,7 +62,7 @@ WHERE u1.id = 1;
       <path d="M0,0 L0,6 L9,3 z" fill="var(--accent)"/>
     </marker>
   </defs>  <!-- RELATIONAL section -->
-<p>  <text x="20" y="22" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">RELATIONAL (join-table scan)</text></p>
+  <text x="20" y="22" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">RELATIONAL (join-table scan)</text>
   <!-- users table 1 -->
   <rect x="20" y="34" width="90" height="56" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="65" y="52" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)">users</text>
@@ -82,14 +82,14 @@ WHERE u1.id = 1;
   <text x="565" y="82" text-anchor="middle" font-size="10" fill="var(--text)">500M rows...</text>  <!-- Arrows relational -->
   <line x1="110" y1="62" x2="168" y2="62" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr-b)"/>
   <line x1="290" y1="62" x2="350" y2="62" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr-b)"/>
-  <line x1="442" y1="62" x2="503" y2="62" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr-b)"/><p>  <text x="139" y="56" text-anchor="middle" font-size="10" fill="var(--muted)">JOIN</text>
+  <line x1="442" y1="62" x2="503" y2="62" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr-b)"/>  <text x="139" y="56" text-anchor="middle" font-size="10" fill="var(--muted)">JOIN</text>
   <text x="320" y="56" text-anchor="middle" font-size="10" fill="var(--muted)">JOIN</text>
-  <text x="473" y="56" text-anchor="middle" font-size="10" fill="var(--muted)">JOIN</text></p>
+  <text x="473" y="56" text-anchor="middle" font-size="10" fill="var(--muted)">JOIN</text>
   <!-- cost label -->
-<p>  <text x="350" y="108" text-anchor="middle" font-size="11" fill="var(--muted)">Cost grows with table size — every hop re-scans 500M rows</text></p>
+  <text x="350" y="108" text-anchor="middle" font-size="11" fill="var(--muted)">Cost grows with table size — every hop re-scans 500M rows</text>
   <!-- divider -->
   <line x1="20" y1="128" x2="680" y2="128" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>  <!-- GRAPH section -->
-<p>  <text x="20" y="155" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">GRAPH (pointer traversal)</text></p>
+  <text x="20" y="155" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">GRAPH (pointer traversal)</text>
   <!-- Node: Alice -->
   <circle cx="80" cy="230" r="36" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="80" y="225" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Alice</text>
@@ -110,12 +110,12 @@ WHERE u1.id = 1;
   <line x1="114" y1="248" x2="228" y2="273" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr-a)"/>  <!-- Edges Bob -> Dave, Carol -> Eve -->
   <line x1="292" y1="198" x2="408" y2="198" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr-a)"/>
   <line x1="292" y1="282" x2="408" y2="282" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr-a)"/>  <!-- edge labels -->
-<p>  <text x="171" y="196" text-anchor="middle" font-size="10" fill="var(--accent)">FOLLOWS</text>
+  <text x="171" y="196" text-anchor="middle" font-size="10" fill="var(--accent)">FOLLOWS</text>
   <text x="171" y="274" text-anchor="middle" font-size="10" fill="var(--accent)">FOLLOWS</text>
   <text x="350" y="188" text-anchor="middle" font-size="10" fill="var(--accent)">FOLLOWS</text>
-  <text x="350" y="272" text-anchor="middle" font-size="10" fill="var(--accent)">FOLLOWS</text></p>
+  <text x="350" y="272" text-anchor="middle" font-size="10" fill="var(--accent)">FOLLOWS</text>
   <!-- cost label -->
-<p>  <text x="350" y="330" text-anchor="middle" font-size="11" fill="var(--muted)">Cost proportional to the degree of start node — not table size</text>
+  <text x="350" y="330" text-anchor="middle" font-size="11" fill="var(--muted)">Cost proportional to the degree of start node — not table size</text>
 </svg></p>
 <figcaption>Top: Relational friend-of-friend requires two full scans of a massive join table. Bottom: Graph traversal follows physical pointers on Alice's node — unrelated data is never touched.</figcaption>
 </figure><h2>Property Graphs: Nodes and Edges with Attributes</h2>

@@ -127,9 +127,9 @@ RETURN length(p), [n IN nodes(p) | n.name] AS path;
   <line x1="408" y1="185" x2="534" y2="185" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#cm)"/>
   <rect x="435" y="165" width="70" height="22" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="470" y="180" text-anchor="middle" font-size="11" font-family="monospace" fill="var(--muted)">:KNOWS</text>  <!-- Annotation -->
-<p>  <text x="240" y="148" text-anchor="middle" font-size="11" fill="var(--accent)">matched edge</text>
-  <text x="470" y="148" text-anchor="middle" font-size="11" fill="var(--muted)">out of scope</text></p>
-<p>  <text x="340" y="260" text-anchor="middle" font-size="11" fill="var(--muted)">The Cypher MATCH clause maps directly onto the visual graph pattern</text>
+  <text x="240" y="148" text-anchor="middle" font-size="11" fill="var(--accent)">matched edge</text>
+  <text x="470" y="148" text-anchor="middle" font-size="11" fill="var(--muted)">out of scope</text>
+  <text x="340" y="260" text-anchor="middle" font-size="11" fill="var(--muted)">The Cypher MATCH clause maps directly onto the visual graph pattern</text>
 </svg></p>
 <figcaption>A Cypher MATCH pattern reads like an ASCII diagram of the graph. The pattern <code>(alice:Person)-[:KNOWS]-&gt;(bob:Person)</code> binds node variables to matching subgraphs.</figcaption>
 </figure><h2>Gremlin: Imperative Traversal Steps</h2>

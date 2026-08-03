@@ -102,28 +102,28 @@ SELECT set_config(&#39;app.tenant_id&#39;, &#39;42&#39;, false);
   <text x="62" y="73" text-anchor="middle" font-size="10" fill="var(--text)">DB: acme</text>
   <text x="62" y="89" text-anchor="middle" font-size="10" fill="var(--muted)">orders</text>  <rect x="115" y="50" width="65" height="50" rx="5" fill="var(--accent)" opacity="0.1" stroke="var(--accent)" stroke-width="1"/>
   <text x="147" y="73" text-anchor="middle" font-size="10" fill="var(--text)">DB: globex</text>
-  <text x="147" y="89" text-anchor="middle" font-size="10" fill="var(--muted)">orders</text><p>  <text x="105" y="140" text-anchor="middle" font-size="10" fill="var(--muted)">Max isolation</text>
+  <text x="147" y="89" text-anchor="middle" font-size="10" fill="var(--muted)">orders</text>  <text x="105" y="140" text-anchor="middle" font-size="10" fill="var(--muted)">Max isolation</text>
   <text x="105" y="156" text-anchor="middle" font-size="10" fill="var(--muted)">High overhead</text>
-  <text x="105" y="172" text-anchor="middle" font-size="10" fill="var(--muted)">Per-tenant migrations</text></p>
+  <text x="105" y="172" text-anchor="middle" font-size="10" fill="var(--muted)">Per-tenant migrations</text>
   <!-- Schema per tenant -->
   <rect x="240" y="10" width="190" height="260" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="335" y="35" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Schema per Tenant</text>  <rect x="260" y="50" width="65" height="50" rx="5" fill="var(--accent)" opacity="0.2" stroke="var(--accent)" stroke-width="1"/>
   <text x="292" y="73" text-anchor="middle" font-size="10" fill="var(--text)">acme.orders</text>
   <text x="292" y="89" text-anchor="middle" font-size="10" fill="var(--muted)">schema ns</text>  <rect x="345" y="50" width="65" height="50" rx="5" fill="var(--accent)" opacity="0.1" stroke="var(--accent)" stroke-width="1"/>
   <text x="377" y="73" text-anchor="middle" font-size="10" fill="var(--text)">globex.orders</text>
-  <text x="377" y="89" text-anchor="middle" font-size="10" fill="var(--muted)">schema ns</text><p>  <text x="335" y="140" text-anchor="middle" font-size="10" fill="var(--muted)">Good isolation</text>
+  <text x="377" y="89" text-anchor="middle" font-size="10" fill="var(--muted)">schema ns</text>  <text x="335" y="140" text-anchor="middle" font-size="10" fill="var(--muted)">Good isolation</text>
   <text x="335" y="156" text-anchor="middle" font-size="10" fill="var(--muted)">Moderate overhead</text>
-  <text x="335" y="172" text-anchor="middle" font-size="10" fill="var(--muted)">Shared server</text></p>
+  <text x="335" y="172" text-anchor="middle" font-size="10" fill="var(--muted)">Shared server</text>
   <!-- Shared schema -->
   <rect x="470" y="10" width="195" height="260" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="567" y="35" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">Shared Schema + RLS</text>  <rect x="490" y="50" width="155" height="80" rx="5" fill="var(--accent)" opacity="0.1" stroke="var(--accent)" stroke-width="1"/>
   <text x="567" y="70" text-anchor="middle" font-size="10" fill="var(--text)">orders (shared table)</text>
   <text x="567" y="88" text-anchor="middle" font-size="10" fill="var(--muted)">tenant_id=1 | row A</text>
   <text x="567" y="104" text-anchor="middle" font-size="10" fill="var(--muted)">tenant_id=2 | row B</text>
-  <text x="567" y="120" text-anchor="middle" font-size="10" fill="var(--accent)">RLS policy filters rows</text><p>  <text x="567" y="155" text-anchor="middle" font-size="10" fill="var(--muted)">Lowest overhead</text>
+  <text x="567" y="120" text-anchor="middle" font-size="10" fill="var(--accent)">RLS policy filters rows</text>  <text x="567" y="155" text-anchor="middle" font-size="10" fill="var(--muted)">Lowest overhead</text>
   <text x="567" y="171" text-anchor="middle" font-size="10" fill="var(--muted)">DB-enforced isolation</text>
-  <text x="567" y="187" text-anchor="middle" font-size="10" fill="var(--muted)">Requires RLS discipline</text></p>
-<p>  <text x="340" y="295" text-anchor="middle" font-size="11" fill="var(--muted)">← stronger isolation · lower density         lower isolation · higher density →</text>
+  <text x="567" y="187" text-anchor="middle" font-size="10" fill="var(--muted)">Requires RLS discipline</text>
+  <text x="340" y="295" text-anchor="middle" font-size="11" fill="var(--muted)">← stronger isolation · lower density         lower isolation · higher density →</text>
 </svg></p>
 <figcaption>The three multi-tenancy models trade isolation for density. Shared schema with RLS is most efficient but requires careful policy design.</figcaption>
 </figure><h2>Common Pitfalls</h2>

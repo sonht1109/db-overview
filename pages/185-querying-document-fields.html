@@ -67,22 +67,22 @@ db.orders.find({
     </marker>
   </defs>  <!-- Document tree -->
   <rect x="10" y="20" width="300" height="240" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
-  <text x="160" y="44" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Document</text><p>  <text x="28" y="68" font-size="12" fill="var(--text)" font-family="monospace">_id: &quot;ORD-9901&quot;</text>
+  <text x="160" y="44" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text)">Document</text>  <text x="28" y="68" font-size="12" fill="var(--text)" font-family="monospace">_id: &quot;ORD-9901&quot;</text>
   <text x="28" y="88" font-size="12" fill="var(--text)" font-family="monospace">status: &quot;shipped&quot;</text>
   <text x="28" y="108" font-size="12" fill="var(--text)" font-family="monospace">items: [</text>
   <text x="44" y="128" font-size="12" fill="var(--accent)" font-family="monospace">  { sku: &quot;SHOE-9B&quot;, qty: 1 },</text>
   <text x="44" y="148" font-size="12" fill="var(--accent)" font-family="monospace">  { sku: &quot;SOCK-3P&quot;, qty: 3 }</text>
-  <text x="28" y="168" font-size="12" fill="var(--text)" font-family="monospace">]</text></p>
+  <text x="28" y="168" font-size="12" fill="var(--text)" font-family="monospace">]</text>
   <!-- Path query explanation -->
   <rect x="340" y="20" width="290" height="240" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
-  <text x="485" y="44" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--accent)">Query: { "items.sku": "SHOE-9B" }</text><p>  <text x="354" y="80" font-size="12" fill="var(--text)">1. Resolve path &quot;items&quot;</text>
-  <text x="354" y="100" font-size="12" fill="var(--muted)">   → found an array</text></p>
-<p>  <text x="354" y="130" font-size="12" fill="var(--text)">2. For each element, check &quot;sku&quot;</text>
+  <text x="485" y="44" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--accent)">Query: { "items.sku": "SHOE-9B" }</text>  <text x="354" y="80" font-size="12" fill="var(--text)">1. Resolve path &quot;items&quot;</text>
+  <text x="354" y="100" font-size="12" fill="var(--muted)">   → found an array</text>
+  <text x="354" y="130" font-size="12" fill="var(--text)">2. For each element, check &quot;sku&quot;</text>
   <rect x="354" y="142" width="262" height="24" rx="3" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1"/>
   <text x="354" y="158" font-size="11" fill="var(--accent)" font-family="monospace">  item[0].sku = &quot;SHOE-9B&quot; ✓ match!</text>
   <rect x="354" y="170" width="262" height="24" rx="3" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
-  <text x="354" y="186" font-size="11" fill="var(--muted)" font-family="monospace">  item[1].sku = &quot;SOCK-3P&quot; — no</text></p>
-<p>  <text x="354" y="220" font-size="12" fill="var(--text)">3. Any element matched →</text>
+  <text x="354" y="186" font-size="11" fill="var(--muted)" font-family="monospace">  item[1].sku = &quot;SOCK-3P&quot; — no</text>
+  <text x="354" y="220" font-size="12" fill="var(--text)">3. Any element matched →</text>
   <text x="354" y="238" font-size="12" fill="var(--accent)" font-weight="bold">   document included in results</text>
 </svg></p>
 <figcaption>The path "items.sku" automatically iterates the array. Any matching element causes the document to be included.</figcaption>

@@ -41,7 +41,7 @@
   <text x="40" y="208" font-size="11" fill="var(--text)" opacity="0.5">slot 4</text>
   <text x="110" y="208" font-size="11" fill="var(--text)">event:2024-03-05 ✓</text>  <rect x="30" y="222" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="40" y="240" font-size="11" fill="var(--text)" opacity="0.5">slot 5</text>
-  <text x="110" y="240" font-size="11" fill="var(--text)">event:2024-02-20</text><p>  <text x="155" y="262" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.55">Must scan ALL slots to find range</text></p>
+  <text x="110" y="240" font-size="11" fill="var(--text)">event:2024-02-20</text>  <text x="155" y="262" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.55">Must scan ALL slots to find range</text>
   <!-- Right panel: Sorted store -->
   <rect x="340" y="10" width="290" height="260" rx="8" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="485" y="34" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">Ordered Store</text>
@@ -52,7 +52,7 @@
   <rect x="360" y="158" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="370" y="176" font-size="11" font-weight="600" fill="var(--accent)">event:2024-03-01 ✓</text>  <rect x="360" y="190" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="370" y="208" font-size="11" font-weight="600" fill="var(--accent)">event:2024-03-05 ✓</text>  <rect x="360" y="222" width="250" height="26" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
-  <text x="370" y="240" font-size="11" fill="var(--text)">event:2024-03-10</text><p>  <text x="485" y="262" text-anchor="middle" font-size="11" fill="var(--accent)" opacity="0.85">Seek once, read contiguous block</text>
+  <text x="370" y="240" font-size="11" fill="var(--text)">event:2024-03-10</text>  <text x="485" y="262" text-anchor="middle" font-size="11" fill="var(--accent)" opacity="0.85">Seek once, read contiguous block</text>
 </svg></p>
 <figcaption>A hash table scatters keys randomly across slots; an ordered store keeps them sorted so a range query reads a contiguous segment.</figcaption>
 </figure><h2>Key Design: Putting Order to Work</h2>

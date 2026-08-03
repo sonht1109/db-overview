@@ -71,8 +71,8 @@
 <p>Each transaction gets a <strong>transaction ID (XID)</strong> when it starts. The engine uses this ID — together with the creation and expiry stamps on each row version — to decide which version is &quot;visible&quot; to that transaction. A transaction sees exactly the versions that were committed <em>before it started</em>: a frozen, consistent snapshot.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two row versions of the same row coexisting, each stamped with created-by and expired-by transaction IDs, and two concurrent transactions each seeing a different version">  <!-- Title row labels -->
-<p>  <text x="20" y="22" font-size="13" font-weight="bold" fill="var(--text)">Row versions in storage</text>
-  <text x="430" y="22" font-size="13" font-weight="bold" fill="var(--text)">What each transaction sees</text></p>
+  <text x="20" y="22" font-size="13" font-weight="bold" fill="var(--text)">Row versions in storage</text>
+  <text x="430" y="22" font-size="13" font-weight="bold" fill="var(--text)">What each transaction sees</text>
   <!-- Version 1 box (old) -->
   <rect x="20" y="35" width="370" height="80" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="36" y="56" font-size="12" font-weight="bold" fill="var(--text)">Version 1  (old)</text>

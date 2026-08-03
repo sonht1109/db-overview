@@ -69,23 +69,23 @@
   <line x1="55" y1="70" x2="55" y2="280" stroke="var(--border)" stroke-width="1.5"/>
   <line x1="145" y1="70" x2="145" y2="280" stroke="var(--border)" stroke-width="1.5"/>
   <line x1="235" y1="70" x2="235" y2="280" stroke="var(--border)" stroke-width="1.5"/>  <!-- Write arrives at A -->
-<p>  <text x="10" y="100" font-size="11" fill="var(--text)">write x=5</text>
+  <text x="10" y="100" font-size="11" fill="var(--text)">write x=5</text>
   <line x1="55" y1="95" x2="55" y2="95" stroke="var(--accent)" stroke-width="2"/>
-  <circle cx="55" cy="97" r="4" fill="var(--accent)"/></p>
+  <circle cx="55" cy="97" r="4" fill="var(--accent)"/>
   <!-- A replicates to B -->
   <line x1="55" y1="115" x2="145" y2="130" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 2"/>
   <circle cx="145" cy="130" r="4" fill="var(--accent)"/>
   <text x="80" y="118" font-size="11" fill="var(--text)">x=5 →</text>  <!-- A crashes before reaching C -->
-<p>  <text x="30" y="165" font-size="11" fill="#e05c5c">CRASH</text>
+  <text x="30" y="165" font-size="11" fill="#e05c5c">CRASH</text>
   <line x1="45" y1="155" x2="68" y2="175" stroke="#e05c5c" stroke-width="2"/>
-  <line x1="68" y1="155" x2="45" y2="175" stroke="#e05c5c" stroke-width="2"/></p>
+  <line x1="68" y1="155" x2="45" y2="175" stroke="#e05c5c" stroke-width="2"/>
   <!-- C still has old value -->
   <circle cx="235" cy="200" r="4" fill="var(--surface-2)" stroke="var(--border)"/>
   <text x="200" y="220" font-size="11" fill="#e05c5c">x = ??? </text>
   <text x="195" y="234" font-size="11" fill="#e05c5c">(stale)</text>  <!-- B has new value -->
-<p>  <text x="110" y="220" font-size="11" fill="var(--text)">x = 5</text></p>
+  <text x="110" y="220" font-size="11" fill="var(--text)">x = 5</text>
   <!-- Conflict label -->
-<p>  <text x="30" y="270" font-size="11" fill="#e05c5c">Split brain — nodes disagree</text></p>
+  <text x="30" y="270" font-size="11" fill="#e05c5c">Split brain — nodes disagree</text>
   <!-- RIGHT SIDE: with consensus -->
   <!-- Nodes -->
   <rect x="340" y="40" width="70" height="30" rx="5" fill="var(--surface-2)" stroke="var(--border)"/>
@@ -109,11 +109,11 @@
   <line x1="375" y1="168" x2="551" y2="183" stroke="var(--accent)" stroke-width="1.5"/>
   <circle cx="463" cy="183" r="4" fill="var(--accent)"/>
   <circle cx="551" cy="183" r="4" fill="var(--accent)"/>  <!-- All committed -->
-<p>  <text x="428" y="215" font-size="11" fill="var(--text)">x = 5</text>
+  <text x="428" y="215" font-size="11" fill="var(--text)">x = 5</text>
   <text x="516" y="215" font-size="11" fill="var(--text)">x = 5</text>
-  <text x="344" y="215" font-size="11" fill="var(--text)">x = 5</text></p>
+  <text x="344" y="215" font-size="11" fill="var(--text)">x = 5</text>
   <!-- Success label -->
-<p>  <text x="345" y="270" font-size="11" fill="var(--accent)">All nodes agree — even if A crashes now</text>
+  <text x="345" y="270" font-size="11" fill="var(--accent)">All nodes agree — even if A crashes now</text>
 </svg></p>
 <figcaption>Left: without consensus, a node crash creates disagreement. Right: with a quorum-based protocol, the value is committed once a majority acknowledges it.</figcaption>
 </figure><h2>How Consensus Is Used in Real Databases</h2>

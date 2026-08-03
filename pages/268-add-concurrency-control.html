@@ -109,10 +109,10 @@ T2 holds lock on row 7, waits for row 3
   <line x1="40" y1="180" x2="620" y2="180" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arr)"/>
   <text x="630" y="184" font-size="11" fill="var(--muted)">time</text>  <!-- Lock count curve (trapezoid) -->
   <polyline points="60,170 200,80 380,80 520,170" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="2"/>  <!-- Phase labels -->
-<p>  <text x="130" y="60" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">Growing phase</text>
+  <text x="130" y="60" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">Growing phase</text>
   <text x="130" y="74" text-anchor="middle" font-size="10" fill="var(--muted)">acquire locks</text>
   <text x="450" y="60" text-anchor="middle" font-size="11" font-weight="600" fill="var(--muted)">Shrinking phase</text>
-  <text x="450" y="74" text-anchor="middle" font-size="10" fill="var(--muted)">release all at commit</text></p>
+  <text x="450" y="74" text-anchor="middle" font-size="10" fill="var(--muted)">release all at commit</text>
   <!-- Lock point annotation -->
   <line x1="380" y1="80" x2="380" y2="175" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
   <text x="380" y="195" text-anchor="middle" font-size="10" fill="var(--muted)">lock point</text>  <!-- Events on timeline -->
@@ -122,7 +122,7 @@ T2 holds lock on row 7, waits for row 3
   <text x="200" y="200" text-anchor="middle" font-size="10" fill="var(--muted)">first lock</text>
   <circle cx="520" cy="180" r="4" fill="var(--accent)"/>
   <text x="520" y="200" text-anchor="middle" font-size="10" fill="var(--muted)">COMMIT / release all</text>  <!-- Y axis label -->
-<p>  <text x="30" y="130" text-anchor="middle" font-size="10" fill="var(--muted)" transform="rotate(-90,30,130)">locks held</text>
+  <text x="30" y="130" text-anchor="middle" font-size="10" fill="var(--muted)" transform="rotate(-90,30,130)">locks held</text>
 </svg></p>
 <figcaption>In 2PL the transaction first acquires locks (growing phase), then at commit releases all of them at once (shrinking phase). No lock is released before the commit point.</figcaption>
 </figure><h2>Approach 2: Optimistic Concurrency Control (OCC)</h2>

@@ -55,7 +55,7 @@ LIMIT 50;
     <marker id="arr199" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
     </marker>
-  </defs><p>  <text x="340" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">Wide-Row Inbox: One Partition Per User</text></p>
+  </defs>  <text x="340" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">Wide-Row Inbox: One Partition Per User</text>
   <!-- User A partition -->
   <rect x="20" y="40" width="200" height="230" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="120" y="60" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">Partition: alice</text>  <rect x="30" y="68" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
@@ -64,23 +64,23 @@ LIMIT 50;
   <text x="120" y="124" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-25 09:05</text>
   <text x="120" y="139" text-anchor="middle" font-size="10" fill="var(--text)">"Sure! What time works?"</text>  <rect x="30" y="152" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="120" y="166" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-25 10:15</text>
-  <text x="120" y="181" text-anchor="middle" font-size="10" fill="var(--text)">"Let's meet at 2pm"</text><p>  <text x="120" y="220" text-anchor="middle" font-size="20">⋮</text>
-  <text x="120" y="258" text-anchor="middle" font-size="10" fill="var(--muted)">→ Node 1</text></p>
+  <text x="120" y="181" text-anchor="middle" font-size="10" fill="var(--text)">"Let's meet at 2pm"</text>  <text x="120" y="220" text-anchor="middle" font-size="20">⋮</text>
+  <text x="120" y="258" text-anchor="middle" font-size="10" fill="var(--muted)">→ Node 1</text>
   <!-- User B partition -->
   <rect x="240" y="40" width="200" height="230" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="340" y="60" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">Partition: bob</text>  <rect x="250" y="68" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="340" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-25 08:45</text>
   <text x="340" y="97" text-anchor="middle" font-size="10" fill="var(--text)">"Project update attached"</text>  <rect x="250" y="110" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="340" y="124" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-25 11:30</text>
-  <text x="340" y="139" text-anchor="middle" font-size="10" fill="var(--text)">"Looks good, approved!"</text><p>  <text x="340" y="200" text-anchor="middle" font-size="20">⋮</text>
-  <text x="340" y="258" text-anchor="middle" font-size="10" fill="var(--muted)">→ Node 2</text></p>
+  <text x="340" y="139" text-anchor="middle" font-size="10" fill="var(--text)">"Looks good, approved!"</text>  <text x="340" y="200" text-anchor="middle" font-size="20">⋮</text>
+  <text x="340" y="258" text-anchor="middle" font-size="10" fill="var(--muted)">→ Node 2</text>
   <!-- User C partition -->
   <rect x="460" y="40" width="200" height="230" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="560" y="60" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">Partition: carol</text>  <rect x="470" y="68" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="560" y="82" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-24 16:00</text>
   <text x="560" y="97" text-anchor="middle" font-size="10" fill="var(--text)">"Team lunch tomorrow?"</text>  <rect x="470" y="110" width="180" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
   <text x="560" y="124" text-anchor="middle" font-size="10" fill="var(--muted)">2024-06-24 16:12</text>
-  <text x="560" y="139" text-anchor="middle" font-size="10" fill="var(--text)">"Yes! Italian place?"</text><p>  <text x="560" y="200" text-anchor="middle" font-size="20">⋮</text>
+  <text x="560" y="139" text-anchor="middle" font-size="10" fill="var(--text)">"Yes! Italian place?"</text>  <text x="560" y="200" text-anchor="middle" font-size="20">⋮</text>
   <text x="560" y="258" text-anchor="middle" font-size="10" fill="var(--muted)">→ Node 3</text>
 </svg></p>
 <figcaption>Each user's inbox is a partition. Messages within the partition are sorted by timestamp. Loading a user's inbox is a single-partition read — no cross-node coordination required.</figcaption>

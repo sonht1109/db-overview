@@ -61,13 +61,13 @@
   <text x="268" y="258" text-anchor="middle" font-size="9" fill="var(--muted)">token 42B</text>  <circle cx="62" cy="247" r="22" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
   <text x="62" y="244" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">N3</text>
   <text x="62" y="258" text-anchor="middle" font-size="9" fill="var(--muted)">token 85B</text>  <!-- Partition key hash arrows -->
-<p>  <text x="165" y="178" text-anchor="middle" font-size="10" fill="var(--muted)">hash(conv_id)</text>
+  <text x="165" y="178" text-anchor="middle" font-size="10" fill="var(--muted)">hash(conv_id)</text>
   <text x="165" y="193" text-anchor="middle" font-size="10" fill="var(--muted)">→ token</text>
-  <text x="165" y="208" text-anchor="middle" font-size="10" fill="var(--muted)">→ node</text></p>
+  <text x="165" y="208" text-anchor="middle" font-size="10" fill="var(--muted)">→ node</text>
   <!-- Partition labels on ring -->
-<p>  <text x="210" y="120" font-size="9" fill="var(--text)">conv:AAA → N1</text>
+  <text x="210" y="120" font-size="9" fill="var(--text)">conv:AAA → N1</text>
   <text x="200" y="290" font-size="9" fill="var(--text)">conv:BBB → N2</text>
-  <text x="30" y="160" font-size="9" fill="var(--text)">conv:CCC → N3</text></p>
+  <text x="30" y="160" font-size="9" fill="var(--text)">conv:CCC → N3</text>
   <!-- Arrow from ring to expanded partition -->
   <line x1="300" y1="185" x2="360" y2="185" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr192a)"/>
   <text x="330" y="178" text-anchor="middle" font-size="10" fill="var(--muted)">expand</text>  <!-- Expanded partition (conversation AAA, on N1) -->
@@ -103,7 +103,7 @@
   <text x="605" y="209" text-anchor="middle" font-size="9" fill="var(--text)">Back online</text>  <!-- Range scan highlight -->
   <rect x="373" y="168" width="281" height="52" rx="3" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4,3"/>
   <text x="512" y="236" text-anchor="middle" font-size="10" fill="var(--accent)">Range scan: sent_at BETWEEN 09:00 AND 10:00</text>
-  <text x="512" y="250" text-anchor="middle" font-size="10" fill="var(--muted)">Sequential read — one disk seek</text><p>  <text x="512" y="305" text-anchor="middle" font-size="11" fill="var(--muted)">Partition key = which node</text>
+  <text x="512" y="250" text-anchor="middle" font-size="10" fill="var(--muted)">Sequential read — one disk seek</text>  <text x="512" y="305" text-anchor="middle" font-size="11" fill="var(--muted)">Partition key = which node</text>
   <text x="512" y="320" text-anchor="middle" font-size="11" fill="var(--muted)">Clustering key = sort order within partition</text>
 </svg></p>
 <figcaption>The partition key routes data to a node via consistent hashing. The clustering key determines row order inside the partition, enabling efficient range scans without a full table scan.</figcaption>

@@ -117,7 +117,7 @@
       <path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/>
     </marker>
   </defs>  <!-- Step labels -->
-<p>  <text x="320" y="298" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.7">① Client writes to leader  ② Leader replicates  ③ Majority ACK → commit</text>
+  <text x="320" y="298" text-anchor="middle" font-size="11" fill="var(--text)" opacity="0.7">① Client writes to leader  ② Leader replicates  ③ Majority ACK → commit</text>
 </svg></p>
 <figcaption>Raft consensus flow: a write is committed only after a majority of nodes acknowledge it.</figcaption>
 </figure><p>A critical detail: a majority is <code>(n/2) + 1</code> nodes. In a 3-node cluster that means 2. If Node C is temporarily unreachable, Nodes A and B can still form a quorum and make progress — the cluster tolerates <code>floor(n/2)</code> failures.</p>

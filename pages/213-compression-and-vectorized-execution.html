@@ -82,7 +82,7 @@ Bit-packed storage:  200 values ×  8 bits = 1 600 bits   (4× smaller)
       <path d="M0,0 L0,6 L9,3 z" fill="var(--accent)"/>
     </marker>
   </defs>  <!-- Left: raw column -->
-<p>  <text x="130" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">RAW COLUMN</text></p>
+  <text x="130" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">RAW COLUMN</text>
   <!-- 8 cells -->
   <rect x="80" y="32" width="100" height="30" rx="4" fill="var(--accent)" opacity="0.22" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="130" y="52" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">US</text>  <rect x="80" y="66" width="100" height="30" rx="4" fill="var(--accent)" opacity="0.22" stroke="var(--accent)" stroke-width="1.5"/>
@@ -92,12 +92,12 @@ Bit-packed storage:  200 values ×  8 bits = 1 600 bits   (4× smaller)
   <text x="130" y="188" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">CA</text>  <rect x="80" y="202" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="130" y="222" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">CA</text>  <rect x="80" y="236" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="130" y="256" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text)">CA</text>  <rect x="80" y="270" width="100" height="30" rx="4" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
-  <text x="130" y="290" text-anchor="middle" font-size="13" font-weight="600" fill="var(--muted)">MX</text><p>  <text x="130" y="308" text-anchor="middle" font-size="10" fill="var(--muted)">8 rows stored</text></p>
+  <text x="130" y="290" text-anchor="middle" font-size="13" font-weight="600" fill="var(--muted)">MX</text>  <text x="130" y="308" text-anchor="middle" font-size="10" fill="var(--muted)">8 rows stored</text>
   <!-- Arrow -->
   <line x1="200" y1="165" x2="300" y2="165" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arr-rle)"/>
   <text x="250" y="155" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">RLE</text>
   <text x="250" y="178" text-anchor="middle" font-size="10" fill="var(--muted)">encode</text>  <!-- Right: RLE output -->
-<p>  <text x="490" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">RLE ENCODED</text></p>
+  <text x="490" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)" letter-spacing="1">RLE ENCODED</text>
   <!-- Pair 1 -->
   <rect x="310" y="80" width="360" height="42" rx="6" fill="var(--accent)" opacity="0.22" stroke="var(--accent)" stroke-width="1.5"/>
   <text x="415" y="107" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">US</text>
@@ -110,7 +110,7 @@ Bit-packed storage:  200 values ×  8 bits = 1 600 bits   (4× smaller)
   <rect x="310" y="184" width="360" height="42" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
   <text x="415" y="211" text-anchor="middle" font-size="13" font-weight="700" fill="var(--muted)">MX</text>
   <text x="490" y="211" text-anchor="middle" font-size="12" fill="var(--muted)">count =</text>
-  <text x="575" y="211" text-anchor="middle" font-size="15" font-weight="700" fill="var(--muted)">1</text><p>  <text x="490" y="245" text-anchor="middle" font-size="10" fill="var(--muted)">3 pairs stored — 62% smaller</text>
+  <text x="575" y="211" text-anchor="middle" font-size="15" font-weight="700" fill="var(--muted)">1</text>  <text x="490" y="245" text-anchor="middle" font-size="10" fill="var(--muted)">3 pairs stored — 62% smaller</text>
   <text x="490" y="260" text-anchor="middle" font-size="10" fill="var(--muted)">COUNT(CA) = read the count field directly</text>
 </svg></p>
 <figcaption>Run-length encoding collapses repeated values into (value, count) pairs. The CA count can be read directly without scanning individual rows — an example of operating on compressed data.</figcaption>

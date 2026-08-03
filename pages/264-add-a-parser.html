@@ -137,7 +137,7 @@ def parse(sql: str) -&gt; dict:
   <text x="600" y="77" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">type: SELECT</text>
   <text x="600" y="91" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">cols: [NAME]</text>
   <text x="600" y="105" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">table: EMP</text>
-  <text x="600" y="119" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">where: …</text><p>  <text x="330" y="155" text-anchor="middle" font-size="11" fill="var(--muted)">Each stage consumes characters / tokens left-to-right</text>
+  <text x="600" y="119" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">where: …</text>  <text x="330" y="155" text-anchor="middle" font-size="11" fill="var(--muted)">Each stage consumes characters / tokens left-to-right</text>
   <text x="330" y="172" text-anchor="middle" font-size="11" fill="var(--muted)">and hands structured data to the next stage</text>
 </svg></p>
 <figcaption>Three-stage pipeline: raw SQL text → token list → AST dict. The executor (next page) takes the AST and runs it.</figcaption>

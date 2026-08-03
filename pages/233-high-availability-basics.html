@@ -80,7 +80,7 @@
   <text x="185" y="178" text-anchor="middle" font-size="10" fill="var(--muted)">WAL stream</text>  <!-- Primary to Replica 2 (WAL) -->
   <line x1="315" y1="160" x2="510" y2="190" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr-m)"/>
   <text x="440" y="178" text-anchor="middle" font-size="10" fill="var(--muted)">WAL stream</text>  <!-- Failover label -->
-<p>  <text x="340" y="258" text-anchor="middle" font-size="11" fill="var(--text)">On primary failure → promote Replica 1 or 2 → update VIP → resume writes</text>
+  <text x="340" y="258" text-anchor="middle" font-size="11" fill="var(--text)">On primary failure → promote Replica 1 or 2 → update VIP → resume writes</text>
 </svg></p>
 <figcaption>A primary receives all writes and streams WAL to replicas. On failure, one replica is promoted and the virtual IP (VIP) is redirected — the application reconnects without code changes.</figcaption>
 </figure><h2>Synchronous vs. Asynchronous Replication</h2>
