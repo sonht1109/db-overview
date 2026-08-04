@@ -1,0 +1,1 @@
+**_IMPROTANT_**: whenever you edit page content, run `python3 build_search_index.py` to update the search index afterwards.
