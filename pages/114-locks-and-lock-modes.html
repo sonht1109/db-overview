@@ -166,16 +166,9 @@
 </tr>
 </tbody></table>
 <p>A <code>LOCK TABLE … IN SHARE MODE</code> request checks the table-level intent lock, and can be denied instantly without row-by-row inspection. This is a key part of how real engines stay efficient.</p>
-<h2>Lock Duration and Two-Phase Locking</h2>
-<p>When are locks released? In standard <strong>two-phase locking (2PL)</strong>:</p>
-<ol>
-<li><strong>Growing phase</strong> — the transaction acquires locks as it reads and writes; it never releases any.</li>
-<li><strong>Shrinking phase</strong> — after the first release, the transaction can only release locks, never acquire new ones.</li>
-</ol>
-<p>In practice, many databases that rely on locking implement <strong>strict 2PL</strong>: all locks are held until <code>COMMIT</code> or <code>ROLLBACK</code>. This prevents a class of anomaly called cascading rollbacks. However, PostgreSQL defaults to <strong>MVCC</strong> (Multi-Version Concurrency Control), where readers do not acquire locks on rows at all — only writes take row-level exclusive locks, which are still held to commit. MySQL InnoDB similarly combines MVCC with strict 2PL for writes. SQL Server uses locking by default but also supports MVCC via <code>READ_COMMITTED_SNAPSHOT</code>.</p>
-<blockquote>
-<p><strong>Note:</strong> Releasing locks early (non-strict 2PL) can improve throughput but risks dirty reads and cascading rollbacks. MVCC-based systems like PostgreSQL avoid this trade-off entirely — readers see a consistent snapshot without acquiring locks, while writers still hold exclusive locks to commit. Purely lock-based systems typically stick with strict 2PL for safety.</p>
-</blockquote>
+<h2>Lock Duration</h2>
+<p>So far we have covered <em>which</em> locks exist and <em>what</em> they protect. The remaining question is <em>when</em> they are acquired and released. That timing is decided by <strong>two-phase locking (2PL)</strong> — the protocol covered in detail on the next page.</p>
+<p>One practical point belongs here: in most locking databases every lock is held until <code>COMMIT</code> or <code>ROLLBACK</code>, a stricter form of 2PL. Nothing is released mid-transaction, so no other transaction can ever observe a half-finished write. The main exception is PostgreSQL, which defaults to <strong>MVCC</strong> (Multi-Version Concurrency Control): readers take no row locks at all and instead see a consistent snapshot, while writers still hold row-level exclusive locks until commit. MySQL InnoDB combines MVCC with strict 2PL for writes, and SQL Server locks by default while also supporting MVCC via <code>READ_COMMITTED_SNAPSHOT</code>.</p>
 </div><details class="reveal"><summary>Reveal: Why do two readers never block each other?</summary><div class="reveal-body"><p>Two <code>SELECT</code> statements both acquire <strong>shared (S) locks</strong>. S locks are compatible with other S locks because reading data never changes it — two readers see exactly the same version of the row, so there is no conflict. The engine can safely grant both locks simultaneously.</p>
 <p>An <strong>exclusive (X) lock</strong> is incompatible with everything because a writer is about to change the data. If another reader or writer were allowed in simultaneously, they could see a half-written row or overwrite the in-progress change. Blocking them until the write commits guarantees they always see a consistent, committed state.</p>
 </div></details>
