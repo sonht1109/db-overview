@@ -24,7 +24,7 @@
 <p><strong>Note:</strong> This is distinct from the redo problem (committed work that did not reach disk). Unfinished work is the <em>opposite</em> half: uncommitted work that <em>did</em> reach disk and must be reversed.</p>
 </blockquote>
 <h2>Walking the Log Backward</h2>
-<p>The write-ahead log (WAL) is the key. Every change a transaction makes is recorded in the log <em>before</em> it touches a data page — and that log record contains both the <strong>before-image</strong> (old value) and the <strong>after-image</strong> (new value). To undo a change, the engine just applies the before-image back to the page.</p>
+<p>The write-ahead log (WAL) was explained in the <em>write-ahead log</em> topic — the detail that matters here is its <strong>before-image</strong> (the old value stored in each record). Undo works because every log record carries the value to restore: to reverse a change, the engine just writes the before-image back to the page.</p>
 <p>Undo happens in <strong>reverse LSN order</strong> — the engine walks the transaction&#39;s log records from newest to oldest, restoring each page to the state it had before that transaction touched it:</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram showing a transaction's log records being walked backward during undo, with before-images written back to data pages">
@@ -58,16 +58,9 @@
   <text x="350" y="206" font-size="12" fill="var(--accent)" font-family="sans-serif" font-weight="600">T9 fully erased — atomicity preserved</text>
 </svg></p>
 <figcaption>Undo walks T9's log records newest-to-oldest, writing each before-image back to the data page. The result is as if T9 never ran.</figcaption>
-</figure><p>Each undo step is itself written to the WAL as a <strong>Compensation Log Record (CLR)</strong>. The CLR says: &quot;the undo of LSN X has been applied.&quot; If the engine crashes again <em>during</em> the undo phase, it does not re-undo steps that CLRs already mark as done. This makes undo survivable under multiple crashes.</p>
+</figure><p>Each undo step is itself written to the WAL as a <strong>Compensation Log Record (CLR)</strong> — the mechanism introduced in the <em>redo and undo</em> topic. If the engine crashes again <em>during</em> the undo phase, CLRs mark which steps are already done, so recovery does not undo them a second time.</p>
 <h2>PostgreSQL: Recovery Without an Undo Pass</h2>
-<p>The undo mechanism described above — walking the WAL backward and writing before-images — is the <strong>ARIES protocol</strong> used by MySQL InnoDB, SQL Server, and others. <strong>PostgreSQL does not work this way.</strong></p>
-<p>PostgreSQL recovery has only an <strong>analysis pass and a redo pass</strong> — there is no undo phase. Here is why:</p>
-<ul>
-<li>PostgreSQL's WAL stores only <strong>redo information</strong> (after-images). There is no before-image in the WAL record.</li>
-<li>Uncommitted work is handled by <strong>MVCC visibility</strong>, not by physical undo. When a transaction modifies a row, the old version stays in the heap page. The new version carries a transaction ID (xmin). If that transaction never commits and the database crashes, recovery marks it as <strong>aborted</strong> — the row version it created simply becomes invisible to all future transactions.</li>
-<li>No physical rollback occurs. The "undo" is purely logical: the visibility rules hide the uncommitted version, and the old version (which was never overwritten) remains visible.</li>
-<li>VACUUM later cleans up the dead row versions.</li>
-</ul>
+<p>The undo walk described above is the <strong>ARIES protocol</strong> used by MySQL InnoDB, SQL Server, and others. As covered in the <em>redo and undo</em> topic, <strong>PostgreSQL does not work this way</strong>: its WAL stores only redo information (after-images), and there is no physical undo pass. Instead, recovery marks the crashed transaction as aborted, and the row versions it created are hidden by <strong>MVCC visibility</strong> — they simply become invisible to all future transactions, with <strong>VACUUM</strong> reclaiming them later.</p>
 <blockquote>
 <p><strong>Note:</strong> This is why PostgreSQL recovery is generally faster than ARIES-style recovery — there is no undo pass scanning the log backward. The trade-off is that PostgreSQL accumulates dead tuples, requiring periodic VACUUM to reclaim space and prevent table bloat. Monitoring <code>pg_stat_user_tables.n_dead_tup</code> helps track this overhead.</p>
 </blockquote>

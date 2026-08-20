@@ -26,16 +26,16 @@
 <li><strong>Non-volatile storage</strong> — survives</li>
 </ol>
 <p>Simply writing to a file is not enough. The OS may batch those writes in its page cache for seconds before they reach the disk. A crash in that window means silent data loss.</p>
-<p>The standard solution is the <strong>Write-Ahead Log (WAL)</strong>.</p>
-<h2>The Write-Ahead Log</h2>
-<p>The WAL rule is simple: <strong>log the change before you apply it to the data pages</strong>.</p>
-<p>Every modification is first appended to a sequential log file as a <em>log record</em>. Log records are small, sequential, and fast to write. Before <code>COMMIT</code> returns to the application, the engine calls <code>fsync</code> (or an equivalent) on the log — forcing those bytes to durable storage. Only then does the commit succeed.</p>
+<p>The standard solution is the <strong>Write-Ahead Log (WAL)</strong> described in the previous pages.</p>
+<h2>Committing via the WAL</h2>
+<p>The write-ahead rule — <em>log the change before you apply it to the data pages</em> — was established in the <em>write-ahead log</em> topic. What this page adds is the commit-time requirement that makes the promise hold:</p>
 <pre><code class="language-sql">-- What happens inside the engine on every change (pseudocode):
 -- 1. Write log record {txn_id, page, before-image, after-image} → WAL
 -- 2. fsync(WAL)       ← durable now
 -- 3. COMMIT returns   ← the promise is made
 -- 4. Dirty data pages may be written to disk later (background)
 </code></pre>
+<p>Every modification is first appended to a sequential log file as a <em>log record</em>. Log records are small, sequential, and fast to write. Before <code>COMMIT</code> returns to the application, the engine calls <code>fsync</code> (or an equivalent) on the log — forcing those bytes to durable storage. Only then does the commit succeed.</p>
 <p>The data pages themselves are written lazily in the background by a <em>checkpoint</em> process. If the system crashes before a checkpoint, those pages are out of date — but the WAL contains everything needed to replay and redo the missing writes.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing WAL write, fsync, COMMIT, then lazy data-page flush">
@@ -76,24 +76,8 @@
 </svg></p>
 <figcaption>WAL commit timeline: the log is forced to disk before COMMIT returns; data pages are flushed lazily by a background checkpoint.</figcaption>
 </figure><h2>Recovery after a crash</h2>
-<p>When the database restarts after a crash, the recovery manager replays the WAL forward from the last checkpoint. This is called the <strong>redo pass</strong>.</p>
-<table>
-<thead>
-<tr>
-<th>Log record state</th>
-<th>Action on recovery</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Record has a COMMIT entry in the log</td>
-<td><strong>Redo</strong> all changes — they were promised durable</td>
-</tr>
-<tr>
-<td>Record has no COMMIT (transaction was in-flight)</td>
-<td><strong>Undo</strong> any partial changes — the transaction never committed</td>
-</tr>
-</tbody></table>
-<p>This two-phase approach (redo committed work, undo uncommitted work) is the basis of the <strong>ARIES</strong> recovery algorithm used by most production databases (PostgreSQL, MySQL InnoDB, SQL Server).</p>
+<p>What happens after a crash was covered in the <em>redo and undo</em> topic: the recovery manager replays the WAL forward from the last checkpoint (the <strong>redo pass</strong>), restoring committed work, then erases any partial changes from transactions that never committed (the <strong>undo pass</strong>).</p>
+<p>This two-phase approach is the basis of the <strong>ARIES</strong> recovery algorithm used by most production databases (PostgreSQL, MySQL InnoDB, SQL Server).</p>
 <blockquote>
 <p><strong>Note:</strong> SQLite uses a slightly different mechanism — it can use either a <em>rollback journal</em> or WAL mode (<code>PRAGMA journal_mode=WAL</code>). Both ensure the same durability guarantee; WAL mode additionally allows concurrent readers while a write is in progress.</p>
 </blockquote>

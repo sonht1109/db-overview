@@ -55,32 +55,7 @@
 <p><strong>Note:</strong> A checkpoint does not mean transactions are paused. Most modern databases (PostgreSQL, MySQL InnoDB, SQLite WAL mode) perform <em>fuzzy checkpoints</em> — pages are flushed incrementally in the background while normal reads and writes continue.</p>
 </blockquote>
 <h2>Restart and the ARIES Protocol</h2>
-<p>When the database restarts after a crash, it runs a structured recovery algorithm. The one used by most systems (directly or in spirit) is <strong>ARIES</strong> (Algorithm for Recovery and Isolation Exploiting Semantics).</p>
-<p>Recovery happens in three passes:</p>
-<table>
-<thead>
-<tr>
-<th>Pass</th>
-<th>Name</th>
-<th>What it does</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>1</td>
-<td><strong>Analysis</strong></td>
-<td>Scans the WAL from the last checkpoint forward. Identifies which transactions were in-flight at the time of the crash, and which pages were dirty.</td>
-</tr>
-<tr>
-<td>2</td>
-<td><strong>Redo</strong></td>
-<td>Replays <em>every</em> log record from the checkpoint, re-applying all changes — even those from transactions that never committed. This brings the database to the exact state it was in the moment of the crash.</td>
-</tr>
-<tr>
-<td>3</td>
-<td><strong>Undo</strong></td>
-<td>Rolls back any transaction that was still active (uncommitted) at crash time, walking the log backwards using <em>compensation log records</em> (CLRs).</td>
-</tr>
-</tbody></table>
+<p>After a crash, the database runs the recovery algorithm covered in the <em>redo and undo</em> topic — for most engines, <strong>ARIES</strong> (Algorithm for Recovery and Isolation Exploiting Semantics). Its three passes (analysis, redo, undo) are described there in full. What matters for this topic is where the checkpoint fits: recovery replays the WAL starting from the last checkpoint LSN, so the checkpoint defines exactly how much log work a restart must do.</p>
 <p>The Redo pass might seem surprising — why redo uncommitted work, only to undo it? Because ARIES decouples the question &quot;did this change reach disk?&quot; from &quot;did the transaction commit?&quot;. Redoing everything first is simpler and correct; the Undo pass then enforces atomicity cleanly.</p>
 <h3>Checkpoint frequency vs. recovery time</h3>
 <p>There is a direct trade-off:</p>

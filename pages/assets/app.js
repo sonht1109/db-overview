@@ -334,10 +334,6 @@
       if (markAllPreviousDone(slug)) {
         btn.textContent = "✓ All marked";
         btn.classList.add("done");
-        if (!isDone(slug)) {
-          markDone(slug);
-        }
-        showDoneIndicator();
       }
     });
     topbar.appendChild(btn);
