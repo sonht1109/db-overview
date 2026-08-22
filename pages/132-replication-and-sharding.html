@@ -162,93 +162,7 @@ SELECT * FROM users WHERE user_id BETWEEN 1000001 AND 2000000;
 </tr>
 </tbody></table>
 <p><strong>Hot spots</strong> are the main danger: if one shard receives most of the traffic (because a celebrity&#39;s posts are all on shard 3, for instance), the system is no better than before.</p>
-<h4>How to evaluate a candidate shard key</h4>
-<p>A good shard key should satisfy four properties. Test each candidate against them:</p>
-<table>
-<thead>
-<tr>
-<th>Property</th>
-<th>What it means</th>
-<th>What to check</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>Cardinality</strong></td>
-<td>Enough distinct values to spread data widely</td>
-<td><code>SELECT COUNT(DISTINCT key) FROM table;</code> — a column with only 5 values can never spread across 100 shards</td>
-</tr>
-<tr>
-<td><strong>Uniform frequency</strong></td>
-<td>No single value appears far more often than others</td>
-<td>Check value distribution — a skewed column (e.g., a country column where 90% of users are from one country) creates a hot shard</td>
-</tr>
-<tr>
-<td><strong>Low write amplification per key</strong></td>
-<td>Rows written together share the same shard key</td>
-<td>Does the workload read/write <em>related</em> rows as one unit? If so, those rows must co-locate on the same shard</td>
-</tr>
-<tr>
-<td><strong>Query-friendly</strong></td>
-<td>Your most common queries filter on the shard key</td>
-<td>If queries always include <code>WHERE user_id = ?</code>, the router can target one shard instead of doing a scatter-gather</td>
-</tr>
-</tbody></table>
-<h4>Worked example: sharding a <code>posts</code> table</h4>
-<p>Suppose you&#39;re building a social app and sharding a <code>posts</code> table. Compare the candidates:</p>
-<table>
-<thead>
-<tr>
-<th>Candidate</th>
-<th>Cardinality</th>
-<th>Frequency</th>
-<th>Co-location</th>
-<th>Query fit</th>
-<th>Verdict</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>post_id</code></td>
-<td>High (one per row)</td>
-<td>Uniform</td>
-<td>Poor — a user&#39;s posts scatter across shards, so a feed query hits every shard</td>
-<td>Single-post lookups are 1-shard; but feeds are scatter-gather</td>
-<td>❌ Bad if feeds dominate</td>
-</tr>
-<tr>
-<td><code>user_id</code></td>
-<td>High (many users)</td>
-<td>Uniform (mostly)</td>
-<td>Excellent — all of a user&#39;s posts land on the same shard</td>
-<td>A user&#39;s feed is a 1-shard query; global feeds/trends are scatter-gather</td>
-<td>✅ Good default</td>
-</tr>
-<tr>
-<td><code>created_at</code></td>
-<td>High</td>
-<td>Bad — new posts pile onto the current day&#39;s shard</td>
-<td>N/A</td>
-<td>Time-range queries are 1-shard</td>
-<td>❌ Hot spot on the newest shard</td>
-</tr>
-<tr>
-<td><code>status</code></td>
-<td>Very low (2–3 values)</td>
-<td>Skewed</td>
-<td>N/A</td>
-<td>N/A</td>
-<td>❌ Cannot spread data</td>
-</tr>
-</tbody></table>
-<p>In this example <code>user_id</code> wins: it co-locates all the rows read together (a user&#39;s posts), spreads evenly, and turns the most common query (my feed) into a single-shard lookup. A global &quot;what&#39;s trending&quot; query still scatters, but that is usually acceptable (or handled with a separate cache/analytics store).</p>
-<h4>Anti-patterns to avoid</h4>
-<ul>
-<li><strong>Monotonically increasing keys</strong> (auto-increment IDs, timestamps): every new row goes to the same shard until it fills up, then the next one. This turns your hot write shard into a bottleneck and forces constant re-sharding.</li>
-<li><strong>Skewed / low-cardinality keys</strong>: booleans, <code>status</code> enum, country codes. The common values form hot shards; the rare values idle.</li>
-<li><strong>A key that changes</strong>: if the shard key value can be updated (e.g., a user&#39;s email), that row must physically move between shards on every change. Prefer immutable keys.</li>
-<li><strong>Choosing by <em>any</em> unique column</strong>: a unique column gives cardinality but may fail co-location. The shard key should match the grain of your hottest queries, not just be unique.</li>
-</ul>
-<h4>Compound shard keys and secondary sharding</h4>
-<p>When no single column works, use a <strong>composite shard key</strong>. For example, shard <code>orders</code> by <code>(customer_id, order_id)</code> — range by <code>order_id</code> inside each <code>customer_id</code>&#39;s shard. This co-locates a customer&#39;s orders <em>and</em> keeps them in order. For queries that filter on a non-shard-key column (like <code>email</code> in the reveal above), a common trick is a <strong>secondary index</strong> or <strong>mapping table</strong> (<code>email → user_id</code>) stored on every shard or in a small global table, so the router can resolve the shard key before routing.</p>
+<p>Choosing the shard key well is the most consequential decision in a sharded system, so it pays to evaluate candidates systematically. The <a href="134-partition-keys.html">Partition keys</a> page covers exactly that: the properties of a good key, a worked example, anti-patterns to avoid, and compound keys.</p>
 <h3>What Sharding Complicates</h3>
 <ul>
 <li><strong>Cross-shard joins</strong>: If two related rows live on different shards, the database can&#39;t do an ordinary join — the application or router must fetch from both and combine results.</li>
@@ -261,7 +175,7 @@ SELECT * FROM users WHERE user_id BETWEEN 1000001 AND 2000000;
 <hr>
 <h2>Replication + Sharding Together</h2>
 <p>Real systems often combine both: each shard has its own leader and one or more followers. This provides both horizontal data scale (sharding) and read scale plus redundancy (replication) simultaneously.</p>
-<details class="reveal"><summary>Reveal: If you shard by user_id and a query filters only by email, which shards must the router consult?</summary><div class="reveal-body">All of them. Because the router doesn't know which shard holds a given email address, it must broadcast the query to every shard and merge the results. This is called a <strong>scatter-gather</strong> query and is much more expensive than a single-shard lookup. It's a key reason why choosing the right shard key — one that matches your most common query patterns — matters so much.</div></details><p>The interactive example below lets you simulate a simple sharding scheme: a hash on <code>user_id mod 3</code> decides which logical shard each row belongs to.</p>
+<p>The interactive example below lets you simulate a simple sharding scheme: a hash on <code>user_id mod 3</code> decides which logical shard each row belongs to.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · Simulating sharding with hash mod</span></div>
   <div class="widget-body">
