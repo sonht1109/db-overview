@@ -103,24 +103,6 @@
 <li><strong>Vitess</strong> — shared-nothing sharding middleware on top of MySQL, used at YouTube.</li>
 </ul>
 <p>The label &quot;shared-nothing&quot; sometimes gets blurred when cloud object storage (S3, GCS) plays the role of a durable shared layer beneath independent compute nodes. That hybrid trades some of the coordination simplicity for operational convenience — you can resize compute without migrating data.</p>
-<p>The query below lets you see scatter-gather behavior (querying all shards) vs. a targeted single-shard lookup, using the same <code>user_id % 3</code> sharding scheme from the previous page. Notice how the <code>CASE</code> expression mimics what a router would do.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Single-shard vs. scatter-gather</span></div>
-  <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id SERIAL PRIMARY KEY, user_id INTEGER, amount REAL, status TEXT); INSERT INTO orders VALUES (1, 1, 49.99, 'shipped'); INSERT INTO orders VALUES (2, 2, 120.00, 'pending'); INSERT INTO orders VALUES (3, 3, 9.99, 'shipped'); INSERT INTO orders VALUES (4, 4, 75.50, 'cancelled'); INSERT INTO orders VALUES (5, 5, 200.00, 'shipped'); INSERT INTO orders VALUES (6, 6, 33.00, 'pending'); INSERT INTO orders VALUES (7, 7, 15.00, 'shipped'); INSERT INTO orders VALUES (8, 8, 88.00, 'pending'); INSERT INTO orders VALUES (9, 9, 60.00, 'shipped'); INSERT INTO orders VALUES (10, 1, 22.00, 'pending'); INSERT INTO orders VALUES (11, 3, 45.00, 'shipped'); INSERT INTO orders VALUES (12, 6, 11.00, 'cancelled');" rows="10">-- A router with shard key = user_id % 3 can send this
--- directly to shard 1 (only rows where user_id % 3 = 1).
--- Try changing user_id to one of: 1, 4, 7, 10 (all on shard 1).
-SELECT order_id, user_id, amount, status,
-       (user_id % 3) AS shard
-FROM orders
-WHERE user_id = 1;
--- Now try a query with NO shard key filter -- the router must
--- ask all three shards (scatter-gather). Uncomment to run:
--- SELECT status, COUNT(*) AS cnt, SUM(amount) AS total
--- FROM orders
--- GROUP BY status;</textarea>
-  </div>
-</div><details class="reveal"><summary>Reveal: Why does a query on `status` hit all shards even when there are only a few distinct statuses?</summary><div class="reveal-body">The shard key is <code>user_id</code>, not <code>status</code>. The router has no way to know which shards contain rows with <code>status = 'shipped'</code> without asking every one of them. This is the scatter-gather problem: any filter on a non-shard-key column requires a broadcast to all nodes, and the coordinator must merge the partial results. It's one reason choosing a shard key that matches your hottest query patterns is so important.</div></details>
 </div>
   <nav class="pagenav"><a class="prev" href="132-replication-and-sharding.html"><span class="dir">← Previous</span><span class="ttl">Replication and sharding</span></a><a class="next" href="134-partition-keys.html"><span class="dir">Next →</span><span class="ttl">Partition keys</span></a></nav>
 </main>
