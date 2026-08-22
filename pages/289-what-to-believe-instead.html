@@ -92,7 +92,7 @@
 </ul>
 <p>Choose where the contract lives based on how critical correctness is and how much you trust all writers to the data. For financial data, inventory levels, and user credentials: database enforcement. For optional user metadata and configuration blobs: application enforcement is acceptable.</p>
 <h2>Mental Model 4: Consistency Is a Spectrum, Not a Binary</h2>
-<p>The &quot;ACID vs. eventual consistency&quot; framing suggests a binary choice. The reality is a spectrum:</p>
+<p>The &quot;ACID vs. eventual consistency&quot; framing suggests a binary choice. The reality is a spectrum — the isolation levels defined in Chapter 12 at one end, distributed eventual consistency from Chapter 16 at the other:</p>
 <table>
 <thead>
 <tr>
@@ -104,31 +104,31 @@
 </thead>
 <tbody><tr>
 <td>Serializable</td>
-<td>All transactions appear to run one at a time</td>
+<td>All transactions appear to run one at a time (Ch. 12)</td>
 <td>Highest</td>
 <td>Financial ledgers, inventory</td>
 </tr>
 <tr>
 <td>Repeatable Read</td>
-<td>No phantom reads within a transaction</td>
+<td>No phantom reads within a transaction (Ch. 12)</td>
 <td>High</td>
 <td>Reports, analytics queries</td>
 </tr>
 <tr>
 <td>Read Committed</td>
-<td>See only committed data (default in most DBs)</td>
+<td>See only committed data — default in most DBs (Ch. 12)</td>
 <td>Medium</td>
 <td>Most OLTP workloads</td>
 </tr>
 <tr>
 <td>Read Uncommitted</td>
-<td>May see uncommitted data</td>
+<td>May see uncommitted data (Ch. 12)</td>
 <td>Low</td>
 <td>Rarely appropriate</td>
 </tr>
 <tr>
 <td>Eventual</td>
-<td>Eventually converges to correct state</td>
+<td>Eventually converges to correct state (Ch. 16)</td>
 <td>Lowest</td>
 <td>Shopping carts, social feeds</td>
 </tr>

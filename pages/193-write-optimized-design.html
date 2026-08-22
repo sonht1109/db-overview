@@ -18,15 +18,7 @@
   <div id="rendered" class="content">
 <p>Column-family databases like Apache Cassandra are not just &quot;NoSQL with a different API&quot; — they are engineered from the ground up around one constraint: <strong>writes must be as fast as possible, even at petabyte scale</strong>. This shapes every design decision, from the on-disk format to the way updates and deletes work. This page explains the write-optimized architecture: why in-place updates are slow, what the append-only model looks like, and how data flows from a client write all the way to durable storage.</p>
 <h2>Why In-Place Updates Are Slow</h2>
-<p>In a traditional B-tree-based database (PostgreSQL, MySQL, SQLite), an update works roughly like this:</p>
-<ol>
-<li>Find the page on disk that contains the row.</li>
-<li>Lock the page.</li>
-<li>Modify the byte range in-place.</li>
-<li>Write the change to the WAL.</li>
-<li>Mark the page dirty in the buffer pool.</li>
-</ol>
-<p>Step 1 is the bottleneck at scale. On a <strong>spinning disk (HDD)</strong>, finding a page requires a seek — physically moving the read head to the right track. A typical HDD seek takes 5–10 milliseconds. At 200 updates/second per spinning disk, you&#39;re already near the physical limit. Even with SSDs (where there is no moving head), <strong>random writes cause write amplification</strong>: the SSD&#39;s flash translation layer must erase and rewrite entire flash blocks (128KB–1MB) to change a few bytes, wearing out the device faster and reducing throughput.</p>
+<p>As covered in Chapters 10 and 12, a traditional B-tree-based database (PostgreSQL, MySQL, SQLite) updates a row by finding its page, locking it, modifying it in place, appending a WAL record, and marking the page dirty in the buffer pool. Step one — finding the page — is the bottleneck at scale. On a <strong>spinning disk (HDD)</strong>, finding a page requires a seek — physically moving the read head to the right track, which typically takes 5–10 milliseconds, so 200 updates/second per disk is already near the physical limit. Even with SSDs (where there is no moving head), <strong>random writes cause write amplification</strong>: the SSD&#39;s flash translation layer must erase and rewrite entire flash blocks (128KB–1MB) to change a few bytes, wearing out the device faster and reducing throughput.</p>
 <p>The fundamental problem: in-place updates require <strong>random I/O</strong>, and random I/O is expensive whether you&#39;re on HDD or SSD.</p>
 <h2>The Append-Only Alternative</h2>
 <p>Column-family systems sidestep random I/O by making writes <strong>always sequential and append-only</strong>:</p>
@@ -40,7 +32,7 @@
 <p><strong>Key insight:</strong> &quot;Update&quot; in Cassandra is not a modification — it is an <strong>insert of a new version</strong>. The system resolves which version is current at read time (or during compaction) using timestamps.</p>
 </blockquote>
 <h2>The Write Path: Commit Log + Memtable</h2>
-<p>Every write in Cassandra follows a two-step path before it is acknowledged to the client:</p>
+<p>Every write in Cassandra follows a two-step path before it is acknowledged to the client. The commit log is a write-ahead log (Chapter 13), so the two mechanisms should feel familiar:</p>
 <pre><code>Client
   │
   ├──► Commit Log (WAL) ── sequential append to disk ── durable immediately
@@ -48,7 +40,7 @@
   └──► Memtable ── in-memory sorted data structure ── fast, not yet on disk
 </code></pre>
 <ol>
-<li><p><strong>Commit log (Write-Ahead Log):</strong> The write is appended to an on-disk sequential log file. This is what makes the write durable — if the node crashes before the memtable is flushed, the commit log can replay all writes on restart.</p>
+<li><p><strong>Commit log (WAL):</strong> The write is appended to an on-disk sequential log file, making it durable before the memtable is flushed — if the node crashes, the log can replay all writes on restart.</p>
 </li>
 <li><p><strong>Memtable:</strong> The write is also inserted into an in-memory sorted structure (a memtable — think of it as an in-memory SSTable). Reads can be served from the memtable before data ever hits a permanent SSTable file.</p>
 </li>

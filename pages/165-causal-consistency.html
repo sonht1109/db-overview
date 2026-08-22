@@ -27,7 +27,7 @@
 </ul>
 <p>Operations with no path between them are <strong>concurrent</strong> and causally independent. A causally consistent system may deliver concurrent operations in any order; it only enforces ordering within causal chains.</p>
 <blockquote>
-<p><strong>Note:</strong> Databases track causality using <strong>vector clocks</strong> or <strong>version vectors</strong> — per-node counters that let every node determine whether one event &quot;happened before&quot; another without relying on synchronized wall clocks.</p>
+<p><strong>Note:</strong> As covered in Chapter 15, databases track causality using <strong>vector clocks</strong> or <strong>version vectors</strong> — per-node counters that let every node determine whether one event &quot;happened before&quot; another without relying on synchronized wall clocks.</p>
 </blockquote>
 <h2>A Concrete Example</h2>
 <p>Consider three users — Alice, Bob, and Carol — sharing a distributed document store with two replicas.</p>
@@ -121,7 +121,7 @@
 </tbody></table>
 <p>Causal consistency is the <em>strongest</em> model that remains available under network partitions, according to the PACELC framework. This makes it attractive for geo-distributed systems where you cannot afford the latency of a global quorum.</p>
 <h2>How Databases Implement It</h2>
-<p>Real systems track causal dependencies using <strong>version vectors</strong> (also called dependency vectors). Each client carries a vector summarizing the set of writes it has already observed. When the client issues a new operation, it sends this vector along. The server only executes the operation after it has applied all causally prior writes.</p>
+<p>Real systems track causal dependencies using <strong>version vectors</strong> (Chapter 15): each client carries a vector summarizing the set of writes it has already observed. When the client issues a new operation, it sends this vector along. The server only executes the operation after it has applied all causally prior writes.</p>
 <pre><code>Client vector at Carol&#39;s read:
   { replica_A: 5, replica_B: 3 }
 

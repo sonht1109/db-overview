@@ -18,14 +18,7 @@
   <div id="rendered" class="content">
 <p>When a database crashes mid-transaction, it needs a way to recover cleanly: committed work must survive, and uncommitted work must vanish. The write-ahead log (WAL) you saw in the previous section records every change — but replaying the <em>entire</em> log from the beginning on every restart would be unbearably slow. <strong>Checkpoints</strong> are the mechanism that bounds how far back recovery must reach.</p>
 <h2>What a Checkpoint Does</h2>
-<p>A checkpoint is a deliberate synchronization point at which the database guarantees that all dirty (modified) buffer pages have been flushed to disk and that the WAL up to that point is no longer needed for crash recovery.</p>
-<p>The sequence looks like this:</p>
-<ol>
-<li>The engine writes a <code>BEGIN CHECKPOINT</code> record into the WAL.</li>
-<li>It flushes all modified data pages from the buffer pool to their on-disk home (the data files).</li>
-<li>It writes an <code>END CHECKPOINT</code> record that names the <em>checkpoint LSN</em> (Log Sequence Number) — the WAL position as of the checkpoint.</li>
-<li>Anything in the WAL <strong>before</strong> that LSN is now redundant for crash recovery and can eventually be truncated or recycled.</li>
-</ol>
+<p>Page 094 covered checkpoint mechanics in detail: the engine writes a <code>BEGIN CHECKPOINT</code> record, flushes all dirty buffer-pool pages to the data files, writes an <code>END CHECKPOINT</code> record naming the checkpoint LSN, and anything in the WAL <em>before</em> that LSN becomes redundant for crash recovery and can be truncated or recycled. What this chapter adds is how the checkpoint connects to restart:</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing WAL segments, a checkpoint, and how recovery only replays from the checkpoint forward">
   <!-- WAL bar -->

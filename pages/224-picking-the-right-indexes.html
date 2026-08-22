@@ -18,7 +18,7 @@
   <div id="rendered" class="content">
 <p>An index is a trade-off, not a free win. Every index you add speeds up the queries that use it and slows down every write to the table. Picking the right indexes means matching index type and column order to the specific query patterns your application needs — not indexing everything and hoping for the best.</p>
 <h2>How Indexes Work (Briefly)</h2>
-<p>A <strong>B-tree index</strong> stores column values in sorted order with pointers back to heap rows. Lookups are O(log n) — far better than a sequential scan for large tables. But the tree must be updated on every INSERT, UPDATE (if the indexed column changes), and DELETE. A table with ten B-tree indexes pays ten tree-update costs per write.</p>
+<p>As covered in Chapters 7 and 10, a <strong>B-tree index</strong> stores column values in sorted order with pointers back to heap rows, giving O(log n) lookups — but the tree must be updated on every INSERT, UPDATE (if the indexed column changes), and DELETE. A table with ten B-tree indexes pays ten tree-update costs per write.</p>
 <p>An <strong>index scan</strong> is fast when it is <strong>selective</strong> — when the indexed condition filters most rows out. If a query returns 40 % of the table, the planner will often prefer a sequential scan over an index scan because random I/O to follow index pointers is more expensive than reading pages sequentially.</p>
 <h2>Selectivity: The Most Overlooked Factor</h2>
 <p><strong>Selectivity</strong> = fraction of rows returned by the predicate. High selectivity = few rows returned = index is valuable.</p>

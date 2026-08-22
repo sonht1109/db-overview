@@ -25,15 +25,15 @@
 </blockquote>
 <p><strong>Limitations:</strong> The dataset must fit in RAM. You cannot range-scan (iterate keys from <code>a</code> to <code>z</code>) efficiently, because hash tables scatter keys unpredictably across buckets. For most key-value workloads this is fine — you always know your exact key.</p>
 <h2>B-Trees: Ordered and Durable</h2>
-<p>A <strong>B-tree</strong> stores keys in sorted order across a balanced tree of fixed-size pages (typically 4 KB or 16 KB), written directly to disk. Every internal node contains key ranges that guide the search; leaf nodes hold the actual key-value pairs. Lookup is O(log n) but with very few disk reads in practice — a three-level tree holds millions of keys while touching only three pages.</p>
+<p>As covered in Chapter 10, a <strong>B-tree</strong> keeps keys in sorted order across a balanced tree of disk pages, giving O(log n) lookups that touch only a handful of pages — but random writes are expensive because updating a key means reading its page, modifying it, and writing it back.</p>
 <p><strong>LMDB</strong> (Lightning Memory-Mapped Database) is the canonical key-value engine built on a B-tree variant. It uses copy-on-write semantics: updates never overwrite live pages, they write a new version of the page and atomically flip the root pointer. This makes LMDB ACID-safe with zero write-ahead logging overhead. <strong>BerkeleyDB</strong> and many embedded databases take a similar approach.</p>
-<p>B-trees excel at <strong>range queries</strong> — because keys are sorted, iterating all keys from <code>session:a</code> to <code>session:z</code> is a sequential page scan. They also offer predictable read performance. The downside: random writes are expensive because updating a key often requires reading its page from disk, modifying it, and writing it back — causing many small random I/Os under a heavy write load.</p>
+<p>Because keys are sorted, B-trees excel at <strong>range queries</strong> — iterating all keys from <code>session:a</code> to <code>session:z</code> is a sequential page scan. They also offer predictable read performance. The downside remains the random-write cost under a heavy write load.</p>
 <h2>LSM-Trees: Write-Optimized for High Throughput</h2>
 <p>The <strong>Log-Structured Merge-tree</strong> (LSM-tree) flips the B-tree trade-off: it sacrifices some read performance to make writes dramatically faster. This makes it the engine of choice for workloads with high write rates (time-series, event logs, metrics).</p>
 <p>The core idea has three stages:</p>
 <ol>
 <li><strong>MemTable</strong> — incoming writes go into a sorted in-memory buffer (often a red-black tree or skip list). Reads check here first.</li>
-<li><strong>Write-ahead log (WAL)</strong> — every write is also appended to a sequential log on disk for crash recovery.</li>
+<li><strong>Write-ahead log (WAL)</strong> — every write is also appended to a sequential log on disk for crash recovery (Chapter 13).</li>
 <li><strong>SSTables</strong> — when the MemTable fills up, it is flushed to disk as an immutable, sorted file called an SSTable (Sorted String Table). Background compaction periodically merges SSTables to reclaim space and remove stale versions.</li>
 </ol>
 <p><strong>RocksDB</strong> (developed at Meta, forked from LevelDB) is the dominant LSM-tree engine. RocksDB powers <strong>TiKV</strong>, <strong>Pebble</strong> (CockroachDB), and many others. Apache Cassandra uses its own independent LSM-tree implementation inspired by the Bigtable paper. <strong>WiredTiger</strong>, the default storage engine in MongoDB, is B-tree based by default but offers an optional LSM-tree mode for write-heavy workloads.</p>

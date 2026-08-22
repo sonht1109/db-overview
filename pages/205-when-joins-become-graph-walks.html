@@ -120,7 +120,7 @@ WHERE  c1.from_user = 42
 </code></pre>
 <p>The query planner sees <code>connections</code> twice. With 10 million rows in <code>connections</code>, each B-tree lookup is O(log N) ≈ 23 comparisons. After the first join, you might have 500 rows; the second join then fires 500 × O(log N) index lookups. At three hops, 2 500 lookups. The <strong>cost grows multiplicatively</strong> with both branching factor and depth.</p>
 <h3>Recursive CTEs: The SQL Workaround</h3>
-<p>SQL:1999 introduced <strong>recursive CTEs</strong> (<code>WITH RECURSIVE</code>) to express variable-depth traversal without repeating self-joins:</p>
+<p>As covered in Chapter 21, SQL&#39;s <code>WITH RECURSIVE</code> expresses variable-depth traversal without hard-coding self-joins:</p>
 <pre><code class="language-sql">WITH RECURSIVE reachable(user_id, depth) AS (
   -- anchor: start at user 42
   SELECT to_user, 1
@@ -138,7 +138,7 @@ WHERE  c1.from_user = 42
 SELECT DISTINCT user_id FROM reachable
 WHERE  user_id &lt;&gt; 42;
 </code></pre>
-<p>This is better — you don&#39;t hard-code the number of joins — but the engine still performs a <strong>B-tree lookup per edge</strong> in the recursive step. The intermediate table grows with every iteration, and each lookup carries the O(log N) cost of navigating the index.</p>
+<p>The point that matters here: the engine still performs a <strong>B-tree lookup per edge</strong> in the recursive step. The intermediate table grows with every iteration, and each lookup carries the O(log N) cost of navigating the index.</p>
 <div class="widget" data-widget="sql">
   <div class="widget-head"><span>Interactive SQL · 2-hop friend-of-friend with recursive CTE</span></div>
   <div class="widget-body">
@@ -162,7 +162,7 @@ GROUP  BY u.user_id, u.name
 ORDER  BY hops, u.name;</textarea>
   </div>
 </div><h2>Why Graph DBs Are Different: Index-Free Adjacency</h2>
-<p>A native graph database stores each node with <strong>direct physical pointers to its neighbouring nodes</strong>. There is no index to traverse — the pointer <em>is</em> the edge.</p>
+<p>As introduced on page 201, a native graph database stores each node with <strong>direct physical pointers to its neighbouring nodes</strong> — there is no index to traverse; the pointer <em>is</em> the edge.</p>
 <table>
 <thead>
 <tr>

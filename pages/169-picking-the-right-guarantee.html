@@ -55,7 +55,7 @@
 </tr>
 <tr>
 <td><strong>Snapshot isolation</strong></td>
-<td>Reads see a consistent point-in-time snapshot</td>
+<td>Reads see a consistent point-in-time snapshot (Chapter 12)</td>
 <td>Medium: MVCC storage overhead</td>
 </tr>
 <tr>
@@ -65,7 +65,7 @@
 </tr>
 <tr>
 <td><strong>Serializability</strong></td>
-<td>Transactions appear to execute one-at-a-time</td>
+<td>Transactions appear to execute one-at-a-time (Chapters 11–12)</td>
 <td>High: locking or OCC validation</td>
 </tr>
 </tbody></table>
@@ -155,7 +155,7 @@ GROUP BY a.owner, a.balance;
 -- Strong consistency (serializable) prevents this by
 -- serializing the two reads-then-writes.</textarea>
   </div>
-</div><details class="reveal"><summary>Reveal: Which guarantee prevents the lost-update shown above?</summary><div class="reveal-body"><p><strong>Serializable isolation</strong> (or at minimum <strong>repeatable read</strong> with a compare-and-swap) prevents the lost update. Under serializability, the two concurrent transactions are ordered: the second one either waits for the first to commit and then reads the updated balance, or it detects the conflict and aborts. Under <strong>read committed</strong> or <strong>eventual consistency</strong>, both transactions can read the same stale balance and overwrite each other — one update disappears.</p>
+</div><details class="reveal"><summary>Reveal: Which guarantee prevents the lost-update shown above?</summary><div class="reveal-body"><p><strong>Serializable isolation</strong> (or at minimum <strong>repeatable read</strong> with a compare-and-swap) prevents the lost update — this is the anomaly covered in Chapter 12. Under serializability, the two concurrent transactions are ordered: the second one either waits for the first to commit and then reads the updated balance, or it detects the conflict and aborts. Under <strong>read committed</strong> or <strong>eventual consistency</strong>, both transactions can read the same stale balance and overwrite each other — one update disappears.</p>
 </div></details><h2>Practical Checklist</h2>
 <p>Before choosing a consistency level, answer these:</p>
 <ul>

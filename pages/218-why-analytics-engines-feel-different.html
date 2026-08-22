@@ -125,13 +125,8 @@
 <p>Shuffles are expensive: they saturate network bandwidth and introduce coordination overhead. Badly written queries that force large shuffles are a common cause of slow analytics jobs.</p>
 <h2>Query Compilation vs. Interpretation</h2>
 <p>Traditional databases interpret query plans at runtime: a tree of operator objects, each calling a <code>next()</code> method to pull one row at a time through the pipeline. This is flexible but slow — the CPU spends more time on virtual function dispatch overhead than on actual data work.</p>
-<p>Modern analytics engines take a different approach:</p>
-<p><strong>Vectorized execution</strong> (DuckDB, ClickHouse, Velox): instead of processing one row at a time, process a <strong>batch of 1,024–8,192 rows</strong> per operator call. This:</p>
-<ul>
-<li>Amortizes function call overhead</li>
-<li>Enables SIMD (CPU vector instructions) to process multiple values in parallel</li>
-<li>Improves CPU cache utilization</li>
-</ul>
+<p>Modern analytics engines take a different approach. The two options were covered in Chapter 22:</p>
+<p><strong>Vectorized execution</strong> (DuckDB, ClickHouse, Velox) processes a <strong>batch of 1,024–8,192 rows</strong> per operator call, amortizing function-call overhead and enabling SIMD.</p>
 <p><strong>Full query compilation</strong> (Snowflake, HyPer, some Spark paths): generate native machine code specific to the query. The compiler emits tight loops without virtual dispatch. First-query latency is higher (compilation takes time), but execution is 2–10x faster for CPU-bound operations.</p>
 <pre><code>Interpreted (row-at-a-time):   Filter→Project→Agg  each pulls 1 row
 Vectorized:                    Filter→Project→Agg  each pulls 1024 rows

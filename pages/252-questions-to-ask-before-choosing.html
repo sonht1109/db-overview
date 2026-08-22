@@ -103,7 +103,7 @@
   <text x="580" y="172" text-anchor="end" font-size="11" fill="var(--muted)">← higher latency / lower availability</text>
   <text x="60" y="192" text-anchor="start" font-size="11" fill="var(--muted)">higher availability / lower latency →</text>
 </svg>
-<figcaption>Consistency is a spectrum. Stronger guarantees typically cost latency or availability; eventual consistency trades correctness risk for throughput.</figcaption>
+<figcaption>As covered in the replication and consensus chapters (pages 141–170), consistency is a spectrum: stronger guarantees typically cost latency or availability; eventual consistency trades correctness risk for throughput.</figcaption>
 </figure><p>Transactions and bank balances demand strong consistency. Social media &quot;like&quot; counts can tolerate eventual consistency — being off by one for a few seconds is invisible to users. Knowing which camp your data falls into eliminates entire categories of databases.</p>
 <h3>4. How large is the dataset, and how fast is it growing?</h3>
 <ul>

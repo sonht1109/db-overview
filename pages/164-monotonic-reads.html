@@ -24,7 +24,7 @@
 </blockquote>
 <p>Without this guarantee a single user can observe the database &quot;rolling back&quot; between requests, even though nothing was actually rolled back. The data was simply served from different replicas at different points in their replication lag.</p>
 <h2>Why This Happens: Replication Lag</h2>
-<p>Most distributed databases replicate data from a primary node to one or more replicas. Reads can be served by any replica to spread the load. But replicas are not always perfectly in sync — there is a replication lag measured in milliseconds to seconds.</p>
+<p>As covered in Chapter 15, replicas lag the primary, so reads served from different replicas can observe different versions of the data at different times.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing a client reading from two replicas at different lag points, causing a monotonic-reads violation">
   <!-- Primary -->

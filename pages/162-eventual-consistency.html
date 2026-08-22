@@ -107,12 +107,7 @@
 </tbody></table>
 <p>Notice the pattern: eventual consistency shines when <strong>the cost of a stale read is low</strong> and <strong>the cost of coordination is high</strong>.</p>
 <h2>Conflicts: when replicas disagree</h2>
-<p>If two clients write to the same key on two different replicas before replication has a chance to sync, both replicas accept the write. Now the system has <strong>conflicting versions</strong>. Eventually consistent systems use one of several strategies to resolve this:</p>
-<ul>
-<li><strong>Last-Write-Wins (LWW):</strong> each write carries a timestamp; the higher timestamp survives. Simple, but can silently drop data if clocks drift.</li>
-<li><strong>Version vectors / vector clocks:</strong> each replica tracks a logical counter. The system can detect <em>that</em> a conflict happened and surface it to the application for resolution.</li>
-<li><strong>CRDTs (Conflict-free Replicated Data Types):</strong> data structures (counters, sets, maps) designed so that any merge order produces the same result — no human resolution needed.</li>
-</ul>
+<p>If two clients write to the same key on two different replicas before replication has a chance to sync, both replicas accept the write. Now the system has <strong>conflicting versions</strong>. Eventually consistent systems resolve these with the strategies from Chapter 15 — Last-Write-Wins, version vectors / vector clocks, and CRDTs.</p>
 <blockquote>
 <p><strong>Note:</strong> Last-Write-Wins is the default in many systems (Cassandra, DynamoDB) because it requires no extra bookkeeping. Use it only when losing a concurrent write is acceptable — which rules out financial balances, stock levels, and most counters.</p>
 </blockquote>

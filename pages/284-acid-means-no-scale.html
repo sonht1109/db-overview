@@ -20,38 +20,33 @@
 <h2>The Myth: ACID and Scale Are Opposites</h2>
 <p>The argument runs like this: ACID transactions require coordination — locks, log flushes, two-phase commits. Coordination requires waiting. Waiting doesn&#39;t scale. Therefore, ACID doesn&#39;t scale. This is a reasonable argument about <strong>distributed</strong> ACID, but it conflates several different things.</p>
 <h2>Unpacking ACID</h2>
-<p><strong>ACID</strong> is four independent properties, and they have different scaling costs:</p>
+<p>As defined in Chapter 11, <strong>ACID</strong> is four independent properties — and they have different scaling costs:</p>
 <table>
 <thead>
 <tr>
 <th>Property</th>
-<th>What it guarantees</th>
 <th>Scaling cost</th>
 </tr>
 </thead>
 <tbody><tr>
-<td><strong>Atomicity</strong></td>
-<td>All-or-nothing writes</td>
+<td><strong>Atomicity</strong> (all-or-nothing writes)</td>
 <td>Low — local to one transaction</td>
 </tr>
 <tr>
-<td><strong>Consistency</strong></td>
-<td>Constraints always hold</td>
+<td><strong>Consistency</strong> (constraints always hold)</td>
 <td>Low — enforced at write time</td>
 </tr>
 <tr>
-<td><strong>Isolation</strong></td>
-<td>Concurrent transactions don&#39;t corrupt each other</td>
+<td><strong>Isolation</strong> (concurrent transactions don&#39;t corrupt each other)</td>
 <td>Medium — depends on isolation level</td>
 </tr>
 <tr>
-<td><strong>Durability</strong></td>
-<td>Committed data survives crashes</td>
+<td><strong>Durability</strong> (committed data survives crashes)</td>
 <td>Low — write-ahead log, async replication</td>
 </tr>
 </tbody></table>
 <p>The expensive one is <strong>Isolation</strong> — specifically, serializable isolation across distributed nodes. Everything else scales well.</p>
-<p>Most ACID databases offer multiple isolation levels. <code>READ COMMITTED</code> (the PostgreSQL default) is cheap and handles the vast majority of production workloads. Full <code>SERIALIZABLE</code> is expensive, but you rarely need it for every query.</p>
+<p>Most ACID databases offer multiple isolation levels (Chapter 12). <code>READ COMMITTED</code> (the PostgreSQL default) is cheap and handles the vast majority of production workloads. Full <code>SERIALIZABLE</code> is expensive, but you rarely need it for every query.</p>
 <h2>Single-Node Scale Is Enormous</h2>
 <p>Before discussing distributed systems, consider what a single well-tuned relational database can handle:</p>
 <ul>

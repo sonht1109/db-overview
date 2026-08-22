@@ -57,45 +57,7 @@
 </figure>
 <p>Every table in a relational database needs a way to tell its rows apart, and every relationship between tables needs a way to express &quot;this row over here belongs with that row over there.&quot; Primary keys and foreign keys are the two mechanisms that make both of those things possible — and together they form the backbone of the relational model.</p>
 <h2>Primary Keys: The Identity of a Row</h2>
-<p>A <strong>primary key</strong> is a column (or combination of columns) whose value uniquely identifies each row in a table. Three rules apply:</p>
-<ul>
-<li><strong>Unique</strong> — no two rows may share the same primary key value.</li>
-<li><strong>Not null</strong> — every row must have one; a missing identity makes no sense.</li>
-<li><strong>Stable</strong> — the value should not change after the row is created (though the database doesn&#39;t always enforce this automatically).</li>
-</ul>
-<p>Consider a <code>customers</code> table:</p>
-<table>
-<thead>
-<tr>
-<th>customer_id</th>
-<th>name</th>
-<th>email</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>1</td>
-<td>Alice Mwangi</td>
-<td><a href="mailto:alice@example.com">alice@example.com</a></td>
-</tr>
-<tr>
-<td>2</td>
-<td>Ben Okafor</td>
-<td><a href="mailto:ben@example.com">ben@example.com</a></td>
-</tr>
-<tr>
-<td>3</td>
-<td>Clara Souza</td>
-<td><a href="mailto:clara@example.com">clara@example.com</a></td>
-</tr>
-</tbody></table>
-<p><code>customer_id</code> is the primary key. Even if two customers share a name, their IDs keep them distinct.</p>
-<h3>Surrogate vs. Natural Keys</h3>
-<p>You have two broad choices for what to use as a primary key:</p>
-<ul>
-<li><strong>Surrogate key</strong> — a value invented purely for identification, usually an auto-incrementing integer (<code>1, 2, 3, …</code>) or a UUID. It carries no real-world meaning.</li>
-<li><strong>Natural key</strong> — a value that already exists in the domain, such as a national ID number, an ISBN, or an email address.</li>
-</ul>
-<p>Surrogate keys are the more common default because they stay stable even when the real-world data changes (a customer can update their email without breaking anything). Natural keys can be useful when the identifier is truly permanent and unique, like an ISBN for a book.</p>
+<p>The previous chapter introduced primary keys in full — the uniqueness and not-null rules the database enforces, and the choice between surrogate and natural keys (page 013). The reminder that matters here: a primary key uniquely identifies each row, and surrogate keys are the more common default.</p>
 <h2>Foreign Keys: References Between Tables</h2>
 <p>A <strong>foreign key</strong> is a column in one table whose values must match a primary key value in another table. It expresses a relationship — &quot;this order belongs to that customer.&quot;</p>
 <pre><code class="language-sql">CREATE TABLE orders (

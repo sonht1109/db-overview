@@ -49,8 +49,8 @@
 <figcaption>Read-heavy and write-heavy workloads have opposite bottlenecks and opposite tuning levers.</figcaption>
 </figure><h2>Why Indexes Hurt Writes</h2>
 <p>Every index is a secondary copy of data that must be updated on every write. A table with five indexes on a write-heavy workload pays for six writes (the heap + five index updates) for every one logical row change. Under sustained insert throughput, this multiplier is the difference between a system that keeps up and one that falls behind.</p>
-<p><strong>LSM-trees</strong> (used by Cassandra, RocksDB, ScyllaDB) flip this trade-off: writes go to an in-memory buffer and are merged and sorted on disk later. Read latency increases because the engine must merge multiple sorted runs, but write throughput can be an order of magnitude higher than a B-tree under the same hardware.</p>
-<p><strong>B-trees</strong> (PostgreSQL, MySQL InnoDB) favour reads: the sorted structure means point lookups and range scans are a single traversal. Writes pay the cost of re-balancing pages in place.</p>
+<p><strong>LSM-trees</strong> (used by Cassandra, RocksDB, ScyllaDB — Chapter 20) flip this trade-off: writes go to an in-memory buffer and are merged and sorted on disk later, buying write throughput at the cost of read latency.</p>
+<p><strong>B-trees</strong> (PostgreSQL, MySQL InnoDB — Chapters 7 and 10) favour reads: the sorted structure means point lookups and range scans are a single traversal, while writes pay the cost of re-balancing pages in place.</p>
 <h3>The Index Count Rule of Thumb</h3>
 <pre><code>Read-heavy table:   index everything you query
 Write-heavy table:  index only what you cannot afford to scan

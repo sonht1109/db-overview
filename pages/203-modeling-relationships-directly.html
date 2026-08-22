@@ -144,7 +144,7 @@ WHERE u1.id = 1;
 (Alice:Person {age:31}) -[:FOLLOWS {since:&quot;2022-01&quot;}]-&gt; (Bob:Person {age:28})
 </code></pre>
 <h2>Index-Free Adjacency</h2>
-<p>The technical term for what makes graph traversal fast is <strong>index-free adjacency</strong>: each node directly references its neighbors. When you load Alice&#39;s node, you get Alice&#39;s edge list; no secondary lookup is needed.</p>
+<p>The technical term for what makes graph traversal fast — introduced on page 201 — is <strong>index-free adjacency</strong>: each node directly references its neighbors, so loading Alice&#39;s node gives you Alice&#39;s edge list with no secondary lookup.</p>
 <p>Compare this with relational adjacency, where finding neighbors always requires querying an index on <code>follower_id</code> in the <code>follows</code> table. That index lookup is O(log n) at best, repeated for every hop, across a table that grows with every new relationship in the entire system.</p>
 <p>In a property graph:</p>
 <ul>

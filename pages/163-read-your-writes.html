@@ -26,7 +26,7 @@
 </ul>
 <p>This places read-your-writes firmly in the middle of the consistency spectrum — stronger than basic eventual consistency, but weaker than linearizability, which would require everyone to see the write immediately.</p>
 <h2>Why This Breaks in Practice</h2>
-<p>In a typical leader–follower setup, writes go to the leader and are then asynchronously replicated to read replicas. If your application routes reads to replicas for load balancing, a user can write to the leader and then immediately read from a replica that hasn&#39;t caught up yet.</p>
+<p>As covered in Chapter 15, in a leader–follower setup writes go to the leader and are asynchronously replicated to read replicas. If your application routes reads to replicas for load balancing, a user can write to the leader and then immediately read from a replica that hasn&#39;t caught up yet.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing a write reaching the leader but the replica lagging behind, causing a stale read">
   <defs>

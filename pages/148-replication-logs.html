@@ -26,7 +26,7 @@ UPDATE orders SET status = &#39;shipped&#39; WHERE id = 7;
 </code></pre>
 <p>A follower re-executes the statement verbatim. This is compact and human-readable, but breaks on <strong>non-deterministic functions</strong> like <code>NOW()</code>, <code>RAND()</code>, or <code>UUID()</code> — each node evaluates them independently and gets different results.</p>
 <h3>Write-ahead log (WAL) shipping</h3>
-<p>Most production databases already maintain a <strong>write-ahead log</strong> for crash recovery: every page modification is written to the WAL <em>before</em> the page itself is updated. Replication can simply ship those same WAL segments to followers.</p>
+<p>Most production databases already maintain a write-ahead log for crash recovery (Chapter 13), so replication can simply ship those same WAL segments to followers.</p>
 <ul>
 <li><strong>PostgreSQL streaming replication</strong> works this way: followers connect to the leader and receive a continuous stream of WAL records.</li>
 <li>The WAL is a physical log — it records which bytes changed on which disk page. Followers must run the <strong>identical database version</strong> (and often the same minor version) because WAL format is tightly coupled to the storage engine internals.</li>

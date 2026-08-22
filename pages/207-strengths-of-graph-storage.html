@@ -134,7 +134,7 @@ RETURN person.name, r.since_year
 </ol>
 <p>The cost is real: you gave up the schema constraint that would have caught missing team assignments at write time. That is a genuine trade-off, not a free lunch.</p>
 <h2>Deep Traversal Performance — Local Neighbourhood Queries</h2>
-<p>Graph databases implement <strong>index-free adjacency</strong>: each node stores direct references to its neighbouring nodes. Traversing to a neighbour is a pointer dereference, not an index lookup on a global table. This has a concrete performance implication:</p>
+<p>Because of <strong>index-free adjacency</strong> (page 201), each node stores direct references to its neighbours — traversing to a neighbour is a pointer dereference, not an index lookup on a global table. This has a concrete performance implication:</p>
 <table>
 <thead>
 <tr>

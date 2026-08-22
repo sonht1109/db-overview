@@ -30,26 +30,7 @@
 <p>This works at small scale. Under heavy write load, however, the B-tree index becomes a bottleneck: random writes to a hot index page cause contention and page splits. Queries across millions of rows for one sensor require expensive index traversals that scatter across disk.</p>
 <p>A column-family database — Cassandra being the canonical example — stores the data differently at the physical level: <strong>all readings for a single sensor live contiguously on disk</strong>, sorted by timestamp. The entire time-range query for one sensor becomes a single sequential scan of one partition.</p>
 <h2>Partition Key + Clustering Key = Time-Series Superpower</h2>
-<p>The Cassandra data model separates two key concepts:</p>
-<table>
-<thead>
-<tr>
-<th>Concept</th>
-<th>Role</th>
-<th>Example</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>Partition key</strong></td>
-<td>Determines which node holds the data; groups rows physically together</td>
-<td><code>sensor_id</code></td>
-</tr>
-<tr>
-<td><strong>Clustering key</strong></td>
-<td>Determines the sort order <em>within</em> a partition</td>
-<td><code>ts</code> (timestamp)</td>
-</tr>
-</tbody></table>
+<p>As covered on the previous page, the Cassandra data model separates the <strong>partition key</strong> (which node holds the data; groups rows physically together) from the <strong>clustering key</strong> (the sort order <em>within</em> a partition):</p>
 <pre><code class="language-sql">-- Cassandra CQL
 CREATE TABLE sensor_readings (
   sensor_id  TEXT,

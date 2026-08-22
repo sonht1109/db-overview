@@ -80,7 +80,7 @@
 </figure><h2>How It Is Achieved</h2>
 <p>Strong consistency is not magic — it comes from coordination work that happens before the database says &quot;your write succeeded.&quot; Three mechanisms are commonly combined:</p>
 <h3>Synchronous replication</h3>
-<p>The primary node does not acknowledge a write until enough replicas have durably stored it. This is the opposite of &quot;fire and forget&quot; async replication. The write latency goes up because you are waiting for at least one full network round-trip to another machine, but you eliminate the window where replicas are out of sync.</p>
+<p>As covered in Chapter 15, synchronous replication means the primary does not acknowledge a write until enough replicas have durably stored it — write latency goes up by a network round-trip, but there is no window where replicas are out of sync.</p>
 <h3>Consensus protocols</h3>
 <p>Real systems like <strong>CockroachDB</strong>, <strong>Google Spanner</strong>, and <strong>YugabyteDB</strong> use Raft or Multi-Paxos (covered in the previous chapter) to agree on a global order of writes before any of them are visible to readers. A write enters a replicated log; only after a majority of nodes have appended it is the write applied and acknowledged.</p>
 <h3>Sticky or linearizable reads</h3>
@@ -110,17 +110,7 @@
 </tr>
 </tbody></table>
 <h2>The CAP Trade-off</h2>
-<p>Strong consistency does not come for free. The <strong>CAP theorem</strong> (Brewer 2000, formalised by Gilbert and Lynch 2002) states that a distributed system can guarantee at most two of:</p>
-<ul>
-<li><strong>C</strong>onsistency (every read returns the latest write)</li>
-<li><strong>A</strong>vailability (every request gets a response)</li>
-<li><strong>P</strong>artition tolerance (the system keeps working even if nodes cannot reach each other)</li>
-</ul>
-<p>Because network partitions happen in any real cluster, every distributed database must choose between <strong>CP</strong> and <strong>AP</strong>:</p>
-<ul>
-<li><strong>CP (strongly consistent):</strong> If a node cannot reach a quorum, it refuses to serve reads or writes rather than risk returning stale data. Examples: HBase, etcd, Zookeeper, CockroachDB (by default).</li>
-<li><strong>AP (highly available):</strong> The system keeps answering requests even during a partition, accepting that some reads may be stale. Examples: Cassandra (with lower consistency levels), DynamoDB (with eventual consistency).</li>
-</ul>
+<p>Strong consistency does not come for free. As shown in Chapter 14, the <strong>CAP theorem</strong> forces every distributed system to pick between <strong>CP</strong> and <strong>AP</strong> during a partition — refusing to serve reads or writes rather than risk stale data (CP: HBase, etcd, Zookeeper, CockroachDB), or continuing to answer from possibly-stale replicas (AP: Cassandra, DynamoDB). Strong consistency is the CP choice.</p>
 <blockquote>
 <p><strong>Note:</strong> &quot;Consistent&quot; in CAP means linearizability — not the C in ACID, which is about constraint enforcement (see Chapter 10). These are different uses of the same word, and confusing them is one of the most common misunderstandings in distributed-systems conversations.</p>
 </blockquote>

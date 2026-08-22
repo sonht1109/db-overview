@@ -18,7 +18,7 @@
   <div id="rendered" class="content">
 <p>A developer runs <code>DELETE FROM orders;</code> without a <code>WHERE</code> clause at 14:32 on a Tuesday. With a weekly backup, you lose up to six days of data. With <strong>point-in-time recovery (PITR)</strong>, you restore to 14:31:59 and lose nothing but 60 seconds. PITR is the capability that transforms a coarse backup strategy into a precise surgical tool — and understanding how it works is essential for any database reliability practice.</p>
 <h2>How PITR Works</h2>
-<p>All major relational databases maintain a <strong>write-ahead log (WAL)</strong> — a sequential record of every change made to the database, written before the change hits the data files. Crash recovery already relies on this log. PITR extends that mechanism for restore purposes:</p>
+<p>All major relational databases maintain a <strong>write-ahead log (WAL)</strong> for crash recovery (Chapter 13). PITR extends that same mechanism for restore purposes:</p>
 <ol>
 <li>Take a <strong>base backup</strong> (a consistent snapshot of the data files at a known LSN/position)</li>
 <li><strong>Archive WAL segments</strong> continuously to durable storage as they are filled</li>

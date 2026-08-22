@@ -20,7 +20,7 @@
 <h2>The Core Lifecycle of a Write</h2>
 <p>When you write a key-value pair to an LSM-tree-backed database, five things happen in order:</p>
 <ol>
-<li><strong>WAL append</strong> — the write is appended to the Write-Ahead Log (WAL), a sequential file on disk. This is the durability guarantee: if the process crashes, the WAL replays the write on restart.</li>
+<li><strong>WAL append</strong> — the write is appended to the write-ahead log (WAL, Chapter 13), a sequential file on disk that makes the write durable before anything else happens.</li>
 <li><strong>Memtable insert</strong> — the write is applied to the <strong>memtable</strong>, an in-memory data structure (often a red-black tree or skip list) that keeps all recent writes sorted by key.</li>
 <li><strong>Memtable fills up</strong> — once the memtable reaches its size threshold (typically 64–256 MB), it is made immutable and a fresh, empty memtable takes its place.</li>
 <li><strong>SSTable flush</strong> — the immutable memtable is flushed to disk as an <strong>SSTable</strong> (Sorted String Table) — a file where entries are written in key order and never modified again.</li>
@@ -202,7 +202,7 @@
 <h3>Sequence Numbers</h3>
 <p>Every write carries a monotonically increasing <strong>sequence number</strong>. When the same key appears in both L0 and L2, the version with the higher sequence number wins. This is how LSM-trees handle updates without ever overwriting old data.</p>
 <h3>Write-Ahead Log and Crash Recovery</h3>
-<p>The WAL is written <em>before</em> the memtable is updated. On crash: the database replays the WAL to reconstruct the memtable. Once the memtable is safely flushed to an SSTable, those WAL segments can be discarded.</p>
+<p>Recovery follows the standard WAL pattern from Chapter 13: replay the log to reconstruct the memtable on restart. Once the memtable is safely flushed to an SSTable, those WAL segments can be discarded.</p>
 <h3>Memory Pressure</h3>
 <p>Most production deployments set a <strong>memtable size limit</strong> (e.g., 128 MB in Cassandra). When it fills, the write is blocked briefly while the flush to disk completes. Tuning this limit is one of the most impactful knobs in write-heavy systems.</p>
 <h2>Key Takeaways</h2>

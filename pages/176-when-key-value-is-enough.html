@@ -16,30 +16,7 @@
   <p class="chapter-label">Chapter 18. Key-Value Databases</p>
   <h1 class="content-title">When key-value is enough</h1>
   <div id="rendered" class="content">
-<p>Key-value stores are the simplest database model you will encounter: every piece of data is stored under a unique key, and you retrieve it by that key — nothing more, nothing less. No joins, no schemas, no query planner. That simplicity is their superpower, but also their limit. Knowing when to reach for one — and when not to — is a practical skill every developer needs.</p>
-<h2>The Core Mechanic</h2>
-<p>A key-value store is conceptually a giant hash map persisted to disk (and often to memory). Every operation reduces to three primitives:</p>
-<table>
-<thead>
-<tr>
-<th>Operation</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>SET key value</code></td>
-<td>Store a value under a key</td>
-</tr>
-<tr>
-<td><code>GET key</code></td>
-<td>Retrieve the value for a key</td>
-</tr>
-<tr>
-<td><code>DEL key</code></td>
-<td>Remove a key and its value</td>
-</tr>
-</tbody></table>
-<p>The value can be anything: a string, a serialized JSON blob, a binary image, a counter. The store doesn&#39;t care — it treats the value as an opaque byte sequence. Your application gives it meaning.</p>
+<p>As covered at the start of this chapter, key-value stores are the simplest database model: every piece of data is stored under a unique key, and you retrieve it by that key — nothing more, nothing less. No joins, no schemas, no query planner; the entire API is <code>SET</code>, <code>GET</code>, <code>DEL</code>. That simplicity is their superpower, but also their limit. Knowing when to reach for one — and when not to — is a practical skill every developer needs.</p>
 <figure class="diagram">
 <svg viewBox="0 0 620 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Key-value store: application sends SET and GET commands; the store maps keys to opaque values">
   <!-- Application box -->

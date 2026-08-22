@@ -18,7 +18,7 @@
   <div id="rendered" class="content">
 <p>Understanding <em>why</em> graph databases are fast for some queries — and slow for others — requires looking at how they physically store and traverse data. This page digs into the storage layout, complexity analysis, and real-world trade-offs that determine when a graph engine outperforms a relational one and when it does not.</p>
 <h2>Index-Free Adjacency: The Core Performance Mechanism</h2>
-<p>The defining feature of native graph storage is <strong>index-free adjacency</strong>: each node record holds a direct pointer to its first relationship record, and each relationship record chains to the next relationship for each of its two endpoints. No global index is consulted during traversal.</p>
+<p>The defining feature of native graph storage is <strong>index-free adjacency</strong> (introduced on page 201): each node record holds a direct pointer to its first relationship record, and each relationship record chains to the next relationship for each of its two endpoints — no global index is consulted during traversal.</p>
 <figure class="diagram">
 <svg viewBox="0 0 660 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Adjacency list storage layout: node records contain a pointer to their first relationship; relationship records chain together forming a linked list per node">
   <defs>

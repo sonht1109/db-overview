@@ -41,16 +41,13 @@
 <figcaption>The WAL is an append-only log of every change. Write to WAL first (sequential, fast), then lazily flush data pages. On crash, replay the log to recover committed work.</figcaption>
 </figure>
 <p>Imagine the power goes out the instant after a user&#39;s <code>COMMIT</code> returns. Did the transaction survive? Without a careful design, the answer is &quot;maybe&quot; — and &quot;maybe&quot; is not good enough. The <strong>write-ahead log (WAL)</strong> is the mechanism that turns &quot;maybe&quot; into &quot;yes, always.&quot; It is the foundation of durability in virtually every production database engine.</p>
-<h2>What the Problem Is</h2>
-<p>A database stores its permanent data in <strong>pages</strong> (typically 8 KB blocks) on disk. Updating a row means modifying one or more of those pages. But pages travel through an in-memory <strong>buffer pool</strong> before they are written back to disk (see Chapter 12). At any moment, the buffer pool holds &quot;dirty&quot; pages — pages whose in-memory content is newer than what is on disk.</p>
-<p>A crash at the wrong instant can leave pages in a half-written, internally inconsistent state. Worse, even a fully written page may reflect only <em>part</em> of a multi-page transaction. The database needs a way to guarantee that either all changes from a committed transaction are on disk, or none of them are.</p>
-<p>Writing every dirty page to disk synchronously on each commit would be correct, but disastrously slow — a single transaction can touch dozens of scattered pages.</p>
+<h2>The Problem, Briefly</h2>
+<p>Chapter 10 established the setup: pages travel through an in-memory <strong>buffer pool</strong> before being written back to disk (page 095), so at any moment the pool holds &quot;dirty&quot; pages — pages whose in-memory content is newer than what is on disk (page 096). A crash at the wrong instant can leave pages in a half-written, internally inconsistent state, or reflect only <em>part</em> of a multi-page transaction. Writing every dirty page to disk synchronously on each commit would be correct, but disastrously slow.</p>
 <h2>The Write-Ahead Rule</h2>
-<p>WAL solves this with one simple invariant:</p>
+<p>The write-ahead invariant was introduced on page 093: before any page is written to disk, the log record describing that change must already be on disk. This chapter adds the commit-time refinement that makes the durability promise practical:</p>
 <blockquote>
-<p><strong>Before any page is written to disk, the log record describing that change must already be on disk.</strong></p>
+<p><strong>Log-force-at-commit:</strong> on commit, the database flushes only the sequential log — the dirty data pages can follow later, in the background, in any order convenient for the I/O scheduler. The client receives &quot;COMMIT OK&quot; once the log records are durable.</p>
 </blockquote>
-<p>The log is a sequential append-only file. Writing to it is fast because sequential I/O is far cheaper than random I/O across scattered data pages. On commit, the database <strong>flushes only the log</strong> — the dirty data pages can follow later, in the background, in any order convenient for the I/O scheduler. This is called a <strong>log-force-at-commit</strong>.</p>
 <p>Because the log is written first (&quot;write ahead&quot;), recovery can always reconstruct what happened, even if the data pages never made it to disk before a crash.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing WAL log records flushed to disk at commit before dirty data pages are written in the background">  <!-- Timeline axis -->

@@ -18,12 +18,7 @@
   <div id="rendered" class="content">
 <p>Snapshot isolation (SI) is a concurrency control technique used by PostgreSQL, Oracle, SQL Server, MySQL (InnoDB), and many others. Instead of blocking readers with locks, it gives each transaction its own <strong>frozen snapshot</strong> of the database — a consistent view of all data as it existed at the moment the transaction started. Reads never wait for writers, and writers never block readers.</p>
 <h2>How Snapshots Work</h2>
-<p>Every row in the database is actually stored as a chain of <strong>versions</strong>. When a transaction updates a row, it writes a new version alongside the old one rather than overwriting it in place. This technique is called <strong>Multi-Version Concurrency Control (MVCC)</strong> — snapshot isolation is built on top of it.</p>
-<p>Each transaction is assigned a monotonically increasing <strong>transaction ID (txid)</strong>. A row version is visible to a transaction only if:</p>
-<ol>
-<li>It was committed <strong>before</strong> the transaction&#39;s snapshot was taken, and</li>
-<li>It has not been deleted (or its deletion was committed after the snapshot).</li>
-</ol>
+<p>Snapshot isolation is built on the version-chain mechanism of MVCC described on the previous page: each row lives as a chain of versions, each transaction gets a monotonically increasing <strong>transaction ID (txid)</strong>, and a row version is visible to a transaction only if it was committed <em>before</em> the transaction&#39;s snapshot was taken and has not been deleted since.</p>
 <p>This means two transactions running at the same time will each see a consistent, stable world — even if the other transaction is busily writing new versions.</p>
 <figure class="diagram">
 <svg viewBox="0 0 640 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing Txn A and Txn B each reading their own snapshot of a row while Txn C writes a new version">  <!-- Background -->

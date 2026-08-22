@@ -79,8 +79,8 @@
 <p>Given that I/O is page-oriented and expensive, the choice of data structure determines the character of a database.</p>
 <p><strong>Key ideas:</strong></p>
 <ul>
-<li>The <strong>B-tree</strong> is the dominant structure for read-heavy workloads. Its properties — logarithmic depth, high fan-out, sequential leaf pages — map directly onto how disk reads work. Every traversal from root to leaf costs O(log_B N) I/Os, where B is the branching factor.</li>
-<li>The <strong>LSM-tree</strong> trades read performance for write performance. By writing only to memory (MemTable) and sequential files (SSTables), it converts random writes into sequential I/O. Compaction is the cost: it creates <strong>write amplification</strong> (each byte is written multiple times) and uses background I/O.</li>
+<li>The <strong>B-tree</strong> (Ch. 10) is the dominant structure for read-heavy workloads: logarithmic depth, high fan-out, and sequential leaf pages map directly onto how disk reads work — O(log_B N) I/Os per traversal.</li>
+<li>The <strong>LSM-tree</strong> (Ch. 20) trades read performance for write performance: writes go to memory (MemTable) and sequential files (SSTables), converting random writes into sequential I/O. Compaction is the cost — it creates <strong>write amplification</strong> and uses background I/O.</li>
 <li><strong>Indexes</strong> are secondary data structures that accelerate lookup at the cost of storage and write overhead. Hash indexes support only point lookups. B-tree indexes support point lookups and range scans. Covering indexes eliminate table lookups entirely.</li>
 <li><strong>Bloom filters</strong> are a probabilistic structure that tests set membership with no false negatives and a tunable false positive rate. They are used in LSM-trees to skip SSTables that cannot contain a key.</li>
 </ul>
@@ -110,10 +110,10 @@
 <p>Transactions are the mechanism by which databases provide the illusion of a single-user system to multiple concurrent users, and the guarantee that the system remains correct across crashes.</p>
 <p><strong>Key ideas:</strong></p>
 <ul>
-<li><strong>ACID</strong>: Atomicity (all-or-nothing), Consistency (invariants preserved), Isolation (concurrent transactions don&#39;t interfere), Durability (committed data survives crashes). Each property requires specific mechanisms.</li>
+<li><strong>ACID</strong> (Ch. 11): Atomicity, Consistency, Isolation, Durability — each property requires specific mechanisms.</li>
 <li><strong>Write-ahead logging (WAL / ARIES)</strong>: before modifying a data page, write the change to a sequential log. On crash, replay the log. This is the universal mechanism for Atomicity and Durability in relational databases.</li>
 <li><strong>MVCC (Multi-Version Concurrency Control)</strong>: each write creates a new version of a row. Readers see the snapshot from when their transaction started. This enables read-without-locking in PostgreSQL, MySQL InnoDB, and many other systems.</li>
-<li><strong>Isolation levels</strong>: Read Uncommitted, Read Committed, Repeatable Read, Serializable. Each level prevents a subset of anomalies (dirty reads, non-repeatable reads, phantom reads) at increasing cost.</li>
+<li><strong>Isolation levels</strong> (Ch. 12): Read Uncommitted, Read Committed, Repeatable Read, Serializable — each prevents a subset of anomalies (dirty reads, non-repeatable reads, phantom reads) at increasing cost.</li>
 <li><strong>Two-phase locking (2PL)</strong>: acquire all locks before releasing any. Guarantees serializability but can cause deadlocks.</li>
 <li><strong>Snapshot Isolation</strong>: a practical middle ground — reads see a consistent snapshot, writes conflict-check against concurrent writes. Used by PostgreSQL and many cloud databases.</li>
 </ul>

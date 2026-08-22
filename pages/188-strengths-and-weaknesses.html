@@ -33,7 +33,7 @@
 <h3>2. Flexible Schema for Evolving Data</h3>
 <p>Adding a new field requires no <code>ALTER TABLE</code>, no downtime, and no migration script for existing documents. For a product catalog with 20 product types that have different attributes (a t-shirt has <code>size</code> and <code>color</code>; a digital game has <code>platform</code> and <code>download_size</code>), the flexible schema is a natural fit.</p>
 <h3>3. Horizontal Scalability</h3>
-<p>Document databases were largely designed for sharding from the start. Because a document is the natural unit of access and data, it is also the natural unit of distribution. Sharding on the document <code>_id</code> (or a shard key) partitions data across nodes without the cross-partition join problem that plagues relational sharding.</p>
+<p>Document databases were largely designed for sharding (Chapter 14) from the start. Because a document is the natural unit of access and data, it is also the natural unit of distribution — sharding on the document <code>_id</code> (or a shard key) partitions data across nodes without the cross-partition join problem that plagues relational sharding.</p>
 <h3>4. High Write Throughput for Independent Documents</h3>
 <p>Because each document is self-contained, concurrent writes to different documents never conflict. There are no foreign-key checks, no cascading updates, no join-induced lock contention. Systems that write many independent records — event logs, IoT sensor readings, clickstream data — can often achieve high throughput with document databases.</p>
 <h3>5. Developer Velocity</h3>

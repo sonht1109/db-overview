@@ -17,14 +17,7 @@
   <h1 class="content-title">Conflict-free approaches</h1>
   <div id="rendered" class="content">
 <p>When two replicas accept concurrent writes to the same piece of data, you eventually have to reconcile them. Most strategies either pick a winner (last-write-wins) or abort one of the writes (pessimistic locking). <strong>Conflict-free approaches</strong> take a third path: they design the data structure so that concurrent writes can <em>always</em> be merged automatically — no coordination needed, no lost updates, no aborts.</p>
-<p>The central idea is called a <strong>CRDT</strong> — a Conflict-free Replicated Data Type.</p>
-<h2>What Makes a Data Type &quot;Conflict-Free&quot;?</h2>
-<p>A CRDT is a data type with two properties:</p>
-<ol>
-<li><strong>All states can be merged.</strong> Given any two states that replicas have diverged into, there is a well-defined <em>merge</em> (or <em>join</em>) operation that produces a single valid result.</li>
-<li><strong>Merge is commutative, associative, and idempotent.</strong> It does not matter in what order replicas exchange their states, or whether the same update is received twice — the final result is always the same.</li>
-</ol>
-<p>If those properties hold, replicas can accept writes locally (no coordination, no waiting for a quorum) and gossip their state to each other in the background. Convergence is <em>guaranteed</em> by the math, not by a protocol.</p>
+<p>As introduced in Chapter 15, the central idea is the <strong>CRDT</strong> (Conflict-free Replicated Data Type): all states can be merged, and the merge operation is commutative, associative, and idempotent — so replicas can accept writes locally and converge by gossip, with convergence guaranteed by the math rather than by a protocol. This page goes deeper into the flavors and trade-offs.</p>
 <blockquote>
 <p><strong>Note:</strong> CRDTs come in two flavors. <strong>State-based CRDTs</strong> (CvRDTs) ship their entire state to peers, who merge it with their own. <strong>Operation-based CRDTs</strong> (CmRDTs) ship only the operations; the network must deliver each operation at least once. State-based are simpler to reason about; operation-based produce smaller messages.</p>
 </blockquote>

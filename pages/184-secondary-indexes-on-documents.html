@@ -21,7 +21,7 @@
 <p>Every document in a collection has a unique identifier — MongoDB&#39;s <code>_id</code>, Firestore&#39;s document ID, CouchDB&#39;s <code>_id</code>. The database maintains a primary index on this field automatically. Any query that specifies the full <code>_id</code> value is a direct lookup: O(log n) at worst, typically a B-tree traversal to a leaf.</p>
 <p>Everything else — filtering by <code>status</code>, sorting by <code>created_at</code>, finding by <code>email</code> — requires either a <strong>full collection scan</strong> or a secondary index.</p>
 <h2>What a Secondary Index Looks Like</h2>
-<p>A secondary index on a document field is structurally the same as a secondary index in a relational database: a B-tree (or hash, or other structure) keyed by the indexed field&#39;s value, with a pointer to the full document.</p>
+<p>As covered in Chapter 7, a secondary index is a B-tree (or hash, or other structure) keyed by the indexed field&#39;s value, with a pointer to the full row. On a document, that pointer targets the full document.</p>
 <pre><code>Secondary index on &quot;status&quot;:
 
   &quot;active&quot;  → [doc-001, doc-004, doc-009, ...]
@@ -71,7 +71,7 @@ db.users.find({ &quot;address.city&quot;: &quot;Auckland&quot; })
 </code></pre>
 <p>The database walks the document tree to extract <code>address.city</code> at write time and inserts the value into the secondary index. Queries on that path then use the index instead of scanning documents.</p>
 <blockquote>
-<p><strong>Note:</strong> Indexing is always a write-time cost. Every time a document is inserted or its indexed field changes, all affected indexes must be updated. More indexes = slower writes. Index only what your queries actually need.</p>
+<p><strong>Note:</strong> Indexing is always a write-time cost (Chapter 7). Every time a document is inserted or its indexed field changes, all affected indexes must be updated. More indexes = slower writes. Index only what your queries actually need.</p>
 </blockquote>
 <h2>Multikey Indexes: Indexing Arrays</h2>
 <p>When you index an array field, a document database creates one index entry <strong>per array element</strong>. This is called a multikey index (MongoDB&#39;s term) or array index.</p>
@@ -90,9 +90,9 @@ db.users.find({ &quot;address.city&quot;: &quot;Auckland&quot; })
 <pre><code class="language-js">// Supports queries that filter on status AND sort by created_at
 db.orders.createIndex({ status: 1, created_at: -1 })
 </code></pre>
-<p>The same left-prefix rule applies: a compound index on <code>(status, created_at)</code> helps queries on <code>status</code> alone, but not queries on <code>created_at</code> alone.</p>
+<p>The same left-prefix rule from Chapter 7 applies: a compound index on <code>(status, created_at)</code> helps queries on <code>status</code> alone, but not queries on <code>created_at</code> alone.</p>
 <h2>Covered Queries</h2>
-<p>A covered query is one where the index contains all the fields needed to satisfy the query — no document fetch is required. This works the same way as in relational databases:</p>
+<p>As in relational databases (Chapter 7), a covered query is one where the index contains all the fields needed to satisfy the query — no document fetch is required:</p>
 <pre><code class="language-js">// If index is { email: 1, name: 1 }, this query is covered:
 db.users.find({ email: &quot;a@x.com&quot; }, { name: 1, _id: 0 })
 // Returns name from the index itself — never reads the document

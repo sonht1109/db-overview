@@ -93,53 +93,7 @@ COMMIT;
 <p><strong>Note:</strong> Even a <code>COMMIT</code> acknowledgment can arrive while some dirty pages are still in the OS buffer cache, not yet on disk. Recovery must handle <em>that</em> too.</p>
 </blockquote>
 <h2>The Write-Ahead Log (WAL)</h2>
-<p>The standard solution is the <strong>write-ahead log</strong> (WAL). Before any page is modified on disk, a description of that change is appended to a sequential log file. &quot;Write-ahead&quot; means the log entry is flushed to durable storage <em>before</em> the corresponding data page is written.</p>
-<p>The log contains records like:</p>
-<table>
-<thead>
-<tr>
-<th>LSN</th>
-<th>Transaction</th>
-<th>Operation</th>
-<th>Table</th>
-<th>Old value</th>
-<th>New value</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>101</td>
-<td>T42</td>
-<td>UPDATE</td>
-<td>accounts</td>
-<td>balance=500</td>
-<td>balance=400</td>
-</tr>
-<tr>
-<td>102</td>
-<td>T42</td>
-<td>UPDATE</td>
-<td>accounts</td>
-<td>balance=300</td>
-<td>balance=400</td>
-</tr>
-<tr>
-<td>103</td>
-<td>T42</td>
-<td>COMMIT</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-</tr>
-<tr>
-<td>104</td>
-<td>T55</td>
-<td>INSERT</td>
-<td>orders</td>
-<td>—</td>
-<td>(row data)</td>
-</tr>
-</tbody></table>
-<p><strong>LSN</strong> (Log Sequence Number) is a monotonically increasing ID that orders every log record. Two recovery rules follow directly from this structure:</p>
+<p>Page 093 introduced the <strong>write-ahead log</strong> in full: before any page is modified on disk, a description of that change — stamped with an <strong>LSN</strong> (Log Sequence Number) — is appended to a sequential log file, and &quot;write-ahead&quot; means the log entry reaches durable storage <em>before</em> the corresponding data page is written. What matters for recovery are two rules that follow directly from that structure:</p>
 <ul>
 <li><strong>REDO</strong>: If a committed transaction&#39;s changes did not make it to the data pages before the crash, replay those log records to put them back. <em>All recovery systems do this.</em></li>
 <li><strong>UNDO</strong>: If an uncommitted transaction left partial changes on the data pages, reverse its log records to erase the partial work. <em>Used by ARIES engines (InnoDB, SQL Server, DB2). PostgreSQL handles this differently — see below.</em></li>

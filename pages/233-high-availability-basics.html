@@ -50,8 +50,7 @@
 </tbody></table>
 <p>Moving from two to three nines requires planned maintenance windows and a simple restart procedure. Moving from three to four nines requires redundant hardware and automated failover. Five nines requires every layer of the stack to be redundant, including the database.</p>
 <h2>Primary–Replica Replication</h2>
-<p>The most common HA primitive is <strong>primary–replica (master–slave) replication</strong>: one node (the primary) accepts writes; one or more replicas receive a copy of every change and apply it locally.</p>
-<p>Changes flow from primary to replica via the same <strong>write-ahead log</strong> used for crash recovery (in PostgreSQL this is streaming replication; in MySQL it is the binary log). The replica is always slightly behind — this lag is the cost of asynchronous replication.</p>
+<p>The most common HA primitive is <strong>primary–replica replication</strong> — covered in Part IV (Chapter 15): one node accepts writes, and replicas apply every change locally. For HA the detail that matters is that changes flow from primary to replica via the same <strong>write-ahead log</strong> used for crash recovery (in PostgreSQL this is streaming replication; in MySQL it is the binary log), and the replica is always slightly behind — that lag is the cost of asynchronous replication.</p>
 <figure class="diagram">
 <svg viewBox="0 0 680 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Primary-replica HA topology: application writes to primary, WAL streams to two replicas, reads can go to replicas, VIP floats to replica on failover">
   <defs>
@@ -84,7 +83,7 @@
 </svg></p>
 <figcaption>A primary receives all writes and streams WAL to replicas. On failure, one replica is promoted and the virtual IP (VIP) is redirected — the application reconnects without code changes.</figcaption>
 </figure><h2>Synchronous vs. Asynchronous Replication</h2>
-<p>The biggest design decision in any HA setup is whether replication is <strong>synchronous</strong> or <strong>asynchronous</strong>.</p>
+<p>As covered in Chapter 15, replication can be <strong>synchronous</strong> or <strong>asynchronous</strong>. For HA, the distinction has two operational consequences worth restating:</p>
 <table>
 <thead>
 <tr>
@@ -94,11 +93,6 @@
 </tr>
 </thead>
 <tbody><tr>
-<td><strong>Commit latency</strong></td>
-<td>Low — primary does not wait</td>
-<td>Higher — must wait for replica acknowledgement</td>
-</tr>
-<tr>
 <td><strong>Data loss on failover</strong></td>
 <td>Possible — replica may lag</td>
 <td>Zero — replica has every committed transaction</td>
@@ -107,11 +101,6 @@
 <td><strong>Replica failure impact</strong></td>
 <td>None — primary continues</td>
 <td>Primary stalls if synchronous replica is unavailable</td>
-</tr>
-<tr>
-<td><strong>Best for</strong></td>
-<td>Read scale-out, reporting</td>
-<td>Financial systems, any zero-RPO requirement</td>
 </tr>
 </tbody></table>
 <p>PostgreSQL&#39;s <code>synchronous_commit = on</code> (or <code>remote_apply</code>) makes commits synchronous. MySQL Group Replication offers similar guarantees. The practical middle ground is <strong>semi-synchronous</strong>: the primary waits for at least one replica to acknowledge receipt before confirming the commit.</p>
@@ -130,7 +119,7 @@
 <li><strong>Google Cloud Spanner</strong> — built-in multi-region HA, no operator intervention required</li>
 </ul>
 <h3>The Split-Brain Problem</h3>
-<p>Split-brain occurs when two nodes both believe they are the primary and accept writes simultaneously. Resolving the resulting divergence is extremely painful. Prevent it with <strong>STONITH</strong> (Shoot The Other Node In The Head) — the old primary&#39;s network is fenced before the new primary is promoted, guaranteeing the old primary cannot accept writes.</p>
+<p>Split-brain — two nodes both believing they are primary and accepting writes — was introduced in Chapter 15. Preventing it in HA setups relies on <strong>STONITH</strong> (Shoot The Other Node In The Head): the old primary&#39;s network is fenced before the new primary is promoted, guaranteeing the old primary cannot accept writes.</p>
 <h2>Read Replicas for Scale-Out</h2>
 <p>Beyond HA, replicas also serve <strong>read scale-out</strong>: route SELECT-heavy analytics and reporting queries to a replica, leaving the primary free for writes. This is the simplest form of horizontal read scaling and requires zero application changes beyond a read-only connection string.</p>
 <blockquote>

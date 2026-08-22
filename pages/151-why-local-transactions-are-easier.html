@@ -18,10 +18,10 @@
   <div id="rendered" class="content">
 <p>When all your data lives on a single database node, committing a transaction is straightforward: one machine decides, and it is done. The moment data is spread across multiple nodes, that simplicity evaporates. Understanding <em>why</em> single-node transactions are so much easier is the best foundation for understanding the hard problems that distributed transactions must solve.</p>
 <h2>The Single-Node Advantage</h2>
-<p>On a local database, a transaction involves exactly one actor making exactly one decision. The engine can use a simple, well-understood model:</p>
+<p>On a local database, a transaction involves exactly one actor making exactly one decision. The engine can use a simple, well-understood model, building on the machinery from Chapters 11–13:</p>
 <ol>
-<li>Write changes to a <strong>write-ahead log (WAL)</strong> on disk.</li>
-<li>If the process crashes before the commit record, recovery replays the log and rolls back.</li>
+<li>Write changes plus a commit record to the <strong>write-ahead log (WAL)</strong> on disk.</li>
+<li>If the process crashes before the commit record, recovery replays the log on restart and rolls the transaction back.</li>
 <li>If the commit record is written, the transaction is durable — full stop.</li>
 </ol>
 <p>There is no need to coordinate with anyone else. The database&#39;s lock manager, buffer pool, and transaction log are all in the same process, sharing the same memory. Checking whether a lock is held is a pointer lookup, not a network round-trip.</p>
