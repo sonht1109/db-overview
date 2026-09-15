@@ -142,17 +142,24 @@
   }
 
   /* ---------------- Redis console widget (dependency-free simulator) ---------------- */
+  var scriptPromises = {};
+  function loadScript(src) {
+    if (scriptPromises[src]) return scriptPromises[src];
+    scriptPromises[src] = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = src;
+      s.onload = function () { resolve(); };
+      s.onerror = function () { reject(new Error("Could not load " + src)); };
+      document.head.appendChild(s);
+    });
+    return scriptPromises[src];
+  }
+
   var redisSimPromise = null;
   function loadRedisSim() {
     if (window.RedisSim) return Promise.resolve(window.RedisSim);
     if (redisSimPromise) return redisSimPromise;
-    redisSimPromise = new Promise(function (resolve, reject) {
-      var s = document.createElement("script");
-      s.src = "assets/redis.js";
-      s.onload = function () { resolve(window.RedisSim); };
-      s.onerror = function () { reject(new Error("Could not load the Redis simulator (assets/redis.js)")); };
-      document.head.appendChild(s);
-    });
+    redisSimPromise = loadScript("assets/redis.js").then(function () { return window.RedisSim; });
     return redisSimPromise;
   }
 
@@ -172,10 +179,38 @@
     });
   }
 
+  /* ---------------- MongoDB console widget (mingo engine) ---------------- */
+  var mongoSimPromise = null;
+  function loadMongoSim() {
+    if (window.MongoSim) return Promise.resolve(window.MongoSim);
+    if (mongoSimPromise) return mongoSimPromise;
+    mongoSimPromise = loadScript("assets/mingo.min.js")
+      .then(function () { return loadScript("assets/mongo.js"); })
+      .then(function () { return window.MongoSim; });
+    return mongoSimPromise;
+  }
+
+  function mountMongoWidgets() {
+    var widgets = document.querySelectorAll('[data-widget="mongo"]');
+    if (!widgets.length) return;
+    loadMongoSim().then(function (sim) {
+      if (sim) sim.mountWidgets();
+    }).catch(function (e) {
+      widgets.forEach(function (w) {
+        var body = w.querySelector(".widget-body") || w;
+        var out = document.createElement("div");
+        out.className = "result";
+        out.innerHTML = '<div class="err">' + esc(e.message) + "</div>";
+        body.appendChild(out);
+      });
+    });
+  }
+
   function mountWidgets() {
     document.querySelectorAll('[data-widget="sql"]').forEach(mountSql);
     document.querySelectorAll('[data-widget="sql-dual"]').forEach(mountSqlDual);
     mountRedisWidgets();
+    mountMongoWidgets();
   }
 
   if (document.readyState === "loading") {

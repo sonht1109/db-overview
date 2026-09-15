@@ -196,21 +196,35 @@ db.orders.updateOne(
 <td>If variants are a large catalog</td>
 </tr>
 </tbody></table>
-<h2>Interactive Example: Unnesting Arrays with SQLite</h2>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Querying nested arrays with json_each</span></div>
+<h2>Interactive Example: Querying Arrays with MongoDB</h2>
+<div class="widget" data-widget="mongo">
+  <div class="widget-head"><span>MongoDB shell &middot; Querying nested arrays</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO orders VALUES ('ORD-9901', '{&quot;customer&quot;:&quot;aroha&quot;,&quot;items&quot;:[{&quot;sku&quot;:&quot;SHOE-9B&quot;,&quot;qty&quot;:1,&quot;price&quot;:120},{&quot;sku&quot;:&quot;SOCK-3P&quot;,&quot;qty&quot;:3,&quot;price&quot;:8.5}]}'); INSERT INTO orders VALUES ('ORD-9902', '{&quot;customer&quot;:&quot;leo&quot;,&quot;items&quot;:[{&quot;sku&quot;:&quot;SHOE-9B&quot;,&quot;qty&quot;:2,&quot;price&quot;:120}]}'); INSERT INTO orders VALUES ('ORD-9903', '{&quot;customer&quot;:&quot;priya&quot;,&quot;items&quot;:[{&quot;sku&quot;:&quot;HAT-1X&quot;,&quot;qty&quot;:1,&quot;price&quot;:45}]}');" rows="10">-- Unnest items and find all orders containing SHOE-9B
-SELECT
-  o.order_id,
-  o.doc->>'$.customer' AS customer,
-  e.value->>'sku'    AS sku,
-  e.value->>'qty'    AS qty
-FROM orders o, jsonb_each(o.doc::jsonb->'items') e
-WHERE e.value->>'sku' = 'SHOE-9B'
-ORDER BY o.order_id;</textarea>
+    <textarea data-setup="
+use shop
+db.orders.insertOne({_id:&quot;ORD-9901&quot;,customer:&quot;aroha&quot;,items:[{sku:&quot;SHOE-9B&quot;,qty:1,price:120},{sku:&quot;SOCK-3P&quot;,qty:3,price:8.5}]})
+db.orders.insertOne({_id:&quot;ORD-9902&quot;,customer:&quot;leo&quot;,items:[{sku:&quot;SHOE-9B&quot;,qty:2,price:120}]})
+db.orders.insertOne({_id:&quot;ORD-9903&quot;,customer:&quot;priya&quot;,items:[{sku:&quot;HAT-1X&quot;,qty:1,price:45}]})
+  " rows="12">// Which orders contain SHOE-9B? A dotted path matches any array element
+db.orders.find(
+  { "items.sku": "SHOE-9B" },
+  { customer: 1, "items.sku": 1, "items.qty": 1 }
+)
+
+// $elemMatch keeps both conditions on the SAME element
+db.orders.find(
+  { items: { $elemMatch: { sku: "SHOE-9B", qty: { $gte: 2 } } } },
+  { customer: 1 }
+)
+
+// $unwind expands one document per array element, then group to summarise
+db.orders.aggregate([
+  { $unwind: "$items" },
+  { $group: { _id: "$items.sku", units: { $sum: "$items.qty" }, orders: { $sum: 1 } } },
+  { $sort: { units: -1 } }
+])</textarea>
   </div>
-</div><p>Try changing <code>&#39;SHOE-9B&#39;</code> to <code>&#39;SOCK-3P&#39;</code> or <code>&#39;HAT-1X&#39;</code> to query different items. Notice that <code>json_each</code> effectively &quot;joins&quot; the array elements back into rows — the same mental model used by document database array query operators.</p>
+</div><p>Try changing <code>"SHOE-9B"</code> to <code>"SOCK-3P"</code> or <code>"HAT-1X"</code>. The <code>$unwind</code> stage is the document-database equivalent of unnesting: it expands one document containing an array into many documents, one per element — the same mental model as the SQL example above.</p>
 <h2>Key Takeaways</h2>
 <ul>
 <li>Nesting is natural in documents: use nested objects and arrays for data that is <em>owned by</em> and <em>always loaded with</em> the parent.</li>

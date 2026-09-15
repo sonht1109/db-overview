@@ -149,20 +149,33 @@ db.users.find({ email: &quot;a@x.com&quot; }, { name: 1, _id: 0 })
 </tr>
 </tbody></table>
 <h2>Interactive Example</h2>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Secondary index on a JSON field (simulated)</span></div>
+<div class="widget" data-widget="mongo">
+  <div class="widget-head"><span>MongoDB shell &middot; Secondary and multikey indexes</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO products VALUES ('p1', '{&quot;name&quot;:&quot;Trail Shoe&quot;,&quot;category&quot;:&quot;footwear&quot;,&quot;price&quot;:120,&quot;tags&quot;:[&quot;sale&quot;,&quot;sport&quot;]}'); INSERT INTO products VALUES ('p2', '{&quot;name&quot;:&quot;Running Hat&quot;,&quot;category&quot;:&quot;apparel&quot;,&quot;price&quot;:35,&quot;tags&quot;:[&quot;sport&quot;]}'); INSERT INTO products VALUES ('p3', '{&quot;name&quot;:&quot;Sandal&quot;,&quot;category&quot;:&quot;footwear&quot;,&quot;price&quot;:60,&quot;tags&quot;:[&quot;sale&quot;,&quot;casual&quot;]}'); INSERT INTO products VALUES ('p4', '{&quot;name&quot;:&quot;Polo Shirt&quot;,&quot;category&quot;:&quot;apparel&quot;,&quot;price&quot;:45,&quot;tags&quot;:[&quot;casual&quot;]}'); CREATE TABLE product_tags (product_id TEXT, tag TEXT); INSERT INTO product_tags SELECT products.id, e.value FROM products, jsonb_each(doc::jsonb->'tags') e; CREATE INDEX idx_product_tags ON product_tags(tag); CREATE INDEX idx_product_category ON products(doc->>'$.category');" rows="10">-- Query using secondary index on category (SQLite functional index)
-SELECT id, doc->>'$.name' AS name, doc->>'$.price' AS price
-FROM products
-WHERE doc->>'$.category' = 'footwear'
-ORDER BY doc->>'$.price';
--- Uncomment to query via the multikey-style tag index:
--- SELECT DISTINCT p.id, p.doc->>'$.name' AS name
--- FROM products p JOIN product_tags pt ON p.id = pt.product_id
--- WHERE pt.tag = 'sale';</textarea>
+    <textarea data-setup="
+use shop
+db.products.insertOne({_id:&quot;p1&quot;,name:&quot;Trail Shoe&quot;,category:&quot;footwear&quot;,price:120,tags:[&quot;sale&quot;,&quot;sport&quot;]})
+db.products.insertOne({_id:&quot;p2&quot;,name:&quot;Running Hat&quot;,category:&quot;apparel&quot;,price:35,tags:[&quot;sport&quot;]})
+db.products.insertOne({_id:&quot;p3&quot;,name:&quot;Sandal&quot;,category:&quot;footwear&quot;,price:60,tags:[&quot;sale&quot;,&quot;casual&quot;]})
+db.products.insertOne({_id:&quot;p4&quot;,name:&quot;Polo Shirt&quot;,category:&quot;apparel&quot;,price:45,tags:[&quot;casual&quot;]})
+  " rows="12">// No index yet: the engine must examine every document
+db.products.find({ category: "footwear" }).explain()
+
+// Create an index on the field we filter by, then ask again
+db.products.createIndex({ category: 1 })
+db.products.find({ category: "footwear" }).sort({ price: 1 }).explain()
+
+// An index on an array field is "multikey": one entry per element
+db.products.createIndex({ tags: 1 })
+db.products.find({ tags: "sale" }).explain()
+
+// The query itself never changes
+db.products.find(
+  { tags: "sale" },
+  { name: 1, category: 1, price: 1 }
+).sort({ price: 1 })</textarea>
   </div>
-</div><p>The <code>product_tags</code> table simulates a multikey index — one row per tag per product, exactly as MongoDB stores multikey index entries. The compound query at the bottom shows how a join against the expanded index structure replaces a full document scan.</p>
+</div><p>The first <code>explain()</code> reports a <code>COLLSCAN</code>: with no index, the engine must look at every document. After <code>createIndex({ category: 1 })</code> the same query becomes an <code>IXSCAN</code> that reads only the matching entries. An index on an array field is <strong>multikey</strong> — one index entry per element, which is why <code>isMultiKey</code> is <code>true</code> for the <code>tags</code> index.</p>
 <h2>Key Takeaways</h2>
 <ul>
 <li>Secondary indexes in document databases work the same way as in relational databases: B-tree or hash structures pointing to documents by their primary key.</li>

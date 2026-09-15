@@ -184,25 +184,33 @@ db.orders.updateOne(
 <p><strong>Note:</strong> The <code>$</code> positional operator only works when the array field is included in the query filter. If the array is not filtered, use <code>$[]</code> to update all elements.</p>
 </blockquote>
 <h2>Interactive Example</h2>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Simulating document update patterns</span></div>
+<div class="widget" data-widget="mongo">
+  <div class="widget-head"><span>MongoDB shell &middot; Atomic update operators</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE docs (id TEXT PRIMARY KEY, doc TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1); INSERT INTO docs VALUES ('usr-001', '{&quot;name&quot;:&quot;Priya&quot;,&quot;status&quot;:&quot;active&quot;,&quot;login_count&quot;:5,&quot;tags&quot;:[&quot;beta&quot;]}', 1); INSERT INTO docs VALUES ('usr-002', '{&quot;name&quot;:&quot;Leo&quot;,&quot;status&quot;:&quot;inactive&quot;,&quot;login_count&quot;:0,&quot;tags&quot;:[]}', 1);" rows="10">-- Simulate an atomic field-level update (increment login_count, set status)
-UPDATE docs
-SET
-  doc = jsonb_set(
-          jsonb_set(doc::jsonb, '{login_count}', to_jsonb((doc->>'login_count')::int + 1)),
-          '{status}', '"active"'
-        ),
-  version = version + 1
-WHERE id = 'usr-001';
--- See the result
-SELECT id, doc->>'$.login_count' AS login_count,
-           doc->>'$.status' AS status,
-           version
-FROM docs;</textarea>
+    <textarea data-setup="
+use app
+db.docs.insertOne({_id:&quot;usr-001&quot;,name:&quot;Priya&quot;,status:&quot;active&quot;,login_count:5,tags:[&quot;beta&quot;]})
+db.docs.insertOne({_id:&quot;usr-002&quot;,name:&quot;Leo&quot;,status:&quot;inactive&quot;,login_count:0,tags:[]})
+  " rows="12">// Read the documents first
+db.docs.find()
+
+// One atomic update: increment a counter, add a tag, set a field
+db.docs.updateOne(
+  { _id: "usr-001" },
+  { $inc: { login_count: 1 }, $addToSet: { tags: "pro" }, $set: { last_login: "2024-03-01" } }
+)
+
+// The operator reports what it changed; read it back
+db.docs.find({ _id: "usr-001" })
+
+// updateMany applies the same operators to every match
+db.docs.updateMany(
+  { status: "inactive" },
+  { $set: { status: "active" }, $inc: { login_count: 1 } }
+)
+db.docs.find({}, { name: 1, status: 1, login_count: 1 })</textarea>
   </div>
-</div><p>The <code>jsonb_set()</code> function updates fields in place without replacing the full document. The <code>version</code> column increments with each write, enabling optimistic concurrency checks.</p>
+</div><p>Each update operator touches only the fields it names, and the whole update is applied atomically on the server — there is no read-modify-write window in which a concurrent writer could interleave. That is what makes <code>$inc</code> a safe counter and <code>$addToSet</code> a safe set insertion.</p>
 <h2>Key Takeaways</h2>
 <ul>
 <li><strong>Read-modify-write cycles are dangerous</strong> under concurrency; use atomic update operators (<code>$set</code>, <code>$inc</code>, <code>$push</code>, etc.) to avoid lost updates.</li>

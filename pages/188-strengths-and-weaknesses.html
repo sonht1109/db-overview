@@ -91,6 +91,31 @@
 </blockquote>
 <h3>3. Inefficient for Cross-Document Queries</h3>
 <p>&quot;Find all orders placed by customers in Auckland&quot; — in a relational database this is a two-table join with indexes. In a document database where customer data is referenced (not embedded), it requires loading all customer documents first or using <code>$lookup</code> (an application-level join without relational-engine optimizations). Cross-collection queries are expensive.</p>
+<h3>Seeing the Trade-off: Query Plans</h3>
+<p>The console below makes the trade-off concrete: a lookup by <code>_id</code> is an index scan, a filter on an unindexed field is a full collection scan, and joining related data means a <code>$lookup</code> rather than a relational join.</p>
+<div class="widget" data-widget="mongo">
+  <div class="widget-head"><span>MongoDB shell &middot; Where documents shine and where they struggle</span></div>
+  <div class="widget-body">
+    <textarea data-setup="
+use shop
+db.users.insertMany([{_id:&quot;u1&quot;,name:&quot;Aroha&quot;,city:&quot;Auckland&quot;},{_id:&quot;u2&quot;,name:&quot;Leo&quot;,city:&quot;Wellington&quot;},{_id:&quot;u3&quot;,name:&quot;Priya&quot;,city:&quot;Auckland&quot;}])
+db.orders.insertMany([{_id:&quot;o1&quot;,userId:&quot;u1&quot;,total:250},{_id:&quot;o2&quot;,userId:&quot;u1&quot;,total:99},{_id:&quot;o3&quot;,userId:&quot;u2&quot;,total:45}])
+  " rows="12">// STRENGTH: fetch one document by its key — always fast
+db.users.find({ _id: "u1" }).explain()
+
+// WEAKNESS: a filter on an unindexed field scans every document
+db.users.find({ city: "Auckland" }).explain()
+db.users.createIndex({ city: 1 })
+db.users.find({ city: "Auckland" }).explain()
+
+// WEAKNESS: related data in another collection needs $lookup
+db.users.aggregate([
+  { $match: { _id: "u1" } },
+  { $lookup: { from: "orders", localField: "_id", foreignField: "userId", as: "orders" } },
+  { $project: { name: 1, "orders.total": 1 } }
+])</textarea>
+  </div>
+</div>
 <h3>4. Schema Drift Over Time</h3>
 <p>Schema flexibility is a feature in the short term and a maintenance burden in the long term. Without discipline, collections accumulate inconsistent document shapes that break queries, confuse new engineers, and make refactoring painful. The relational constraint system that felt bureaucratic turns out to have been doing important work.</p>
 <h3>5. Aggregations Require a Pipeline</h3>

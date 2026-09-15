@@ -97,6 +97,33 @@
 <li><strong>Schema-on-read</strong> (document databases by default): any data is accepted; the application imposes structure when it reads and parses the document.</li>
 </ul>
 <p>Neither is universally superior. Schema-on-write catches bugs early and makes data trustworthy. Schema-on-read allows faster iteration and accommodates heterogeneous data (e.g., events from many sources with different shapes). The key is <em>knowing which mode you&#39;re in</em> and making a deliberate choice.</p>
+<h2>Interactive Example: Heterogeneous Data</h2>
+<p>The four events below were written by the same collection with no schema declaration, so each carries only the fields that make sense for its type. Filters can require a field to exist, and projections select the shape the application expects:</p>
+<div class="widget" data-widget="mongo">
+  <div class="widget-head"><span>MongoDB shell &middot; Heterogeneous documents in one collection</span></div>
+  <div class="widget-body">
+    <textarea data-setup="
+use events
+db.events.insertOne({_id:1,type:&quot;signup&quot;,user:&quot;u1&quot;,email:&quot;a@x.com&quot;})
+db.events.insertOne({_id:2,type:&quot;purchase&quot;,user:&quot;u1&quot;,amount:42.5,currency:&quot;USD&quot;})
+db.events.insertOne({_id:3,type:&quot;pageview&quot;,user:&quot;u2&quot;,url:&quot;/pricing&quot;,referrer:&quot;google&quot;})
+db.events.insertOne({_id:4,type:&quot;login&quot;,user:&quot;u2&quot;,device:{os:&quot;iOS&quot;,version:&quot;17&quot;}})
+  " rows="12">// Every event has its own shape — no schema rejects any of them
+db.events.find()
+
+// Query one shape without NULL columns for all the others
+db.events.find(
+  { type: "purchase" },
+  { user: 1, amount: 1, currency: 1 }
+)
+
+// Fields only some documents carry
+db.events.find({ amount: { $exists: true } }, { type: 1, amount: 1 })
+
+// The application reads the shape it expects (schema-on-read)
+db.events.find({ type: "login" }, { device: 1 })</textarea>
+  </div>
+</div>
 <h2>Practical Consequences of Flexibility</h2>
 <h3>The Good</h3>
 <ul>

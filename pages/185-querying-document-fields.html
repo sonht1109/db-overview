@@ -202,19 +202,35 @@ db.orders.find({ status: &quot;shipped&quot; })
 </tr>
 </tbody></table>
 <h2>Interactive Example</h2>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Document-style field queries with json_extract</span></div>
+<div class="widget" data-widget="mongo">
+  <div class="widget-head"><span>MongoDB shell &middot; Document-style field queries</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO orders VALUES ('ORD-001','{&quot;status&quot;:&quot;shipped&quot;,&quot;total&quot;:250.00,&quot;customer&quot;:{&quot;name&quot;:&quot;Aroha&quot;,&quot;city&quot;:&quot;Auckland&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;SHOE-9B&quot;,&quot;qty&quot;:1},{&quot;sku&quot;:&quot;SOCK-3P&quot;,&quot;qty&quot;:3}]}'); INSERT INTO orders VALUES ('ORD-002','{&quot;status&quot;:&quot;pending&quot;,&quot;total&quot;:85.50,&quot;customer&quot;:{&quot;name&quot;:&quot;Leo&quot;,&quot;city&quot;:&quot;Wellington&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;HAT-1X&quot;,&quot;qty&quot;:2}]}'); INSERT INTO orders VALUES ('ORD-003','{&quot;status&quot;:&quot;shipped&quot;,&quot;total&quot;:1200.00,&quot;customer&quot;:{&quot;name&quot;:&quot;Priya&quot;,&quot;city&quot;:&quot;Auckland&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;LAPTOP-X&quot;,&quot;qty&quot;:1}]}'); INSERT INTO orders VALUES ('ORD-004','{&quot;status&quot;:&quot;cancelled&quot;,&quot;total&quot;:30.00,&quot;customer&quot;:{&quot;name&quot;:&quot;Sam&quot;,&quot;city&quot;:&quot;Christchurch&quot;},&quot;items&quot;:[{&quot;sku&quot;:&quot;SOCK-3P&quot;,&quot;qty&quot;:1}]}');" rows="10">-- Filter on nested field: shipped orders from Auckland customers
-SELECT
-  id,
-  doc->>'$.customer.name'  AS customer,
-  doc->>'$.total'          AS total
-FROM orders
-WHERE doc->>'$.status' = 'shipped'
-  AND doc->>'$.customer.city' = 'Auckland'
-ORDER BY doc->>'$.total' DESC;
--- Try: change the city, or remove the status filter, or sort ASC</textarea>
+    <textarea data-setup="
+use shop
+db.orders.insertOne({_id:&quot;ORD-001&quot;,status:&quot;shipped&quot;,total:250.00,customer:{name:&quot;Aroha&quot;,city:&quot;Auckland&quot;},items:[{sku:&quot;SHOE-9B&quot;,qty:1},{sku:&quot;SOCK-3P&quot;,qty:3}]})
+db.orders.insertOne({_id:&quot;ORD-002&quot;,status:&quot;pending&quot;,total:85.50,customer:{name:&quot;Leo&quot;,city:&quot;Wellington&quot;},items:[{sku:&quot;HAT-1X&quot;,qty:2}]})
+db.orders.insertOne({_id:&quot;ORD-003&quot;,status:&quot;shipped&quot;,total:1200.00,customer:{name:&quot;Priya&quot;,city:&quot;Auckland&quot;},items:[{sku:&quot;LAPTOP-X&quot;,qty:1}]})
+db.orders.insertOne({_id:&quot;ORD-004&quot;,status:&quot;cancelled&quot;,total:30.00,customer:{name:&quot;Sam&quot;,city:&quot;Christchurch&quot;},items:[{sku:&quot;SOCK-3P&quot;,qty:1}]})
+  " rows="12">// Filter on nested fields: shipped orders from Auckland customers
+db.orders.find(
+  { status: "shipped", "customer.city": "Auckland" },
+  { customer: 1, total: 1 }
+).sort({ total: -1 })
+
+// Comparison operators plus a projection that hides _id
+db.orders.find(
+  { total: { $gte: 100, $lt: 1000 } },
+  { _id: 0, status: 1, total: 1 }
+)
+
+// Multiple conditions on one array element require $elemMatch
+db.orders.find(
+  { items: { $elemMatch: { sku: "SOCK-3P", qty: { $gte: 2 } } } },
+  { _id: 1, "customer.name": 1 }
+)
+
+// Try sorting ascending, or drop the status filter
+db.orders.find({ "customer.city": "Auckland" }).sort({ total: 1 })</textarea>
   </div>
 </div><h2>Key Takeaways</h2>
 <ul>

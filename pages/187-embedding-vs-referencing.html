@@ -188,19 +188,35 @@
 </code></pre>
 <p>This works, but it is slower than a relational join because document databases are not designed to optimize cross-collection lookups. If you find yourself writing many <code>$lookup</code> stages, the relational model may be a better fit.</p>
 <h2>Interactive Example</h2>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Embedding vs referencing tradeoff</span></div>
+<div class="widget" data-widget="mongo">
+  <div class="widget-head"><span>MongoDB shell &middot; Embedding vs referencing</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders_embedded (id TEXT PRIMARY KEY, doc TEXT); INSERT INTO orders_embedded VALUES ('ORD-001', '{&quot;customer_name&quot;:&quot;Aroha&quot;,&quot;customer_email&quot;:&quot;aroha@x.com&quot;,&quot;total&quot;:250}'); INSERT INTO orders_embedded VALUES ('ORD-002', '{&quot;customer_name&quot;:&quot;Aroha&quot;,&quot;customer_email&quot;:&quot;aroha@x.com&quot;,&quot;total&quot;:99}'); CREATE TABLE customers (id TEXT PRIMARY KEY, name TEXT, email TEXT); CREATE TABLE orders_ref (id TEXT PRIMARY KEY, customer_id TEXT, total REAL); INSERT INTO customers VALUES ('cust-441', 'Aroha Ngata', 'aroha@x.com'); INSERT INTO orders_ref VALUES ('ORD-001', 'cust-441', 250); INSERT INTO orders_ref VALUES ('ORD-002', 'cust-441', 99);" rows="10">-- EMBEDDED: update customer name requires touching every order
-UPDATE orders_embedded
-SET doc = jsonb_set(doc::jsonb, '{customer_name}', '"Aroha N."')
-WHERE doc->>'$.customer_name' = 'Aroha';
--- REFERENCED: update customer name in one place
-UPDATE customers SET name = 'Aroha N.' WHERE id = 'cust-441';
--- Compare: embedded shows updated name inline; referenced requires join
-SELECT 'embedded' AS model, id, doc->>'$.customer_name' AS name FROM orders_embedded
-UNION ALL
-SELECT 'referenced', o.id, c.name FROM orders_ref o JOIN customers c ON o.customer_id = c.id;</textarea>
+    <textarea data-setup="
+use shop
+db.orders_embedded.insertOne({_id:&quot;ORD-001&quot;,customer_name:&quot;Aroha&quot;,customer_email:&quot;aroha@x.com&quot;,total:250})
+db.orders_embedded.insertOne({_id:&quot;ORD-002&quot;,customer_name:&quot;Aroha&quot;,customer_email:&quot;aroha@x.com&quot;,total:99})
+db.customers.insertOne({_id:&quot;cust-441&quot;,name:&quot;Aroha Ngata&quot;,email:&quot;aroha@x.com&quot;})
+db.orders_ref.insertOne({_id:&quot;ORD-001&quot;,customer_id:&quot;cust-441&quot;,total:250})
+db.orders_ref.insertOne({_id:&quot;ORD-002&quot;,customer_id:&quot;cust-441&quot;,total:99})
+  " rows="12">// EMBEDDED: the name is copied into every order...
+db.orders_embedded.find({}, { customer_name: 1, total: 1 })
+
+// ...so renaming the customer means updating every copy
+db.orders_embedded.updateMany(
+  { customer_name: "Aroha" },
+  { $set: { customer_name: "Aroha N." } }
+)
+db.orders_embedded.find({}, { customer_name: 1, total: 1 })
+
+// REFERENCED: the name lives once, in the customers collection
+db.customers.updateOne({ _id: "cust-441" }, { $set: { name: "Aroha N." } })
+
+// Reading the referenced shape needs a $lookup (a join) on every query
+db.orders_ref.aggregate([
+  { $lookup: { from: "customers", localField: "customer_id", foreignField: "_id", as: "customer" } },
+  { $unwind: "$customer" },
+  { $project: { _id: 1, total: 1, "customer.name": 1 } }
+])</textarea>
   </div>
 </div><h2>Key Takeaways</h2>
 <ul>

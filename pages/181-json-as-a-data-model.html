@@ -179,22 +179,32 @@ db.orders.find({ &quot;items.0.sku&quot;: &quot;NB-001&quot; })
 // Find orders whose total exceeds 500
 db.orders.find({ total: { $gt: 500 } })
 </code></pre>
-<p>Even relational databases have adopted JSON path syntax. SQLite&#39;s <code>json_extract()</code> and PostgreSQL&#39;s <code>-&gt;</code> / <code>-&gt;&gt;</code> operators let you query into JSON columns with similar path expressions. Try it yourself below.</p>
-<p>Run this query to extract and filter fields stored as JSON text:</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Querying JSON fields</span></div>
+<p>Even relational databases have adopted JSON path syntax. SQLite&#39;s <code>json_extract()</code> and PostgreSQL&#39;s <code>-&gt;</code> / <code>-&gt;&gt;</code> operators let you query into JSON columns with similar path expressions.</p>
+<p>Run these commands in a document-database shell. A filter is itself a document, and a dotted path such as <code>"items.sku"</code> reaches inside an array of sub-documents:</p>
+<div class="widget" data-widget="mongo">
+  <div class="widget-head"><span>MongoDB shell &middot; Querying JSON fields</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE orders (order_id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO orders VALUES ('ORD-5512', '{&quot;customer&quot;:&quot;usr-8821&quot;,&quot;total&quot;:1004.98,&quot;items&quot;:[{&quot;sku&quot;:&quot;NB-001&quot;,&quot;qty&quot;:2},{&quot;sku&quot;:&quot;LP-042&quot;,&quot;qty&quot;:1}]}'); INSERT INTO orders VALUES ('ORD-5513', '{&quot;customer&quot;:&quot;usr-0042&quot;,&quot;total&quot;:5.98,&quot;items&quot;:[{&quot;sku&quot;:&quot;NB-001&quot;,&quot;qty&quot;:2}]}'); INSERT INTO orders VALUES ('ORD-5514', '{&quot;customer&quot;:&quot;usr-8821&quot;,&quot;total&quot;:299.00,&quot;items&quot;:[{&quot;sku&quot;:&quot;TB-009&quot;,&quot;qty&quot;:1}]}');" rows="10">-- Extract nested fields and filter by total > 100
-SELECT
-  order_id,
-  doc->>'$.customer'       AS customer,
-  doc->>'$.total'          AS total,
-  doc->>'$.items[0].sku'   AS first_item_sku
-FROM orders
-WHERE (doc->>'$.total')::double precision > 100
-ORDER BY total DESC;</textarea>
+    <textarea data-setup="
+use shop
+db.orders.insertOne({_id:&quot;ORD-5512&quot;,customer:&quot;usr-8821&quot;,total:1004.98,items:[{sku:&quot;NB-001&quot;,qty:2},{sku:&quot;LP-042&quot;,qty:1}]})
+db.orders.insertOne({_id:&quot;ORD-5513&quot;,customer:&quot;usr-0042&quot;,total:5.98,items:[{sku:&quot;NB-001&quot;,qty:2}]})
+db.orders.insertOne({_id:&quot;ORD-5514&quot;,customer:&quot;usr-8821&quot;,total:299.00,items:[{sku:&quot;TB-009&quot;,qty:1}]})
+  " rows="12">// Filter by a top-level field and project nested values
+db.orders.find(
+  { total: { $gt: 100 } },
+  { customer: 1, total: 1, "items.sku": 1 }
+).sort({ total: -1 })
+
+// A dotted path reaches inside an array: does any item use NB-001?
+db.orders.find(
+  { "items.sku": "NB-001" },
+  { customer: 1, total: 1 }
+)
+
+// Ask the engine what it had to read
+db.orders.find({ "items.sku": "NB-001" }).explain()</textarea>
   </div>
-</div><p>Try changing the threshold (<code>&gt; 100</code>) or extracting a different path like <code>$.items[1].sku</code>. Notice that when an index is out of range, the <code>-&gt;</code> operator returns <code>NULL</code> — the document model&#39;s version of a missing column.</p>
+</div><p>Try changing the threshold (<code>$gt: 100</code>) or adding another projected field. Notice that a path which is absent is simply missing from the result rather than set to <code>NULL</code> — the document model&#39;s version of a missing column.</p>
 
 </div>
   <nav class="pagenav"><a class="prev" href="180-chapter-18-summary.html"><span class="dir">← Previous</span><span class="ttl">Design patterns</span></a><a class="next" href="182-flexible-schema.html"><span class="dir">Next →</span><span class="ttl">Flexible schema</span></a></nav>

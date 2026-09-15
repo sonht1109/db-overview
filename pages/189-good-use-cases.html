@@ -157,26 +157,35 @@
 <p><strong>The heuristic:</strong> If your entity relationships look like a graph (many cross-entity links, arbitrary depths), or if your analytics team writes complex GROUP BY queries, the relational or graph model is likely a better fit. Document databases are for <strong>document-shaped data with document-shaped access patterns</strong>.</p>
 </blockquote>
 <h2>Interactive Example</h2>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Heterogeneous product catalog (document-style)</span></div>
+<div class="widget" data-widget="mongo">
+  <div class="widget-head"><span>MongoDB shell &middot; Heterogeneous product catalog</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE products (id TEXT PRIMARY KEY, doc TEXT NOT NULL); INSERT INTO products VALUES ('prod-001', '{&quot;type&quot;:&quot;clothing&quot;,&quot;name&quot;:&quot;Trail Shirt&quot;,&quot;price&quot;:45,&quot;attributes&quot;:{&quot;size&quot;:&quot;L&quot;,&quot;color&quot;:&quot;blue&quot;,&quot;material&quot;:&quot;polyester&quot;}}'); INSERT INTO products VALUES ('prod-002', '{&quot;type&quot;:&quot;electronics&quot;,&quot;name&quot;:&quot;Wireless Earbuds&quot;,&quot;price&quot;:120,&quot;attributes&quot;:{&quot;battery_hours&quot;:8,&quot;bluetooth&quot;:&quot;5.2&quot;,&quot;warranty_years&quot;:2}}'); INSERT INTO products VALUES ('prod-003', '{&quot;type&quot;:&quot;digital&quot;,&quot;name&quot;:&quot;Photo Editor Pro&quot;,&quot;price&quot;:60,&quot;attributes&quot;:{&quot;platform&quot;:&quot;macOS&quot;,&quot;download_size_mb&quot;:450}}'); INSERT INTO products VALUES ('prod-004', '{&quot;type&quot;:&quot;clothing&quot;,&quot;name&quot;:&quot;Running Shorts&quot;,&quot;price&quot;:35,&quot;attributes&quot;:{&quot;size&quot;:&quot;M&quot;,&quot;color&quot;:&quot;black&quot;,&quot;material&quot;:&quot;nylon&quot;}}');" rows="10">-- Browse all products with their type-specific attributes
-SELECT
-  id,
-  doc->>'$.type'  AS type,
-  doc->>'$.name'  AS name,
-  doc->>'$.price' AS price,
-  -- Extract clothing-specific attribute
-  doc->>'$.attributes.color' AS color,
-  -- Extract electronics-specific attribute
-  doc->>'$.attributes.warranty_years' AS warranty_years
-FROM products
-ORDER BY doc->>'$.price' DESC;
--- Filter to just clothing products:
--- SELECT id, doc->>'$.name', doc->>'$.attributes.size'
--- FROM products WHERE doc->>'$.type' = 'clothing';</textarea>
+    <textarea data-setup="
+use shop
+db.products.insertOne({_id:&quot;prod-001&quot;,type:&quot;clothing&quot;,name:&quot;Trail Shirt&quot;,price:45,attributes:{size:&quot;L&quot;,color:&quot;blue&quot;,material:&quot;polyester&quot;}})
+db.products.insertOne({_id:&quot;prod-002&quot;,type:&quot;electronics&quot;,name:&quot;Wireless Earbuds&quot;,price:120,attributes:{battery_hours:8,bluetooth:&quot;5.2&quot;,warranty_years:2}})
+db.products.insertOne({_id:&quot;prod-003&quot;,type:&quot;digital&quot;,name:&quot;Photo Editor Pro&quot;,price:60,attributes:{platform:&quot;macOS&quot;,download_size_mb:450}})
+db.products.insertOne({_id:&quot;prod-004&quot;,type:&quot;clothing&quot;,name:&quot;Running Shorts&quot;,price:35,attributes:{size:&quot;M&quot;,color:&quot;black&quot;,material:&quot;nylon&quot;}})
+  " rows="12">// Every document carries only its own attributes
+db.products.find().sort({ price: -1 })
+
+// Project the type-specific fields side by side
+db.products.find(
+  {},
+  { type: 1, name: 1, price: 1, "attributes.color": 1, "attributes.warranty_years": 1 }
+).sort({ price: -1 })
+
+// Filter to one product type
+db.products.find(
+  { type: "clothing" },
+  { name: 1, "attributes.size": 1, "attributes.color": 1 }
+)
+
+// An index on the discriminator keeps type filters fast
+db.products.createIndex({ type: 1 })
+db.products.find({ type: "clothing" }).explain()</textarea>
   </div>
-</div><p>Notice that <code>color</code> is NULL for electronics and <code>warranty_years</code> is NULL for clothing — but there are no wasted columns in the actual storage. Each document carries only its own attributes. A relational table storing all product types would have many NULL columns per row.</p>
+</div><p>Notice that <code>color</code> is simply absent from the electronics documents and <code>warranty_years</code> is absent from the clothing documents — there are no wasted columns in storage. Each document carries only its own attributes, whereas a relational table storing all product types would have many NULL columns per row.</p>
 <h2>Key Takeaways</h2>
 <ul>
 <li>Document databases are the right tool when: your entities are hierarchical, read as a whole, variable in structure, and not frequently joined with other entity types.</li>
