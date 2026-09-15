@@ -248,6 +248,35 @@ h1.content-title { font-size: 33px; line-height: 1.2; margin: 8px 0 24px; letter
 .widget .result .err { color: #dc2626; font-family: var(--mono); font-size: 13px; white-space: pre-wrap; }
 .widget .result .muted { color: var(--muted); }
 
+/* ---------- Redis console widget ---------- */
+.redis-hint {
+  margin-top: 8px; font-size: 12.5px; color: var(--muted); line-height: 1.5;
+}
+.widget .redis-out {
+  margin: 0; padding: 12px 14px; background: var(--code-bg);
+  border: 1px solid var(--border); border-radius: 8px;
+  font-family: var(--mono); font-size: 13px; line-height: 1.6;
+  white-space: pre-wrap; word-break: break-word; overflow: auto; max-height: 440px;
+}
+.redis-out .rp { color: var(--muted); }
+.redis-out .rc { color: var(--accent); font-weight: 600; }
+.redis-out .rval { color: var(--text); }
+.redis-out .rerr { color: #dc2626; }
+.redis-out .rhint { color: var(--warn); font-style: italic; }
+.redis-out .rnote { color: var(--muted); font-style: italic; }
+.redis-out .rcmt { color: var(--muted); font-style: italic; }
+.redis-keyspace { margin-top: 12px; }
+.redis-keyspace .rk-head {
+  font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 6px;
+}
+.redis-keyspace .rk-empty { font-size: 13px; color: var(--muted); font-style: italic; }
+.redis-keyspace table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.redis-keyspace th, .redis-keyspace td { border: 1px solid var(--border); padding: 5px 9px; text-align: left; vertical-align: top; }
+.redis-keyspace th { background: var(--surface-2); }
+.redis-keyspace td code { font-size: 12.5px; }
+.redis-keyspace td:nth-child(4) { white-space: nowrap; }
+
 .dual-session {
   display: grid;
   grid-template-columns: 1fr 1fr;

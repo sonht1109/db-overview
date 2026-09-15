@@ -124,17 +124,27 @@ leaderboard:game:chess:weekly
 <li><strong>Feature flags</strong> — store <code>feature:&lt;flag_name&gt;</code> as <code>&quot;on&quot;</code> or <code>&quot;off&quot;</code> (or a JSON config blob) and read it on startup or per-request. Instant rollouts without a database migration.</li>
 </ol>
 <p>The common thread: <strong>you always know the full key up front</strong>. The moment you need to ask &quot;give me all sessions for users in Germany&quot; — a query across values — a key-value store forces a full scan and you should reach for a different tool.</p>
-<p>Try the widget below to simulate a session-store workflow using SQLite&#39;s key-value-like lookup pattern. Notice how the query is always an exact key match — no joins, no filters on value contents.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Key-Value Lookup Pattern</span></div>
+<p>Try the console below to run a session-store workflow against a simulated Redis. Notice how every lookup is an exact <code>GET</code> on a known key — no joins, no filters on value contents.</p>
+<div class="widget" data-widget="redis">
+  <div class="widget-head"><span>Redis console &middot; Key-value lookup pattern</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv_store (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_at INTEGER); INSERT INTO kv_store VALUES ('session:user:4291', '{&quot;token&quot;:&quot;abc123&quot;,&quot;role&quot;:&quot;admin&quot;}', 9999999999); INSERT INTO kv_store VALUES ('session:user:8842', '{&quot;token&quot;:&quot;xyz987&quot;,&quot;role&quot;:&quot;viewer&quot;}', 9999999999); INSERT INTO kv_store VALUES ('cache:homepage:en', '&lt;html&gt;...cached...&lt;/html&gt;', 9999999999); INSERT INTO kv_store VALUES ('ratelimit:ip:203.0.113.5', '42', 9999999998); INSERT INTO kv_store VALUES ('feature:dark_mode', 'on', NULL);" rows="10">-- Exact key lookup (the only fast path in a key-value store)
-SELECT key, value
-FROM kv_store
-WHERE key = 'session:user:4291';
--- Try changing the key above to 'feature:dark_mode' or 'ratelimit:ip:203.0.113.5'
--- Then try a value-content search below — notice it must scan every row:
--- SELECT key FROM kv_store WHERE value LIKE '%admin%';</textarea>
+    <textarea data-setup="
+SET session:user:4291 &#x27;{&quot;token&quot;:&quot;abc123&quot;,&quot;role&quot;:&quot;admin&quot;}&#x27; EX 3600
+SET session:user:8842 &#x27;{&quot;token&quot;:&quot;xyz987&quot;,&quot;role&quot;:&quot;viewer&quot;}&#x27; EX 3600
+SET cache:homepage:en cached-html-en EX 120
+SET ratelimit:ip:203.0.113.5 42 EX 60
+SET feature:dark_mode on
+  " rows="12"># Exact key lookup — the one and only fast path in a key-value store
+GET session:user:4291
+
+# Try other keys:
+# GET feature:dark_mode
+# GET ratelimit:ip:203.0.113.5
+
+# Value-content search? There is no such command. Try this SQL-flavoured line:
+# SELECT key FROM kv_store WHERE value LIKE '%admin%'
+# It fails on purpose: without a query language and a declared index,
+# Redis can only answer "what is the value of THIS key?".</textarea>
   </div>
 </div>
 </div>

@@ -91,22 +91,33 @@
 <td>Search engine (Elasticsearch, etc.)</td>
 </tr>
 </tbody></table>
-<h2>Try It: Simulating a Key-Value Store in SQLite</h2>
+<h2>Try It: A Key-Value Store in the Console</h2>
 <p>A key-value store is conceptually a two-column table. This widget lets you explore that idea — insert, read, and expire entries just like a simple cache would.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Key-Value simulation</span></div>
+<div class="widget" data-widget="redis">
+  <div class="widget-head"><span>Redis console &middot; Key-value simulation</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv_store (key TEXT PRIMARY KEY, value TEXT, expires_at INTEGER); INSERT INTO kv_store VALUES ('session:abc1', '{&quot;uid&quot;:1,&quot;role&quot;:&quot;admin&quot;}', EXTRACT(EPOCH FROM NOW())::integer + 3600); INSERT INTO kv_store VALUES ('session:abc2', '{&quot;uid&quot;:2,&quot;role&quot;:&quot;user&quot;}', EXTRACT(EPOCH FROM NOW())::integer - 10); INSERT INTO kv_store VALUES ('rate:api:1', '17', EXTRACT(EPOCH FROM NOW())::integer + 60); INSERT INTO kv_store VALUES ('flag:dark-mode:1', 'true', NULL);" rows="10">-- GET a single session (the key-value way: exact lookup)
-SELECT key, value
-FROM kv_store
-WHERE key = 'session:abc1';
--- Uncomment to see all non-expired entries (simulating a TTL sweep):
--- SELECT key, value FROM kv_store
--- WHERE expires_at IS NULL OR expires_at > EXTRACT(EPOCH FROM NOW())::integer;
-</textarea>
+    <textarea data-setup="
+SET session:abc1 &#x27;{&quot;uid&quot;:1,&quot;role&quot;:&quot;admin&quot;}&#x27; EX 3600
+SET session:abc2 &#x27;{&quot;uid&quot;:2,&quot;role&quot;:&quot;user&quot;}&#x27; EX 1
+SET rate:api:1 17 EX 60
+SET flag:dark-mode:1 true
+  " rows="12"># GET a single session — the key-value way: one exact lookup, no scan.
+GET session:abc1
+
+# TTLs are managed by the engine, not by a WHERE clause:
+TTL session:abc1
+TTL rate:api:1
+
+# Let the clock tick past session:abc2's 1-second TTL:
+ADVANCE 2
+GET session:abc2        # (nil) — expired
+TTL session:abc2        # -2 means the key no longer exists
+
+# Keys that never expire report -1:
+TTL flag:dark-mode:1</textarea>
   </div>
-</div><p>Notice how every lookup uses <code>WHERE key = ...</code> — an exact match on the primary key. That single-row retrieval is exactly what makes key-value stores so fast: the engine never scans; it hashes or B-tree-walks straight to the record.</p>
-<details class="reveal"><summary>Reveal: What happens if you try to query kv_store for all sessions belonging to user 1?</summary><div class="reveal-body">You would need to scan every row and parse the JSON value to find <code>"uid":1</code> — or use a <code>LIKE '%uid":1%'</code> hack. A real key-value store has no query planner for that; you'd have to maintain a separate index key like <code>user:1:sessions → ["abc1"]</code> yourself. That's the trade-off: blazing speed for known-key lookups, awkward workarounds for anything resembling a search.</div></details><p>The bottom line: if your workload lives and dies by &quot;give me the thing with this ID,&quot; a key-value store will outperform a relational database on latency, throughput, and operational simplicity. When you start needing to ask <em>questions</em> about the data, it&#39;s time to reach for a richer model.</p>
+</div><p>Notice how every lookup is a single <code>GET</code> on an exact key — no <code>WHERE</code>, no scan. That direct retrieval is exactly what makes key-value stores so fast: the engine hashes straight to the record.</p>
+<details class="reveal"><summary>Reveal: What happens if you try to find all sessions belonging to user 1?</summary><div class="reveal-body">Redis has no way to search <em>inside</em> values: you would have to <code>SCAN</code> every key and parse the JSON to find <code>&quot;uid&quot;:1</code>. A real key-value store has no query planner for that; you maintain a separate index key like <code>user:1:sessions &rarr; [&quot;abc1&quot;]</code> yourself. That&#39;s the trade-off: blazing speed for known-key lookups, awkward workarounds for anything resembling a search.</div></details><p>The bottom line: if your workload lives and dies by &quot;give me the thing with this ID,&quot; a key-value store will outperform a relational database on latency, throughput, and operational simplicity. When you start needing to ask <em>questions</em> about the data, it&#39;s time to reach for a richer model.</p>
 
 </div>
   <nav class="pagenav"><a class="prev" href="175-caching-vs-persistence.html"><span class="dir">← Previous</span><span class="ttl">Caching vs persistence</span></a><a class="next" href="177-limits-of-the-model.html"><span class="dir">Next →</span><span class="ttl">Limits of the model</span></a></nav>

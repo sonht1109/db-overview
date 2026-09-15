@@ -92,22 +92,32 @@
 end   = &quot;acme:2024-03~&quot;   -- &#39;~&#39; (ASCII 126) sits above all printable alphanum chars
 </code></pre>
 <p>This pattern appears everywhere — from namespace isolation in multi-tenant stores to per-user data shards in distributed systems.</p>
-<h2>Simulating an Ordered Key-Value Store in SQLite</h2>
-<p>SQLite&#39;s <code>TEXT</code> type compares strings lexicographically with <code>&lt;</code> and <code>&gt;</code>, making it a perfect sandbox for practicing ordered key patterns. The widget below seeds an event log and lets you explore range queries.</p>
-<p>Try the default query first, then modify the <code>BETWEEN</code> bounds to narrow or widen the range. Notice that the query only touches the rows it returns — no full scan needed when there is an index on the key column.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Ordered Key Range Scan</span></div>
+<h2>Simulating an Ordered Key-Value Store with Redis Sorted Sets</h2>
+<p>A Redis sorted set keeps its members in lexicographic order, which makes it a natural sandbox for ordered-key patterns. The console below seeds an event log and lets you explore range queries with <code>ZRANGEBYLEX</code>.</p>
+<p>Try the default command first, then widen or narrow the <code>[</code> / <code>(</code> lex bounds. Notice that <code>ZRANGEBYLEX</code> returns members in order and only touches the range it needs — no full keyspace scan.</p>
+<div class="widget" data-widget="redis">
+  <div class="widget-head"><span>Redis console &middot; Ordered key range scan</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv_log (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO kv_log VALUES ('acme:2024-01-05T09:00:00Z:evt_001', 'login'); INSERT INTO kv_log VALUES ('acme:2024-01-20T11:30:00Z:evt_002', 'purchase'); INSERT INTO kv_log VALUES ('acme:2024-02-14T08:15:00Z:evt_003', 'refund'); INSERT INTO kv_log VALUES ('acme:2024-03-01T10:00:00Z:evt_004', 'login'); INSERT INTO kv_log VALUES ('acme:2024-03-10T14:22:00Z:evt_005', 'purchase'); INSERT INTO kv_log VALUES ('acme:2024-03-28T17:05:00Z:evt_006', 'logout'); INSERT INTO kv_log VALUES ('acme:2024-04-02T09:45:00Z:evt_007', 'login'); INSERT INTO kv_log VALUES ('beta:2024-03-15T12:00:00Z:evt_001', 'login'); INSERT INTO kv_log VALUES ('beta:2024-03-22T16:30:00Z:evt_002', 'purchase');" rows="10">-- Range scan: all events for tenant 'acme' in March 2024
--- Key format: &lt;tenant&gt;:&lt;timestamp&gt;:&lt;event_id&gt;
-SELECT key, value
-FROM kv_log
-WHERE key BETWEEN 'acme:2024-03-' AND 'acme:2024-03~'
-ORDER BY key;
--- Try these variations:
--- All acme events ever:    WHERE key BETWEEN 'acme:' AND 'acme~'
--- All beta events:         WHERE key BETWEEN 'beta:' AND 'beta~'
--- Single lookup:           WHERE key = 'acme:2024-03-10T14:22:00Z:evt_005'</textarea>
+    <textarea data-setup="
+ZADD events 0 acme:2024-01-05T09:00:00Z:evt_001:login
+ZADD events 0 acme:2024-01-20T11:30:00Z:evt_002:purchase
+ZADD events 0 acme:2024-02-14T08:15:00Z:evt_003:refund
+ZADD events 0 acme:2024-03-01T10:00:00Z:evt_004:login
+ZADD events 0 acme:2024-03-10T14:22:00Z:evt_005:purchase
+ZADD events 0 acme:2024-03-28T17:05:00Z:evt_006:logout
+ZADD events 0 acme:2024-04-02T09:45:00Z:evt_007:login
+ZADD events 0 beta:2024-03-15T12:00:00Z:evt_001:login
+ZADD events 0 beta:2024-03-22T16:30:00Z:evt_002:purchase
+  " rows="12"># Range scan: every event for tenant 'acme' in March 2024.
+# Sorted-set members are kept in lexicographic order, like a B-tree key space.
+# Syntax: [ = inclusive, ( = exclusive, - = smallest, + = largest
+ZRANGEBYLEX events [acme:2024-03 (acme:2024-04
+
+# Try these variations:
+# All acme events ever:   ZRANGEBYLEX events [acme: (acme~
+# All beta events:        ZRANGEBYLEX events [beta: (beta~
+# Everything, in order:   ZRANGEBYLEX events - +
+# How many in a range:    ZLEXCOUNT events [acme:2024-03 (acme:2024-04</textarea>
   </div>
 </div><p>The tilde <code>~</code> (ASCII 126) sits just above all printable alphanumeric characters, making it a reliable &quot;end of prefix&quot; sentinel for open-ended scans.</p>
 <h2>PostgreSQL Range Scans on B-tree Indexes</h2>

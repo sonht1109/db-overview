@@ -131,21 +131,38 @@ Stream  → XADD events * action purchase       # append-only log with consumer 
 <p><strong>Note:</strong> etcd is intentionally not a general-purpose cache. Its recommended dataset size is a few gigabytes; for anything larger, teams use a relational database or object store. The key-value model fits here because Kubernetes always looks up configuration by a known path — never runs ad-hoc queries across values.</p>
 </blockquote>
 <h2>Putting It Together: Session Store Simulation</h2>
-<p>The widget below simulates the session store and rate-limiting patterns that Redis handles in production. Notice how every operation is an exact key lookup or a counter increment — the workload is perfectly shaped for a key-value store.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Session store + rate limiting</span></div>
+<p>The console below simulates the session store and rate-limiting patterns that Redis handles in production. Notice how every operation is an exact key lookup or an atomic counter increment — the workload is perfectly shaped for a key-value store.</p>
+<div class="widget" data-widget="redis">
+  <div class="widget-head"><span>Redis console &middot; Session store + rate limiting</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE sessions (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_unix INTEGER); CREATE TABLE rate_counters (key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0, window_end INTEGER NOT NULL); INSERT INTO sessions VALUES ('session:tok_abc123', '{&quot;userId&quot;:4291,&quot;role&quot;:&quot;admin&quot;,&quot;cart&quot;:[1,5,9]}', 9999999999); INSERT INTO sessions VALUES ('session:tok_xyz987', '{&quot;userId&quot;:8842,&quot;role&quot;:&quot;viewer&quot;,&quot;cart&quot;:[]}', 9999999999); INSERT INTO sessions VALUES ('session:tok_expired', '{&quot;userId&quot;:1111,&quot;role&quot;:&quot;viewer&quot;}', 1000000000); INSERT INTO rate_counters VALUES ('ratelimit:user:4291:hour', 47, 9999999999); INSERT INTO rate_counters VALUES ('ratelimit:user:8842:hour', 3, 9999999999); INSERT INTO rate_counters VALUES ('ratelimit:ip:203.0.113.5:hour', 98, 9999999999);" rows="10">-- 1. Validate a session token (exact key lookup)
-SELECT key, value
-FROM sessions
-WHERE key = 'session:tok_abc123'
-  AND expires_unix > 1700000000;   -- simulating: EXTRACT(EPOCH FROM NOW())::integer
--- 2. Check rate limit before serving a request:
--- SELECT count FROM rate_counters WHERE key = 'ratelimit:user:4291:hour';
--- 3. Find expired sessions (full scan -- costly in a real KV store):
--- SELECT key FROM sessions WHERE expires_unix < 1700000000;</textarea>
+    <textarea data-setup="
+SET session:tok_abc123 &#x27;{&quot;userId&quot;:4291,&quot;role&quot;:&quot;admin&quot;,&quot;cart&quot;:[1,5,9]}&#x27; EX 3600
+SET session:tok_xyz987 &#x27;{&quot;userId&quot;:8842,&quot;role&quot;:&quot;viewer&quot;,&quot;cart&quot;:[]}&#x27; EX 3600
+SET session:tok_expired &#x27;{&quot;userId&quot;:1111,&quot;role&quot;:&quot;viewer&quot;}&#x27; EX 1
+SET ratelimit:user:4291:hour 47 EX 3600
+SET ratelimit:user:8842:hour 3 EX 3600
+SET ratelimit:ip:203.0.113.5:hour 98 EX 3600
+  " rows="12"># 1. Validate a session token: one exact lookup; the engine checks the TTL.
+GET session:tok_abc123
+TTL session:tok_abc123
+
+# The expired session is already gone (its EX was 1 second):
+ADVANCE 2
+GET session:tok_expired      # (nil) — no "WHERE expires > now()" needed
+
+# 2. Check a rate-limit counter, then increment it atomically:
+GET ratelimit:user:4291:hour
+INCR ratelimit:user:4291:hour
+
+# 3. "Find every expired session" is an anti-pattern — TTL expiry is the mechanism:
+KEYS session:*
+
+# 4. Need every session for one user? You maintain the secondary index yourself:
+SADD user:4291:sessions tok_abc123
+SADD user:4291:sessions tok_xyz987
+SMEMBERS user:4291:sessions</textarea>
   </div>
-</div><p>Uncomment the second query to check a user&#39;s rate-limit counter, then try the third to see why a &quot;find all expired sessions&quot; scan is an anti-pattern — in a real key-value store, you would rely on TTL expiry instead of querying.</p>
+</div><p>Run the console to walk the whole path: a session lookup, an atomic counter increment, and a full-keyspace scan. That last one is the anti-pattern — production code relies on TTL expiry rather than scanning for expired sessions.</p>
 <details class="reveal"><summary>Reveal: Why can't you just query Redis for all sessions belonging to a user?</summary><div class="reveal-body"><p>Redis stores keys in a flat hash table. To find all keys matching a pattern (like <code>session:user:4291:*</code>) you would have to call <code>SCAN</code> with a match filter — which iterates every key in the store. At millions of keys this is slow and blocks other clients. The correct Redis pattern is to maintain a secondary index yourself: for example, a Set under <code>user:4291:sessions</code> that lists session IDs. You manage it explicitly; the key-value store does not do it for you. This is the fundamental trade-off: you get speed and simplicity, but you lose declarative querying.</p>
 </div></details>
 </div>

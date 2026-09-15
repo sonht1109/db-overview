@@ -157,20 +157,36 @@
 <li><strong>Can you reconstruct the data if it disappears?</strong> → Cache mode is fine.</li>
 <li><strong>Would losing this data cause incorrect behavior or lost work?</strong> → Enable persistence (AOF + RDB), set <code>noeviction</code>, and treat it as a database.</li>
 </ul>
-<p>Try the widget below. It models a cache table with TTL-style expiry and a persistent store without expiry. Notice how you can simulate a cache miss by querying for a key with an expired entry, versus a persistent store where no expiry field exists.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Cache vs Persistent Store</span></div>
+<p>Try the console below. It has a real TTL mechanism and a virtual clock you can advance with <code>ADVANCE</code>. Notice how a cache miss simply means the key is gone — no expiry check in your query — while a persistent key has no TTL at all.</p>
+<div class="widget" data-widget="redis">
+  <div class="widget-head"><span>Redis console &middot; Cache vs persistent store</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE cache_store (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_epoch INTEGER NOT NULL); CREATE TABLE persistent_store (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO cache_store VALUES ('page:home:en', 'cached HTML...', 9999999999); INSERT INTO cache_store VALUES ('page:about:en', 'cached HTML...', 1000000000); INSERT INTO persistent_store VALUES ('config:feature_flags', '{&quot;dark_mode&quot;:true}'); INSERT INTO persistent_store VALUES ('session:user:4291', '{&quot;role&quot;:&quot;admin&quot;}');" rows="10">-- Cache lookup: only return the entry if it hasn't expired.
--- 'page:home:en' is fresh; 'page:about:en' has expired (epoch in the past).
-SELECT key, value,
-       CASE WHEN expires_epoch > 1700000000 THEN 'HIT' ELSE 'MISS (expired)' END AS cache_result
-FROM cache_store;
--- Persistent store: no TTL, data is always there:
--- SELECT key, value FROM persistent_store;</textarea>
+    <textarea data-setup="
+SETEX page:home:en 3600 cached-html-home
+SETEX page:about:en 1 cached-html-about
+SET config:feature_flags &#x27;{&quot;dark_mode&quot;:true}&#x27;
+SET session:user:4291 &#x27;{&quot;role&quot;:&quot;admin&quot;}&#x27;
+  " rows="12"># Two cached entries written at the same instant:
+#   page:home:en  -> 3600s TTL (still fresh)
+#   page:about:en -> 1s TTL
+TTL page:home:en
+TTL page:about:en
+
+# Time passes. Move the simulated clock forward 2 seconds:
+ADVANCE 2
+TTL page:about:en
+GET page:about:en        # (nil) — Redis expired it for you, no WHERE clause
+
+# Persistent keys have no TTL and never disappear:
+TTL config:feature_flags
+GET session:user:4291
+
+# You can strip a TTL explicitly to make a key persistent:
+PERSIST page:home:en
+TTL page:home:en</textarea>
   </div>
 </div><blockquote>
-<p><strong>Note:</strong> Real Redis TTL eviction is handled inside the engine — you never write the <code>WHERE expires_epoch &gt; now()</code> check yourself. The SQL widget above makes the mechanism visible by modeling it explicitly. The key insight is the same: cache entries are transient, persistent entries are not.</p>
+<p><strong>Note:</strong> TTL eviction is handled inside the engine — you never write a <code>WHERE expires_epoch &gt; now()</code> check yourself. Use <code>ADVANCE</code> in the console above to watch a key cross its expiry moment and vanish; <code>GET</code> then returns <code>(nil)</code>. The key insight is the same: cache entries are transient, persistent entries are not.</p>
 </blockquote>
 <h2>Key Takeaways</h2>
 <ul>

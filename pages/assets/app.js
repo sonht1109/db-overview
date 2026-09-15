@@ -141,9 +141,41 @@
     });
   }
 
+  /* ---------------- Redis console widget (dependency-free simulator) ---------------- */
+  var redisSimPromise = null;
+  function loadRedisSim() {
+    if (window.RedisSim) return Promise.resolve(window.RedisSim);
+    if (redisSimPromise) return redisSimPromise;
+    redisSimPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = "assets/redis.js";
+      s.onload = function () { resolve(window.RedisSim); };
+      s.onerror = function () { reject(new Error("Could not load the Redis simulator (assets/redis.js)")); };
+      document.head.appendChild(s);
+    });
+    return redisSimPromise;
+  }
+
+  function mountRedisWidgets() {
+    var widgets = document.querySelectorAll('[data-widget="redis"]');
+    if (!widgets.length) return;
+    loadRedisSim().then(function (sim) {
+      if (sim) sim.mountWidgets();
+    }).catch(function (e) {
+      widgets.forEach(function (w) {
+        var body = w.querySelector(".widget-body") || w;
+        var out = document.createElement("div");
+        out.className = "result";
+        out.innerHTML = '<div class="err">' + esc(e.message) + "</div>";
+        body.appendChild(out);
+      });
+    });
+  }
+
   function mountWidgets() {
     document.querySelectorAll('[data-widget="sql"]').forEach(mountSql);
     document.querySelectorAll('[data-widget="sql-dual"]').forEach(mountSqlDual);
+    mountRedisWidgets();
   }
 
   if (document.readyState === "loading") {

@@ -158,18 +158,33 @@ cache:homepage:v3          → &lt;rendered HTML&gt;
 </ul>
 <p>The key-value model is intentionally narrow. It trades expressiveness for <strong>speed</strong> and <strong>operational simplicity</strong> — and in the right problem domain, that trade is an excellent one.</p>
 <hr>
-<p>SQLite is not a key-value store, but you can simulate the model to make the mechanics concrete. Try looking up, inserting, and deleting pairs in the widget below.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Simulating a key-value store</span></div>
+<p>Redis is the canonical key-value store. The console below is a small in-browser Redis simulator: try looking up, inserting, and deleting pairs, and watch the keyspace update after each run.</p>
+<div class="widget" data-widget="redis">
+  <div class="widget-head"><span>Redis console &middot; Simulating a key-value store</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv_store (key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_at INTEGER); INSERT INTO kv_store VALUES ('session:user:4291', '{&quot;token&quot;:&quot;abc123&quot;,&quot;role&quot;:&quot;admin&quot;}', 1751100000); INSERT INTO kv_store VALUES ('rate:user:4291:day', '47', NULL); INSERT INTO kv_store VALUES ('product:sku:NB-001', '{&quot;name&quot;:&quot;Notebook&quot;,&quot;price&quot;:2.99}', NULL); INSERT INTO kv_store VALUES ('feature:dark_mode', 'true', NULL); INSERT INTO kv_store VALUES ('cache:homepage:v3', '&lt;html&gt;...&lt;/html&gt;', 1751000000);" rows="10">-- GET: look up a specific key
-SELECT value
-FROM kv_store
-WHERE key = 'session:user:4291';
--- Try changing the key above to 'feature:dark_mode' or 'rate:user:4291:day'
--- Try a SET: INSERT INTO kv_store VALUES ('new:key', 'hello', NULL) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
--- Try filtering by prefix (simulating a namespace scan):
--- SELECT key, value FROM kv_store WHERE key LIKE 'rate:%';</textarea>
+    <textarea data-setup="
+SET session:user:4291 &#x27;{&quot;token&quot;:&quot;abc123&quot;,&quot;role&quot;:&quot;admin&quot;}&#x27; EX 3600
+SET rate:user:4291:day 47
+SET product:sku:NB-001 &#x27;{&quot;name&quot;:&quot;Notebook&quot;,&quot;price&quot;:2.99}&#x27;
+SET feature:dark_mode true
+SET cache:homepage:v3 cached-html-v3 EX 300
+  " rows="12"># GET: look up a specific key — the only fast path in a key-value store
+GET session:user:4291
+
+# Try other keys:
+# GET feature:dark_mode
+# GET rate:user:4291:day
+
+# SET / overwrite a key:
+# SET feature:dark_mode off
+# GET feature:dark_mode
+
+# DEL removes a key:
+# DEL product:sku:NB-001
+# EXISTS product:sku:NB-001
+
+# Namespace "scan": Redis must walk the WHOLE keyspace — O(N), not an index seek
+KEYS rate:*</textarea>
   </div>
 </div>
 </div>

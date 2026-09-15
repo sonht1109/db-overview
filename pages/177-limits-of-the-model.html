@@ -97,19 +97,30 @@
 </tbody></table>
 <p>This is not a failure of key-value databases — it is a deliberate design trade-off. They give up expressiveness to achieve speed and operational simplicity. The moment your access patterns stop fitting the &quot;I know the key&quot; mold, that trade-off is no longer working in your favor.</p>
 <hr>
-<p>The widget below makes the wall concrete. Notice what happens when you try to search <em>inside</em> values or aggregate across keys — the query must scan every row, bypassing the primary key index entirely.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · Where the key-value model breaks down</span></div>
+<p>The console below makes the wall concrete. Try to search <em>inside</em> values or aggregate across keys and Redis will reject the command — there is no query language. Even <code>KEYS session:*</code> must touch every key in the store.</p>
+<div class="widget" data-widget="redis">
+  <div class="widget-head"><span>Redis console &middot; Where the key-value model breaks down</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO kv VALUES ('session:user:1', '{&quot;role&quot;:&quot;admin&quot;,&quot;country&quot;:&quot;DE&quot;,&quot;hits&quot;:12}'); INSERT INTO kv VALUES ('session:user:2', '{&quot;role&quot;:&quot;viewer&quot;,&quot;country&quot;:&quot;US&quot;,&quot;hits&quot;:4}'); INSERT INTO kv VALUES ('session:user:3', '{&quot;role&quot;:&quot;admin&quot;,&quot;country&quot;:&quot;DE&quot;,&quot;hits&quot;:99}'); INSERT INTO kv VALUES ('session:user:4', '{&quot;role&quot;:&quot;viewer&quot;,&quot;country&quot;:&quot;FR&quot;,&quot;hits&quot;:7}'); INSERT INTO kv VALUES ('cache:page:home', 'rendered html...'); INSERT INTO kv VALUES ('cache:page:about', 'rendered html...'); INSERT INTO kv VALUES ('feature:dark_mode', 'on');" rows="10">-- Fast: exact key lookup (uses the PRIMARY KEY index)
-SELECT key, value FROM kv WHERE key = 'session:user:3';
--- Slow: searching INSIDE values forces a full table scan.
--- The store has no idea what is inside the JSON blob.
--- Try: SELECT key FROM kv WHERE value LIKE '%admin%';
--- Slow: prefix scan across all sessions
--- Try: SELECT key, value FROM kv WHERE key LIKE 'session:%';
--- Cannot do: SUM(hits) across sessions without parsing every value
--- Try: SELECT COUNT(*) FROM kv WHERE key LIKE 'session:%' AND value LIKE '%"hits"%';</textarea>
+    <textarea data-setup="
+SET session:user:1 &#x27;{&quot;role&quot;:&quot;admin&quot;,&quot;country&quot;:&quot;DE&quot;,&quot;hits&quot;:12}&#x27;
+SET session:user:2 &#x27;{&quot;role&quot;:&quot;viewer&quot;,&quot;country&quot;:&quot;US&quot;,&quot;hits&quot;:4}&#x27;
+SET session:user:3 &#x27;{&quot;role&quot;:&quot;admin&quot;,&quot;country&quot;:&quot;DE&quot;,&quot;hits&quot;:99}&#x27;
+SET session:user:4 &#x27;{&quot;role&quot;:&quot;viewer&quot;,&quot;country&quot;:&quot;FR&quot;,&quot;hits&quot;:7}&#x27;
+SET cache:page:home rendered-html-home
+SET cache:page:about rendered-html-about
+SET feature:dark_mode on
+  " rows="12"># Fast: exact key lookup — O(1), straight to the hash bucket.
+GET session:user:3
+
+# Slow: a prefix scan walks the entire keyspace — O(N).
+KEYS session:*
+
+# Impossible: searching INSIDE values. Try it — Redis has no query language:
+# SELECT COUNT(*) FROM session WHERE value LIKE '%admin%'
+# SELECT key FROM session WHERE role = 'admin'
+
+# Impossible: SUM(hits) across sessions without fetching and parsing every value:
+# SUM hits</textarea>
   </div>
 </div><details class="reveal"><summary>Reveal: Why can't we just add an index on value?</summary><div class="reveal-body"><p>A secondary index on the raw <code>value</code> column only lets you do exact or prefix matches on the <em>entire</em> serialized blob — it cannot index a field <em>inside</em> the JSON. To query efficiently on <code>role</code> or <code>country</code>, you would need to extract those fields into separate columns (breaking the key-value model) or use a document store that maintains indexes on nested fields natively. That is exactly why document databases exist: they are key-value stores that understand the structure of their values.</p>
 </div></details>

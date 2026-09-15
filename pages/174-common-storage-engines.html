@@ -129,20 +129,32 @@
 <blockquote>
 <p><strong>Note:</strong> Most production key-value systems are not single-engine. Redis adds persistence layers on top of its hash table. RocksDB is embedded inside larger systems (TiKV, Pebble) that add distributed replication on top. The engine is one layer in a larger stack.</p>
 </blockquote>
-<p>The interactive widget below lets you observe a key behavior that distinguishes engines: with a B-tree-style sorted store, range scans are cheap; with a hash table, they require a full scan. Simulate both patterns and compare their <code>EXPLAIN</code> output.</p>
-<div class="widget" data-widget="sql">
-  <div class="widget-head"><span>Interactive SQL · B-tree range scan vs hash scan</span></div>
+<p>The console below lets you observe the behavior that distinguishes engines: an ordered index answers a range scan cheaply, while Redis&#39;s flat hash keyspace must walk every key. Run both and compare.</p>
+<div class="widget" data-widget="redis">
+  <div class="widget-head"><span>Redis console &middot; Ordered index vs flat hash</span></div>
   <div class="widget-body">
-    <textarea data-setup="CREATE TABLE btree_store (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO btree_store VALUES ('session:user:1001', 'token_a'); INSERT INTO btree_store VALUES ('session:user:1042', 'token_b'); INSERT INTO btree_store VALUES ('session:user:2001', 'token_c'); INSERT INTO btree_store VALUES ('product:sku:NB-001', 'notebook'); INSERT INTO btree_store VALUES ('product:sku:PN-002', 'pen'); INSERT INTO btree_store VALUES ('product:sku:RU-003', 'ruler'); INSERT INTO btree_store VALUES ('rate:ip:10.0.0.1', '5'); INSERT INTO btree_store VALUES ('rate:ip:10.0.0.2', '12'); CREATE TABLE hash_store (key TEXT, value TEXT NOT NULL); INSERT INTO hash_store VALUES ('session:user:1001', 'token_a'); INSERT INTO hash_store VALUES ('session:user:1042', 'token_b'); INSERT INTO hash_store VALUES ('session:user:2001', 'token_c'); INSERT INTO hash_store VALUES ('product:sku:NB-001', 'notebook'); INSERT INTO hash_store VALUES ('product:sku:PN-002', 'pen'); INSERT INTO hash_store VALUES ('product:sku:RU-003', 'ruler'); INSERT INTO hash_store VALUES ('rate:ip:10.0.0.1', '5'); INSERT INTO hash_store VALUES ('rate:ip:10.0.0.2', '12');" rows="10">-- B-tree (PRIMARY KEY = sorted index): range scan is efficient
-SELECT key, value
-FROM btree_store
-WHERE key BETWEEN 'product:' AND 'product:~'
-ORDER BY key;
--- Uncomment to compare query plans:
--- EXPLAIN
--- SELECT key FROM btree_store WHERE key BETWEEN 'session:' AND 'session:~';
--- EXPLAIN
--- SELECT key FROM hash_store  WHERE key BETWEEN 'session:' AND 'session:~';</textarea>
+    <textarea data-setup="
+SET session:user:1001 token_a
+SET session:user:1042 token_b
+SET session:user:2001 token_c
+SET product:sku:NB-001 notebook
+SET product:sku:PN-002 pen
+SET product:sku:RU-003 ruler
+SET rate:ip:10.0.0.1 5
+SET rate:ip:10.0.0.2 12
+ZADD ordered:keys 0 session:user:1001 0 session:user:1042 0 session:user:2001 0 product:sku:NB-001 0 product:sku:PN-002 0 product:sku:RU-003 0 rate:ip:10.0.0.1 0 rate:ip:10.0.0.2
+  " rows="12"># Flat hash keyspace: a prefix "range scan" means walking EVERY key — O(N).
+KEYS session:*
+
+# The same range over an ordered index (a sorted set) is O(log N + M):
+ZRANGEBYLEX ordered:keys [product: (product~
+
+# Redis reports each key's in-memory encoding:
+OBJECT ENCODING session:user:1001
+OBJECT ENCODING ordered:keys
+
+# A flat hash cannot range-scan; you must know the exact key:
+GET session:user:1042</textarea>
   </div>
 </div><h2>Key Takeaways</h2>
 <ul>
